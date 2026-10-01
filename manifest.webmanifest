@@ -1,25 +1,56 @@
 {
   "id": "./",
-  "name": "Bass Stem Studio",
-  "short_name": "Bass Studio",
-  "description": "Bass Stem Studio practice and bass analysis player.",
-  "start_url": "./",
+  "name": "Speak & Read Learning Hub",
+  "short_name": "Speak & Read",
+  "description": "Rapid word recognition, pronunciation practice and word meanings in one learning app.",
+  "lang": "en-GB",
+  "dir": "ltr",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#09111f",
-  "theme_color": "#09111f",
+  "background_color": "#f3f7f8",
+  "theme_color": "#0b2b46",
+  "orientation": "any",
+  "categories": [
+    "education"
+  ],
+  "prefer_related_applications": false,
   "icons": [
     {
-      "src": "./icons/icon-192.png",
+      "src": "./icon-192.png",
       "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/png"
     },
     {
-      "src": "./icons/icon-512.png",
+      "src": "./icon-512.png",
       "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/png"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Rapid Word Recognition",
+      "short_name": "Rapid Words",
+      "url": "./rapid-word-recognition.html",
+      "icons": [
+        {
+          "src": "./icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Pronunciation & Meaning",
+      "short_name": "Pronunciation",
+      "url": "./pronunciation-meaning.html",
+      "icons": [
+        {
+          "src": "./icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     }
   ]
 }
