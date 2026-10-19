@@ -15327,7 +15327,7 @@ html body #appRoot#appRoot#appRoot .bass-over-lyrics{color:#72e6a2;font-weight:7
   function drawTimeGrid(g,w,y1,y2,labelY){
     const ticks=timelineTicks();
     g.save();
-    g.font='30px Arial, sans-serif';
+    g.font='11px Arial, sans-serif';
     g.textBaseline='middle';
     for(const s of ticks){
       const x=timelineX(s,w),major=isTimelineMajor(s);
@@ -15382,14 +15382,14 @@ html body #appRoot#appRoot#appRoot .bass-over-lyrics{color:#72e6a2;font-weight:7
 
     g.fillStyle='#0b1728';g.fillRect(0,0,w,rulerH);
     g.strokeStyle='#263c5b';g.beginPath();g.moveTo(0,rulerH-.5);g.lineTo(w,rulerH-.5);g.stroke();
-    g.font=`${Math.max(11,Math.min(14,rulerH*.38))}px system-ui`;
+    g.font='11px system-ui';
     g.textBaseline='middle';
     g.strokeStyle='#193552'; g.fillStyle='#9fb1c8';
 
     // Exact same 4-second grid and x-coordinate function as the waveform.
     drawTimeGrid(g,w,0,h,rulerH/2);
 
-    g.font=`${Math.max(10,rowH*.45)}px system-ui`;
+    g.font='11px system-ui';
     g.textBaseline='alphabetic';
     for(let m=minM;m<=maxM;m++){
       const y=rulerH+rollH-(m-minM+1)*rowH;
@@ -15422,13 +15422,14 @@ html body #appRoot#appRoot#appRoot .bass-over-lyrics{color:#72e6a2;font-weight:7
       const x1=timelineX(n.start,w),x2=timelineX(n.end,w);
       const y=rulerH+rollH-(n.midi-minM+1)*rowH;
       const cw=Math.max(10,x2-x1),ch=rowH;
-      g.fillStyle='rgba(65,198,244,.96)';g.fillRect(x1,y,cw,ch);
-      g.strokeStyle='#8de2ff';g.lineWidth=1;
+      const fillNote=!!n.isFill, uncertainNote=!fillNote&&isLowConfidenceNote(n);
+      g.fillStyle=fillNote?'rgba(255,209,102,.96)':uncertainNote?'rgba(185,155,255,.96)':'rgba(114,230,162,.96)';g.fillRect(x1,y,cw,ch);
+      g.strokeStyle=fillNote?'#fff0bb':uncertainNote?'#d7c8ff':'#c5ffde';g.lineWidth=1;
       g.strokeRect(Math.round(x1)+.5,Math.round(y)+.5,Math.max(1,cw-1),Math.max(1,ch-1));
       const label=midiName(n.midi);
       if(cw>=14){
         g.save();g.beginPath();g.rect(x1+1,y+1,Math.max(1,cw-2),Math.max(1,ch-2));g.clip();
-        g.fillStyle='#04111d';g.font=`bold ${Math.max(8,Math.min(11,rowH*.52))}px system-ui`;
+        g.fillStyle='#04111d';g.font='bold 11px system-ui';
         g.textBaseline='middle';g.fillText(label,x1+3,y+ch/2);g.restore();
       }
     }
