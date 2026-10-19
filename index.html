@@ -11421,6 +11421,104 @@ html body #appRoot#appRoot#appRoot *::before,
 html body #appRoot#appRoot#appRoot *::after,
 html body #appRoot#appRoot#appRoot *::placeholder{font-size:var(--ui-font-size,11px)!important}
 
+
+/* RC137: standard top control cards; speed and bass string count share the top row. */
+html body #appRoot#appRoot#appRoot .brand{display:flex!important;flex-direction:column!important;align-items:stretch!important}
+html body #appRoot#appRoot#appRoot #displaySizeControl{
+  display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  gap:var(--rc120-tight-gap,4px)!important;width:100%!important;max-width:100%!important;
+  margin:0!important;align-items:stretch!important;box-sizing:border-box!important;
+}
+html body #appRoot#appRoot#appRoot #fontSizeDown,
+html body #appRoot#appRoot#appRoot #fontSizeUp,
+html body #appRoot#appRoot#appRoot .display-size-readout,
+html body #appRoot#appRoot#appRoot #speedControl,
+html body #appRoot#appRoot#appRoot #bassStringSelector{
+  position:relative!important;grid-column:auto!important;display:flex!important;
+  flex-direction:column!important;align-items:center!important;justify-content:center!important;
+  width:100%!important;min-width:0!important;max-width:none!important;
+  height:var(--rc120-control-h,38px)!important;min-height:var(--rc120-control-h,38px)!important;
+  max-height:var(--rc120-control-h,38px)!important;margin:0!important;padding:2px!important;
+  box-sizing:border-box!important;border:1px solid #294766!important;border-radius:10px!important;
+  background:#10243c!important;overflow:hidden!important;
+}
+html body #appRoot#appRoot#appRoot #bassStringSelector[hidden]{display:none!important}
+html body #appRoot#appRoot#appRoot .display-size-readout{flex-direction:row!important;gap:2px!important}
+html body #appRoot#appRoot#appRoot #fontSizeDown,
+html body #appRoot#appRoot#appRoot #fontSizeUp{padding:0!important}
+html body #appRoot#appRoot#appRoot #fontSizeInput{width:55%!important;max-width:55%!important;text-align:right!important}
+html body #appRoot#appRoot#appRoot .display-size-readout span{flex:0 0 auto!important}
+html body #appRoot#appRoot#appRoot #speedControl label,
+html body #appRoot#appRoot#appRoot #speedControl #tempo,
+html body #appRoot#appRoot#appRoot #bassStringSelect,
+html body #appRoot#appRoot#appRoot #bassStringSelector .top-card-label{
+  display:block!important;position:static!important;inset:auto!important;width:100%!important;
+  min-width:0!important;max-width:100%!important;height:auto!important;min-height:0!important;
+  max-height:none!important;margin:0!important;padding:0!important;border:0!important;
+  background:transparent!important;box-shadow:none!important;color:#f1f6ff!important;
+  font-size:var(--ui-font-size,11px)!important;line-height:1.1!important;text-align:center!important;
+  text-align-last:center!important;white-space:nowrap!important;overflow:hidden!important;
+}
+html body #appRoot#appRoot#appRoot #speedControl #tempo,
+html body #appRoot#appRoot#appRoot #bassStringSelect{appearance:auto!important;-webkit-appearance:menulist!important}
+html body #appRoot#appRoot#appRoot #bassStringSelector .top-card-label{color:#afc2d8!important}
+html body #appRoot#appRoot#appRoot .premium-transport .transport-main{
+  display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  grid-template-rows:var(--rc120-control-h,38px)!important;
+  height:var(--rc120-control-h,38px)!important;min-height:var(--rc120-control-h,38px)!important;
+  max-height:var(--rc120-control-h,38px)!important;gap:var(--rc120-tight-gap,4px)!important;
+}
+html body #appRoot#appRoot#appRoot .premium-transport #importBtn{grid-column:1!important}
+html body #appRoot#appRoot#appRoot .premium-transport #playBtn{grid-column:2!important}
+html body #appRoot#appRoot#appRoot .premium-transport #pauseBtn{grid-column:3!important}
+html body #appRoot#appRoot#appRoot .premium-transport #noteNumberToggle{grid-column:4!important}
+html body #appRoot#appRoot#appRoot .premium-transport #bassPracticeToggle{grid-column:5!important}
+
+
+/* RC138: keep the bass-string choice visible and make every control row uniform. */
+html body #appRoot#appRoot#appRoot .premium-transport .transport-main{
+  grid-template-columns:repeat(5,minmax(0,1fr))!important;
+}
+html body #appRoot#appRoot#appRoot .premium-transport .transport-main #importBtn,
+html body #appRoot#appRoot#appRoot .premium-transport .transport-main #playBtn,
+html body #appRoot#appRoot#appRoot .premium-transport .transport-main #pauseBtn,
+html body #appRoot#appRoot#appRoot .premium-transport .transport-main #noteNumberToggle,
+html body #appRoot#appRoot#appRoot .premium-transport .transport-main #bassPracticeToggle{
+  width:100%!important;min-width:0!important;max-width:none!important;
+  height:var(--rc120-control-h,38px)!important;min-height:var(--rc120-control-h,38px)!important;
+  max-height:var(--rc120-control-h,38px)!important;margin:0!important;padding:2px!important;
+  box-sizing:border-box!important;grid-row:1!important;
+}
+html body #appRoot#appRoot#appRoot .premium-transport .transport-main #importBtn{grid-column:1!important}
+html body #appRoot#appRoot#appRoot .premium-transport .transport-main #playBtn{grid-column:2!important}
+html body #appRoot#appRoot#appRoot .premium-transport .transport-main #pauseBtn{grid-column:3!important}
+html body #appRoot#appRoot#appRoot .premium-transport .transport-main #noteNumberToggle{grid-column:4!important}
+html body #appRoot#appRoot#appRoot .premium-transport .transport-main #bassPracticeToggle{grid-column:5!important}
+html body #appRoot#appRoot#appRoot .premium-transport .loop-range-row{
+  display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;
+  grid-template-rows:var(--rc120-control-h,38px)!important;
+  height:var(--rc120-control-h,38px)!important;min-height:var(--rc120-control-h,38px)!important;
+  max-height:var(--rc120-control-h,38px)!important;gap:var(--rc120-tight-gap,4px)!important;
+  align-items:stretch!important;overflow:visible!important;
+}
+html body #appRoot#appRoot#appRoot .premium-transport .loop-range-row #loopToggle,
+html body #appRoot#appRoot#appRoot .premium-transport .loop-range-row #timeFrom,
+html body #appRoot#appRoot#appRoot .premium-transport .loop-range-row #timeTo,
+html body #appRoot#appRoot#appRoot .premium-transport .loop-range-row #clearLoop,
+html body #appRoot#appRoot#appRoot .premium-transport .loop-range-row #songScaleWrap,
+html body #appRoot#appRoot#appRoot .premium-transport .loop-range-row #songTempoWrap{
+  grid-row:1!important;width:100%!important;min-width:0!important;max-width:none!important;
+  height:var(--rc120-control-h,38px)!important;min-height:var(--rc120-control-h,38px)!important;
+  max-height:var(--rc120-control-h,38px)!important;margin:0!important;padding:2px!important;
+  box-sizing:border-box!important;overflow:hidden!important;
+}
+html body #appRoot#appRoot#appRoot .premium-transport .loop-range-row #loopToggle{grid-column:1!important}
+html body #appRoot#appRoot#appRoot .premium-transport .loop-range-row #timeFrom{grid-column:2!important}
+html body #appRoot#appRoot#appRoot .premium-transport .loop-range-row #timeTo{grid-column:3!important}
+html body #appRoot#appRoot#appRoot .premium-transport .loop-range-row #clearLoop{grid-column:4!important}
+html body #appRoot#appRoot#appRoot .premium-transport .loop-range-row #songScaleWrap{grid-column:5!important}
+html body #appRoot#appRoot#appRoot .premium-transport .loop-range-row #songTempoWrap{grid-column:6!important}
+
 </style>
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#09111f">
@@ -11450,7 +11548,20 @@ html body #appRoot#appRoot#appRoot *::placeholder{font-size:var(--ui-font-size,1
           <span>px</span>
         </label>
         <button class="display-size-btn" id="fontSizeUp" type="button" aria-label="Increase text size" title="Increase text size">+</button>
-        <button class="display-auto-btn" id="fontSizeAuto" type="button" aria-label="Use automatic device text size" title="Use automatic device text size">Auto</button>
+        <div class="bass-string-selector top-string-count" id="bassStringSelector" aria-label="Bass strings">
+          <select id="bassStringSelect" aria-label="Bass strings">
+            <option value="4">4</option><option value="5" selected>5</option><option value="6">6</option>
+          </select>
+          <span class="top-card-label">Strings</span>
+        </div>
+        <div class="speed-top-card" id="speedControl">
+          <label for="tempo">Speed</label>
+          <select id="tempo" aria-label="Speed">
+            <option value="100" selected>100%</option><option value="90">90%</option>
+            <option value="80">80%</option><option value="70">70%</option><option value="60">60%</option>
+          </select>
+          <b id="tempoText" style="display:none">100%</b><button id="tempoReset" style="display:none"></button>
+        </div>
       </div>
       <div class="pill" id="engineBadge">Bb0–G3 Bass View</div>
     </div>
@@ -11496,19 +11607,7 @@ html body #appRoot#appRoot#appRoot *::placeholder{font-size:var(--ui-font-size,1
       <span id="bassPracticeText" class="visually-hidden">Mute</span>
     </button>
     <button class="btn stacked-control" id="metronomeToggle" type="button" disabled aria-pressed="false" hidden aria-hidden="true" tabindex="-1" style="display:none!important"><span>Metro</span><strong id="metronomeText">Off</strong></button>
-    <div class="tempo-compact play-speed-control" id="speedControl">
-      <span class="tempo-divider" aria-hidden="true"></span>
-      <label for="tempo">Speed</label>
-      <select id="tempo" class="btn tempo-select" aria-label="Speed">
-        <option value="100" selected>100%</option>
-        <option value="90">90%</option>
-        <option value="80">80%</option>
-        <option value="70">70%</option>
-        <option value="60">60%</option>
-      </select>
-      <b id="tempoText" style="display:none">100%</b>
-      <button id="tempoReset" style="display:none"></button>
-    </div>
+
   </div>
 
   <div class="transport-row progress-row-premium">
@@ -11565,14 +11664,7 @@ html body #appRoot#appRoot#appRoot *::placeholder{font-size:var(--ui-font-size,1
 
         <div class="timeline-part-tabs" id="timelinePartTabs" hidden aria-label="Song parts"></div>
 
-        <div class="bass-string-selector stacked-select-card" id="bassStringSelector" hidden aria-label="Bass guitar strings">
-          <select class="bass-string-select" id="bassStringSelect" aria-label="Bass guitar strings">
-            <option value="4">4</option>
-            <option value="5" selected>5</option>
-            <option value="6">6</option>
-          </select>
-          <span class="stacked-select-display" aria-hidden="true"><strong id="bassStringDisplayValue">5</strong></span>
-        </div>
+
       </div>
 
       <div class="timeline-breakdown-control" id="timelineBreakdownControl" title="Choose how many seconds each Notes View and Bass View timeline cell represents">
@@ -14043,7 +14135,7 @@ html body #appRoot#appRoot#appRoot *::placeholder{font-size:var(--ui-font-size,1
     if(viewDisplay)viewDisplay.textContent=bass?'Bass':'Notes';
     if(timelineScroll)timelineScroll.hidden=bass;
     if(bassViewPanel)bassViewPanel.hidden=!bass;
-    if(bassStringSelector)bassStringSelector.hidden=!bass;
+    if(bassStringSelector)bassStringSelector.hidden=false;
     if(timelineViewBtn){
       timelineViewBtn.classList.toggle('active',!bass);
       timelineViewBtn.setAttribute('aria-pressed',bass?'false':'true');
@@ -16425,102 +16517,4 @@ html body #appRoot#appRoot#appRoot *::placeholder{font-size:var(--ui-font-size,1
     pauseBtn.disabled=noAudio||!playing;
     stopBtn.disabled=true;
     if(skipBack10)skipBack10.disabled=noAudio;
-    if(skipForward10)skipForward10.disabled=noAudio;
-    playBtn.classList.toggle('good',!playing);
-    playBtn.classList.remove('playing-stop');
-    refreshBassPracticeToggle();refreshMetronomeToggle();updateProjectButtons();
-  }
-
-  aiAnalyse?.addEventListener('click',analyseBassWithAI);
-  exportAnalysis?.addEventListener('click',exportBassAnalysisCSV);
-  document.addEventListener('visibilitychange',()=>{
-    if(document.visibilityState==='visible')checkSavedAnalysisSoon(150);
-  });
-  window.addEventListener('pageshow',()=>checkSavedAnalysisSoon(350));
-  window.addEventListener('focus',()=>checkSavedAnalysisSoon(250));
-  window.addEventListener('resize',()=>{waveCacheDirty=true;rebuildSimpleTimeline._sig='';drawAll()});
-  window.addEventListener('beforeunload',()=>{if(mediaURL)URL.revokeObjectURL(mediaURL);if(bassStemURL)URL.revokeObjectURL(bassStemURL);if(noBassURL)URL.revokeObjectURL(noBassURL)});
-  drawWaveform(); drawRoll();
-  checkSavedAnalysisSoon(700);
-})();
-</script>
-
-<script>
-(() => {
-  const topRow = document.querySelector('.transport-main');
-  const bottomRow = document.querySelector('.loop-range-row');
-  if (!topRow || !bottomRow) return;
-
-  let syncing = false;
-  const mirror = (source, target) => {
-    if (syncing) return;
-    syncing = true;
-    target.scrollLeft = source.scrollLeft;
-    requestAnimationFrame(() => { syncing = false; });
-  };
-
-  topRow.addEventListener('scroll', () => mirror(topRow, bottomRow), {passive:true});
-  bottomRow.addEventListener('scroll', () => mirror(bottomRow, topRow), {passive:true});
-})();
-</script>
-
-
-<script>
-/* RC135: shared 11px default with optional manual adjustment. */
-(() => {
-  const root = document.documentElement;
-  const state = window.__bassStudioDisplay || {mode: root.dataset.device || 'desktop', autoSize: 11, selected: Number(root.dataset.fontPx) || 11};
-  const down = document.getElementById('fontSizeDown');
-  const up = document.getElementById('fontSizeUp');
-  const input = document.getElementById('fontSizeInput');
-  const auto = document.getElementById('fontSizeAuto');
-  if (!down || !up || !input || !auto) return;
-
-  const clamp = value => Math.max(1, Math.min(100, Math.round(Number(value) || state.autoSize)));
-  const key = `bassStemStudioFontPxV3:${state.mode}`;
-  let current = clamp(state.selected);
-
-  function refreshLabel(){
-    auto.title = `Use automatic text size (${state.autoSize} px)`;
-  }
-
-  function apply(value, save = true){
-    current = clamp(value);
-    root.style.setProperty('--ui-font-size', `${current}px`);
-    root.dataset.fontPx = String(current);
-    input.value = String(current);
-    if (save) {
-      try { localStorage.setItem(key, String(current)); } catch (_) {}
-    }
-    // Existing canvas and timeline drawing already listens to resize, so this
-    // keeps waveform and note geometry aligned after a manual size change.
-    requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
-  }
-
-  down.addEventListener('click', () => apply(current - 1));
-  up.addEventListener('click', () => apply(current + 1));
-  input.addEventListener('change', () => apply(input.value));
-  input.addEventListener('keydown', event => {
-    if (event.key === 'Enter') { event.preventDefault(); apply(input.value); input.blur(); }
-  });
-  auto.addEventListener('click', () => {
-    try { localStorage.removeItem(key); } catch (_) {}
-    apply(state.autoSize, false);
-  });
-
-  refreshLabel();
-  apply(current, false);
-})();
-</script>
-
-
-<script>
-/* RC133 hosted PWA shell: register the root service worker without changing app logic. */
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
-  });
-}
-</script>
-</body>
-</html>
+    if(skipForward10)skipForward10.di
