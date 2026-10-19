@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bass Stem Studio RC128 Top Packed Notes Release Candidate</title>
+<title>Bass Stem Studio RC133 String Numbers and Key Transpose Release Candidate</title>
 <script>
 /* RC119: initialise the correct physical-device font before the first paint.
    This deliberately does not rely on viewport width alone, because Chrome's
@@ -11348,8 +11348,74 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .note-time-cell.single-
   margin:0 auto!important;
 }
 
-</style>
 
+
+/* ============================================================
+   RC131 — main chord timeline row
+   Aligned one-for-one with the timestamp and bass-note cells.
+   ============================================================ */
+html body #appRoot#appRoot#appRoot .chord-ruler{
+  position:relative!important;
+  width:100%!important;
+  height:clamp(30px,calc(var(--ui-font-size) * 2.55),48px)!important;
+  min-height:clamp(30px,calc(var(--ui-font-size) * 2.55),48px)!important;
+  max-height:clamp(30px,calc(var(--ui-font-size) * 2.55),48px)!important;
+  background:linear-gradient(180deg,#102238,#0b1929)!important;
+  border-top:1px solid rgba(98,208,255,.26)!important;
+  border-bottom:1px solid #29445f!important;
+  overflow:hidden!important;
+  box-sizing:border-box!important;
+}
+html body #appRoot#appRoot#appRoot .chord-cell{
+  position:absolute!important;
+  top:0!important;
+  height:100%!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  padding:0 calc(var(--ui-font-size) * .34)!important;
+  box-sizing:border-box!important;
+  border-left:1px solid rgba(94,133,172,.38)!important;
+  color:#eef8ff!important;
+  font-size:var(--ui-font-size)!important;
+  font-weight:850!important;
+  line-height:1.05!important;
+  text-align:center!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+html body #appRoot#appRoot#appRoot .chord-cell.major{
+  border-left:2px solid rgba(126,171,213,.66)!important;
+}
+html body #appRoot#appRoot#appRoot .chord-cell.empty{
+  color:#718399!important;
+  font-weight:700!important;
+}
+
+
+.display-size-control .transpose-key-select{
+  min-width:clamp(54px,calc(var(--ui-font-size) * 4.6),300px)!important;
+  max-width:clamp(78px,calc(var(--ui-font-size) * 6.2),360px)!important;
+  padding-left:calc(var(--ui-pad) * .55)!important;
+  padding-right:calc(var(--ui-pad) * .55)!important;
+  text-align:center!important;
+  font-weight:800!important;
+}
+.display-size-control .transpose-key-select:disabled{opacity:.55!important}
+html body #appRoot#appRoot#appRoot .bass-string-number{
+  margin:0!important;
+  color:#a8bac8!important;
+  font-size:var(--ui-font-size)!important;
+  font-weight:800!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+}
+html body #appRoot#appRoot#appRoot .bass-string-label strong{
+  font-size:var(--ui-font-size)!important;
+  line-height:1!important;
+}
+</style>
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#09111f">
 <link rel="apple-touch-icon" href="./icons/icon-192.png">
@@ -11371,7 +11437,7 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .note-time-cell.single-
         <div class="tag"></div>
       </div>
 
-      <div class="display-size-control" id="displaySizeControl" role="group" aria-label="Interface text size">
+      <div class="display-size-control" id="displaySizeControl" role="group" aria-label="Interface text size and song key">
         <span class="display-device-label" id="displayDeviceLabel">Auto</span>
         <button class="display-size-btn" id="fontSizeDown" type="button" aria-label="Decrease text size" title="Decrease text size">−</button>
         <label class="display-size-readout" for="fontSizeInput">
@@ -11380,6 +11446,7 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .note-time-cell.single-
         </label>
         <button class="display-size-btn" id="fontSizeUp" type="button" aria-label="Increase text size" title="Increase text size">+</button>
         <button class="display-auto-btn" id="fontSizeAuto" type="button" aria-label="Use automatic device text size" title="Use automatic device text size">Auto</button>
+        <select class="display-auto-btn transpose-key-select" id="quickScaleSelect" aria-label="Transpose song key" title="Transpose the song to another key" disabled><option value="">Key</option></select>
       </div>
       <div class="pill" id="engineBadge">Bb0–G3 Bass View</div>
     </div>
@@ -11545,6 +11612,7 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .note-time-cell.single-
     <div class="timeline-scroll simple-scroll" id="timelineScroll" aria-label="Bass note timeline">
       <div class="timeline-inner simple-inner">
         <div class="time-ruler" id="timeRuler"></div>
+        <div class="chord-ruler" id="chordRuler" aria-label="Main chord by timeline interval"></div>
         <div class="transport-wave simple-wave" aria-label="Song waveform">
           <canvas id="wave"></canvas>
         </div>
@@ -11659,14 +11727,14 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .note-time-cell.single-
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC125';
+  const APP_VERSION='RC133';
   const PROJECT_SCHEMA_VERSION=1;
   // RC125: compact practice-view and string selectors preserve space for P1/P2/P3; all RC124 audio, analysis, repeat, project and practice logic preserved.
 
   // ---------- DOM ----------
   const $ = id => document.getElementById(id);
   const masterAudio=$('masterAudio'), bassStemAudio=$('bassStemAudio'), noBassAudio=$('noBassAudio'), tempo=$('tempo'), tempoText=$('tempoText'), tempoReset=$('tempoReset');
-  const aiAnalyse=$('aiAnalyse'), aiState=$('aiState'), aiProgress=$('aiProgress'), aiProgressText=$('aiProgressText'), cloudEngineBadge=$('cloudEngineBadge'), songScale=$('songScale'), songTempo=$('songTempo'), songScaleWrap=$('songScaleWrap'), songTempoWrap=$('songTempoWrap'), scaleSelect=$('scaleSelect'), noteNumberToggle=$('noteNumberToggle'), noteNumberModeText=$('noteNumberModeText'), bassPracticeToggle=$('bassPracticeToggle'), bassPracticeText=$('bassPracticeText'), metronomeToggle=$('metronomeToggle'), metronomeText=$('metronomeText'), saveProjectBtn=$('saveProjectBtn'), importProjectBtn=$('importProjectBtn'), projectFileInput=$('projectFileInput'), sourceFileTitle=$('sourceFileTitle'), sourceFileDetails=$('sourceFileDetails'),
+  const aiAnalyse=$('aiAnalyse'), aiState=$('aiState'), aiProgress=$('aiProgress'), aiProgressText=$('aiProgressText'), cloudEngineBadge=$('cloudEngineBadge'), songScale=$('songScale'), songTempo=$('songTempo'), songScaleWrap=$('songScaleWrap'), songTempoWrap=$('songTempoWrap'), scaleSelect=$('scaleSelect'), quickScaleSelect=$('quickScaleSelect'), noteNumberToggle=$('noteNumberToggle'), noteNumberModeText=$('noteNumberModeText'), bassPracticeToggle=$('bassPracticeToggle'), bassPracticeText=$('bassPracticeText'), metronomeToggle=$('metronomeToggle'), metronomeText=$('metronomeText'), saveProjectBtn=$('saveProjectBtn'), importProjectBtn=$('importProjectBtn'), projectFileInput=$('projectFileInput'), sourceFileTitle=$('sourceFileTitle'), sourceFileDetails=$('sourceFileDetails'),
         sourceCard=$('sourceCard'), aiPanel=$('aiPanel'), aiPanelHome=$('aiPanelHome'), exportRow=$('exportRow');
   const qualityMode=null, qualityHint=null, testComputer=null;
   const importBtn=$('importBtn'), fileInput=$('fileInput'), playBtn=$('playBtn'),
@@ -11678,7 +11746,7 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .note-time-cell.single-
         centre=$('centre'), centreText=$('centreText'), boost=$('boost'), boostText=$('boostText'),
         lowerOct=$('lowerOct'), strictBass=$('strictBass'), confidence=$('confidence'), confText=$('confText'),
         stableMs=$('stableMs'), stableText=$('stableText'), exportWav=$('exportWav'), exportAnalysis=$('exportAnalysis'), clearNotes=$('clearNotes'),
-        noteName=$('noteName'), freqText=$('freqText'), wave=$('wave'), roll=$('roll'), currentBassInfo=$('currentBassInfo'), noteSidebar=$('noteSidebar'), rollCellGrid=$('rollCellGrid'), noteLane=$('noteLane'), timeRuler=$('timeRuler'), timelineCurrentNote=$('timelineCurrentNote'), timelinePlayhead=$('timelinePlayhead'), timelinePartTabs=$('timelinePartTabs'),
+        noteName=$('noteName'), freqText=$('freqText'), wave=$('wave'), roll=$('roll'), currentBassInfo=$('currentBassInfo'), noteSidebar=$('noteSidebar'), rollCellGrid=$('rollCellGrid'), noteLane=$('noteLane'), timeRuler=$('timeRuler'), chordRuler=$('chordRuler'), timelineCurrentNote=$('timelineCurrentNote'), timelinePlayhead=$('timelinePlayhead'), timelinePartTabs=$('timelinePartTabs'),
         timelineViewBtn=$('timelineViewBtn'), bassViewBtn=$('bassViewBtn'), practiceViewSelect=$('practiceViewSelect'), timelineBreakdownControl=$('timelineBreakdownControl'), timelineSplitSelect=$('timelineSplitSelect'), bassViewPanel=$('bassViewPanel'), bassStringSelector=$('bassStringSelector'), bassStringSelect=$('bassStringSelect'), bassFretboard=$('bassFretboard'), bassTimeScroll=$('bassTimeScroll'), bassTimeRuler=$('bassTimeRuler');
 
   // ---------- State ----------
@@ -11689,7 +11757,7 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .note-time-cell.single-
   let notes=[], raf=0, objectName='', lastNoteMidi=null, noteStart=0, lastDetectedAt=0;
   let noteDisplayMode='notes', currentScaleContext=null, detectedScaleContext=null, transposeSemitones=0;
   let bassPracticeMuted=false, metronomeEnabled=false, lastMetronomeBeat=-1, lastMetronomeTime=null, detectedTempoBpm=null;
-  let detectedBeatTimes=[], detectedBeatsPerBar=4, detectedDownbeatPhase=0, beatGridConfidence=null;
+  let detectedBeatTimes=[], detectedBeatsPerBar=4, detectedDownbeatPhase=0, beatGridConfidence=null, detectedChordChanges=[];
   let bassStemBase64='', bassStemMime='audio/mpeg', bassStemReady=false, lastBassSyncAt=0;
   let noBassBase64='', noBassMime='audio/mpeg', noBassReady=false, lastNoBassSyncAt=0, currentRehearsalVersion='';
   const ANALYSIS_PART_SECONDS=180;
@@ -11701,6 +11769,7 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .note-time-cell.single-
   try{bassViewStringCount=Number(localStorage.getItem('bassStemBassStringCount')||5)}catch(e){}
   if(![4,5,6].includes(bassViewStringCount))bassViewStringCount=5;
   let bassRenderedMaxFret=12;
+  let bassFretMaxCache={notesRef:null,length:-1,transpose:NaN,count:0,value:12};
   let bassFretboardRendering=false;
   let candidateMidi=null, candidateSince=0, pitchHistory=[], lastAcceptedMidi=null, lastEnergy=0, switchMidi=null, switchSince=0;
   let analysedBassNotes=[], offlineAnalysisReady=false, offlineAnalysisRunning=false;
@@ -11982,6 +12051,10 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .note-time-cell.single-
           beatsPerBar:Number(detectedBeatsPerBar)||4,
           downbeatPhase:Number(detectedDownbeatPhase)||0,
           beatGridConfidence:Number.isFinite(Number(beatGridConfidence))?Number(beatGridConfidence):null,
+          chords:Array.isArray(detectedChordChanges)?detectedChordChanges.map(c=>({
+            start:Number(c.start)||0,end:Number(c.end)||0,rootPc:Number(c.rootPc),
+            quality:String(c.quality||''),label:String(c.label||''),confidence:Number(c.confidence)||0
+          })):[],
           notes:savedNotes
         },
         settings:{
@@ -11990,6 +12063,8 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .note-time-cell.single-
           metronomeVolume:Number.isFinite(Number(metronomeVol?.value))?Number(metronomeVol.value):70,
           speed:Number.isFinite(Number(tempo?.value))?Number(tempo.value):100,
           timelineCellSeconds:Number(TIMELINE_CELL_SECONDS)||2,
+          practiceView:['timeline','bass'].includes(String(practiceVisualMode))?String(practiceVisualMode):'timeline',
+          bassStringCount:[4,5,6].includes(Number(bassViewStringCount))?Number(bassViewStringCount):5,
           selectedScale:String(songScale?.textContent||detectedScaleContext?.scaleText||'—'),
           transposeSemitones:Number(transposeSemitones)||0,
           bassMuted:!!bassPracticeMuted,
@@ -12025,14 +12100,45 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .note-time-cell.single-
       const src=project.source||{};
       if(!src.audioBase64)throw new Error('This saved project does not contain the original audio.');
 
-      masterAudio.pause();stopBassStemPlayback(false);stopNoBassPlayback(false);playing=false;cancelAnimationFrame(raf);ensureCtx();clearBassStemPlayback();clearNoBassPlayback();
-      const bytes=base64ToUint8Array(src.audioBase64);
+      // RC132: validate every essential part of the incoming project BEFORE
+      // changing the currently open song. A damaged project must never clear
+      // the working rehearsal stems or replace the current audio half-way.
+      const restored=project.analysis.notes.map(n=>({
+        midi:mapPracticeMidi(Number.isFinite(Number(n.cloudMidi))?Number(n.cloudMidi):Number(n.midi)),
+        start:Number(n.start),end:Number(n.end),
+        confidence:Number(n.confidence)||0,
+        isFill:typeof n.isFill==='boolean'?n.isFill:false,
+        scaleNumber:(n.scaleNumber===null||n.scaleNumber===undefined||n.scaleNumber==='')?null:String(n.scaleNumber),
+        cloudMidi:Number.isFinite(Number(n.cloudMidi))?Number(n.cloudMidi):Number(n.midi),
+        source:n.source||'Saved project'
+      })).filter(n=>Number.isFinite(n.midi)&&Number.isFinite(n.start)&&Number.isFinite(n.end)&&n.end>n.start)
+        .sort((a,b)=>a.start-b.start);
+      if(!restored.length)throw new Error('The saved project contains no usable bass notes.');
+
+      let bytes;
+      try{
+        bytes=base64ToUint8Array(src.audioBase64);
+      }catch(e){
+        throw new Error('This saved Bass Studio project contains damaged audio data.');
+      }
+      if(!bytes?.byteLength)throw new Error('This saved Bass Studio project contains empty audio data.');
       const type=src.type||'audio/mpeg';
       const audioBlob=new Blob([bytes],{type});
       const audioName=src.name||`${project.projectName||'Saved Song'}.mp3`;
-      activeAudioFile=new File([audioBlob],audioName,{type,lastModified:Date.now()});
+      ensureCtx();
       const decodeAB=bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength);
-      buffer=await ctx.decodeAudioData(decodeAB.slice(0));
+      let decodedBuffer;
+      try{
+        decodedBuffer=await ctx.decodeAudioData(decodeAB.slice(0));
+      }catch(e){
+        throw new Error('This saved Bass Studio project contains damaged or unsupported audio.');
+      }
+
+      // Commit only after the candidate project has passed all destructive
+      // validation above.
+      masterAudio.pause();stopBassStemPlayback(false);stopNoBassPlayback(false);playing=false;cancelAnimationFrame(raf);clearBassStemPlayback();clearNoBassPlayback();
+      activeAudioFile=new File([audioBlob],audioName,{type,lastModified:Date.now()});
+      buffer=decodedBuffer;
       if(mediaURL)URL.revokeObjectURL(mediaURL);
       mediaURL=URL.createObjectURL(audioBlob);
       masterAudio.src=mediaURL;masterAudio.load();masterAudio.preservesPitch=true;
@@ -12065,7 +12171,8 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .note-time-cell.single-
           /^rehearsal-v(?:2|3|4)-summed-non-bass-stems$/.test(savedRehearsalVersion) ||
           /^rehearsal-v5-clean-bass-preview$/.test(savedRehearsalVersion) ||
           /^rehearsal-v6-segmented-high-quality$/.test(savedRehearsalVersion) ||
-          /^rehearsal-v7-bb0-g3-validated-notes$/.test(savedRehearsalVersion)
+          /^rehearsal-v7-bb0-g3-validated-notes$/.test(savedRehearsalVersion) ||
+          /^rehearsal-v8-roformer-bass-chords$/.test(savedRehearsalVersion)
         )){
           currentRehearsalVersion=savedRehearsalVersion;
           await loadNoBassFromBase64(String(project.analysis.noBassAudioBase64),String(project.analysis.noBassAudioMime||'audio/mpeg'));
@@ -12074,17 +12181,6 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .note-time-cell.single-
         }
       }
 
-      const restored=project.analysis.notes.map(n=>({
-        midi:mapPracticeMidi(Number.isFinite(Number(n.cloudMidi))?Number(n.cloudMidi):Number(n.midi)),
-        start:Number(n.start),end:Number(n.end),
-        confidence:Number(n.confidence)||0,
-        isFill:typeof n.isFill==='boolean'?n.isFill:false,
-        scaleNumber:(n.scaleNumber===null||n.scaleNumber===undefined||n.scaleNumber==='')?null:String(n.scaleNumber),
-        cloudMidi:Number.isFinite(Number(n.cloudMidi))?Number(n.cloudMidi):Number(n.midi),
-        source:n.source||'Saved project'
-      })).filter(n=>Number.isFinite(n.midi)&&Number.isFinite(n.start)&&Number.isFinite(n.end)&&n.end>n.start)
-        .sort((a,b)=>a.start-b.start);
-      if(!restored.length)throw new Error('The saved project contains no usable bass notes.');
       notes=restored;analysedBassNotes=restored.map(n=>({...n}));offlineAnalysisReady=true;offlineAnalysisRunning=false;updatePracticeLayoutState(true);
       noteDisplayMode=project.analysis.displayMode==='numbers'?'numbers':'notes';
       resetSongContext();
@@ -12096,7 +12192,8 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .note-time-cell.single-
         beat_times:Array.isArray(project.analysis.beatTimes)?project.analysis.beatTimes:[],
         beats_per_bar:Number(project.analysis.beatsPerBar)||4,
         downbeat_phase:Number(project.analysis.downbeatPhase)||0,
-        beat_grid_confidence:Number(project.analysis.beatGridConfidence)
+        beat_grid_confidence:Number(project.analysis.beatGridConfidence),
+        chords:Array.isArray(project.analysis.chords)?project.analysis.chords:[]
       });
       noteDisplayMode=project.analysis.displayMode==='numbers'?'numbers':'notes';refreshNoteNumberToggle();
 
@@ -12113,6 +12210,10 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .note-time-cell.single-
         );
         origVolText.textContent=origVol.value+'%';bassVolText.textContent=bassVol.value+'%';metronomeVolText.textContent=metronomeVol.value+'%';applyTempo();
         if(project.settings.selectedScale)selectScaleByText(String(project.settings.selectedScale));
+        const savedStringCount=Number(project.settings.bassStringCount);
+        if([4,5,6].includes(savedStringCount))setBassStringCount(savedStringCount);
+        const savedPracticeView=String(project.settings.practiceView||'');
+        if(['timeline','bass'].includes(savedPracticeView))setPracticeVisualMode(savedPracticeView);
         bassPracticeMuted=!!project.settings.bassMuted && noBassReady;
         metronomeEnabled=false;
         refreshBassPracticeToggle();refreshMetronomeToggle();updateAudioParams();
@@ -12141,7 +12242,11 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .note-time-cell.single-
       try{localStorage.removeItem(RUNPOD_PENDING_JOB)}catch(e){}
       aiStatus(`Saved project ready · ${restored.length} notes · no new analysis needed`,100);
     }catch(err){
-      console.error(err);aiStatus(err?.message||'Could not open this saved Bass Studio project.',0);
+      console.error(err);
+      const message=err instanceof SyntaxError
+        ? 'This saved Bass Studio project is damaged or invalid.'
+        : (err?.message||'Could not open this saved Bass Studio project.');
+      aiStatus(message,0);
     }finally{
       if(projectFileInput)projectFileInput.value='';
     }
@@ -12577,6 +12682,23 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .note-time-cell.single-
   // ---------- File Load ----------
   async function loadAudioFile(f,{cacheForRecovery=true,recoveryRestore=false}={}){
     if(!f)return false;
+
+    // RC131: validate and decode the candidate file before changing the current
+    // working song. A damaged/non-audio import must not leave the previous song
+    // half-loaded with a new invalid activeAudioFile.
+    let decodedBuffer=null;
+    try{
+      ensureCtx();
+      const decodeSource=await f.arrayBuffer();
+      decodedBuffer=await ctx.decodeAudioData(decodeSource.slice(0));
+    }catch(err){
+      console.error(err);
+      const message='Could not decode this audio file. Try MP3 or WAV.';
+      status.className='status warn';status.textContent=message;
+      aiStatus(message,0);
+      return false;
+    }
+
     activeAudioFile=f;loadedProjectName='';
     if(preparedAnalysisUploadCache?.signature!==cloudFileSignature(f))preparedAnalysisUploadCache=null;
     masterAudio.pause();stopBassStemPlayback(false);stopNoBassPlayback(false);playing=false;cancelAnimationFrame(raf);
@@ -12588,9 +12710,7 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .note-time-cell.single-
     rebuildSimpleTimeline._sig='';analysedBassNotes=[];offlineAnalysisRunning=false;if(aiAnalyse)aiAnalyse.disabled=true;
     try{
       status.className='status';status.textContent=recoveryRestore?'Restoring audio for saved analysis…':'Decoding audio…';
-      ensureCtx();
-      const ab=await f.arrayBuffer();
-      buffer=await ctx.decodeAudioData(ab.slice(0));
+      buffer=decodedBuffer;
       if(mediaURL)URL.revokeObjectURL(mediaURL);
       mediaURL=URL.createObjectURL(f);
       masterAudio.src=mediaURL;masterAudio.load();masterAudio.preservesPitch=true;
@@ -13696,13 +13816,14 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .note-time-cell.single-
     const candidates=[];
     rows.forEach((s,stringIndex)=>{
       const fret=midi-s.openMidi;
-      if(fret>=0 && fret<=12){
+      if(fret>=0 && fret<=songAwareBassMaxFret(count)){
         // User preference: frets 1-12 first. Open strings are used only when
         // there is no practical fretted alternative inside the practice neck.
         const score=(fret===0?50:fret)+(stringIndex*.015);
         candidates.push({
           stringIndex,
           stringName:s.name,
+          stringNumber:stringIndex+1,
           openNote:s.openNote,
           fret,
           score
@@ -13715,8 +13836,22 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .note-time-cell.single-
   }
 
   function songAwareBassMaxFret(count=bassViewStringCount){
-    // Keep the full 0/Open-to-12 practice neck visible at all times.
-    return 12;
+    if(bassFretMaxCache.notesRef===notes &&
+       bassFretMaxCache.length===notes.length &&
+       bassFretMaxCache.transpose===transposeSemitones &&
+       bassFretMaxCache.count===count)return bassFretMaxCache.value;
+    const rows=BASS_STANDARD_TUNINGS[count]||BASS_STANDARD_TUNINGS[5];
+    let required=12;
+    for(const note of notes){
+      const midi=Math.round(Number(note?.midi))+transposeSemitones;
+      if(!Number.isFinite(midi))continue;
+      const playable=rows.map(stringInfo=>midi-stringInfo.openMidi).filter(fret=>fret>=0);
+      if(playable.length)required=Math.max(required,Math.min(...playable));
+    }
+    // Keep the familiar 0/Open-to-12 neck for ordinary keys. Extend it only
+    // when transposing raises notes above fret 12, up to the practical 24th fret.
+    bassFretMaxCache={notesRef:notes,length:notes.length,transpose:transposeSemitones,count,value:Math.min(24,required)};
+    return bassFretMaxCache.value;
   }
 
   function clearBassFretboardHighlight(){
@@ -13777,11 +13912,14 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .note-time-cell.single-
         row.dataset.stringIndex=String(stringIndex);
         row.style.setProperty('--string-thickness',(1.45+(rows.length-stringIndex-1)*.62).toFixed(2)+'px');
 
+        const stringNumber=stringIndex+1;
+        row.setAttribute('aria-label','String '+stringNumber+', '+s.openNote+', open');
         const label=document.createElement('div');
         label.className='bass-string-label';
         const octaveMatch=String(s.openNote||'').match(/(-?\d+)$/);
         const octave=octaveMatch?octaveMatch[1]:'';
-        label.innerHTML=`<strong>${s.name}</strong><span>${octave?`(${octave})`:''}</span>`;
+        label.title='String '+stringNumber+' · '+s.openNote+' open';
+        label.innerHTML='<span class="bass-string-number">String '+stringNumber+'</span><strong>'+s.name+(octave?' ('+octave+')':'')+'</strong>';
         row.appendChild(label);
 
         for(let fret=1;fret<=maxFret;fret++){
@@ -13791,7 +13929,7 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .note-time-cell.single-
           cell.dataset.fret=String(fret);
           cell.dataset.midi=String(s.openMidi+fret);
           cell.dataset.note=midiName(s.openMidi+fret);
-          cell.title=`${s.name} string · Fret ${fret} · ${midiName(s.openMidi+fret)}`;
+          cell.title='String '+stringNumber+' · '+s.name+' · Fret '+fret+' · '+midiName(s.openMidi+fret);
           row.appendChild(cell);
         }
         bassFretboard.appendChild(row);
@@ -13962,8 +14100,8 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .note-time-cell.single-
       marker.className='bass-position-marker'+(n.isFill?' fill':'');
       marker.textContent=noteLabel;
       marker.title=pos.fret===0
-        ? `Play ${noteLabel} on the open ${pos.stringName} string`
-        : `Play ${noteLabel} on ${pos.stringName} string, fret ${pos.fret}`;
+        ? 'Play '+noteLabel+' on open string '+pos.stringNumber+' ('+pos.stringName+')'
+        : 'Play '+noteLabel+' on string '+pos.stringNumber+' ('+pos.stringName+'), fret '+pos.fret;
       cell.appendChild(marker);
     }
     if(fretNumber)fretNumber.classList.add('active-fret-number');
@@ -14058,16 +14196,28 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .note-time-cell.single-
   }
   function signedTranspose(fromPc,toPc){let d=(toPc-fromPc+12)%12;if(d>6)d-=12;return d;}
   function populateScaleSelect(ctxInfo){
-    if(!scaleSelect)return;scaleSelect.innerHTML='';
-    if(!ctxInfo){const o=document.createElement('option');o.value='';o.textContent='—';scaleSelect.appendChild(o);scaleSelect.disabled=true;return;}
-    for(const r of SCALE_ROOTS){
-      const o=document.createElement('option');
-      o.value=String(r.pc);
-      o.textContent=compactScaleTextFor(r.pc,ctxInfo.mode);
-      o.title=scaleTextFor(r.pc,ctxInfo.mode);
-      scaleSelect.appendChild(o);
-    }
-    scaleSelect.value=String(ctxInfo.rootPc);scaleSelect.disabled=false;
+    const controls=[scaleSelect,quickScaleSelect].filter(Boolean);
+    if(!controls.length)return;
+    controls.forEach(control=>{
+      control.innerHTML='';
+      if(!ctxInfo){
+        const o=document.createElement('option');
+        o.value='';
+        o.textContent=control===quickScaleSelect?'Key':'—';
+        control.appendChild(o);
+        control.disabled=true;
+        return;
+      }
+      for(const r of SCALE_ROOTS){
+        const o=document.createElement('option');
+        o.value=String(r.pc);
+        o.textContent=compactScaleTextFor(r.pc,ctxInfo.mode);
+        o.title=scaleTextFor(r.pc,ctxInfo.mode);
+        control.appendChild(o);
+      }
+      control.value=String(ctxInfo.rootPc);
+      control.disabled=false;
+    });
   }
   function applySelectedScaleRoot(rootPc){
     if(!detectedScaleContext)return;
@@ -14075,14 +14225,16 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .note-time-cell.single-
     currentScaleContext={...detectedScaleContext,rootPc:pc,scaleText:scaleTextFor(pc,detectedScaleContext.mode)};
     if(songScale)songScale.textContent=currentScaleContext.scaleText;
     if(scaleSelect && scaleSelect.value!==String(pc))scaleSelect.value=String(pc);
+    if(quickScaleSelect && quickScaleSelect.value!==String(pc))quickScaleSelect.value=String(pc);
     if(songScaleWrap)songScaleWrap.title=`Detected ${detectedScaleContext.scaleText} · rehearsal key ${currentScaleContext.scaleText}${transposeSemitones?` · ${transposeSemitones>0?'+':''}${transposeSemitones} semitone${Math.abs(transposeSemitones)===1?'':'s'}`:''}`;
     updateAudioParams();refreshNoteNumberToggle();rebuildSimpleTimeline._sig='';
     if(buffer){rebuildSimpleTimeline();updateSongInfo(currentTime());}
+    updateBassView(currentTime());
   }
   function selectScaleByText(scaleText){const p=parseSongScaleContext(scaleText);if(p&&detectedScaleContext&&p.mode===detectedScaleContext.mode)applySelectedScaleRoot(p.rootPc);}
   function resetSongContext(){
     currentScaleContext=null;detectedScaleContext=null;transposeSemitones=0;metronomeEnabled=false;lastMetronomeBeat=-1;lastMetronomeTime=null;detectedTempoBpm=null;
-    detectedBeatTimes=[];detectedBeatsPerBar=4;detectedDownbeatPhase=0;beatGridConfidence=null;
+    detectedBeatTimes=[];detectedBeatsPerBar=4;detectedDownbeatPhase=0;beatGridConfidence=null;detectedChordChanges=[];
     populateScaleSelect(null);refreshNoteNumberToggle();refreshMetronomeToggle();
     rebuildSimpleTimeline._sig='';
     if(songScale) songScale.textContent='—';
@@ -14140,6 +14292,17 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .note-time-cell.single-
     detectedBeatsPerBar=Math.max(1,Math.round(Number(out?.beats_per_bar)||4));
     detectedDownbeatPhase=Math.max(0,Math.round(Number(out?.downbeat_phase)||0));
     beatGridConfidence=Number.isFinite(Number(out?.beat_grid_confidence))?Number(out.beat_grid_confidence):null;
+    const rawChords=Array.isArray(out?.chords)?out.chords:(Array.isArray(out?.chord_changes)?out.chord_changes:[]);
+    detectedChordChanges=rawChords.map(c=>{
+      const start=Number(c?.start),end=Number(c?.end),rootPc=Number(c?.root_pc??c?.rootPc);
+      if(!Number.isFinite(start)||!Number.isFinite(end)||end<=start||!Number.isFinite(rootPc))return null;
+      return {
+        start:Math.max(0,start),end:Math.max(start,end),rootPc:((Math.round(rootPc)%12)+12)%12,
+        quality:String(c?.quality||'maj').toLowerCase(),label:String(c?.label||''),
+        confidence:Number.isFinite(Number(c?.confidence))?Number(c.confidence):0
+      };
+    }).filter(Boolean).sort((a,b)=>a.start-b.start);
+    rebuildSimpleTimeline._sig='';
     lastMetronomeBeat=-1;lastMetronomeTime=null;
     refreshMetronomeToggle();
   }
@@ -14314,7 +14477,7 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .note-time-cell.single-
   function round3(v){return Math.round(Number(v)*1000)/1000;}
 
   function chooseCombinedSongContext(partMeta,outputs){
-    const scaleVotes=new Map(),tempoValues=[],beats=[],meterVotes=new Map();
+    const scaleVotes=new Map(),tempoValues=[],beats=[],meterVotes=new Map(),chordEvents=[];
     let bestMeterPhase=0,bestGridConfidence=-1,tempoConfidenceTotal=0,keyConfidenceTotal=0;
 
     outputs.forEach((out,i)=>{
@@ -14342,6 +14505,16 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .note-time-cell.single-
         const inCore=global>=meta.coreStart-.04 &&
           (i===partMeta.length-1?global<=meta.coreEnd+.04:global<meta.coreEnd-.04);
         if(inCore&&Number.isFinite(global)&&global>=0)beats.push(global);
+      });
+
+      (Array.isArray(out?.chords)?out.chords:[]).forEach(c=>{
+        const localStart=Number(c?.start),localEnd=Number(c?.end),rootPc=Number(c?.root_pc??c?.rootPc);
+        if(!Number.isFinite(localStart)||!Number.isFinite(localEnd)||localEnd<=localStart||!Number.isFinite(rootPc))return;
+        let start=localStart+Number(meta.audioStart||0),end=localEnd+Number(meta.audioStart||0);
+        start=Math.max(start,Number(meta.coreStart)||0);
+        end=Math.min(end,Number(meta.coreEnd)||end);
+        if(end-start<.12)return;
+        chordEvents.push({start,end,rootPc:((Math.round(rootPc)%12)+12)%12,quality:String(c?.quality||'maj').toLowerCase(),label:String(c?.label||''),confidence:Number(c?.confidence)||0});
       });
 
       const meter=Math.max(1,Math.round(Number(out?.beats_per_bar)||4));
@@ -14407,6 +14580,16 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .note-time-cell.single-
       if(!deduped.length||Math.abs(b-deduped[deduped.length-1])>.08)deduped.push(round3(b));
     }
 
+    chordEvents.sort((a,b)=>a.start-b.start||a.end-b.end);
+    const mergedChords=[];
+    for(const c of chordEvents){
+      const prev=mergedChords[mergedChords.length-1];
+      if(prev&&prev.rootPc===c.rootPc&&prev.quality===c.quality&&c.start<=prev.end+.12){
+        prev.end=Math.max(prev.end,c.end);
+        prev.confidence=Math.max(Number(prev.confidence)||0,Number(c.confidence)||0);
+      }else mergedChords.push({...c});
+    }
+
     return {
       song_scale:songScale,
       key_confidence:outputs.length?keyConfidenceTotal/outputs.length:null,
@@ -14415,7 +14598,8 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .note-time-cell.single-
       beat_times:deduped,
       beats_per_bar:beatsPerBar,
       downbeat_phase:bestMeterPhase,
-      beat_grid_confidence:bestGridConfidence>=0?bestGridConfidence:null
+      beat_grid_confidence:bestGridConfidence>=0?bestGridConfidence:null,
+      chords:mergedChords
     };
   }
 
@@ -15278,6 +15462,43 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .note-time-cell.single-
     }
   }
 
+  const CHORD_QUALITY_LABELS={maj:'Maj',min:'Min',sus2:'sus2',sus4:'sus4',dim:'dim',aug:'Aug','7':'7',maj7:'Maj7',min7:'Min7'};
+  function chordDisplayLabel(chord){
+    if(!chord||!Number.isFinite(Number(chord.rootPc)))return '—';
+    const pc=((Math.round(Number(chord.rootPc))+transposeSemitones)%12+12)%12;
+    const root=(SCALE_ROOTS.find(x=>x.pc===pc)||SCALE_ROOTS[0]).n;
+    const quality=String(chord.quality||'maj').toLowerCase();
+    const q=CHORD_QUALITY_LABELS[quality]||String(chord.quality||'');
+    return quality==='7'?`${root}7`:`${root} ${q||'Maj'}`;
+  }
+  function mainChordForRange(start,end){
+    let best=null,bestWeight=0;
+    for(const c of detectedChordChanges||[]){
+      const overlap=Math.max(0,Math.min(end,Number(c.end))-Math.max(start,Number(c.start)));
+      if(overlap<=0)continue;
+      const weight=overlap*(0.65+0.35*Math.max(0,Math.min(1,Number(c.confidence)||0)));
+      if(weight>bestWeight){best=c;bestWeight=weight;}
+    }
+    return best;
+  }
+  function rebuildChordRuler(cellCount,cellW,duration){
+    if(!chordRuler)return;
+    chordRuler.innerHTML='';
+    for(let i=0;i<cellCount;i++){
+      const start=i*TIMELINE_CELL_SECONDS,end=Math.min(duration,start+TIMELINE_CELL_SECONDS);
+      const chord=mainChordForRange(start,end);
+      const d=document.createElement('div');
+      d.className='chord-cell'+(isTimelineMajor(start)?' major':'')+(chord?'':' empty');
+      d.style.left=(i*cellW)+'px';d.style.width=cellW+'px';
+      d.dataset.start=start;d.dataset.end=end;
+      d.textContent=chord?chordDisplayLabel(chord):'—';
+      const confidence=chord&&Number.isFinite(Number(chord.confidence))?` · ${Math.round(Number(chord.confidence)*100)}% confidence`:'';
+      d.title=`${fmtShort(start)}–${fmtShort(end)} · ${d.textContent}${confidence}`;
+      d.setAttribute('aria-label',`Main chord ${d.textContent} from ${fmtShort(start)} to ${fmtShort(end)}`);
+      chordRuler.appendChild(d);
+    }
+  }
+
   function classifyTimelineNotes(){
     const src=notes.slice().sort((a,b)=>a.start-b.start);
     if(!src.length)return [];
@@ -15301,7 +15522,8 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .note-time-cell.single-
     const cellW=timelineCellWidth(),duration=buffer.duration;
     const cellCount=Math.max(1,Math.ceil(duration/TIMELINE_CELL_SECONDS));
     const scaleSig=currentScaleContext?`${currentScaleContext.rootPc}:${currentScaleContext.mode}`:'no-scale';
-    const sig=[duration.toFixed(3),TIMELINE_CELL_SECONDS,notes.length,notes.map(n=>`${n.midi}:${n.start.toFixed(3)}:${n.end.toFixed(3)}`).join('|'),cellW,noteDisplayMode,scaleSig].join('~');
+    const chordSig=(detectedChordChanges||[]).map(c=>`${c.rootPc}:${c.quality}:${Number(c.start).toFixed(2)}:${Number(c.end).toFixed(2)}`).join('|');
+    const sig=[duration.toFixed(3),TIMELINE_CELL_SECONDS,notes.length,notes.map(n=>`${n.midi}:${n.start.toFixed(3)}:${n.end.toFixed(3)}`).join('|'),cellW,noteDisplayMode,scaleSig,transposeSemitones,chordSig].join('~');
     if(rebuildSimpleTimeline._sig===sig)return;
     rebuildSimpleTimeline._sig=sig;
 
@@ -15320,6 +15542,7 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .note-time-cell.single-
       if(selectedTimeframes.has(normaliseTimeframeStart(s)))d.classList.add('tf-selected');
       timeRuler.appendChild(d);
     }
+    rebuildChordRuler(cellCount,cellW,duration);
 
     const events=classifyTimelineNotes();
     const buckets=Array.from({length:cellCount},()=>[]);
@@ -15352,7 +15575,7 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .note-time-cell.single-
     const roughLaneH=Math.max(240,Math.min(1200,28+maxItems*42));
     noteLane.style.setProperty('height',roughLaneH+'px','important');
     if(noteLane.parentElement){
-      noteLane.parentElement.style.setProperty('min-height',(roughLaneH+150)+'px','important');
+      noteLane.parentElement.style.setProperty('min-height',(roughLaneH+190)+'px','important');
     }
 
     noteLane.innerHTML='';
@@ -15391,7 +15614,7 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .note-time-cell.single-
     const fittedLaneH=Math.max(220,Math.min(1200,tallestSequence+20));
     noteLane.style.setProperty('height',fittedLaneH+'px','important');
     if(noteLane.parentElement){
-      noteLane.parentElement.style.setProperty('min-height',(fittedLaneH+150)+'px','important');
+      noteLane.parentElement.style.setProperty('min-height',(fittedLaneH+190)+'px','important');
     }
   }
 
@@ -15561,7 +15784,7 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .note-time-cell.single-
       ['Tempo',songTempo?.textContent||'—'],
       ['Analysis source',[...new Set(sorted.map(n=>String(n.source||'').trim()).filter(Boolean))].join(' | ')||'Unknown'],
       [],
-      ['No.','Start','End','Duration (s)','Note','Scale Number','MIDI','Frequency (Hz)','Analysis Source']
+      ['No.','Start','End','Duration (s)','Note','Scale Number','Chord','MIDI','Frequency (Hz)','Analysis Source']
     ];
     sorted.forEach((n,i)=>{
       const dur=Math.max(0,n.end-n.start);
@@ -15572,6 +15795,7 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .note-time-cell.single-
         dur.toFixed(3),
         midiName(Math.round(n.midi)+transposeSemitones),
         scaleDegreeLabel(Math.round(n.midi)+transposeSemitones)||'',
+        chordDisplayLabel(mainChordForRange(Number(n.start),Math.max(Number(n.end),Number(n.start)+.01))),
         Math.round(n.midi)+transposeSemitones,
         (440*Math.pow(2,((Number(n.midi)+transposeSemitones)-69)/12)).toFixed(2),
         n.source||'DSP'
@@ -16100,6 +16324,7 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .note-time-cell.single-
     if(buffer){rebuildSimpleTimeline();updateSongInfo(currentTime());}
   });
   scaleSelect?.addEventListener('change',()=>{if(detectedScaleContext)applySelectedScaleRoot(Number(scaleSelect.value));});
+  quickScaleSelect?.addEventListener('change',()=>{if(detectedScaleContext)applySelectedScaleRoot(Number(quickScaleSelect.value));});
   bassPracticeToggle?.addEventListener('click',async()=>{
     if(bassPracticeToggle.disabled||!noBassReady)return;
     bassPracticeMuted=!bassPracticeMuted;
@@ -16270,34 +16495,3 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .note-time-cell.single-
       try { localStorage.setItem(key, String(current)); } catch (_) {}
     }
     // Existing canvas and timeline drawing already listens to resize, so this
-    // keeps waveform and note geometry aligned after a manual size change.
-    requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
-  }
-
-  down.addEventListener('click', () => apply(current - 1));
-  up.addEventListener('click', () => apply(current + 1));
-  input.addEventListener('change', () => apply(input.value));
-  input.addEventListener('keydown', event => {
-    if (event.key === 'Enter') { event.preventDefault(); apply(input.value); input.blur(); }
-  });
-  auto.addEventListener('click', () => {
-    try { localStorage.removeItem(key); } catch (_) {}
-    apply(state.autoSize, false);
-  });
-
-  refreshLabel();
-  apply(current, false);
-})();
-</script>
-
-
-<script>
-/* RC128 hosted PWA shell: register the root service worker without changing app logic. */
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
-  });
-}
-</script>
-</body>
-</html>

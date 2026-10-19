@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bass-stem-studio-rc128-v1';
+const CACHE_NAME = 'bass-stem-studio-rc133-v1';
 const APP_SHELL = [
   './',
   './index.html',
