@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bass Stem Studio RC135 Compact Notes and Lyrics Release Candidate</title>
+<title>Bass Stem Studio RC136 Bass Note Confidence Release Candidate</title>
 <script>
 /* RC119: initialise the correct physical-device font before the first paint.
    This deliberately does not rely on viewport width alone, because Chrome's
@@ -11421,16 +11421,6 @@ html body #appRoot#appRoot#appRoot *::before,
 html body #appRoot#appRoot#appRoot *::after,
 html body #appRoot#appRoot#appRoot *::placeholder{font-size:var(--ui-font-size,11px)!important}
 
-html body #appRoot#appRoot#appRoot .lyrics-panel{margin:8px 0;padding:8px;border:1px solid var(--line);border-radius:12px;background:rgba(15,27,48,.7)}
-html body #appRoot#appRoot#appRoot .lyrics-panel summary{cursor:pointer;font-weight:750;min-height:30px;display:flex;align-items:center}
-html body #appRoot#appRoot#appRoot .lyrics-controls{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:6px;margin-top:8px}
-html body #appRoot#appRoot#appRoot .lyrics-controls input{min-width:0;padding:7px;border:1px solid #36536f;border-radius:8px;background:#0b1727;color:var(--text)}
-html body #appRoot#appRoot#appRoot .lyrics-controls .btn{padding:6px 8px;min-width:0}
-html body #appRoot#appRoot#appRoot .lyric-cue{display:grid;grid-template-columns:42px minmax(0,1fr);gap:8px;padding:5px 0;border-top:1px solid rgba(94,133,172,.25)}
-html body #appRoot#appRoot#appRoot .lyric-time{color:var(--muted);font-variant-numeric:tabular-nums}
-html body #appRoot#appRoot#appRoot .lyric-words{display:flex;flex-direction:column;gap:2px;min-width:0}
-html body #appRoot#appRoot#appRoot .bass-over-lyrics{color:#72e6a2;font-weight:750;overflow-wrap:anywhere}
-@media(max-width:560px){html body #appRoot#appRoot#appRoot .lyrics-controls{grid-template-columns:1fr 1fr}html body #appRoot#appRoot#appRoot .lyrics-controls input{grid-column:1/-1}}
 </style>
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#09111f">
@@ -11623,17 +11613,6 @@ html body #appRoot#appRoot#appRoot .bass-over-lyrics{color:#72e6a2;font-weight:7
       </div>
     </div>
 
-    <details class="lyrics-panel" id="lyricsPanel">
-      <summary>Lyrics &amp; export</summary>
-      <div class="lyrics-controls">
-        <input id="lyricLineInput" type="text" maxlength="300" placeholder="Enter a lyric line" aria-label="Lyric line">
-        <button class="btn" id="addLyricCue" type="button">Add at playhead</button>
-        <button class="btn" id="exportLyricsWord" type="button" disabled>Word</button>
-        <button class="btn" id="exportLyricsPdf" type="button" disabled>PDF</button>
-      </div>
-      <div id="lyricsCueList" aria-live="polite"></div>
-    </details>
-
     <div class="timeline-scroll simple-scroll" id="timelineScroll" aria-label="Bass note timeline">
       <div class="timeline-inner simple-inner">
         <div class="time-ruler" id="timeRuler"></div>
@@ -11752,7 +11731,7 @@ html body #appRoot#appRoot#appRoot .bass-over-lyrics{color:#72e6a2;font-weight:7
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC135';
+  const APP_VERSION='RC136';
   const PROJECT_SCHEMA_VERSION=1;
   // RC125: compact practice-view and string selectors preserve space for P1/P2/P3; all RC124 audio, analysis, repeat, project and practice logic preserved.
 
@@ -11780,7 +11759,6 @@ html body #appRoot#appRoot#appRoot .bass-over-lyrics{color:#72e6a2;font-weight:7
   let origGain, bassGain, analyser, masterGain, mainDryGain, mainPracticeGain, practiceBassCutFilter, pitchDryGain, pitchWetGain, pitchBus, pitchShift, sourceBus, bassCancelGain, mainSourceGain, noBassSourceGain, bassStemSourceGain, bassPitchDryGain, bassPitchWetGain, bassPitchBus, bassPitchShift;
   let hpFilter, lpFilter, boostFilter, compressor, splitter, merger, centreGainL, centreGainR;
   let notes=[], raf=0, objectName='', lastNoteMidi=null, noteStart=0, lastDetectedAt=0;
-  let lyricCues=[];
   let noteDisplayMode='notes', currentScaleContext=null, detectedScaleContext=null, transposeSemitones=0;
   let bassPracticeMuted=false, metronomeEnabled=false, lastMetronomeBeat=-1, lastMetronomeTime=null, detectedTempoBpm=null;
   let detectedBeatTimes=[], detectedBeatsPerBar=4, detectedDownbeatPhase=0, beatGridConfidence=null, detectedChordChanges=[];
@@ -14255,7 +14233,6 @@ html body #appRoot#appRoot#appRoot .bass-over-lyrics{color:#72e6a2;font-weight:7
   }
   function selectScaleByText(scaleText){const p=parseSongScaleContext(scaleText);if(p&&detectedScaleContext&&p.mode===detectedScaleContext.mode)applySelectedScaleRoot(p.rootPc);}
   function resetSongContext(){
-    lyricCues=[];renderLyricCues();
     currentScaleContext=null;detectedScaleContext=null;transposeSemitones=0;metronomeEnabled=false;lastMetronomeBeat=-1;lastMetronomeTime=null;detectedTempoBpm=null;
     detectedBeatTimes=[];detectedBeatsPerBar=4;detectedDownbeatPhase=0;beatGridConfidence=null;detectedChordChanges=[];
     populateScaleSelect(null);refreshNoteNumberToggle();refreshMetronomeToggle();
@@ -16455,54 +16432,6 @@ html body #appRoot#appRoot#appRoot .bass-over-lyrics{color:#72e6a2;font-weight:7
   }
 
   aiAnalyse?.addEventListener('click',analyseBassWithAI);
-  function lyricSheetRows(){
-    const cues=lyricCues.slice().sort((a,b)=>a.time-b.time);
-    return cues.map((cue,i)=>{
-      const end=cues[i+1]?.time??(buffer?.duration||cue.time+4);
-      const bass=notes.filter(n=>n.start>=cue.time&&n.start<end).map(n=>midiName(Math.round(n.midi)+transposeSemitones));
-      return {time:preciseTime(cue.time),lyric:cue.text,bass:[...new Set(bass)].join(' · ')||'—'};
-    });
-  }
-  function renderLyricCues(){
-    const list=$('lyricsCueList'),word=$('exportLyricsWord'),pdf=$('exportLyricsPdf');
-    if(!list)return;
-    list.replaceChildren();
-    const cues=lyricCues.slice().sort((a,b)=>a.time-b.time);
-    cues.forEach((cue,i)=>{
-      const end=cues[i+1]?.time??(buffer?.duration||cue.time+4);
-      const bass=notes.filter(n=>n.start>=cue.time&&n.start<end).map(n=>midiName(Math.round(n.midi)+transposeSemitones)).join(' · ')||'—';
-      const row=document.createElement('div');row.className='lyric-cue';
-      const time=document.createElement('span');time.className='lyric-time';time.textContent=preciseTime(cue.time);
-      const words=document.createElement('span');words.className='lyric-words';
-      const bassLine=document.createElement('span');bassLine.className='bass-over-lyrics';bassLine.textContent=bass;
-      const lyric=document.createElement('span');lyric.textContent=cue.text;
-      words.append(bassLine,lyric);row.append(time,words);list.appendChild(row);
-    });
-    if(word)word.disabled=!lyricCues.length;
-    if(pdf)pdf.disabled=!lyricCues.length;
-  }
-  function lyricsDocumentHtml(){
-    const rows=lyricSheetRows();
-    const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-    const title=esc((activeAudioFile?.name||objectName||'Bass Stem Studio').replace(/\.[^.]+$/,''));
-    return `<!doctype html><html><head><meta charset="utf-8"><title>${title} lyrics and bass</title><style>body{font:11px Arial,sans-serif;color:#111}h1{font-size:11px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #999;padding:7px;text-align:left;vertical-align:top}th{background:#eee}.time{white-space:nowrap}.bass-line{font-weight:700;margin-bottom:4px;color:#176b48}</style></head><body><h1>${title}</h1><p>${esc(songScale?.textContent||'')} · ${esc(songTempo?.textContent||'')} BPM</p><table><thead><tr><th>Time</th><th>Bass notes over lyrics</th></tr></thead><tbody>${rows.map(r=>`<tr><td class="time">${esc(r.time)}</td><td><div class="bass-line">${esc(r.bass)}</div><div>${esc(r.lyric)}</div></td></tr>`).join('')}</tbody></table></body></html>`;
-  }
-  function downloadLyricsWord(){
-    const blob=new Blob([lyricsDocumentHtml()],{type:'application/msword;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');
-    a.href=url;a.download=(activeAudioFile?.name||objectName||'Bass_Studio').replace(/\.[^.]+$/,'')+'_Lyrics_and_Bass.doc';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
-  }
-  function printLyricsPdf(){
-    const w=window.open('','_blank');if(!w)return;
-    w.document.open();w.document.write(lyricsDocumentHtml());w.document.close();w.focus();setTimeout(()=>w.print(),250);
-  }
-  $('addLyricCue')?.addEventListener('click',()=>{
-    const input=$('lyricLineInput'),text=String(input?.value||'').trim();if(!text)return;
-    lyricCues.push({time:Math.max(0,currentTime()),text});lyricCues.sort((a,b)=>a.time-b.time);
-    if(input)input.value='';renderLyricCues();
-  });
-  $('lyricLineInput')?.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();$('addLyricCue')?.click();}});
-  $('exportLyricsWord')?.addEventListener('click',downloadLyricsWord);
-  $('exportLyricsPdf')?.addEventListener('click',printLyricsPdf);
   exportAnalysis?.addEventListener('click',exportBassAnalysisCSV);
   document.addEventListener('visibilitychange',()=>{
     if(document.visibilityState==='visible')checkSavedAnalysisSoon(150);
