@@ -11519,6 +11519,67 @@ html body #appRoot#appRoot#appRoot .premium-transport .loop-range-row #clearLoop
 html body #appRoot#appRoot#appRoot .premium-transport .loop-range-row #songScaleWrap{grid-column:5!important}
 html body #appRoot#appRoot#appRoot .premium-transport .loop-range-row #songTempoWrap{grid-column:6!important}
 
+
+/* RC139: override the legacy physical-phone grid that made top cards overlap. */
+html[data-device="mobile"] body #appRoot#appRoot#appRoot .brand{
+  display:flex!important;flex-direction:column!important;align-items:stretch!important;
+  justify-content:flex-start!important;gap:var(--rc120-tight-gap)!important;
+}
+html[data-device="mobile"] body #appRoot#appRoot#appRoot #displaySizeControl{
+  display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  grid-template-rows:var(--rc120-control-h)!important;grid-auto-flow:row!important;
+  grid-auto-rows:var(--rc120-control-h)!important;gap:var(--rc120-tight-gap)!important;
+  width:100%!important;height:var(--rc120-control-h)!important;
+  min-height:var(--rc120-control-h)!important;max-height:var(--rc120-control-h)!important;
+  margin:0!important;padding:0!important;align-items:stretch!important;
+}
+html[data-device="mobile"] body #appRoot#appRoot#appRoot #displaySizeControl #fontSizeDown{grid-column:1!important;grid-row:1!important}
+html[data-device="mobile"] body #appRoot#appRoot#appRoot #displaySizeControl .display-size-readout{grid-column:2!important;grid-row:1!important}
+html[data-device="mobile"] body #appRoot#appRoot#appRoot #displaySizeControl #fontSizeUp{grid-column:3!important;grid-row:1!important}
+html[data-device="mobile"] body #appRoot#appRoot#appRoot #displaySizeControl #bassStringSelector{grid-column:4!important;grid-row:1!important}
+html[data-device="mobile"] body #appRoot#appRoot#appRoot #displaySizeControl #speedControl{grid-column:5!important;grid-row:1!important}
+html[data-device="mobile"] body #appRoot#appRoot#appRoot #displaySizeControl #fontSizeDown,
+html[data-device="mobile"] body #appRoot#appRoot#appRoot #displaySizeControl .display-size-readout,
+html[data-device="mobile"] body #appRoot#appRoot#appRoot #displaySizeControl #fontSizeUp,
+html[data-device="mobile"] body #appRoot#appRoot#appRoot #displaySizeControl #bassStringSelector,
+html[data-device="mobile"] body #appRoot#appRoot#appRoot #displaySizeControl #speedControl{
+  display:flex!important;width:100%!important;min-width:0!important;max-width:none!important;
+  height:var(--rc120-control-h)!important;min-height:var(--rc120-control-h)!important;
+  max-height:var(--rc120-control-h)!important;margin:0!important;box-sizing:border-box!important;
+}
+html[data-device="mobile"] body #appRoot#appRoot#appRoot .premium-transport .transport-main{
+  display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  grid-template-rows:var(--rc120-control-h)!important;grid-auto-rows:var(--rc120-control-h)!important;
+  gap:var(--rc120-tight-gap)!important;width:100%!important;height:var(--rc120-control-h)!important;
+  min-height:var(--rc120-control-h)!important;max-height:var(--rc120-control-h)!important;
+}
+html[data-device="mobile"] body #appRoot#appRoot#appRoot .premium-transport .transport-main #importBtn{grid-column:1!important;grid-row:1!important}
+html[data-device="mobile"] body #appRoot#appRoot#appRoot .premium-transport .transport-main #playBtn{grid-column:2!important;grid-row:1!important}
+html[data-device="mobile"] body #appRoot#appRoot#appRoot .premium-transport .transport-main #pauseBtn{grid-column:3!important;grid-row:1!important}
+html[data-device="mobile"] body #appRoot#appRoot#appRoot .premium-transport .transport-main #noteNumberToggle{grid-column:4!important;grid-row:1!important}
+html[data-device="mobile"] body #appRoot#appRoot#appRoot .premium-transport .transport-main #bassPracticeToggle{grid-column:5!important;grid-row:1!important}
+html[data-device="mobile"] body #appRoot#appRoot#appRoot .premium-transport .transport-main #importBtn,
+html[data-device="mobile"] body #appRoot#appRoot#appRoot .premium-transport .transport-main #playBtn,
+html[data-device="mobile"] body #appRoot#appRoot#appRoot .premium-transport .transport-main #pauseBtn,
+html[data-device="mobile"] body #appRoot#appRoot#appRoot .premium-transport .transport-main #noteNumberToggle,
+html[data-device="mobile"] body #appRoot#appRoot#appRoot .premium-transport .transport-main #bassPracticeToggle{
+  display:flex!important;width:100%!important;min-width:0!important;max-width:none!important;
+  height:var(--rc120-control-h)!important;min-height:var(--rc120-control-h)!important;
+  max-height:var(--rc120-control-h)!important;margin:0!important;padding:2px!important;
+}
+html[data-device="mobile"] body #appRoot#appRoot#appRoot .premium-transport .loop-range-row{
+  display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;
+  grid-template-rows:var(--rc120-control-h)!important;grid-auto-rows:var(--rc120-control-h)!important;
+  gap:var(--rc120-tight-gap)!important;width:100%!important;height:var(--rc120-control-h)!important;
+  min-height:var(--rc120-control-h)!important;max-height:var(--rc120-control-h)!important;
+}
+html[data-device="mobile"] body #appRoot#appRoot#appRoot .premium-transport .loop-range-row #loopToggle{grid-column:1!important;grid-row:1!important}
+html[data-device="mobile"] body #appRoot#appRoot#appRoot .premium-transport .loop-range-row #timeFrom{grid-column:2!important;grid-row:1!important}
+html[data-device="mobile"] body #appRoot#appRoot#appRoot .premium-transport .loop-range-row #timeTo{grid-column:3!important;grid-row:1!important}
+html[data-device="mobile"] body #appRoot#appRoot#appRoot .premium-transport .loop-range-row #clearLoop{grid-column:4!important;grid-row:1!important}
+html[data-device="mobile"] body #appRoot#appRoot#appRoot .premium-transport .loop-range-row #songScaleWrap{grid-column:5!important;grid-row:1!important}
+html[data-device="mobile"] body #appRoot#appRoot#appRoot .premium-transport .loop-range-row #songTempoWrap{grid-column:6!important;grid-row:1!important}
+
 </style>
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#09111f">
@@ -16517,4 +16578,93 @@ html body #appRoot#appRoot#appRoot .premium-transport .loop-range-row #songTempo
     pauseBtn.disabled=noAudio||!playing;
     stopBtn.disabled=true;
     if(skipBack10)skipBack10.disabled=noAudio;
-    if(skipForward10)skipForward10.di
+    if(skipForward10)skipForward10.disabled=noAudio;
+    playBtn.classList.toggle('good',!playing);
+    playBtn.classList.remove('playing-stop');
+    refreshBassPracticeToggle();refreshMetronomeToggle();updateProjectButtons();
+  }
+
+  aiAnalyse?.addEventListener('click',analyseBassWithAI);
+  exportAnalysis?.addEventListener('click',exportBassAnalysisCSV);
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='visible')checkSavedAnalysisSoon(150);
+  });
+  window.addEventListener('pageshow',()=>checkSavedAnalysisSoon(350));
+  window.addEventListener('focus',()=>checkSavedAnalysisSoon(250));
+  window.addEventListener('resize',()=>{waveCacheDirty=true;rebuildSimpleTimeline._sig='';drawAll()});
+  window.addEventListener('beforeunload',()=>{if(mediaURL)URL.revokeObjectURL(mediaURL);if(bassStemURL)URL.revokeObjectURL(bassStemURL);if(noBassURL)URL.revokeObjectURL(noBassURL)});
+  drawWaveform(); drawRoll();
+  checkSavedAnalysisSoon(700);
+})();
+</script>
+
+<script>
+(() => {
+  const topRow = document.querySelector('.transport-main');
+  const bottomRow = document.querySelector('.loop-range-row');
+  if (!topRow || !bottomRow) return;
+
+  let syncing = false;
+  const mirror = (source, target) => {
+    if (syncing) return;
+    syncing = true;
+    target.scrollLeft = source.scrollLeft;
+    requestAnimationFrame(() => { syncing = false; });
+  };
+
+  topRow.addEventListener('scroll', () => mirror(topRow, bottomRow), {passive:true});
+  bottomRow.addEventListener('scroll', () => mirror(bottomRow, topRow), {passive:true});
+})();
+</script>
+
+
+<script>
+/* RC135: shared 11px default with optional manual adjustment. */
+(() => {
+  const root = document.documentElement;
+  const state = window.__bassStudioDisplay || {mode: root.dataset.device || 'desktop', autoSize: 11, selected: Number(root.dataset.fontPx) || 11};
+  const down = document.getElementById('fontSizeDown');
+  const up = document.getElementById('fontSizeUp');
+  const input = document.getElementById('fontSizeInput');
+  const auto = document.getElementById('fontSizeAuto');
+  if (!down || !up || !input) return;
+
+  const clamp = value => Math.max(1, Math.min(100, Math.round(Number(value) || state.autoSize)));
+  const key = `bassStemStudioFontPxV3:${state.mode}`;
+  let current = clamp(state.selected);
+
+
+  function apply(value, save = true){
+    current = clamp(value);
+    root.style.setProperty('--ui-font-size', `${current}px`);
+    root.dataset.fontPx = String(current);
+    input.value = String(current);
+    if (save) {
+      try { localStorage.setItem(key, String(current)); } catch (_) {}
+    }
+    // Existing canvas and timeline drawing already listens to resize, so this
+    // keeps waveform and note geometry aligned after a manual size change.
+    requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+  }
+
+  down.addEventListener('click', () => apply(current - 1));
+  up.addEventListener('click', () => apply(current + 1));
+  input.addEventListener('change', () => apply(input.value));
+  input.addEventListener('keydown', event => {
+    if (event.key === 'Enter') { event.preventDefault(); apply(input.value); input.blur(); }
+  });
+  apply(current, false);
+})();
+</script>
+
+
+<script>
+/* RC133 hosted PWA shell: register the root service worker without changing app logic. */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
