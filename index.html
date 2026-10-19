@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bass Stem Studio RC133 String Numbers and Key Transpose Release Candidate</title>
+<title>Bass Stem Studio RC134 Note Confidence and A/B Transpose Release Candidate</title>
 <script>
 /* RC119: initialise the correct physical-device font before the first paint.
    This deliberately does not rely on viewport width alone, because Chrome's
@@ -11415,6 +11415,30 @@ html body #appRoot#appRoot#appRoot .bass-string-label strong{
   font-size:var(--ui-font-size)!important;
   line-height:1!important;
 }
+
+/* RC134: readable note provenance and original/target A/B comparison. */
+html body #appRoot#appRoot#appRoot .transpose-compare-btn{
+  min-width:clamp(72px,calc(var(--ui-font-size) * 5.2),340px)!important;
+  white-space:nowrap!important;
+}
+html body #appRoot#appRoot#appRoot .bass-view-foot{
+  justify-content:flex-start!important;
+  align-items:flex-start!important;
+  gap:8px 16px!important;
+}
+html body #appRoot#appRoot#appRoot .bass-note-readout{
+  display:block!important;
+  flex:1 1 100%!important;
+  min-width:0!important;
+  color:#f1f6fb!important;
+  font-size:clamp(16px,var(--ui-font-size),24px)!important;
+  line-height:1.45!important;
+  font-weight:700!important;
+  overflow-wrap:anywhere!important;
+}
+@media(max-width:760px){
+  html body #appRoot#appRoot#appRoot .bass-note-readout{font-size:16px!important}
+}
 </style>
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#09111f">
@@ -11447,6 +11471,7 @@ html body #appRoot#appRoot#appRoot .bass-string-label strong{
         <button class="display-size-btn" id="fontSizeUp" type="button" aria-label="Increase text size" title="Increase text size">+</button>
         <button class="display-auto-btn" id="fontSizeAuto" type="button" aria-label="Use automatic device text size" title="Use automatic device text size">Auto</button>
         <select class="display-auto-btn transpose-key-select" id="quickScaleSelect" aria-label="Transpose song key" title="Transpose the song to another key" disabled><option value="">Key</option></select>
+        <button class="display-auto-btn transpose-compare-btn" id="transposeCompareToggle" type="button" disabled aria-label="Hear original recording" title="Compare the original and transposed recording">Hear original</button>
       </div>
       <div class="pill" id="engineBadge">Bb0–G3 Bass View</div>
     </div>
@@ -11605,7 +11630,8 @@ html body #appRoot#appRoot#appRoot .bass-string-label strong{
         </div>
       </div>
       <div class="bass-view-foot">
-        <span class="bass-view-legend"><i class="legend-note"></i> Main note <i class="legend-fill"></i> Fill</span>
+        <span class="bass-view-legend"><i class="legend-note"></i> Detected bass note <i class="legend-fill"></i> Fill</span>
+        <span class="bass-note-readout" id="bassNoteReadout" role="status" aria-live="polite">Analyse a song to see its detected note and playing position.</span>
       </div>
     </div>
 
@@ -11727,7 +11753,7 @@ html body #appRoot#appRoot#appRoot .bass-string-label strong{
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC133';
+  const APP_VERSION='RC134';
   const PROJECT_SCHEMA_VERSION=1;
   // RC125: compact practice-view and string selectors preserve space for P1/P2/P3; all RC124 audio, analysis, repeat, project and practice logic preserved.
 
@@ -11755,7 +11781,7 @@ html body #appRoot#appRoot#appRoot .bass-string-label strong{
   let origGain, bassGain, analyser, masterGain, mainDryGain, mainPracticeGain, practiceBassCutFilter, pitchDryGain, pitchWetGain, pitchBus, pitchShift, sourceBus, bassCancelGain, mainSourceGain, noBassSourceGain, bassStemSourceGain, bassPitchDryGain, bassPitchWetGain, bassPitchBus, bassPitchShift;
   let hpFilter, lpFilter, boostFilter, compressor, splitter, merger, centreGainL, centreGainR;
   let notes=[], raf=0, objectName='', lastNoteMidi=null, noteStart=0, lastDetectedAt=0;
-  let noteDisplayMode='notes', currentScaleContext=null, detectedScaleContext=null, transposeSemitones=0;
+  let noteDisplayMode='notes', currentScaleContext=null, detectedScaleContext=null, transposeSemitones=0, audioTransposeBypassed=false;
   let bassPracticeMuted=false, metronomeEnabled=false, lastMetronomeBeat=-1, lastMetronomeTime=null, detectedTempoBpm=null;
   let detectedBeatTimes=[], detectedBeatsPerBar=4, detectedDownbeatPhase=0, beatGridConfidence=null, detectedChordChanges=[];
   let bassStemBase64='', bassStemMime='audio/mpeg', bassStemReady=false, lastBassSyncAt=0;
@@ -12516,6 +12542,7 @@ html body #appRoot#appRoot#appRoot .bass-string-label strong{
     if(!ctx) return;
     const now=ctx.currentTime;
     const trueBassAvailable=!!bassStemReady;
+    const effectiveAudioTranspose=audioTransposeBypassed?0:transposeSemitones;
     // Once a clean no-bass accompaniment exists it becomes Main Track. Bass is
     // added only from the genuine backend-separated bass stem. RC97 deliberately
     // does not rebuild bass by subtracting two compressed browser audio streams,
@@ -12529,12 +12556,12 @@ html body #appRoot#appRoot#appRoot .bass-string-label strong{
     if(bassCancelGain) bassCancelGain.gain.setTargetAtTime(0,now,.01);
     if(mainDryGain) mainDryGain.gain.setTargetAtTime(1,now,.01);
     if(mainPracticeGain) mainPracticeGain.gain.setTargetAtTime(0,now,.01);
-    if(pitchDryGain) pitchDryGain.gain.setTargetAtTime(transposeSemitones===0?1:0,now,.02);
-    if(pitchWetGain) pitchWetGain.gain.setTargetAtTime(transposeSemitones===0?0:1,now,.02);
-    if(pitchShift) pitchShift.setSemitones(transposeSemitones);
-    if(bassPitchDryGain) bassPitchDryGain.gain.setTargetAtTime(transposeSemitones===0?1:0,now,.02);
-    if(bassPitchWetGain) bassPitchWetGain.gain.setTargetAtTime(transposeSemitones===0?0:1,now,.02);
-    if(bassPitchShift) bassPitchShift.setSemitones(transposeSemitones);
+    if(pitchDryGain) pitchDryGain.gain.setTargetAtTime(effectiveAudioTranspose===0?1:0,now,.02);
+    if(pitchWetGain) pitchWetGain.gain.setTargetAtTime(effectiveAudioTranspose===0?0:1,now,.02);
+    if(pitchShift) pitchShift.setSemitones(effectiveAudioTranspose);
+    if(bassPitchDryGain) bassPitchDryGain.gain.setTargetAtTime(effectiveAudioTranspose===0?1:0,now,.02);
+    if(bassPitchWetGain) bassPitchWetGain.gain.setTargetAtTime(effectiveAudioTranspose===0?0:1,now,.02);
+    if(bassPitchShift) bassPitchShift.setSemitones(effectiveAudioTranspose);
     if(hpFilter) hpFilter.frequency.setTargetAtTime(Number(hp.value),now,.01);
     if(lpFilter) lpFilter.frequency.setTargetAtTime(Number(cutoff.value),now,.01);
     if(boostFilter) boostFilter.gain.setTargetAtTime(Number(boost.value),now,.01);
@@ -14075,16 +14102,20 @@ html body #appRoot#appRoot#appRoot .bass-string-label strong{
     clearBassFretboardHighlight();
 
     const n=noteAtTime(Number(t)||0);
+    const noteReadout=$('bassNoteReadout');
     if(!n){
+      if(noteReadout)noteReadout.textContent=notes.length?'No detected bass note at this point in the song.':'Analyse a song to see its detected note and playing position.';
       return;
     }
 
-    const targetMidi=Math.round(Number(n.midi))+transposeSemitones;
+    const originalMidi=Math.round(Number(n.midi));
+    const targetMidi=originalMidi+transposeSemitones;
     const noteLabel=midiName(targetMidi);
     const degree=scaleDegreeLabel(targetMidi);
     const pos=preferredBassPosition(targetMidi,bassViewStringCount);
 
     if(!pos){
+      if(noteReadout)noteReadout.textContent=`Detected: ${midiName(originalMidi)} · no playable position found on this bass setup.`;
       return;
     }
 
@@ -14106,7 +14137,13 @@ html body #appRoot#appRoot#appRoot .bass-string-label strong{
     }
     if(fretNumber)fretNumber.classList.add('active-fret-number');
 
-
+    if(noteReadout){
+      const confidence=Number(n.confidence);
+      const confidenceText=Number.isFinite(confidence)&&confidence>0?` · ${Math.round(Math.min(1,confidence)*100)}% detection confidence`: ' · confidence unavailable';
+      const detected=midiName(originalMidi),target=midiName(targetMidi);
+      const targetText=transposeSemitones?`Target: ${target} · Scale ${degree||'—'}`:`Play: ${target}`;
+      noteReadout.textContent=`Detected: ${detected}${confidenceText}  |  ${targetText} · String ${pos.stringNumber}, ${pos.fret===0?'open':`fret ${pos.fret}`}`;
+    }
   }
 
   timelineViewBtn?.addEventListener('click',()=>setPracticeVisualMode('timeline'));
@@ -14219,6 +14256,15 @@ html body #appRoot#appRoot#appRoot .bass-string-label strong{
       control.disabled=false;
     });
   }
+  function refreshTransposeCompareUI(){
+    const button=$('transposeCompareToggle');
+    if(!button)return;
+    const canCompare=!!buffer&&Math.abs(transposeSemitones)>0;
+    button.disabled=!canCompare;
+    button.textContent=audioTransposeBypassed?'Hear target':'Hear original';
+    button.setAttribute('aria-label',audioTransposeBypassed?'Hear transposed target key':'Hear original recording');
+    button.title=audioTransposeBypassed?'Currently hearing the original recording. Tap to hear the transposed target key.':'Currently hearing the transposed target key. Tap to hear the original recording.';
+  }
   function applySelectedScaleRoot(rootPc){
     if(!detectedScaleContext)return;
     const pc=((Number(rootPc)%12)+12)%12;transposeSemitones=signedTranspose(detectedScaleContext.rootPc,pc);
@@ -14226,6 +14272,7 @@ html body #appRoot#appRoot#appRoot .bass-string-label strong{
     if(songScale)songScale.textContent=currentScaleContext.scaleText;
     if(scaleSelect && scaleSelect.value!==String(pc))scaleSelect.value=String(pc);
     if(quickScaleSelect && quickScaleSelect.value!==String(pc))quickScaleSelect.value=String(pc);
+    refreshTransposeCompareUI();
     if(songScaleWrap)songScaleWrap.title=`Detected ${detectedScaleContext.scaleText} · rehearsal key ${currentScaleContext.scaleText}${transposeSemitones?` · ${transposeSemitones>0?'+':''}${transposeSemitones} semitone${Math.abs(transposeSemitones)===1?'':'s'}`:''}`;
     updateAudioParams();refreshNoteNumberToggle();rebuildSimpleTimeline._sig='';
     if(buffer){rebuildSimpleTimeline();updateSongInfo(currentTime());}
@@ -14233,7 +14280,7 @@ html body #appRoot#appRoot#appRoot .bass-string-label strong{
   }
   function selectScaleByText(scaleText){const p=parseSongScaleContext(scaleText);if(p&&detectedScaleContext&&p.mode===detectedScaleContext.mode)applySelectedScaleRoot(p.rootPc);}
   function resetSongContext(){
-    currentScaleContext=null;detectedScaleContext=null;transposeSemitones=0;metronomeEnabled=false;lastMetronomeBeat=-1;lastMetronomeTime=null;detectedTempoBpm=null;
+    currentScaleContext=null;detectedScaleContext=null;transposeSemitones=0;audioTransposeBypassed=false;refreshTransposeCompareUI();metronomeEnabled=false;lastMetronomeBeat=-1;lastMetronomeTime=null;detectedTempoBpm=null;
     detectedBeatTimes=[];detectedBeatsPerBar=4;detectedDownbeatPhase=0;beatGridConfidence=null;detectedChordChanges=[];
     populateScaleSelect(null);refreshNoteNumberToggle();refreshMetronomeToggle();
     rebuildSimpleTimeline._sig='';
@@ -14254,7 +14301,7 @@ html body #appRoot#appRoot#appRoot .bass-string-label strong{
       scale=scale.replace(/\bmajor\b/gi,'Maj').replace(/\bminor\b/gi,'Min');
       detectedScaleContext=parseSongScaleContext(scale);
       currentScaleContext=detectedScaleContext?{...detectedScaleContext}:null;
-      transposeSemitones=0;populateScaleSelect(detectedScaleContext);
+      transposeSemitones=0;audioTransposeBypassed=false;populateScaleSelect(detectedScaleContext);refreshTransposeCompareUI();
       refreshNoteNumberToggle();
       rebuildSimpleTimeline._sig='';
       if(songScale) songScale.textContent=detectedScaleContext?.scaleText||scale;
@@ -14264,7 +14311,7 @@ html body #appRoot#appRoot#appRoot .bass-string-label strong{
         songScaleWrap.title=Number.isFinite(c)?`Detected song scale · ${Math.round(c*100)}% confidence`:'Detected song scale';
       }
     }else{
-      currentScaleContext=null;detectedScaleContext=null;transposeSemitones=0;populateScaleSelect(null);
+      currentScaleContext=null;detectedScaleContext=null;transposeSemitones=0;audioTransposeBypassed=false;populateScaleSelect(null);refreshTransposeCompareUI();
       refreshNoteNumberToggle();
       rebuildSimpleTimeline._sig='';
       if(songScale) songScale.textContent='—';
@@ -16325,6 +16372,12 @@ html body #appRoot#appRoot#appRoot .bass-string-label strong{
   });
   scaleSelect?.addEventListener('change',()=>{if(detectedScaleContext)applySelectedScaleRoot(Number(scaleSelect.value));});
   quickScaleSelect?.addEventListener('change',()=>{if(detectedScaleContext)applySelectedScaleRoot(Number(quickScaleSelect.value));});
+  $('transposeCompareToggle')?.addEventListener('click',()=>{
+    if(!buffer||!transposeSemitones)return;
+    audioTransposeBypassed=!audioTransposeBypassed;
+    updateAudioParams();refreshTransposeCompareUI();
+    if(status){status.className='status';status.textContent=audioTransposeBypassed?'Hearing the original key; the target notes remain displayed.':`Hearing the transposed target key (${currentScaleContext?.scaleText||'selected key'}).`;}
+  });
   bassPracticeToggle?.addEventListener('click',async()=>{
     if(bassPracticeToggle.disabled||!noBassReady)return;
     bassPracticeMuted=!bassPracticeMuted;
@@ -16495,3 +16548,34 @@ html body #appRoot#appRoot#appRoot .bass-string-label strong{
       try { localStorage.setItem(key, String(current)); } catch (_) {}
     }
     // Existing canvas and timeline drawing already listens to resize, so this
+    // keeps waveform and note geometry aligned after a manual size change.
+    requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+  }
+
+  down.addEventListener('click', () => apply(current - 1));
+  up.addEventListener('click', () => apply(current + 1));
+  input.addEventListener('change', () => apply(input.value));
+  input.addEventListener('keydown', event => {
+    if (event.key === 'Enter') { event.preventDefault(); apply(input.value); input.blur(); }
+  });
+  auto.addEventListener('click', () => {
+    try { localStorage.removeItem(key); } catch (_) {}
+    apply(state.autoSize, false);
+  });
+
+  refreshLabel();
+  apply(current, false);
+})();
+</script>
+
+
+<script>
+/* RC133 hosted PWA shell: register the root service worker without changing app logic. */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
