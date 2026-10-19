@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bass Stem Studio RC134 Note Confidence and A/B Transpose Release Candidate</title>
+<title>Bass Stem Studio RC135 Compact Notes and Lyrics Release Candidate</title>
 <script>
 /* RC119: initialise the correct physical-device font before the first paint.
    This deliberately does not rely on viewport width alone, because Chrome's
@@ -23,10 +23,10 @@
   const touchHandheld = touchPoints > 1 && ((coarsePointer && shortSide <= 1200) || shortSide <= 900);
   const isMobile = uaDataMobile || uaMobile || phoneSizedScreen || touchHandheld;
   const mode = isMobile ? 'mobile' : 'desktop';
-  const autoSize = isMobile ? 10 : 12;
+  const autoSize = 11;
   let selected = autoSize;
   try {
-    const saved = Number(localStorage.getItem(`bassStemStudioFontPxV2:${mode}`));
+    const saved = Number(localStorage.getItem(`bassStemStudioFontPxV3:${mode}`));
     if (Number.isFinite(saved) && saved >= 1 && saved <= 100) selected = Math.round(saved);
   } catch (_) {}
   root.dataset.device = mode;
@@ -9219,13 +9219,13 @@ html body .app .premium-transport .loop-range-row #songScaleWrap{
 
 /* ============================================================
    RC119 — adaptive device sizing
-   Mobile default: 10 px. Desktop default: 12 px.
+   Shared 11 px default for all screens.
    Manual interface size: 1–100 px.
    The final rules intentionally override older large-type release locks while
    preserving all playback, analysis, repeat, timeline and bass-view logic.
    ============================================================ */
 :root{
-  --ui-font-size:12px;
+  --ui-font-size:11px;
   --ui-gap:clamp(4px,calc(var(--ui-font-size) * .48),40px);
   --ui-pad:clamp(6px,calc(var(--ui-font-size) * .72),64px);
   --ui-card-pad:clamp(7px,calc(var(--ui-font-size) * .82),72px);
@@ -9699,8 +9699,8 @@ html body .app #sourceCard .ai-progress progress{height:clamp(8px,calc(var(--ui-
 
 /* Device-specific defaults are set before paint by the RC119 bootstrap.
    These selectors are fallbacks if script execution is blocked. */
-html[data-device="mobile"]{--ui-font-size:10px}
-html[data-device="desktop"]{--ui-font-size:12px}
+html[data-device="mobile"]{--ui-font-size:11px}
+html[data-device="desktop"]{--ui-font-size:11px}
 
 @media(max-width:520px){
   html body .app .display-size-control{width:100%!important;justify-content:flex-start!important;margin-left:0!important}
@@ -9825,7 +9825,7 @@ html body #appRoot#appRoot#appRoot .premium-transport{
 html body #appRoot#appRoot#appRoot .premium-transport .transport-main,
 html body #appRoot#appRoot#appRoot .premium-transport .loop-range-row{
   display:grid!important;
-  grid-template-columns:repeat(6,minmax(0,1fr))!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
   grid-template-rows:var(--rc120-control-h)!important;
   gap:var(--rc120-tight-gap)!important;
   width:100%!important;
@@ -10878,12 +10878,12 @@ html body #appRoot#appRoot#appRoot #bassStringSelect{
 
 /* ============================================================
    RC124 — requested defaults + corrected Open/fret geometry
-   Mobile Auto = 10 px. Desktop Auto = 12 px.
+   Auto uses the shared 11 px default.
    Open now labels the tuning/string-name column. Fret 1 starts immediately
    after the nut in the space previously occupied by the separate Open column.
    ============================================================ */
-html[data-device="mobile"]{--ui-font-size:10px}
-html[data-device="desktop"]{--ui-font-size:12px}
+html[data-device="mobile"]{--ui-font-size:11px}
+html[data-device="desktop"]{--ui-font-size:11px}
 
 /* The tuning label column is the physical open-string area. There is no
    separate fret-0 column, so every visible fret column is a real fret 1–12. */
@@ -11027,7 +11027,7 @@ html:not([data-device="mobile"]) body #appRoot#appRoot#appRoot .stacked-select-d
 html[data-device="mobile"] body #appRoot#appRoot#appRoot .simple-timeline-head{
   --practice-head-gap:clamp(3px,calc(var(--ui-font-size) * .4),8px);
   display:grid!important;
-  grid-template-columns:repeat(6,minmax(0,1fr))!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
   grid-template-rows:var(--rc120-control-h)!important;
   gap:var(--practice-head-gap)!important;
   align-items:stretch!important;
@@ -11252,7 +11252,7 @@ html[data-device="mobile"] body #appRoot#appRoot#appRoot .brand > div:first-chil
 html[data-device="mobile"] body #appRoot#appRoot#appRoot #displaySizeControl{
   grid-column:1!important;
   display:grid!important;
-  grid-template-columns:repeat(6,minmax(0,1fr))!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
   grid-template-rows:var(--rc120-control-h)!important;
   gap:var(--rc120-tight-gap)!important;
   align-items:stretch!important;
@@ -11268,24 +11268,10 @@ html[data-device="mobile"] body #appRoot#appRoot#appRoot #displaySizeControl{
   padding:0!important;
   box-sizing:border-box!important;
 }
-html[data-device="mobile"] body #appRoot#appRoot#appRoot #displayDeviceLabel{
-  grid-column:1!important;
-  display:flex!important;
-  align-items:center!important;
-  justify-content:flex-start!important;
-  width:100%!important;
-  min-width:0!important;
-  max-width:none!important;
-  height:100%!important;
-  margin:0!important;
-  padding:0!important;
-  box-sizing:border-box!important;
-  white-space:nowrap!important;
-}
-html[data-device="mobile"] body #appRoot#appRoot#appRoot #fontSizeDown{grid-column:2!important}
-html[data-device="mobile"] body #appRoot#appRoot#appRoot .display-size-readout{grid-column:3!important}
-html[data-device="mobile"] body #appRoot#appRoot#appRoot #fontSizeUp{grid-column:4!important}
-html[data-device="mobile"] body #appRoot#appRoot#appRoot #fontSizeAuto{grid-column:5!important}
+html[data-device="mobile"] body #appRoot#appRoot#appRoot #fontSizeDown{grid-column:1!important}
+html[data-device="mobile"] body #appRoot#appRoot#appRoot .display-size-readout{grid-column:2!important}
+html[data-device="mobile"] body #appRoot#appRoot#appRoot #fontSizeUp{grid-column:3!important}
+html[data-device="mobile"] body #appRoot#appRoot#appRoot #fontSizeAuto{grid-column:4!important}
 html[data-device="mobile"] body #appRoot#appRoot#appRoot #fontSizeDown,
 html[data-device="mobile"] body #appRoot#appRoot#appRoot #fontSizeUp,
 html[data-device="mobile"] body #appRoot#appRoot#appRoot #fontSizeAuto,
@@ -11416,29 +11402,33 @@ html body #appRoot#appRoot#appRoot .bass-string-label strong{
   line-height:1!important;
 }
 
-/* RC134: readable note provenance and original/target A/B comparison. */
-html body #appRoot#appRoot#appRoot .transpose-compare-btn{
-  min-width:clamp(72px,calc(var(--ui-font-size) * 5.2),340px)!important;
-  white-space:nowrap!important;
-}
+/* RC135 — compact note colours and one shared 11px type scale. */
 html body #appRoot#appRoot#appRoot .bass-view-foot{
-  justify-content:flex-start!important;
-  align-items:flex-start!important;
-  gap:8px 16px!important;
+  justify-content:flex-start!important;align-items:center!important;gap:8px!important;
 }
-html body #appRoot#appRoot#appRoot .bass-note-readout{
-  display:block!important;
-  flex:1 1 100%!important;
-  min-width:0!important;
-  color:#f1f6fb!important;
-  font-size:clamp(16px,var(--ui-font-size),24px)!important;
-  line-height:1.45!important;
-  font-weight:700!important;
-  overflow-wrap:anywhere!important;
+html body #appRoot#appRoot#appRoot .bass-view-legend{gap:8px!important}
+html body #appRoot#appRoot#appRoot .legend-uncertain{background:#b99bff;box-shadow:0 0 8px rgba(185,155,255,.45)}
+html body #appRoot#appRoot#appRoot .bass-position-marker.uncertain,
+html body #appRoot#appRoot#appRoot .note-token.uncertain{
+  color:#fff!important;background:#6849a2!important;border-color:#c4adff!important;
+  box-shadow:0 0 0 2px rgba(185,155,255,.2),0 0 14px rgba(185,155,255,.34)!important;
 }
-@media(max-width:760px){
-  html body #appRoot#appRoot#appRoot .bass-note-readout{font-size:16px!important}
-}
+html body #appRoot#appRoot#appRoot .note-token{background:#175f47!important;border-color:#72e6a2!important;color:#effff6!important}
+html body #appRoot#appRoot#appRoot .note-token.fill{background:#76591a!important;border-color:#ffd166!important;color:#fff8df!important}
+html body #appRoot#appRoot#appRoot .note-token.uncertain{background:#6849a2!important;border-color:#c4adff!important;color:#fff!important}
+html body #appRoot#appRoot#appRoot *{font-size:var(--ui-font-size,11px)!important}
+html body #appRoot#appRoot#appRoot *::before,
+html body #appRoot#appRoot#appRoot *::after,
+html body #appRoot#appRoot#appRoot *::placeholder{font-size:var(--ui-font-size,11px)!important}
+
+html body #appRoot#appRoot#appRoot .lyrics-panel{margin:8px 0;padding:8px;border:1px solid var(--line);border-radius:12px;background:rgba(15,27,48,.7)}
+html body #appRoot#appRoot#appRoot .lyrics-panel summary{cursor:pointer;font-weight:750;min-height:30px;display:flex;align-items:center}
+html body #appRoot#appRoot#appRoot .lyrics-controls{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:6px;margin-top:8px}
+html body #appRoot#appRoot#appRoot .lyrics-controls input{min-width:0;padding:7px;border:1px solid #36536f;border-radius:8px;background:#0b1727;color:var(--text)}
+html body #appRoot#appRoot#appRoot .lyrics-controls .btn{padding:6px 8px;min-width:0}
+html body #appRoot#appRoot#appRoot .lyric-cue{display:grid;grid-template-columns:42px minmax(0,1fr);gap:8px;padding:5px 0;border-top:1px solid rgba(94,133,172,.25)}
+html body #appRoot#appRoot#appRoot .lyric-time{color:var(--muted);font-variant-numeric:tabular-nums}
+@media(max-width:560px){html body #appRoot#appRoot#appRoot .lyrics-controls{grid-template-columns:1fr 1fr}html body #appRoot#appRoot#appRoot .lyrics-controls input{grid-column:1/-1}}
 </style>
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#09111f">
@@ -11461,8 +11451,7 @@ html body #appRoot#appRoot#appRoot .bass-note-readout{
         <div class="tag"></div>
       </div>
 
-      <div class="display-size-control" id="displaySizeControl" role="group" aria-label="Interface text size and song key">
-        <span class="display-device-label" id="displayDeviceLabel">Auto</span>
+      <div class="display-size-control" id="displaySizeControl" role="group" aria-label="Interface text size">
         <button class="display-size-btn" id="fontSizeDown" type="button" aria-label="Decrease text size" title="Decrease text size">−</button>
         <label class="display-size-readout" for="fontSizeInput">
           <input id="fontSizeInput" type="number" min="1" max="100" step="1" inputmode="numeric" aria-label="Text size in pixels">
@@ -11470,8 +11459,6 @@ html body #appRoot#appRoot#appRoot .bass-note-readout{
         </label>
         <button class="display-size-btn" id="fontSizeUp" type="button" aria-label="Increase text size" title="Increase text size">+</button>
         <button class="display-auto-btn" id="fontSizeAuto" type="button" aria-label="Use automatic device text size" title="Use automatic device text size">Auto</button>
-        <select class="display-auto-btn transpose-key-select" id="quickScaleSelect" aria-label="Transpose song key" title="Transpose the song to another key" disabled><option value="">Key</option></select>
-        <button class="display-auto-btn transpose-compare-btn" id="transposeCompareToggle" type="button" disabled aria-label="Hear original recording" title="Compare the original and transposed recording">Hear original</button>
       </div>
       <div class="pill" id="engineBadge">Bb0–G3 Bass View</div>
     </div>
@@ -11588,11 +11575,11 @@ html body #appRoot#appRoot#appRoot .bass-note-readout{
 
         <div class="bass-string-selector stacked-select-card" id="bassStringSelector" hidden aria-label="Bass guitar strings">
           <select class="bass-string-select" id="bassStringSelect" aria-label="Bass guitar strings">
-            <option value="4">4 String</option>
-            <option value="5" selected>5 String</option>
-            <option value="6">6 String</option>
+            <option value="4">4</option>
+            <option value="5" selected>5</option>
+            <option value="6">6</option>
           </select>
-          <span class="stacked-select-display" aria-hidden="true"><strong>String</strong><span id="bassStringDisplayValue">5</span></span>
+          <span class="stacked-select-display" aria-hidden="true"><strong id="bassStringDisplayValue">5</strong></span>
         </div>
       </div>
 
@@ -11630,10 +11617,20 @@ html body #appRoot#appRoot#appRoot .bass-note-readout{
         </div>
       </div>
       <div class="bass-view-foot">
-        <span class="bass-view-legend"><i class="legend-note"></i> Detected bass note <i class="legend-fill"></i> Fill</span>
-        <span class="bass-note-readout" id="bassNoteReadout" role="status" aria-live="polite">Analyse a song to see its detected note and playing position.</span>
+        <span class="bass-view-legend" aria-label="Green: detected. Yellow: fill. Purple: low confidence."><i class="legend-note" title="Detected" aria-label="Detected"></i><i class="legend-fill" title="Fill" aria-label="Fill"></i><i class="legend-uncertain" title="Low confidence" aria-label="Low confidence"></i></span>
       </div>
     </div>
+
+    <details class="lyrics-panel" id="lyricsPanel">
+      <summary>Lyrics &amp; export</summary>
+      <div class="lyrics-controls">
+        <input id="lyricLineInput" type="text" maxlength="300" placeholder="Enter a lyric line" aria-label="Lyric line">
+        <button class="btn" id="addLyricCue" type="button">Add at playhead</button>
+        <button class="btn" id="exportLyricsWord" type="button" disabled>Word</button>
+        <button class="btn" id="exportLyricsPdf" type="button" disabled>PDF</button>
+      </div>
+      <div id="lyricsCueList" aria-live="polite"></div>
+    </details>
 
     <div class="timeline-scroll simple-scroll" id="timelineScroll" aria-label="Bass note timeline">
       <div class="timeline-inner simple-inner">
@@ -11753,14 +11750,14 @@ html body #appRoot#appRoot#appRoot .bass-note-readout{
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC134';
+  const APP_VERSION='RC135';
   const PROJECT_SCHEMA_VERSION=1;
   // RC125: compact practice-view and string selectors preserve space for P1/P2/P3; all RC124 audio, analysis, repeat, project and practice logic preserved.
 
   // ---------- DOM ----------
   const $ = id => document.getElementById(id);
   const masterAudio=$('masterAudio'), bassStemAudio=$('bassStemAudio'), noBassAudio=$('noBassAudio'), tempo=$('tempo'), tempoText=$('tempoText'), tempoReset=$('tempoReset');
-  const aiAnalyse=$('aiAnalyse'), aiState=$('aiState'), aiProgress=$('aiProgress'), aiProgressText=$('aiProgressText'), cloudEngineBadge=$('cloudEngineBadge'), songScale=$('songScale'), songTempo=$('songTempo'), songScaleWrap=$('songScaleWrap'), songTempoWrap=$('songTempoWrap'), scaleSelect=$('scaleSelect'), quickScaleSelect=$('quickScaleSelect'), noteNumberToggle=$('noteNumberToggle'), noteNumberModeText=$('noteNumberModeText'), bassPracticeToggle=$('bassPracticeToggle'), bassPracticeText=$('bassPracticeText'), metronomeToggle=$('metronomeToggle'), metronomeText=$('metronomeText'), saveProjectBtn=$('saveProjectBtn'), importProjectBtn=$('importProjectBtn'), projectFileInput=$('projectFileInput'), sourceFileTitle=$('sourceFileTitle'), sourceFileDetails=$('sourceFileDetails'),
+  const aiAnalyse=$('aiAnalyse'), aiState=$('aiState'), aiProgress=$('aiProgress'), aiProgressText=$('aiProgressText'), cloudEngineBadge=$('cloudEngineBadge'), songScale=$('songScale'), songTempo=$('songTempo'), songScaleWrap=$('songScaleWrap'), songTempoWrap=$('songTempoWrap'), scaleSelect=$('scaleSelect'), noteNumberToggle=$('noteNumberToggle'), noteNumberModeText=$('noteNumberModeText'), bassPracticeToggle=$('bassPracticeToggle'), bassPracticeText=$('bassPracticeText'), metronomeToggle=$('metronomeToggle'), metronomeText=$('metronomeText'), saveProjectBtn=$('saveProjectBtn'), importProjectBtn=$('importProjectBtn'), projectFileInput=$('projectFileInput'), sourceFileTitle=$('sourceFileTitle'), sourceFileDetails=$('sourceFileDetails'),
         sourceCard=$('sourceCard'), aiPanel=$('aiPanel'), aiPanelHome=$('aiPanelHome'), exportRow=$('exportRow');
   const qualityMode=null, qualityHint=null, testComputer=null;
   const importBtn=$('importBtn'), fileInput=$('fileInput'), playBtn=$('playBtn'),
@@ -11781,7 +11778,8 @@ html body #appRoot#appRoot#appRoot .bass-note-readout{
   let origGain, bassGain, analyser, masterGain, mainDryGain, mainPracticeGain, practiceBassCutFilter, pitchDryGain, pitchWetGain, pitchBus, pitchShift, sourceBus, bassCancelGain, mainSourceGain, noBassSourceGain, bassStemSourceGain, bassPitchDryGain, bassPitchWetGain, bassPitchBus, bassPitchShift;
   let hpFilter, lpFilter, boostFilter, compressor, splitter, merger, centreGainL, centreGainR;
   let notes=[], raf=0, objectName='', lastNoteMidi=null, noteStart=0, lastDetectedAt=0;
-  let noteDisplayMode='notes', currentScaleContext=null, detectedScaleContext=null, transposeSemitones=0, audioTransposeBypassed=false;
+  let lyricCues=[];
+  let noteDisplayMode='notes', currentScaleContext=null, detectedScaleContext=null, transposeSemitones=0;
   let bassPracticeMuted=false, metronomeEnabled=false, lastMetronomeBeat=-1, lastMetronomeTime=null, detectedTempoBpm=null;
   let detectedBeatTimes=[], detectedBeatsPerBar=4, detectedDownbeatPhase=0, beatGridConfidence=null, detectedChordChanges=[];
   let bassStemBase64='', bassStemMime='audio/mpeg', bassStemReady=false, lastBassSyncAt=0;
@@ -12542,7 +12540,7 @@ html body #appRoot#appRoot#appRoot .bass-note-readout{
     if(!ctx) return;
     const now=ctx.currentTime;
     const trueBassAvailable=!!bassStemReady;
-    const effectiveAudioTranspose=audioTransposeBypassed?0:transposeSemitones;
+    const effectiveAudioTranspose=transposeSemitones;
     // Once a clean no-bass accompaniment exists it becomes Main Track. Bass is
     // added only from the genuine backend-separated bass stem. RC97 deliberately
     // does not rebuild bass by subtracting two compressed browser audio streams,
@@ -13946,7 +13944,7 @@ html body #appRoot#appRoot#appRoot .bass-note-readout{
         const octaveMatch=String(s.openNote||'').match(/(-?\d+)$/);
         const octave=octaveMatch?octaveMatch[1]:'';
         label.title='String '+stringNumber+' · '+s.openNote+' open';
-        label.innerHTML='<span class="bass-string-number">String '+stringNumber+'</span><strong>'+s.name+(octave?' ('+octave+')':'')+'</strong>';
+        label.innerHTML='<span class="bass-string-number">'+stringNumber+'</span><strong>'+s.name+(octave?' ('+octave+')':'')+'</strong>';
         row.appendChild(label);
 
         for(let fret=1;fret<=maxFret;fret++){
@@ -14090,6 +14088,11 @@ html body #appRoot#appRoot#appRoot .bass-note-readout{
     }
   }
 
+  function isLowConfidenceNote(note){
+    const confidence=Number(note?.confidence);
+    return !Number.isFinite(confidence)||confidence<0.70;
+  }
+
   function updateBassView(t){
     if(!bassFretboard)return;
 
@@ -14102,9 +14105,7 @@ html body #appRoot#appRoot#appRoot .bass-note-readout{
     clearBassFretboardHighlight();
 
     const n=noteAtTime(Number(t)||0);
-    const noteReadout=$('bassNoteReadout');
     if(!n){
-      if(noteReadout)noteReadout.textContent=notes.length?'No detected bass note at this point in the song.':'Analyse a song to see its detected note and playing position.';
       return;
     }
 
@@ -14115,7 +14116,6 @@ html body #appRoot#appRoot#appRoot .bass-note-readout{
     const pos=preferredBassPosition(targetMidi,bassViewStringCount);
 
     if(!pos){
-      if(noteReadout)noteReadout.textContent=`Detected: ${midiName(originalMidi)} · no playable position found on this bass setup.`;
       return;
     }
 
@@ -14128,7 +14128,7 @@ html body #appRoot#appRoot#appRoot .bass-note-readout{
       cell.classList.add('active-fret');
       if(n.isFill)cell.classList.add('fill-position');
       const marker=document.createElement('span');
-      marker.className='bass-position-marker'+(n.isFill?' fill':'');
+      marker.className='bass-position-marker'+(n.isFill?' fill':isLowConfidenceNote(n)?' uncertain':'');
       marker.textContent=noteLabel;
       marker.title=pos.fret===0
         ? 'Play '+noteLabel+' on open string '+pos.stringNumber+' ('+pos.stringName+')'
@@ -14137,13 +14137,7 @@ html body #appRoot#appRoot#appRoot .bass-note-readout{
     }
     if(fretNumber)fretNumber.classList.add('active-fret-number');
 
-    if(noteReadout){
-      const confidence=Number(n.confidence);
-      const confidenceText=Number.isFinite(confidence)&&confidence>0?` · ${Math.round(Math.min(1,confidence)*100)}% detection confidence`: ' · confidence unavailable';
-      const detected=midiName(originalMidi),target=midiName(targetMidi);
-      const targetText=transposeSemitones?`Target: ${target} · Scale ${degree||'—'}`:`Play: ${target}`;
-      noteReadout.textContent=`Detected: ${detected}${confidenceText}  |  ${targetText} · String ${pos.stringNumber}, ${pos.fret===0?'open':`fret ${pos.fret}`}`;
-    }
+
   }
 
   timelineViewBtn?.addEventListener('click',()=>setPracticeVisualMode('timeline'));
@@ -14233,37 +14227,18 @@ html body #appRoot#appRoot#appRoot .bass-note-readout{
   }
   function signedTranspose(fromPc,toPc){let d=(toPc-fromPc+12)%12;if(d>6)d-=12;return d;}
   function populateScaleSelect(ctxInfo){
-    const controls=[scaleSelect,quickScaleSelect].filter(Boolean);
-    if(!controls.length)return;
-    controls.forEach(control=>{
-      control.innerHTML='';
-      if(!ctxInfo){
-        const o=document.createElement('option');
-        o.value='';
-        o.textContent=control===quickScaleSelect?'Key':'—';
-        control.appendChild(o);
-        control.disabled=true;
-        return;
-      }
-      for(const r of SCALE_ROOTS){
-        const o=document.createElement('option');
-        o.value=String(r.pc);
-        o.textContent=compactScaleTextFor(r.pc,ctxInfo.mode);
-        o.title=scaleTextFor(r.pc,ctxInfo.mode);
-        control.appendChild(o);
-      }
-      control.value=String(ctxInfo.rootPc);
-      control.disabled=false;
-    });
-  }
-  function refreshTransposeCompareUI(){
-    const button=$('transposeCompareToggle');
-    if(!button)return;
-    const canCompare=!!buffer&&Math.abs(transposeSemitones)>0;
-    button.disabled=!canCompare;
-    button.textContent=audioTransposeBypassed?'Hear target':'Hear original';
-    button.setAttribute('aria-label',audioTransposeBypassed?'Hear transposed target key':'Hear original recording');
-    button.title=audioTransposeBypassed?'Currently hearing the original recording. Tap to hear the transposed target key.':'Currently hearing the transposed target key. Tap to hear the original recording.';
+    if(!scaleSelect)return;
+    scaleSelect.innerHTML='';
+    if(!ctxInfo){
+      const o=document.createElement('option');o.value='';o.textContent='—';
+      scaleSelect.appendChild(o);scaleSelect.disabled=true;return;
+    }
+    for(const r of SCALE_ROOTS){
+      const o=document.createElement('option');o.value=String(r.pc);
+      o.textContent=compactScaleTextFor(r.pc,ctxInfo.mode);o.title=scaleTextFor(r.pc,ctxInfo.mode);
+      scaleSelect.appendChild(o);
+    }
+    scaleSelect.value=String(ctxInfo.rootPc);scaleSelect.disabled=false;
   }
   function applySelectedScaleRoot(rootPc){
     if(!detectedScaleContext)return;
@@ -14271,8 +14246,6 @@ html body #appRoot#appRoot#appRoot .bass-note-readout{
     currentScaleContext={...detectedScaleContext,rootPc:pc,scaleText:scaleTextFor(pc,detectedScaleContext.mode)};
     if(songScale)songScale.textContent=currentScaleContext.scaleText;
     if(scaleSelect && scaleSelect.value!==String(pc))scaleSelect.value=String(pc);
-    if(quickScaleSelect && quickScaleSelect.value!==String(pc))quickScaleSelect.value=String(pc);
-    refreshTransposeCompareUI();
     if(songScaleWrap)songScaleWrap.title=`Detected ${detectedScaleContext.scaleText} · rehearsal key ${currentScaleContext.scaleText}${transposeSemitones?` · ${transposeSemitones>0?'+':''}${transposeSemitones} semitone${Math.abs(transposeSemitones)===1?'':'s'}`:''}`;
     updateAudioParams();refreshNoteNumberToggle();rebuildSimpleTimeline._sig='';
     if(buffer){rebuildSimpleTimeline();updateSongInfo(currentTime());}
@@ -14280,7 +14253,8 @@ html body #appRoot#appRoot#appRoot .bass-note-readout{
   }
   function selectScaleByText(scaleText){const p=parseSongScaleContext(scaleText);if(p&&detectedScaleContext&&p.mode===detectedScaleContext.mode)applySelectedScaleRoot(p.rootPc);}
   function resetSongContext(){
-    currentScaleContext=null;detectedScaleContext=null;transposeSemitones=0;audioTransposeBypassed=false;refreshTransposeCompareUI();metronomeEnabled=false;lastMetronomeBeat=-1;lastMetronomeTime=null;detectedTempoBpm=null;
+    lyricCues=[];renderLyricCues();
+    currentScaleContext=null;detectedScaleContext=null;transposeSemitones=0;metronomeEnabled=false;lastMetronomeBeat=-1;lastMetronomeTime=null;detectedTempoBpm=null;
     detectedBeatTimes=[];detectedBeatsPerBar=4;detectedDownbeatPhase=0;beatGridConfidence=null;detectedChordChanges=[];
     populateScaleSelect(null);refreshNoteNumberToggle();refreshMetronomeToggle();
     rebuildSimpleTimeline._sig='';
@@ -14301,7 +14275,7 @@ html body #appRoot#appRoot#appRoot .bass-note-readout{
       scale=scale.replace(/\bmajor\b/gi,'Maj').replace(/\bminor\b/gi,'Min');
       detectedScaleContext=parseSongScaleContext(scale);
       currentScaleContext=detectedScaleContext?{...detectedScaleContext}:null;
-      transposeSemitones=0;audioTransposeBypassed=false;populateScaleSelect(detectedScaleContext);refreshTransposeCompareUI();
+      transposeSemitones=0;populateScaleSelect(detectedScaleContext);
       refreshNoteNumberToggle();
       rebuildSimpleTimeline._sig='';
       if(songScale) songScale.textContent=detectedScaleContext?.scaleText||scale;
@@ -14311,7 +14285,7 @@ html body #appRoot#appRoot#appRoot .bass-note-readout{
         songScaleWrap.title=Number.isFinite(c)?`Detected song scale · ${Math.round(c*100)}% confidence`:'Detected song scale';
       }
     }else{
-      currentScaleContext=null;detectedScaleContext=null;transposeSemitones=0;audioTransposeBypassed=false;populateScaleSelect(null);refreshTransposeCompareUI();
+      currentScaleContext=null;detectedScaleContext=null;transposeSemitones=0;populateScaleSelect(null);
       refreshNoteNumberToggle();
       rebuildSimpleTimeline._sig='';
       if(songScale) songScale.textContent='—';
@@ -15645,7 +15619,7 @@ html body #appRoot#appRoot#appRoot .bass-note-readout{
         const name=midiName(Math.round(n.midi)+transposeSemitones);
         const shown=displayNoteLabel(n.midi,n.scaleNumber);
         const token=document.createElement('span');
-        token.className='note-token'+(n.isFill?' fill':'');
+        token.className='note-token'+(n.isFill?' fill':isLowConfidenceNote(n)?' uncertain':'');
         token.dataset.start=n.start;token.dataset.end=n.end;
         token.textContent=n.isFill?`(${shown})`:shown;
         token.title=`${name}${shown!==name?' · '+shown:''} · ${fmt(n.start)}–${fmt(n.end)}${n.isFill?' · fill':''}`;
@@ -16371,13 +16345,6 @@ html body #appRoot#appRoot#appRoot .bass-note-readout{
     if(buffer){rebuildSimpleTimeline();updateSongInfo(currentTime());}
   });
   scaleSelect?.addEventListener('change',()=>{if(detectedScaleContext)applySelectedScaleRoot(Number(scaleSelect.value));});
-  quickScaleSelect?.addEventListener('change',()=>{if(detectedScaleContext)applySelectedScaleRoot(Number(quickScaleSelect.value));});
-  $('transposeCompareToggle')?.addEventListener('click',()=>{
-    if(!buffer||!transposeSemitones)return;
-    audioTransposeBypassed=!audioTransposeBypassed;
-    updateAudioParams();refreshTransposeCompareUI();
-    if(status){status.className='status';status.textContent=audioTransposeBypassed?'Hearing the original key; the target notes remain displayed.':`Hearing the transposed target key (${currentScaleContext?.scaleText||'selected key'}).`;}
-  });
   bassPracticeToggle?.addEventListener('click',async()=>{
     if(bassPracticeToggle.disabled||!noBassReady)return;
     bassPracticeMuted=!bassPracticeMuted;
@@ -16485,6 +16452,49 @@ html body #appRoot#appRoot#appRoot .bass-note-readout{
   }
 
   aiAnalyse?.addEventListener('click',analyseBassWithAI);
+  function lyricSheetRows(){
+    const cues=lyricCues.slice().sort((a,b)=>a.time-b.time);
+    return cues.map((cue,i)=>{
+      const end=cues[i+1]?.time??(buffer?.duration||cue.time+4);
+      const bass=notes.filter(n=>n.start>=cue.time&&n.start<end).map(n=>midiName(Math.round(n.midi)+transposeSemitones));
+      return {time:preciseTime(cue.time),lyric:cue.text,bass:[...new Set(bass)].join(' · ')||'—'};
+    });
+  }
+  function renderLyricCues(){
+    const list=$('lyricsCueList'),word=$('exportLyricsWord'),pdf=$('exportLyricsPdf');
+    if(!list)return;
+    list.replaceChildren();
+    lyricCues.slice().sort((a,b)=>a.time-b.time).forEach(cue=>{
+      const row=document.createElement('div');row.className='lyric-cue';
+      const time=document.createElement('span');time.className='lyric-time';time.textContent=preciseTime(cue.time);
+      const lyric=document.createElement('span');lyric.textContent=cue.text;
+      row.append(time,lyric);list.appendChild(row);
+    });
+    if(word)word.disabled=!lyricCues.length;
+    if(pdf)pdf.disabled=!lyricCues.length;
+  }
+  function lyricsDocumentHtml(){
+    const rows=lyricSheetRows();
+    const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const title=esc((activeAudioFile?.name||objectName||'Bass Stem Studio').replace(/\.[^.]+$/,''));
+    return `<!doctype html><html><head><meta charset="utf-8"><title>${title} lyrics and bass</title><style>body{font:11px Arial,sans-serif;color:#111}h1{font-size:11px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #999;padding:7px;text-align:left;vertical-align:top}th{background:#eee}.time{white-space:nowrap}</style></head><body><h1>${title}</h1><p>${esc(songScale?.textContent||'')} · ${esc(songTempo?.textContent||'')} BPM</p><table><thead><tr><th>Time</th><th>Lyrics</th><th>Bass notes</th></tr></thead><tbody>${rows.map(r=>`<tr><td class="time">${esc(r.time)}</td><td>${esc(r.lyric)}</td><td>${esc(r.bass)}</td></tr>`).join('')}</tbody></table></body></html>`;
+  }
+  function downloadLyricsWord(){
+    const blob=new Blob([lyricsDocumentHtml()],{type:'application/msword;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=url;a.download=(activeAudioFile?.name||objectName||'Bass_Studio').replace(/\.[^.]+$/,'')+'_Lyrics_and_Bass.doc';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+  function printLyricsPdf(){
+    const w=window.open('','_blank');if(!w)return;
+    w.document.open();w.document.write(lyricsDocumentHtml());w.document.close();w.focus();setTimeout(()=>w.print(),250);
+  }
+  $('addLyricCue')?.addEventListener('click',()=>{
+    const input=$('lyricLineInput'),text=String(input?.value||'').trim();if(!text)return;
+    lyricCues.push({time:Math.max(0,currentTime()),text});lyricCues.sort((a,b)=>a.time-b.time);
+    if(input)input.value='';renderLyricCues();
+  });
+  $('lyricLineInput')?.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();$('addLyricCue')?.click();}});
+  $('exportLyricsWord')?.addEventListener('click',downloadLyricsWord);
+  $('exportLyricsPdf')?.addEventListener('click',printLyricsPdf);
   exportAnalysis?.addEventListener('click',exportBassAnalysisCSV);
   document.addEventListener('visibilitychange',()=>{
     if(document.visibilityState==='visible')checkSavedAnalysisSoon(150);
@@ -16519,24 +16529,22 @@ html body #appRoot#appRoot#appRoot .bass-note-readout{
 
 
 <script>
-/* RC124: manual 1–100 px control, stored separately for phone and desktop. */
+/* RC135: shared 11px default with optional manual adjustment. */
 (() => {
   const root = document.documentElement;
-  const state = window.__bassStudioDisplay || {mode: root.dataset.device || 'desktop', autoSize: root.dataset.device === 'mobile' ? 10 : 12, selected: Number(root.dataset.fontPx) || 12};
+  const state = window.__bassStudioDisplay || {mode: root.dataset.device || 'desktop', autoSize: 11, selected: Number(root.dataset.fontPx) || 11};
   const down = document.getElementById('fontSizeDown');
   const up = document.getElementById('fontSizeUp');
   const input = document.getElementById('fontSizeInput');
   const auto = document.getElementById('fontSizeAuto');
-  const label = document.getElementById('displayDeviceLabel');
-  if (!down || !up || !input || !auto || !label) return;
+  if (!down || !up || !input || !auto) return;
 
   const clamp = value => Math.max(1, Math.min(100, Math.round(Number(value) || state.autoSize)));
-  const key = `bassStemStudioFontPxV2:${state.mode}`;
+  const key = `bassStemStudioFontPxV3:${state.mode}`;
   let current = clamp(state.selected);
 
   function refreshLabel(){
-    label.textContent = state.mode === 'mobile' ? 'Mobile' : 'Desktop';
-    auto.title = `Use automatic ${state.mode} size (${state.autoSize} px)`;
+    auto.title = `Use automatic text size (${state.autoSize} px)`;
   }
 
   function apply(value, save = true){
