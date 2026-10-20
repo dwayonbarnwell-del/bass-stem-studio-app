@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bass Stem Studio RC140</title>
+<title>Bass Stem Studio RC141</title>
 <script>
 /* RC119: initialise the correct physical-device font before the first paint.
    This deliberately does not rely on viewport width alone, because Chrome's
@@ -23,7 +23,7 @@
   const touchHandheld = touchPoints > 1 && ((coarsePointer && shortSide <= 1200) || shortSide <= 900);
   const isMobile = uaDataMobile || uaMobile || phoneSizedScreen || touchHandheld;
   const mode = isMobile ? 'mobile' : 'desktop';
-  const autoSize = 11;
+  const autoSize = 14;
   let selected = autoSize;
   root.dataset.device = mode;
   root.dataset.fontPx = String(selected);
@@ -48,8 +48,8 @@ button{cursor:pointer}
  border:1px solid var(--line);border-radius:18px;padding:12px;box-shadow:var(--shadow)
 }
 .brand{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
-.brand h1{font-size:var(--ui-font-size,11px)!important;margin:0;letter-spacing:.2px}
-.brand .tag{font-size:var(--ui-font-size,11px)!important;color:var(--muted)}
+.brand h1{font-size:var(--ui-font-size,14px)!important;margin:0;letter-spacing:.2px}
+.brand .tag{font-size:var(--ui-font-size,14px)!important;color:var(--muted)}
 .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
 .btn{border:1px solid var(--line);background:var(--panel2);color:var(--text);padding:9px 12px;border-radius:10px}
 .btn.primary{background:linear-gradient(135deg,#1d8fff,#46c7ff);border:none;color:#04111d;font-weight:800}
@@ -60,27 +60,27 @@ button{cursor:pointer}
 .seek{width:min(600px,100%);accent-color:var(--accent)}
 .grid{display:grid;grid-template-columns:360px 1fr;gap:14px;margin-top:14px}
 .card{background:rgba(15,27,48,.94);border:1px solid var(--line);border-radius:18px;padding:14px;box-shadow:var(--shadow)}
-.card h2{font-size:var(--ui-font-size,11px)!important;margin:0 0 10px}
-.meta{font-size:var(--ui-font-size,11px)!important;color:var(--muted);line-height:1.5}
+.card h2{font-size:var(--ui-font-size,14px)!important;margin:0 0 10px}
+.meta{font-size:var(--ui-font-size,14px)!important;color:var(--muted);line-height:1.5}
 .control{margin:13px 0}
-.control label{display:flex;justify-content:space-between;gap:12px;font-size:var(--ui-font-size,11px)!important;color:var(--muted);margin-bottom:6px}
+.control label{display:flex;justify-content:space-between;gap:12px;font-size:var(--ui-font-size,14px)!important;color:var(--muted);margin-bottom:6px}
 .control input[type=range]{width:100%;accent-color:var(--accent)}
-.toggle{display:flex;align-items:center;gap:8px;font-size:var(--ui-font-size,11px)!important;color:var(--muted);margin:9px 0}
+.toggle{display:flex;align-items:center;gap:8px;font-size:var(--ui-font-size,14px)!important;color:var(--muted);margin:9px 0}
 .stage{display:block;min-width:0;align-self:start}
 .wavewrap,.rollwrap{position:relative;overflow:hidden;border-radius:15px;border:1px solid var(--line);background:#081321}
 canvas{display:block;width:100%;height:100%}
-.overlay{position:absolute;left:12px;top:36px;z-index:5;font-size:var(--ui-font-size,11px)!important;color:var(--muted);pointer-events:none;background:rgba(8,19,33,.78);padding:3px 7px;border-radius:7px}
+.overlay{position:absolute;left:12px;top:36px;z-index:5;font-size:var(--ui-font-size,14px)!important;color:var(--muted);pointer-events:none;background:rgba(8,19,33,.78);padding:3px 7px;border-radius:7px}
 .notehud{position:absolute;right:14px;top:12px;z-index:6;text-align:right;pointer-events:none}
-.notehud .note{font-size:var(--ui-font-size,11px)!important;font-weight:900}
-.notehud .freq{font-size:var(--ui-font-size,11px)!important;color:var(--muted)}
+.notehud .note{font-size:var(--ui-font-size,14px)!important;font-weight:900}
+.notehud .freq{font-size:var(--ui-font-size,14px)!important;color:var(--muted)}
 .rollwrap{min-height:430px}
-.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:var(--ui-font-size,11px)!important;color:var(--muted);margin-top:10px}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:var(--ui-font-size,14px)!important;color:var(--muted);margin-top:10px}
 .pill{border:1px solid var(--line);border-radius:999px;padding:5px 9px;background:#0b1728}
-.status{margin-top:10px;padding:10px;border-radius:12px;background:#0b1728;border:1px solid var(--line);font-size:var(--ui-font-size,11px)!important;color:var(--muted)}
+.status{margin-top:10px;padding:10px;border-radius:12px;background:#0b1728;border:1px solid var(--line);font-size:var(--ui-font-size,14px)!important;color:var(--muted)}
 .status.good{color:var(--good)}
 .status.warn{color:var(--warn)}
 .volrow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.small{font-size:var(--ui-font-size,11px)!important;color:var(--muted)}
+.small{font-size:var(--ui-font-size,14px)!important;color:var(--muted)}
 .sep{height:1px;background:var(--line);margin:12px 0}
 @media(max-width:850px){
  .app{padding:8px}.grid{grid-template-columns:1fr}.top{border-radius:14px}
@@ -91,15 +91,15 @@ canvas{display:block;width:100%;height:100%}
 .section-btn{border:1px solid var(--line);background:#0b1728;color:var(--text);padding:9px 8px;border-radius:10px;text-align:center}
 .section-btn.selected{outline:2px solid var(--good);background:#123a31;box-shadow:0 0 0 3px rgba(114,230,162,.10)}
 .section-btn.selected::before{content:'✓ ';font-weight:900}
-.section-btn small{display:block;color:var(--muted);font-size:var(--ui-font-size,11px)!important;margin-top:3px;font-variant-numeric:tabular-nums}
+.section-btn small{display:block;color:var(--muted);font-size:var(--ui-font-size,14px)!important;margin-top:3px;font-variant-numeric:tabular-nums}
 .section-btn.selected small{color:#c8ffe0}.section-btn:disabled{opacity:.55}
 .loopbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
-.loopread{font-size:var(--ui-font-size,11px)!important;color:var(--muted);font-variant-numeric:tabular-nums}
+.loopread{font-size:var(--ui-font-size,14px)!important;color:var(--muted);font-variant-numeric:tabular-nums}
 .loop-on{background:linear-gradient(135deg,#7a5cff,#b36cff)!important;border:none!important;font-weight:800}
 @media(max-width:700px){.section-grid{grid-template-columns:repeat(2,1fr)}.section-btn,.btn{min-height:42px}.loopbar{gap:7px}}
 button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .time-entry{width:84px;text-align:center;font-variant-numeric:tabular-nums}
-.range-hint{font-size:var(--ui-font-size,11px)!important;color:var(--muted)}
+.range-hint{font-size:var(--ui-font-size,14px)!important;color:var(--muted)}
 
 .toolbar{flex-wrap:wrap}
 .toolbar-tempo{display:flex;align-items:center;gap:8px;margin-left:auto;min-width:250px}
@@ -107,7 +107,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .inline-range{display:flex;align-items:center;gap:6px}
 .inline-range strong{white-space:nowrap}
 .inline-range input{width:70px!important}
-.compact-label{font-size:var(--ui-font-size,11px)!important}
+.compact-label{font-size:var(--ui-font-size,14px)!important}
 @media(max-width:760px){
  .toolbar-tempo{width:100%;margin-left:0;padding-top:7px;border-top:1px solid var(--line)}
  .toolbar-tempo input[type=range]{flex:1;min-width:90px}
@@ -266,7 +266,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .tempo-row{display:flex!important;width:100%!important;align-items:center!important;justify-content:flex-start!important}
 @media(max-width:760px){
  .progress-row-with-time{grid-template-columns:max-content minmax(0,1fr)!important;gap:9px!important}
- .progress-time{font-size:var(--ui-font-size,11px)!important}
+ .progress-time{font-size:var(--ui-font-size,14px)!important}
 }
 
 /* v9 premium transport hierarchy */
@@ -284,7 +284,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
   display:flex;align-items:center;gap:8px;flex:0 0 auto;
   padding-left:4px;white-space:nowrap
 }
-.tempo-compact label{font-size:var(--ui-font-size,11px)!important;font-weight:700;color:var(--muted)}
+.tempo-compact label{font-size:var(--ui-font-size,14px)!important;font-weight:700;color:var(--muted)}
 .tempo-divider{display:block;width:1px;height:30px;background:var(--line);margin-right:2px}
 .tempo-select{min-width:86px!important}
 .progress-row-premium{
@@ -310,7 +310,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
  .tempo-divider{height:27px}
  .tempo-select{min-width:72px!important;padding-left:8px!important;padding-right:20px!important}
  .progress-row-premium{grid-template-columns:max-content minmax(0,1fr)!important;gap:8px!important}
- .progress-time{font-size:var(--ui-font-size,11px)!important}
+ .progress-time{font-size:var(--ui-font-size,14px)!important}
  .premium-transport>.loopbar{gap:6px!important}
 }
 @media(max-width:560px){
@@ -354,7 +354,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
   margin-right:4px!important;
 }
 .tempo-compact label{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   font-weight:700!important;
   color:var(--muted)!important;
 }
@@ -391,7 +391,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
   flex-wrap:wrap!important;
 }
 .range-label{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   font-weight:700!important;
   color:var(--muted)!important;
   white-space:nowrap!important;
@@ -447,7 +447,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
   }
   .progress-time{
     min-width:0!important;
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
   }
   .loop-range-row{
     gap:8px!important;
@@ -459,7 +459,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
     flex-wrap:nowrap!important;
     min-width:0!important;
   }
-  .range-label{font-size:var(--ui-font-size,11px)!important}
+  .range-label{font-size:var(--ui-font-size,14px)!important}
   .range-group input{
     width:58px!important;
     padding-left:6px!important;
@@ -580,7 +580,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
   background:var(--line)!important;
 }
 .play-speed-control label{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   font-weight:700!important;
   color:var(--muted)!important;
 }
@@ -646,7 +646,7 @@ button:disabled,input:disabled,select:disabled{cursor:not-allowed!important}
 /* RC6 offline bass-track analysis */
 #analysisBadge{
   display:none;align-items:center;gap:8px;padding:7px 11px;border:1px solid rgba(125,211,252,.24);
-  border-radius:10px;background:rgba(8,25,45,.76);font-size:var(--ui-font-size,11px)!important;font-weight:700;white-space:nowrap
+  border-radius:10px;background:rgba(8,25,45,.76);font-size:var(--ui-font-size,14px)!important;font-weight:700;white-space:nowrap
 }
 #analysisBadge.on{display:inline-flex}
 #analysisBadge progress{width:90px;height:6px}
@@ -704,17 +704,17 @@ button:disabled,input:disabled,select:disabled{cursor:not-allowed!important}
 .ai-panel{grid-column:1/-1;border:1px solid rgba(98,208,255,.18);border-radius:12px;padding:12px;background:rgba(7,22,39,.55)}
 .ai-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .ai-head>div{display:flex;flex-direction:column;gap:3px}
-.ai-head span{font-size:var(--ui-font-size,11px)!important;color:#9fb1c8;overflow-wrap:anywhere;max-width:100%}
+.ai-head span{font-size:var(--ui-font-size,14px)!important;color:#9fb1c8;overflow-wrap:anywhere;max-width:100%}
 .ai-progress{display:flex;align-items:center;gap:10px;margin-top:10px}
 .ai-progress progress{flex:1;height:8px}
-.ai-progress span{font-size:var(--ui-font-size,11px)!important;min-width:125px;text-align:right;color:#9fb1c8;overflow-wrap:anywhere}
+.ai-progress span{font-size:var(--ui-font-size,14px)!important;min-width:125px;text-align:right;color:#9fb1c8;overflow-wrap:anywhere}
 .ai-note{margin-top:7px;color:#8196af}
 
 
 .quality-row{display:grid;grid-template-columns:auto minmax(190px,1fr) auto auto;align-items:center;gap:10px;margin-top:11px}
-.quality-row label{font-size:var(--ui-font-size,11px)!important;color:#9fb1c8}
+.quality-row label{font-size:var(--ui-font-size,14px)!important;color:#9fb1c8}
 .quality-select{width:100%;min-width:0}
-#qualityHint{font-size:var(--ui-font-size,11px)!important;color:#8196af;white-space:nowrap}
+#qualityHint{font-size:var(--ui-font-size,14px)!important;color:#8196af;white-space:nowrap}
 @media(max-width:720px){
   .quality-row{grid-template-columns:1fr}
   #qualityHint{white-space:normal}
@@ -724,17 +724,17 @@ button:disabled,input:disabled,select:disabled{cursor:not-allowed!important}
 /* RC20 — 14-second spreadsheet timeline + always-visible note lane */
 .song-info-strip{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0 0}
 .song-info-cell{border:1px solid #29415f;background:#0d1d31;border-radius:8px;padding:7px 10px;min-width:105px}
-.song-info-cell span{display:block;font-size:var(--ui-font-size,11px)!important;color:#8298b3;margin-bottom:2px}
-.song-info-cell b{font-size:var(--ui-font-size,11px)!important;color:#dce9f7}
+.song-info-cell span{display:block;font-size:var(--ui-font-size,14px)!important;color:#8298b3;margin-bottom:2px}
+.song-info-cell b{font-size:var(--ui-font-size,14px)!important;color:#dce9f7}
 .timeline-shell{position:relative;margin-top:10px}
 .note-sidebar{position:absolute;z-index:8;left:0;top:42px;width:70px;height:408px;pointer-events:none;
   background:#091728;border-right:1px solid #36506d;box-shadow:7px 0 14px rgba(0,0,0,.22);overflow:hidden}
 .note-sidebar-row{position:absolute;left:0;right:0;padding-left:8px;display:flex;align-items:center;
-  font-size:var(--ui-font-size,11px)!important;color:#b8c8da;border-bottom:1px solid #17304d;box-sizing:border-box}
+  font-size:var(--ui-font-size,14px)!important;color:#b8c8da;border-bottom:1px solid #17304d;box-sizing:border-box}
 .note-sidebar-row.black{background:#0a1627;color:#91a7c2}.note-sidebar-row.white{background:#0d1d31}
 .current-note-cell{position:absolute;z-index:10;left:78px;top:50px;min-width:96px;padding:7px 10px;border-radius:8px;
   border:1px solid #36506d;background:rgba(8,19,33,.94);box-shadow:0 4px 14px rgba(0,0,0,.25);pointer-events:none}
-.current-note-cell span{font-size:var(--ui-font-size,11px)!important;color:#8298b3;display:block}.current-note-cell b{font-size:var(--ui-font-size,11px)!important;color:#62d0ff}
+.current-note-cell span{font-size:var(--ui-font-size,14px)!important;color:#8298b3;display:block}.current-note-cell b{font-size:var(--ui-font-size,14px)!important;color:#62d0ff}
 .timeline-scroll{margin-top:0!important}
 .timeline-inner{width:2200px!important;min-width:2200px!important;max-width:2200px!important}
 .timeline-inner .transport-wave,.timeline-inner .stage,.timeline-inner .rollwrap,.timeline-inner .roll-scroll{
@@ -745,19 +745,19 @@ button:disabled,input:disabled,select:disabled{cursor:not-allowed!important}
 /* RC22 mobile-first 4-second piano-cell grid */
 .transport-metric{display:flex;align-items:center;gap:6px;height:34px;padding:0 10px;border:1px solid #29415f;
  background:#0d1d31;border-radius:8px;box-sizing:border-box;white-space:nowrap}
-.transport-metric span{font-size:var(--ui-font-size,11px)!important;color:#8298b3;text-transform:uppercase}.transport-metric b{font-size:var(--ui-font-size,11px)!important;color:#dce9f7}
-.current-note-metric b{font-size:var(--ui-font-size,11px)!important;color:#62d0ff}
-.mobile-engine-badge{margin-top:10px;border:1px solid #29415f;background:#0d1d31;border-radius:8px;padding:8px 10px;font-size:var(--ui-font-size,11px)!important;color:#9fb1c8}
+.transport-metric span{font-size:var(--ui-font-size,14px)!important;color:#8298b3;text-transform:uppercase}.transport-metric b{font-size:var(--ui-font-size,14px)!important;color:#dce9f7}
+.current-note-metric b{font-size:var(--ui-font-size,14px)!important;color:#62d0ff}
+.mobile-engine-badge{margin-top:10px;border:1px solid #29415f;background:#0d1d31;border-radius:8px;padding:8px 10px;font-size:var(--ui-font-size,14px)!important;color:#9fb1c8}
 .timeline-shell{position:relative;margin-top:10px;padding-left:62px}
 .note-sidebar{position:absolute;z-index:12;left:0;top:0;width:62px;pointer-events:none;background:#091728;border:1px solid #36506d;border-right:0;box-sizing:border-box;overflow:hidden}
-.note-sidebar-row{position:absolute;left:0;right:0;padding-left:6px;display:flex;align-items:center;font-size:var(--ui-font-size,11px)!important;
+.note-sidebar-row{position:absolute;left:0;right:0;padding-left:6px;display:flex;align-items:center;font-size:var(--ui-font-size,14px)!important;
  color:#b8c8da;border-bottom:1px solid #29415f;border-right:1px solid #36506d;box-sizing:border-box}
 .note-sidebar-row.black{background:#0a1627;color:#91a7c2}.note-sidebar-row.white{background:#0d1d31}
 .timeline-scroll{margin-top:0!important;border:1px solid #36506d;border-radius:0 10px 10px 0!important}
 .timeline-inner{width:var(--timeline-width,4200px)!important;min-width:var(--timeline-width,4200px)!important;max-width:var(--timeline-width,4200px)!important}
 .timeline-inner .transport-wave,.timeline-inner .stage,.timeline-inner .rollwrap,.timeline-inner .roll-scroll{width:var(--timeline-width,4200px)!important;min-width:var(--timeline-width,4200px)!important;max-width:var(--timeline-width,4200px)!important}
 .timeline-inner #wave,.timeline-inner #roll{width:var(--timeline-width,4200px)!important;min-width:var(--timeline-width,4200px)!important}
-@media(max-width:720px){.timeline-shell{padding-left:52px}.note-sidebar{width:52px}.note-sidebar-row{font-size:var(--ui-font-size,11px)!important;padding-left:4px}.transport-metric{height:31px;padding:0 6px}.transport-metric span{font-size:var(--ui-font-size,11px)!important}}
+@media(max-width:720px){.timeline-shell{padding-left:52px}.note-sidebar{width:52px}.note-sidebar-row{font-size:var(--ui-font-size,14px)!important;padding-left:4px}.transport-metric{height:31px;padding:0 6px}.transport-metric span{font-size:var(--ui-font-size,14px)!important}}
 
 
 /* RC23 — full spreadsheet cells across the bass piano roll */
@@ -767,11 +767,11 @@ button:disabled,input:disabled,select:disabled{cursor:not-allowed!important}
 .roll-cell.major{border-right-color:rgba(112,151,190,.68);border-right-width:1.25px}
 .roll-cell.blackrow{background:rgba(5,14,26,.18)}
 .roll-cell.whiterow{background:rgba(22,46,72,.08)}
-.roll-cell-time{position:absolute;top:3px;transform:translateX(-50%);font-size:var(--ui-font-size,11px)!important;color:#91a7c2;white-space:nowrap}
+.roll-cell-time{position:absolute;top:3px;transform:translateX(-50%);font-size:var(--ui-font-size,14px)!important;color:#91a7c2;white-space:nowrap}
 .rollwrap,.stage{position:relative}
 #roll{position:relative;z-index:3}
 .note-sidebar{z-index:5!important}
-@media(max-width:720px){.roll-cell-time{font-size:var(--ui-font-size,11px)!important}}
+@media(max-width:720px){.roll-cell-time{font-size:var(--ui-font-size,14px)!important}}
 
 
 /* RC25 release-candidate alignment hardening */
@@ -791,27 +791,27 @@ button:disabled,input:disabled,select:disabled{cursor:not-allowed!important}
 .simple-timeline-card{margin-top:16px;border:1px solid #29435f;border-radius:16px;background:#0b1625;overflow:hidden}
 .simple-timeline-head{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:14px 16px;border-bottom:1px solid #20364e}
 .simple-timeline-head>div:first-child{display:flex;flex-direction:column;gap:3px}
-.simple-timeline-head span{font-size:var(--ui-font-size,11px)!important;color:#8297ae}
-.timeline-now{font-size:var(--ui-font-size,11px)!important;color:#8297ae;white-space:nowrap}
-.timeline-now b{font-size:var(--ui-font-size,11px)!important;color:#63d7ff;margin-left:5px}
+.simple-timeline-head span{font-size:var(--ui-font-size,14px)!important;color:#8297ae}
+.timeline-now{font-size:var(--ui-font-size,14px)!important;color:#8297ae;white-space:nowrap}
+.timeline-now b{font-size:var(--ui-font-size,14px)!important;color:#63d7ff;margin-left:5px}
 .simple-scroll{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
 .simple-inner{position:relative;min-width:100%;width:var(--timeline-width,2400px)}
 .time-ruler{height:28px;position:relative;background:#0a1422;border-bottom:1px solid #213a55}
-.time-mark{position:absolute;top:0;height:100%;border-left:1px solid rgba(102,140,178,.35);font-size:var(--ui-font-size,11px)!important;color:#8299b1;padding:7px 0 0 4px;box-sizing:border-box}
+.time-mark{position:absolute;top:0;height:100%;border-left:1px solid rgba(102,140,178,.35);font-size:var(--ui-font-size,14px)!important;color:#8299b1;padding:7px 0 0 4px;box-sizing:border-box}
 .time-mark.major{border-left-color:rgba(129,174,216,.72);color:#b2c6da}
 .simple-wave{height:92px!important;border-bottom:1px solid #29445f;background:#081321}
 .simple-wave canvas{height:92px!important;width:100%!important;display:block}
 .note-lane{height:72px;position:relative;background:#0c1929;border-bottom:1px solid #29445f}
 .note-event{position:absolute;top:10px;height:46px;display:flex;align-items:center;justify-content:center;padding:0 7px;box-sizing:border-box;
- border:1px solid #3ebde9;border-radius:8px;background:#12344a;color:#dff7ff;font-weight:800;font-size:var(--ui-font-size,11px)!important;white-space:nowrap;overflow:hidden}
-.note-event.fill{top:17px;height:34px;border-color:#66839d;background:#101f30;color:#a9bdd0;font-size:var(--ui-font-size,11px)!important;font-weight:650}
+ border:1px solid #3ebde9;border-radius:8px;background:#12344a;color:#dff7ff;font-weight:800;font-size:var(--ui-font-size,14px)!important;white-space:nowrap;overflow:hidden}
+.note-event.fill{top:17px;height:34px;border-color:#66839d;background:#101f30;color:#a9bdd0;font-size:var(--ui-font-size,14px)!important;font-weight:650}
 .note-event.active{outline:2px solid #ffd166;outline-offset:1px}
 .simple-mixer{margin:16px 0 8px;display:flex;flex-direction:column}
 .mix-row{display:grid;grid-template-columns:44px 1fr;gap:12px;align-items:center;padding:16px 0;border-bottom:1px solid #20364e}
-.mix-icon{width:38px;height:38px;border-radius:10px;border:1px solid #36536f;display:grid;place-items:center;font-size:var(--ui-font-size,11px)!important;color:#d8e8f6}
+.mix-icon{width:38px;height:38px;border-radius:10px;border:1px solid #36536f;display:grid;place-items:center;font-size:var(--ui-font-size,14px)!important;color:#d8e8f6}
 .mix-icon.bass{font-weight:900;color:#62d9ff}
 .mix-body label{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;color:#d8e6f4}
-.mix-body label span{font-size:var(--ui-font-size,11px)!important;color:#91a6bd}
+.mix-body label span{font-size:var(--ui-font-size,14px)!important;color:#91a6bd}
 .mix-body input{width:100%}
 .advanced-hidden{display:none!important}
 @media(max-width:720px){
@@ -820,58 +820,58 @@ button:disabled,input:disabled,select:disabled{cursor:not-allowed!important}
   .simple-timeline-head{padding:11px 12px}
   .simple-wave,.simple-wave canvas{height:82px!important}
   .note-lane{height:66px}
-  .note-event{top:9px;height:42px;font-size:var(--ui-font-size,11px)!important}
-  .note-event.fill{top:15px;height:32px;font-size:var(--ui-font-size,11px)!important}
+  .note-event{top:9px;height:42px;font-size:var(--ui-font-size,14px)!important}
+  .note-event.fill{top:15px;height:32px;font-size:var(--ui-font-size,14px)!important}
 }
 
 
 /* RC27 — large, phone-first practice player */
-html,body{font-size:var(--ui-font-size,11px)!important}
+html,body{font-size:var(--ui-font-size,14px)!important}
 .app{max-width:760px!important;margin:0 auto!important;padding:14px!important}
 header{padding:4px 2px 14px!important}
-header h1{font-size:var(--ui-font-size,11px)!important;line-height:1.15!important}
+header h1{font-size:var(--ui-font-size,14px)!important;line-height:1.15!important}
 header .badge{display:none!important}
 .toolbar{gap:10px!important;flex-wrap:wrap!important}
-button,.btn,select,input[type="text"]{min-height:48px!important;font-size:var(--ui-font-size,11px)!important}
-#importBtn{font-size:var(--ui-font-size,11px)!important;padding:0 16px!important}
-#playBtn,#pauseBtn,#stopBtn{font-size:var(--ui-font-size,11px)!important;padding:0 16px!important}
+button,.btn,select,input[type="text"]{min-height:48px!important;font-size:var(--ui-font-size,14px)!important}
+#importBtn{font-size:var(--ui-font-size,14px)!important;padding:0 16px!important}
+#playBtn,#pauseBtn,#stopBtn{font-size:var(--ui-font-size,14px)!important;padding:0 16px!important}
 .transport-top{gap:10px!important}
-.time-row{font-size:var(--ui-font-size,11px)!important;padding:12px 0!important}
+.time-row{font-size:var(--ui-font-size,14px)!important;padding:12px 0!important}
 .loop-row{gap:10px!important;overflow-x:auto!important;padding-bottom:4px!important}
 .loop-row>*{flex:0 0 auto}
 .simple-timeline-card{margin-top:14px!important;border-radius:18px!important}
 .simple-timeline-head{padding:16px!important}
-.simple-timeline-head b{font-size:var(--ui-font-size,11px)!important}
-.simple-timeline-head span{font-size:var(--ui-font-size,11px)!important;margin-top:4px!important}
-.timeline-now{font-size:var(--ui-font-size,11px)!important}
-.timeline-now b{font-size:var(--ui-font-size,11px)!important}
+.simple-timeline-head b{font-size:var(--ui-font-size,14px)!important}
+.simple-timeline-head span{font-size:var(--ui-font-size,14px)!important;margin-top:4px!important}
+.timeline-now{font-size:var(--ui-font-size,14px)!important}
+.timeline-now b{font-size:var(--ui-font-size,14px)!important}
 .time-ruler{height:38px!important}
-.time-mark{font-size:var(--ui-font-size,11px)!important;padding-top:10px!important}
+.time-mark{font-size:var(--ui-font-size,14px)!important;padding-top:10px!important}
 .simple-wave,.simple-wave canvas{height:118px!important}
 .note-lane{height:252px!important;background:#0b1726!important}
-.lane-title{position:absolute;left:10px;z-index:4;font-size:var(--ui-font-size,11px)!important;font-weight:800;letter-spacing:.08em;
+.lane-title{position:absolute;left:10px;z-index:4;font-size:var(--ui-font-size,14px)!important;font-weight:800;letter-spacing:.08em;
  color:#7690aa;background:#0b1726;padding:2px 7px;border-radius:5px}
 .lane-title.fill{color:#9aabc0}
 .note-event{height:36px!important;min-width:54px!important;border-radius:9px!important;padding:0 9px!important;
- font-size:var(--ui-font-size,11px)!important;line-height:36px!important;z-index:3!important}
+ font-size:var(--ui-font-size,14px)!important;line-height:36px!important;z-index:3!important}
 .note-event.main{background:#173d54!important;border:1.5px solid #52c8ef!important;color:#effbff!important;font-weight:850!important}
 .note-event.fill{height:32px!important;background:#172333!important;border:1px solid #6e849a!important;
- color:#c2cfdb!important;font-size:var(--ui-font-size,11px)!important;font-weight:700!important}
+ color:#c2cfdb!important;font-size:var(--ui-font-size,14px)!important;font-weight:700!important}
 .note-event.active{outline:3px solid #ffd166!important;outline-offset:2px!important}
 .grid.source-below{display:block!important}
 .card{border-radius:18px!important;padding:18px!important}
-.card h2{font-size:var(--ui-font-size,11px)!important}
-.meta{font-size:var(--ui-font-size,11px)!important;line-height:1.45!important}
+.card h2{font-size:var(--ui-font-size,14px)!important}
+.meta{font-size:var(--ui-font-size,14px)!important;line-height:1.45!important}
 .simple-mixer{margin-top:18px!important}
 .mix-row{grid-template-columns:56px 1fr!important;gap:15px!important;padding:20px 0!important}
-.mix-icon{width:50px!important;height:50px!important;border-radius:14px!important;font-size:var(--ui-font-size,11px)!important}
-.mix-body label b{font-size:var(--ui-font-size,11px)!important}
-.mix-body label span{font-size:var(--ui-font-size,11px)!important}
+.mix-icon{width:50px!important;height:50px!important;border-radius:14px!important;font-size:var(--ui-font-size,14px)!important}
+.mix-body label b{font-size:var(--ui-font-size,14px)!important}
+.mix-body label span{font-size:var(--ui-font-size,14px)!important}
 .mix-body input{height:30px!important}
 .ai-panel{margin-top:18px!important}
-.ai-panel>div:first-child{font-size:var(--ui-font-size,11px)!important}
-#aiAnalyse{min-height:50px!important;font-size:var(--ui-font-size,11px)!important}
-#engineInfo,.tiny{font-size:var(--ui-font-size,11px)!important}
+.ai-panel>div:first-child{font-size:var(--ui-font-size,14px)!important}
+#aiAnalyse{min-height:50px!important;font-size:var(--ui-font-size,14px)!important}
+#engineInfo,.tiny{font-size:var(--ui-font-size,14px)!important}
 @media(max-width:720px){
   body{overflow-x:hidden}
   .app{width:100%!important;box-sizing:border-box!important}
@@ -902,13 +902,13 @@ body{
   background:transparent!important;
 }
 header{padding:4px 0 16px!important}
-header h1{font-size:var(--ui-font-size,11px)!important;letter-spacing:-.03em!important}
+header h1{font-size:var(--ui-font-size,14px)!important;letter-spacing:-.03em!important}
 .toolbar{display:flex!important;align-items:center!important;gap:10px!important;width:100%!important}
 #importBtn{flex:1 1 auto!important;min-width:142px!important}
 #playBtn,#pauseBtn,#stopBtn{flex:0 0 auto!important}
 #speedWrap,.speed-wrap{margin-left:auto!important}
 button,.btn,select,input[type=text]{min-height:var(--control)!important;border-radius:13px!important}
-.time-row{padding:14px 0!important;font-size:var(--ui-font-size,11px)!important}
+.time-row{padding:14px 0!important;font-size:var(--ui-font-size,14px)!important}
 .loop-row{display:flex!important;width:100%!important;gap:9px!important;overflow-x:auto!important;scrollbar-width:none}
 .loop-row::-webkit-scrollbar{display:none}
 .simple-timeline-card{
@@ -916,23 +916,23 @@ button,.btn,select,input[type=text]{min-height:var(--control)!important;border-r
   box-shadow:0 16px 42px rgba(0,0,0,.22)!important;
 }
 .simple-timeline-head{padding:18px var(--edge)!important}
-.simple-timeline-head b{font-size:var(--ui-font-size,11px)!important}
-.simple-timeline-head span{font-size:var(--ui-font-size,11px)!important}
+.simple-timeline-head b{font-size:var(--ui-font-size,14px)!important}
+.simple-timeline-head span{font-size:var(--ui-font-size,14px)!important}
 .simple-scroll{width:100%!important}
 .time-ruler{height:42px!important}
-.time-mark{font-size:var(--ui-font-size,11px)!important}
+.time-mark{font-size:var(--ui-font-size,14px)!important}
 .simple-wave,.simple-wave canvas{height:clamp(112px,18dvh,170px)!important}
 .note-lane{height:clamp(250px,34dvh,360px)!important}
-.note-event{font-size:var(--ui-font-size,11px)!important;min-width:64px!important}
-.note-event.fill{font-size:var(--ui-font-size,11px)!important}
-.lane-title{font-size:var(--ui-font-size,11px)!important}
+.note-event{font-size:var(--ui-font-size,14px)!important;min-width:64px!important}
+.note-event.fill{font-size:var(--ui-font-size,14px)!important}
+.lane-title{font-size:var(--ui-font-size,14px)!important}
 .grid.source-below{width:100%!important;margin:0!important}
 .card{
   width:100%!important;box-sizing:border-box!important;border-radius:20px!important;
   padding:clamp(18px,4vw,28px)!important;box-shadow:0 16px 42px rgba(0,0,0,.18)!important
 }
-.card h2{font-size:var(--ui-font-size,11px)!important}
-.meta{font-size:var(--ui-font-size,11px)!important}
+.card h2{font-size:var(--ui-font-size,14px)!important}
+.meta{font-size:var(--ui-font-size,14px)!important}
 .simple-mixer{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:18px!important}
 .mix-row{
   grid-template-columns:58px minmax(0,1fr)!important;gap:15px!important;
@@ -940,7 +940,7 @@ button,.btn,select,input[type=text]{min-height:var(--control)!important;border-r
   background:#0b1929!important
 }
 .mix-row+.mix-row{border-bottom:1px solid #203a55!important}
-.mix-body label b{font-size:var(--ui-font-size,11px)!important}
+.mix-body label b{font-size:var(--ui-font-size,14px)!important}
 .ai-panel{padding:18px!important;border-radius:17px!important}
 #aiAnalyse{min-height:54px!important}
 
@@ -966,7 +966,7 @@ button,.btn,select,input[type=text]{min-height:var(--control)!important;border-r
 @media(max-width:390px){
   .app{padding-left:10px!important;padding-right:10px!important}
   .toolbar{grid-template-columns:minmax(0,1.5fr) repeat(3,minmax(48px,.7fr))!important;gap:7px!important}
-  button,.btn,select,input[type=text]{font-size:var(--ui-font-size,11px)!important}
+  button,.btn,select,input[type=text]{font-size:var(--ui-font-size,14px)!important}
   .simple-wave,.simple-wave canvas{height:112px!important}
   .note-lane{height:282px!important}
 }
@@ -983,11 +983,11 @@ button,.btn,select,input[type=text]{min-height:var(--control)!important;border-r
 /* RC29 — large, clear, phone-native practice layout */
 @media (max-width:720px){
   :root{--edge:16px;--control:56px}
-  html,body{font-size:var(--ui-font-size,11px)!important}
+  html,body{font-size:var(--ui-font-size,14px)!important}
   .app{padding:14px 16px 28px!important}
 
   header{padding:6px 0 18px!important}
-  header h1{font-size:var(--ui-font-size,11px)!important;line-height:1.1!important}
+  header h1{font-size:var(--ui-font-size,14px)!important;line-height:1.1!important}
 
   /* Transport: no compressed text or collisions */
   .toolbar{
@@ -995,16 +995,16 @@ button,.btn,select,input[type=text]{min-height:var(--control)!important;border-r
     grid-template-columns:1.55fr 1fr 1fr!important;
     gap:10px!important;width:100%!important
   }
-  #importBtn{grid-column:1/-1!important;height:58px!important;font-size:var(--ui-font-size,11px)!important;font-weight:800!important}
-  #playBtn,#pauseBtn,#stopBtn{height:56px!important;font-size:var(--ui-font-size,11px)!important;padding:0 8px!important}
+  #importBtn{grid-column:1/-1!important;height:58px!important;font-size:var(--ui-font-size,14px)!important;font-weight:800!important}
+  #playBtn,#pauseBtn,#stopBtn{height:56px!important;font-size:var(--ui-font-size,14px)!important;padding:0 8px!important}
   #speedWrap,.speed-wrap{
     grid-column:1/-1!important;display:grid!important;grid-template-columns:auto 1fr!important;
     align-items:center!important;gap:14px!important;width:100%!important;margin:4px 0 0!important
   }
-  #speedWrap label,.speed-wrap label{font-size:var(--ui-font-size,11px)!important;white-space:nowrap!important}
-  #tempo{height:54px!important;width:100%!important;font-size:var(--ui-font-size,11px)!important}
+  #speedWrap label,.speed-wrap label{font-size:var(--ui-font-size,14px)!important;white-space:nowrap!important}
+  #tempo{height:54px!important;width:100%!important;font-size:var(--ui-font-size,14px)!important}
 
-  .time-row{display:block!important;padding:16px 0!important;font-size:var(--ui-font-size,11px)!important;font-weight:750!important}
+  .time-row{display:block!important;padding:16px 0!important;font-size:var(--ui-font-size,14px)!important;font-weight:750!important}
   .time-row input[type=range]{width:100%!important;margin-top:12px!important;height:30px!important}
 
   /* Loop controls get their own spacious rows */
@@ -1013,10 +1013,10 @@ button,.btn,select,input[type=text]{min-height:var(--control)!important;border-r
     gap:10px!important;overflow:visible!important;padding:0 0 6px!important
   }
   .loop-row>*{width:100%!important;min-width:0!important;box-sizing:border-box!important}
-  #loopToggle,#clearLoop{height:54px!important;font-size:var(--ui-font-size,11px)!important}
-  .loop-row .range-label,.loop-row label{font-size:var(--ui-font-size,11px)!important;align-self:center!important}
-  #loopStart,#loopEnd{height:54px!important;font-size:var(--ui-font-size,11px)!important;text-align:center!important}
-  #currentBassInfo{min-height:54px!important;font-size:var(--ui-font-size,11px)!important}
+  #loopToggle,#clearLoop{height:54px!important;font-size:var(--ui-font-size,14px)!important}
+  .loop-row .range-label,.loop-row label{font-size:var(--ui-font-size,14px)!important;align-self:center!important}
+  #loopStart,#loopEnd{height:54px!important;font-size:var(--ui-font-size,14px)!important;text-align:center!important}
+  #currentBassInfo{min-height:54px!important;font-size:var(--ui-font-size,14px)!important}
 
   /* Timeline is the visual centrepiece */
   .simple-timeline-card{margin:18px 0!important;border-radius:20px!important}
@@ -1024,33 +1024,33 @@ button,.btn,select,input[type=text]{min-height:var(--control)!important;border-r
     display:grid!important;grid-template-columns:1fr auto!important;
     gap:10px!important;padding:20px 18px!important
   }
-  .simple-timeline-head b{font-size:var(--ui-font-size,11px)!important}
-  .simple-timeline-head span{font-size:var(--ui-font-size,11px)!important;line-height:1.35!important}
-  .timeline-now{font-size:var(--ui-font-size,11px)!important}
-  .timeline-now b{font-size:var(--ui-font-size,11px)!important}
+  .simple-timeline-head b{font-size:var(--ui-font-size,14px)!important}
+  .simple-timeline-head span{font-size:var(--ui-font-size,14px)!important;line-height:1.35!important}
+  .timeline-now{font-size:var(--ui-font-size,14px)!important}
+  .timeline-now b{font-size:var(--ui-font-size,14px)!important}
   .time-ruler{height:46px!important}
-  .time-mark{font-size:var(--ui-font-size,11px)!important;padding-top:13px!important}
+  .time-mark{font-size:var(--ui-font-size,14px)!important;padding-top:13px!important}
   .simple-wave,.simple-wave canvas{height:142px!important}
   .note-lane{height:310px!important}
-  .lane-title{font-size:var(--ui-font-size,11px)!important;padding:4px 8px!important}
-  .note-event{height:42px!important;line-height:42px!important;min-width:72px!important;font-size:var(--ui-font-size,11px)!important;padding:0 11px!important}
-  .note-event.fill{height:38px!important;font-size:var(--ui-font-size,11px)!important}
+  .lane-title{font-size:var(--ui-font-size,14px)!important;padding:4px 8px!important}
+  .note-event{height:42px!important;line-height:42px!important;min-width:72px!important;font-size:var(--ui-font-size,14px)!important;padding:0 11px!important}
+  .note-event.fill{height:38px!important;font-size:var(--ui-font-size,14px)!important}
 
   /* Source area: one full-width track per row */
   .card{padding:20px 18px!important;border-radius:20px!important}
-  .card h2{font-size:var(--ui-font-size,11px)!important;margin-bottom:14px!important}
-  .meta{font-size:var(--ui-font-size,11px)!important;line-height:1.55!important;overflow-wrap:anywhere!important}
+  .card h2{font-size:var(--ui-font-size,14px)!important;margin-bottom:14px!important}
+  .meta{font-size:var(--ui-font-size,14px)!important;line-height:1.55!important;overflow-wrap:anywhere!important}
   .simple-mixer{display:flex!important;flex-direction:column!important;gap:14px!important;margin-top:22px!important}
   .mix-row{
     display:grid!important;grid-template-columns:58px minmax(0,1fr)!important;
     width:100%!important;min-height:102px!important;padding:18px!important;
     gap:16px!important;box-sizing:border-box!important
   }
-  .mix-icon{width:54px!important;height:54px!important;font-size:var(--ui-font-size,11px)!important}
+  .mix-icon{width:54px!important;height:54px!important;font-size:var(--ui-font-size,14px)!important}
   .mix-body{min-width:0!important;width:100%!important}
   .mix-body label{width:100%!important;margin:0 0 14px!important}
-  .mix-body label b{font-size:var(--ui-font-size,11px)!important;white-space:nowrap!important}
-  .mix-body label span{font-size:var(--ui-font-size,11px)!important}
+  .mix-body label b{font-size:var(--ui-font-size,14px)!important;white-space:nowrap!important}
+  .mix-body label span{font-size:var(--ui-font-size,14px)!important}
   .mix-body input[type=range]{width:100%!important;height:34px!important}
 
   /* AI panel is stacked; no tiny status beside the button */
@@ -1058,17 +1058,17 @@ button,.btn,select,input[type=text]{min-height:var(--control)!important;border-r
     display:flex!important;flex-direction:column!important;gap:12px!important;
     padding:18px!important;margin-top:18px!important
   }
-  .ai-panel>div:first-child{font-size:var(--ui-font-size,11px)!important;line-height:1.25!important}
-  #aiAnalyse{width:100%!important;height:56px!important;font-size:var(--ui-font-size,11px)!important;font-weight:800!important}
-  #engineInfo,.tiny{font-size:var(--ui-font-size,11px)!important;line-height:1.45!important;white-space:normal!important}
-  #exportWav,#exportAnalysis,#clearNotes{width:100%!important;min-height:54px!important;font-size:var(--ui-font-size,11px)!important;margin-top:8px!important}
+  .ai-panel>div:first-child{font-size:var(--ui-font-size,14px)!important;line-height:1.25!important}
+  #aiAnalyse{width:100%!important;height:56px!important;font-size:var(--ui-font-size,14px)!important;font-weight:800!important}
+  #engineInfo,.tiny{font-size:var(--ui-font-size,14px)!important;line-height:1.45!important;white-space:normal!important}
+  #exportWav,#exportAnalysis,#clearNotes{width:100%!important;min-height:54px!important;font-size:var(--ui-font-size,14px)!important;margin-top:8px!important}
 }
 @media(max-width:390px){
   .app{padding-left:12px!important;padding-right:12px!important}
-  header h1{font-size:var(--ui-font-size,11px)!important}
+  header h1{font-size:var(--ui-font-size,14px)!important}
   .toolbar{gap:8px!important}
-  #playBtn,#pauseBtn,#stopBtn{font-size:var(--ui-font-size,11px)!important}
-  .simple-timeline-head b,.card h2{font-size:var(--ui-font-size,11px)!important}
+  #playBtn,#pauseBtn,#stopBtn{font-size:var(--ui-font-size,14px)!important}
+  .simple-timeline-head b,.card h2{font-size:var(--ui-font-size,14px)!important}
   .simple-wave,.simple-wave canvas{height:126px!important}
   .note-lane{height:300px!important}
 }
@@ -1076,33 +1076,33 @@ button,.btn,select,input[type=text]{min-height:var(--control)!important;border-r
 
 /* RC30 — deliberately large type, spacious premium phone layout */
 @media(max-width:720px){
-  html,body{font-size:var(--ui-font-size,11px)!important}
+  html,body{font-size:var(--ui-font-size,14px)!important}
   .app{padding:16px 18px 32px!important}
-  header h1{font-size:var(--ui-font-size,11px)!important}
+  header h1{font-size:var(--ui-font-size,14px)!important}
 
-  button,.btn,select,input[type=text]{font-size:var(--ui-font-size,11px)!important}
-  #importBtn{height:64px!important;font-size:var(--ui-font-size,11px)!important}
-  #playBtn,#pauseBtn,#stopBtn{height:60px!important;font-size:var(--ui-font-size,11px)!important}
-  #speedWrap label,.speed-wrap label{font-size:var(--ui-font-size,11px)!important}
-  #tempo{height:58px!important;font-size:var(--ui-font-size,11px)!important}
-  .time-row{font-size:var(--ui-font-size,11px)!important}
-  #loopToggle,#clearLoop,#loopStart,#loopEnd{height:58px!important;font-size:var(--ui-font-size,11px)!important}
+  button,.btn,select,input[type=text]{font-size:var(--ui-font-size,14px)!important}
+  #importBtn{height:64px!important;font-size:var(--ui-font-size,14px)!important}
+  #playBtn,#pauseBtn,#stopBtn{height:60px!important;font-size:var(--ui-font-size,14px)!important}
+  #speedWrap label,.speed-wrap label{font-size:var(--ui-font-size,14px)!important}
+  #tempo{height:58px!important;font-size:var(--ui-font-size,14px)!important}
+  .time-row{font-size:var(--ui-font-size,14px)!important}
+  #loopToggle,#clearLoop,#loopStart,#loopEnd{height:58px!important;font-size:var(--ui-font-size,14px)!important}
 
   .simple-timeline-head{padding:22px 20px!important}
   .simple-timeline-head{grid-template-columns:1fr!important}
-  .simple-timeline-head b{font-size:var(--ui-font-size,11px)!important}
-  .simple-timeline-head span{font-size:var(--ui-font-size,11px)!important}
+  .simple-timeline-head b{font-size:var(--ui-font-size,14px)!important}
+  .simple-timeline-head span{font-size:var(--ui-font-size,14px)!important}
   .time-ruler{height:50px!important}
-  .time-mark{font-size:var(--ui-font-size,11px)!important}
+  .time-mark{font-size:var(--ui-font-size,14px)!important}
   .simple-wave,.simple-wave canvas{height:150px!important}
   .note-lane{height:330px!important}
-  .lane-title{font-size:var(--ui-font-size,11px)!important}
-  .note-event{font-size:var(--ui-font-size,11px)!important;min-width:78px!important;height:46px!important;line-height:46px!important}
-  .note-event.fill{font-size:var(--ui-font-size,11px)!important;height:42px!important}
+  .lane-title{font-size:var(--ui-font-size,14px)!important}
+  .note-event{font-size:var(--ui-font-size,14px)!important;min-width:78px!important;height:46px!important;line-height:46px!important}
+  .note-event.fill{font-size:var(--ui-font-size,14px)!important;height:42px!important}
 
   .card{padding:24px 20px!important}
-  .card h2{font-size:var(--ui-font-size,11px)!important;margin-bottom:16px!important}
-  .meta{font-size:var(--ui-font-size,11px)!important;line-height:1.5!important}
+  .card h2{font-size:var(--ui-font-size,14px)!important;margin-bottom:16px!important}
+  .meta{font-size:var(--ui-font-size,14px)!important;line-height:1.5!important}
 
   /* Use the available width: Main Track left, Bass Track right */
   .simple-mixer{
@@ -1120,52 +1120,52 @@ button,.btn,select,input[type=text]{min-height:var(--control)!important;border-r
     display:flex!important;justify-content:space-between!important;align-items:center!important;
     gap:10px!important;margin:0 0 18px!important;width:100%!important
   }
-  .mix-body label b{font-size:var(--ui-font-size,11px)!important;line-height:1.15!important;white-space:nowrap!important}
-  .mix-body label span{font-size:var(--ui-font-size,11px)!important;white-space:nowrap!important}
+  .mix-body label b{font-size:var(--ui-font-size,14px)!important;line-height:1.15!important;white-space:nowrap!important}
+  .mix-body label span{font-size:var(--ui-font-size,14px)!important;white-space:nowrap!important}
   .mix-body input[type=range]{display:block!important;width:100%!important;height:38px!important}
 
   /* Keep AI action simple: no model/debug prose */
   #engineInfo,.tiny,[id*="modelStatus"],[id*="aiStatus"]{display:none!important}
   .ai-panel{padding:20px!important}
-  .ai-panel>div:first-child{font-size:var(--ui-font-size,11px)!important}
-  #aiAnalyse{height:62px!important;font-size:var(--ui-font-size,11px)!important}
-  #exportWav,#exportAnalysis,#clearNotes{min-height:58px!important;font-size:var(--ui-font-size,11px)!important}
+  .ai-panel>div:first-child{font-size:var(--ui-font-size,14px)!important}
+  #aiAnalyse{height:62px!important;font-size:var(--ui-font-size,14px)!important}
+  #exportWav,#exportAnalysis,#clearNotes{min-height:58px!important;font-size:var(--ui-font-size,14px)!important}
 }
 @media(max-width:410px){
-  html,body{font-size:var(--ui-font-size,11px)!important}
+  html,body{font-size:var(--ui-font-size,14px)!important}
   .app{padding-left:14px!important;padding-right:14px!important}
   .simple-mixer{gap:12px!important}
   .mix-row{padding:18px 13px!important}
   .mix-body label{display:block!important;margin-bottom:14px!important}
-  .mix-body label b{display:block!important;font-size:var(--ui-font-size,11px)!important;margin-bottom:4px!important}
-  .mix-body label span{display:block!important;font-size:var(--ui-font-size,11px)!important}
+  .mix-body label b{display:block!important;font-size:var(--ui-font-size,14px)!important;margin-bottom:4px!important}
+  .mix-body label span{display:block!important;font-size:var(--ui-font-size,14px)!important}
 }
 
 
 /* RC31 — extra-large accessible phone player */
 @media(max-width:720px){
-  html,body{font-size:var(--ui-font-size,11px)!important}
+  html,body{font-size:var(--ui-font-size,14px)!important}
   .app{padding:20px 18px 40px!important}
 
   header{padding:8px 0 24px!important}
-  header h1{font-size:var(--ui-font-size,11px)!important;line-height:1.08!important}
+  header h1{font-size:var(--ui-font-size,14px)!important;line-height:1.08!important}
 
   /* Every primary control gets room; no desktop-style squeezing */
   .toolbar{
     display:grid!important;grid-template-columns:1fr 1fr!important;
     gap:14px!important;width:100%!important
   }
-  #importBtn{grid-column:1/-1!important;height:74px!important;font-size:var(--ui-font-size,11px)!important}
-  #playBtn,#pauseBtn,#stopBtn{height:68px!important;font-size:var(--ui-font-size,11px)!important;width:100%!important}
+  #importBtn{grid-column:1/-1!important;height:74px!important;font-size:var(--ui-font-size,14px)!important}
+  #playBtn,#pauseBtn,#stopBtn{height:68px!important;font-size:var(--ui-font-size,14px)!important;width:100%!important}
   #stopBtn{grid-column:1/-1!important}
   #speedWrap,.speed-wrap{
     grid-column:1/-1!important;display:grid!important;grid-template-columns:1fr!important;
     gap:10px!important;width:100%!important;margin-top:4px!important
   }
-  #speedWrap label,.speed-wrap label{font-size:var(--ui-font-size,11px)!important}
-  #tempo{height:66px!important;font-size:var(--ui-font-size,11px)!important;width:100%!important}
+  #speedWrap label,.speed-wrap label{font-size:var(--ui-font-size,14px)!important}
+  #tempo{height:66px!important;font-size:var(--ui-font-size,14px)!important;width:100%!important}
 
-  .time-row{padding:20px 0!important;font-size:var(--ui-font-size,11px)!important;line-height:1.25!important}
+  .time-row{padding:20px 0!important;font-size:var(--ui-font-size,14px)!important;line-height:1.25!important}
   .time-row input[type=range]{height:38px!important;margin-top:16px!important}
 
   .loop-row{
@@ -1173,25 +1173,25 @@ button,.btn,select,input[type=text]{min-height:var(--control)!important;border-r
     gap:14px!important;padding:0 0 10px!important
   }
   .loop-row>*{min-width:0!important;width:100%!important}
-  #loopToggle,#clearLoop,#loopStart,#loopEnd{height:66px!important;font-size:var(--ui-font-size,11px)!important}
-  .loop-row .range-label,.loop-row label{font-size:var(--ui-font-size,11px)!important;line-height:1.3!important}
+  #loopToggle,#clearLoop,#loopStart,#loopEnd{height:66px!important;font-size:var(--ui-font-size,14px)!important}
+  .loop-row .range-label,.loop-row label{font-size:var(--ui-font-size,14px)!important;line-height:1.3!important}
 
   /* Timeline */
   .simple-timeline-card{margin:24px 0!important;border-radius:22px!important}
   .simple-timeline-head{padding:25px 22px!important}
-  .simple-timeline-head b{font-size:var(--ui-font-size,11px)!important;line-height:1.1!important}
+  .simple-timeline-head b{font-size:var(--ui-font-size,14px)!important;line-height:1.1!important}
   .time-ruler{height:58px!important}
-  .time-mark{font-size:var(--ui-font-size,11px)!important;padding-top:16px!important}
+  .time-mark{font-size:var(--ui-font-size,14px)!important;padding-top:16px!important}
   .simple-wave,.simple-wave canvas{height:170px!important}
   .note-lane{height:370px!important}
-  .lane-title{font-size:var(--ui-font-size,11px)!important;padding:5px 9px!important}
-  .note-event{font-size:var(--ui-font-size,11px)!important;min-width:96px!important;height:56px!important;line-height:56px!important}
-  .note-event.fill{font-size:var(--ui-font-size,11px)!important;height:50px!important}
+  .lane-title{font-size:var(--ui-font-size,14px)!important;padding:5px 9px!important}
+  .note-event{font-size:var(--ui-font-size,14px)!important;min-width:96px!important;height:56px!important;line-height:56px!important}
+  .note-event.fill{font-size:var(--ui-font-size,14px)!important;height:50px!important}
 
   /* Source & Stem */
   .card{padding:26px 22px!important;border-radius:22px!important}
-  .card h2{font-size:var(--ui-font-size,11px)!important;line-height:1.1!important;margin:0 0 24px!important}
-  .meta{font-size:var(--ui-font-size,11px)!important;line-height:1.45!important;margin-bottom:12px!important}
+  .card h2{font-size:var(--ui-font-size,14px)!important;line-height:1.1!important;margin:0 0 24px!important}
+  .meta{font-size:var(--ui-font-size,14px)!important;line-height:1.45!important;margin-bottom:12px!important}
   .meta:empty{display:none!important}
 
   /* Two genuinely separate track panels, left/right, using full row */
@@ -1210,10 +1210,10 @@ button,.btn,select,input[type=text]{min-height:var(--control)!important;border-r
     display:block!important;width:100%!important;margin:0 0 20px!important
   }
   .mix-body label b{
-    display:block!important;font-size:var(--ui-font-size,11px)!important;line-height:1.15!important;
+    display:block!important;font-size:var(--ui-font-size,14px)!important;line-height:1.15!important;
     white-space:normal!important;margin-bottom:8px!important
   }
-  .mix-body label span{display:block!important;font-size:var(--ui-font-size,11px)!important;line-height:1.2!important}
+  .mix-body label span{display:block!important;font-size:var(--ui-font-size,14px)!important;line-height:1.2!important}
   .mix-body input[type=range]{display:block!important;width:100%!important;height:44px!important}
 
   /* Analysis section */
@@ -1221,20 +1221,20 @@ button,.btn,select,input[type=text]{min-height:var(--control)!important;border-r
     display:flex!important;flex-direction:column!important;gap:16px!important;
     padding:24px!important;margin-top:26px!important
   }
-  .ai-panel>div:first-child{font-size:var(--ui-font-size,11px)!important;line-height:1.2!important}
-  #aiAnalyse{width:100%!important;height:72px!important;font-size:var(--ui-font-size,11px)!important}
+  .ai-panel>div:first-child{font-size:var(--ui-font-size,14px)!important;line-height:1.2!important}
+  #aiAnalyse{width:100%!important;height:72px!important;font-size:var(--ui-font-size,14px)!important}
   #engineInfo,.tiny,[id*="modelStatus"],[id*="aiStatus"]{display:none!important}
   progress{height:18px!important;width:100%!important}
 
   #exportWav,#exportAnalysis,#clearNotes{
-    width:100%!important;min-height:68px!important;font-size:var(--ui-font-size,11px)!important;
+    width:100%!important;min-height:68px!important;font-size:var(--ui-font-size,14px)!important;
     margin-top:12px!important
   }
 }
 
 /* Narrower phones: don't force two track cards if that would crush the words */
 @media(max-width:430px){
-  html,body{font-size:var(--ui-font-size,11px)!important}
+  html,body{font-size:var(--ui-font-size,14px)!important}
   .app{padding-left:14px!important;padding-right:14px!important}
   .simple-mixer{grid-template-columns:1fr!important;gap:14px!important}
   .mix-row{padding:22px 18px!important}
@@ -1242,20 +1242,20 @@ button,.btn,select,input[type=text]{min-height:var(--control)!important;border-r
     display:flex!important;justify-content:space-between!important;
     align-items:center!important;gap:12px!important
   }
-  .mix-body label b{font-size:var(--ui-font-size,11px)!important;margin:0!important}
-  .mix-body label span{font-size:var(--ui-font-size,11px)!important}
+  .mix-body label b{font-size:var(--ui-font-size,14px)!important;margin:0!important}
+  .mix-body label span{font-size:var(--ui-font-size,14px)!important}
   .simple-wave,.simple-wave canvas{height:155px!important}
   .note-lane{height:350px!important}
 }
 
 
 /* RC32 — GLOBAL large-type rules. Not dependent on a mobile breakpoint. */
-html,body{font-size:var(--ui-font-size,11px)!important}
+html,body{font-size:var(--ui-font-size,14px)!important}
 .app{
   width:100%!important;max-width:none!important;margin:0!important;
   padding:clamp(20px,3vw,44px)!important;box-sizing:border-box!important
 }
-header h1{font-size:var(--ui-font-size,11px)!important;line-height:1.1!important;margin:0!important}
+header h1{font-size:var(--ui-font-size,14px)!important;line-height:1.1!important;margin:0!important}
 
 /* Transport */
 .toolbar{
@@ -1263,16 +1263,16 @@ header h1{font-size:var(--ui-font-size,11px)!important;line-height:1.1!important
   gap:18px!important;width:100%!important;align-items:stretch!important
 }
 #importBtn,#playBtn,#pauseBtn,#stopBtn{
-  min-height:72px!important;font-size:var(--ui-font-size,11px)!important;
+  min-height:72px!important;font-size:var(--ui-font-size,14px)!important;
   padding:12px 18px!important;border-radius:16px!important
 }
 #speedWrap,.speed-wrap{
   grid-column:1/-1!important;display:grid!important;grid-template-columns:auto minmax(180px,1fr)!important;
   gap:18px!important;align-items:center!important;margin:0!important;width:100%!important
 }
-#speedWrap label,.speed-wrap label{font-size:var(--ui-font-size,11px)!important}
-#tempo{min-height:66px!important;font-size:var(--ui-font-size,11px)!important}
-.time-row{font-size:var(--ui-font-size,11px)!important;line-height:1.25!important;padding:22px 0!important}
+#speedWrap label,.speed-wrap label{font-size:var(--ui-font-size,14px)!important}
+#tempo{min-height:66px!important;font-size:var(--ui-font-size,14px)!important}
+.time-row{font-size:var(--ui-font-size,14px)!important;line-height:1.25!important;padding:22px 0!important}
 .time-row input[type=range]{height:38px!important;width:100%!important;margin-top:14px!important}
 .loop-row{
   display:grid!important;grid-template-columns:repeat(4,minmax(150px,1fr))!important;
@@ -1280,29 +1280,29 @@ header h1{font-size:var(--ui-font-size,11px)!important;line-height:1.1!important
 }
 .loop-row>*{min-width:0!important;width:100%!important;box-sizing:border-box!important}
 #loopToggle,#clearLoop,#loopStart,#loopEnd{
-  min-height:66px!important;font-size:var(--ui-font-size,11px)!important;border-radius:15px!important
+  min-height:66px!important;font-size:var(--ui-font-size,14px)!important;border-radius:15px!important
 }
-.loop-row label,.loop-row .range-label{font-size:var(--ui-font-size,11px)!important;line-height:1.25!important}
+.loop-row label,.loop-row .range-label{font-size:var(--ui-font-size,14px)!important;line-height:1.25!important}
 
 /* Timeline */
 .simple-timeline-card{width:100%!important;margin:28px 0!important;border-radius:24px!important}
 .simple-timeline-head{padding:28px!important}
-.simple-timeline-head b{font-size:var(--ui-font-size,11px)!important;line-height:1.1!important}
+.simple-timeline-head b{font-size:var(--ui-font-size,14px)!important;line-height:1.1!important}
 .time-ruler{height:62px!important}
-.time-mark{font-size:var(--ui-font-size,11px)!important;padding-top:17px!important}
+.time-mark{font-size:var(--ui-font-size,14px)!important;padding-top:17px!important}
 .simple-wave,.simple-wave canvas{height:190px!important}
 .note-lane{height:400px!important}
-.lane-title{font-size:var(--ui-font-size,11px)!important;padding:6px 10px!important}
+.lane-title{font-size:var(--ui-font-size,14px)!important;padding:6px 10px!important}
 .note-event{
   min-width:104px!important;height:60px!important;line-height:60px!important;
-  font-size:var(--ui-font-size,11px)!important;padding:0 14px!important;border-radius:12px!important
+  font-size:var(--ui-font-size,14px)!important;padding:0 14px!important;border-radius:12px!important
 }
-.note-event.fill{height:54px!important;font-size:var(--ui-font-size,11px)!important}
+.note-event.fill{height:54px!important;font-size:var(--ui-font-size,14px)!important}
 
 /* Source / mixer */
 .card{width:100%!important;padding:32px!important;border-radius:24px!important;box-sizing:border-box!important}
-.card h2{font-size:var(--ui-font-size,11px)!important;line-height:1.1!important;margin:0 0 28px!important}
-.meta{font-size:var(--ui-font-size,11px)!important;line-height:1.5!important;margin-bottom:22px!important}
+.card h2{font-size:var(--ui-font-size,14px)!important;line-height:1.1!important;margin:0 0 28px!important}
+.meta{font-size:var(--ui-font-size,14px)!important;line-height:1.5!important;margin-bottom:22px!important}
 .meta:empty{display:none!important}
 .simple-mixer{
   display:grid!important;grid-template-columns:1fr 1fr!important;
@@ -1319,8 +1319,8 @@ header h1{font-size:var(--ui-font-size,11px)!important;line-height:1.1!important
   display:flex!important;justify-content:space-between!important;align-items:center!important;
   gap:18px!important;width:100%!important;margin:0 0 24px!important
 }
-.mix-body label b{font-size:var(--ui-font-size,11px)!important;line-height:1.15!important;white-space:nowrap!important}
-.mix-body label span{font-size:var(--ui-font-size,11px)!important;white-space:nowrap!important}
+.mix-body label b{font-size:var(--ui-font-size,14px)!important;line-height:1.15!important;white-space:nowrap!important}
+.mix-body label span{font-size:var(--ui-font-size,14px)!important;white-space:nowrap!important}
 .mix-body input[type=range]{display:block!important;width:100%!important;height:48px!important}
 
 /* Analysis: only useful action, large and uncluttered */
@@ -1328,12 +1328,12 @@ header h1{font-size:var(--ui-font-size,11px)!important;line-height:1.1!important
   display:grid!important;grid-template-columns:1fr minmax(230px,.45fr)!important;
   gap:22px!important;align-items:center!important;padding:28px!important;margin-top:30px!important
 }
-.ai-panel>div:first-child{font-size:var(--ui-font-size,11px)!important;line-height:1.2!important}
-#aiAnalyse{width:100%!important;min-height:72px!important;font-size:var(--ui-font-size,11px)!important}
+.ai-panel>div:first-child{font-size:var(--ui-font-size,14px)!important;line-height:1.2!important}
+#aiAnalyse{width:100%!important;min-height:72px!important;font-size:var(--ui-font-size,14px)!important}
 #engineInfo,.tiny,[id*="modelStatus"],[id*="aiStatus"]{display:none!important}
 progress{grid-column:1/-1!important;width:100%!important;height:20px!important}
 #exportWav,#exportAnalysis,#clearNotes{
-  width:100%!important;min-height:68px!important;font-size:var(--ui-font-size,11px)!important;margin-top:14px!important
+  width:100%!important;min-height:68px!important;font-size:var(--ui-font-size,14px)!important;margin-top:14px!important
 }
 
 /* If genuinely narrow, stack rather than crush. */
@@ -1361,7 +1361,7 @@ header, .toolbar, .time-row, .loop-row{color:var(--rc33-white)!important}
 #playBtn,#pauseBtn,#stopBtn,#importBtn,#tempo,
 #speedWrap,#speedWrap label,.speed-wrap,.speed-wrap label{
   color:var(--rc33-white)!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   font-weight:750!important;
 }
 #importBtn,#playBtn,#pauseBtn,#stopBtn{
@@ -1379,14 +1379,14 @@ header, .toolbar, .time-row, .loop-row{color:var(--rc33-white)!important}
   border:1px solid #35506b!important;
 }
 #speedWrap label,.speed-wrap label{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   white-space:nowrap!important;
 }
 
 /* Time and repeat controls: white and large */
 .time-row,.time-row *{
   color:var(--rc33-white)!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   font-weight:700!important;
 }
 .loop-row{
@@ -1398,7 +1398,7 @@ header, .toolbar, .time-row, .loop-row{color:var(--rc33-white)!important}
 .loop-row button,.loop-row input,.loop-row label,.loop-row span,
 #loopToggle,#clearLoop,#loopStart,#loopEnd{
   color:var(--rc33-white)!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   font-weight:700!important;
 }
 #loopToggle,#clearLoop,#loopStart,#loopEnd{
@@ -1408,7 +1408,7 @@ header, .toolbar, .time-row, .loop-row{color:var(--rc33-white)!important}
 }
 
 /* Ensure any helper label in repeat row is not tiny */
-.range-label{font-size:var(--ui-font-size,11px)!important;color:var(--rc33-white)!important}
+.range-label{font-size:var(--ui-font-size,14px)!important;color:var(--rc33-white)!important}
 
 /* Headings and readable secondary text */
 header h1,.simple-timeline-head b,.card h2,.ai-panel>div:first-child{
@@ -1435,8 +1435,8 @@ header h1,.simple-timeline-head b,.card h2,.ai-panel>div:first-child{
 .mix-body label b,.mix-body label span{
   color:var(--rc33-white)!important;
 }
-.mix-body label b{font-size:var(--ui-font-size,11px)!important}
-.mix-body label span{font-size:var(--ui-font-size,11px)!important}
+.mix-body label b{font-size:var(--ui-font-size,14px)!important}
+.mix-body label span{font-size:var(--ui-font-size,14px)!important}
 
 /* Remove technical engine text from view */
 #engineInfo,.tiny,[id*="modelStatus"],[id*="aiStatus"]{display:none!important}
@@ -1463,14 +1463,14 @@ header h1,.simple-timeline-head b,.card h2,.ai-panel>div:first-child{
   .mix-row:nth-child(2){grid-column:2!important}
   .mix-row{padding:24px 18px!important;min-height:140px!important}
   .mix-body label{display:block!important}
-  .mix-body label b{font-size:var(--ui-font-size,11px)!important;white-space:normal!important}
-  .mix-body label span{font-size:var(--ui-font-size,11px)!important;margin-top:8px!important}
+  .mix-body label b{font-size:var(--ui-font-size,14px)!important;white-space:normal!important}
+  .mix-body label span{font-size:var(--ui-font-size,14px)!important;margin-top:8px!important}
 }
 
 
 /* RC34 — stronger identity + deliberate mixer separation */
 header h1{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.05!important;
   font-weight:850!important;
   letter-spacing:-.02em!important;
@@ -1480,13 +1480,13 @@ header h1{
 
 /* Play Speed label must visually match Pause / Stop */
 #speedWrap label,.speed-wrap label{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.15!important;
   font-weight:750!important;
   color:#fff!important;
 }
 #tempo{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   font-weight:750!important;
   color:#fff!important;
 }
@@ -1514,13 +1514,13 @@ header h1{
 
 /* Preserve a clear gap even on narrower reported viewports */
 @media(max-width:760px){
-  header h1{font-size:var(--ui-font-size,11px)!important}
+  header h1{font-size:var(--ui-font-size,14px)!important}
   .simple-mixer{
     grid-template-columns:minmax(0,1fr) 10ch minmax(0,1fr)!important;
   }
   .mix-row{padding:24px 18px!important}
-  .mix-body label b{font-size:var(--ui-font-size,11px)!important}
-  .mix-body label span{font-size:var(--ui-font-size,11px)!important}
+  .mix-body label b{font-size:var(--ui-font-size,14px)!important}
+  .mix-body label span{font-size:var(--ui-font-size,14px)!important}
 }
 
 
@@ -1545,7 +1545,7 @@ header h1{
 }
 #speedWrap label,.speed-wrap label{
   display:block!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   color:#fff!important;
   font-weight:750!important;
   margin-bottom:10px!important;
@@ -1553,7 +1553,7 @@ header h1{
 #tempo{
   width:100%!important;
   min-height:76px!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   color:#fff!important;
   font-weight:750!important;
   border-radius:16px!important;
@@ -1578,8 +1578,8 @@ header h1{
   padding:36px 32px!important;
   border-radius:24px!important;
 }
-.mix-body label b{font-size:var(--ui-font-size,11px)!important}
-.mix-body label span{font-size:var(--ui-font-size,11px)!important}
+.mix-body label b{font-size:var(--ui-font-size,14px)!important}
+.mix-body label span{font-size:var(--ui-font-size,14px)!important}
 .mix-body input[type=range]{height:52px!important}
 
 /* AI Analyse and engine mode: one balanced line, left and right */
@@ -1592,7 +1592,7 @@ header h1{
 }
 .ai-panel>div:first-child{
   grid-column:1/-1!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   color:#fff!important;
 }
 #aiAnalyse{
@@ -1600,7 +1600,7 @@ header h1{
   grid-row:2!important;
   width:100%!important;
   min-height:76px!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
 }
 #engineInfo{
   display:flex!important;
@@ -1615,7 +1615,7 @@ header h1{
   border-radius:16px!important;
   background:#10243a!important;
   color:#fff!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.25!important;
 }
 .ai-panel progress{grid-column:1/-1!important;grid-row:3!important}
@@ -1633,7 +1633,7 @@ header h1{
   min-height:72px!important;
   margin:0!important;
   color:#fff!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   font-weight:750!important;
   border:1px solid #35506b!important;
   background:#10243a!important;
@@ -1651,9 +1651,9 @@ header h1{
   .simple-mixer{grid-template-columns:1fr 10ch 1fr!important}
   .mix-row{min-height:170px!important;padding:28px 20px!important}
   .ai-panel{grid-template-columns:1fr 1fr!important}
-  #engineInfo{font-size:var(--ui-font-size,11px)!important}
+  #engineInfo{font-size:var(--ui-font-size,14px)!important}
   .export-row{grid-template-columns:repeat(3,1fr)!important;gap:12px!important}
-  #exportWav,#exportAnalysis,#clearNotes{font-size:var(--ui-font-size,11px)!important;padding:10px 8px!important}
+  #exportWav,#exportAnalysis,#clearNotes{font-size:var(--ui-font-size,14px)!important;padding:10px 8px!important}
 }
 
 
@@ -1669,7 +1669,7 @@ header h1{
   grid-column:1!important;
   width:100%!important;
   min-height:76px!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
 }
 .mobile-engine-badge{
   grid-column:2!important;
@@ -1683,7 +1683,7 @@ header h1{
   border-radius:16px!important;
   background:#10243a!important;
   color:#fff!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.25!important;
 }
 .ai-progress{grid-column:1/-1!important}
@@ -1699,14 +1699,14 @@ header h1{
   min-height:72px!important;
   margin:0!important;
   color:#fff!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   font-weight:750!important;
 }
 @media(max-width:620px){
   .ai-panel{grid-template-columns:1fr 1fr!important}
-  .mobile-engine-badge{font-size:var(--ui-font-size,11px)!important}
+  .mobile-engine-badge{font-size:var(--ui-font-size,14px)!important}
   .export-row{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:12px!important}
-  #exportWav,#exportAnalysis,#clearNotes{font-size:var(--ui-font-size,11px)!important;padding:10px 8px!important}
+  #exportWav,#exportAnalysis,#clearNotes{font-size:var(--ui-font-size,14px)!important;padding:10px 8px!important}
 }
 
 
@@ -1736,7 +1736,7 @@ header h1{
   min-height:68px!important;
   height:68px!important;
   margin:0!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
 }
 .mobile-engine-badge{
   grid-column:2!important;
@@ -1750,7 +1750,7 @@ header h1{
   box-sizing:border-box!important;
   padding:10px 18px!important;
   color:#fff!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.2!important;
 }
 .ai-progress, .ai-panel progress{
@@ -1792,7 +1792,7 @@ header h1{
   padding:12px 18px!important;
   margin:0!important;
   color:#fff!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.15!important;
   font-weight:750!important;
   white-space:normal!important;
@@ -1813,7 +1813,7 @@ header h1{
   }
   #exportWav,#exportAnalysis,#clearNotes{
     min-width:150px!important;
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
     padding:10px 12px!important;
   }
 }
@@ -1906,7 +1906,7 @@ header h1{
   word-break:normal!important;
   text-align:center!important;
   color:#fff!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.18!important;
   font-weight:750!important;
 }
@@ -1916,7 +1916,7 @@ header h1{
   }
   #exportWav,#exportAnalysis,#clearNotes{
     min-width:0!important;
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
     padding:10px 6px!important;
   }
 }
@@ -1958,7 +1958,7 @@ header h1{
   padding:12px 10px!important;
   box-sizing:border-box!important;
   color:#fff!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.15!important;
   font-weight:750!important;
   white-space:normal!important;
@@ -1975,7 +1975,7 @@ header h1{
   #exportWav,#exportAnalysis,#clearNotes{
     width:100%!important;
     min-width:0!important;
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
     padding:10px 6px!important;
   }
 }
@@ -2070,7 +2070,7 @@ header h1{
   padding:12px 18px!important;
   box-sizing:border-box!important;
   color:#fff!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.15!important;
   font-weight:750!important;
   white-space:normal!important;
@@ -2082,7 +2082,7 @@ header h1{
     grid-template-columns:1fr 1fr 1fr!important;
   }
   #exportWav,#exportAnalysis,#clearNotes{
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
     padding:10px 12px!important;
   }
 }
@@ -2117,7 +2117,7 @@ header h1{
   padding:12px 10px!important;
   box-sizing:border-box!important;
   color:#fff!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.18!important;
   font-weight:750!important;
   text-align:center!important;
@@ -2135,7 +2135,7 @@ header h1{
   .export-row > #exportAnalysis,
   .export-row > #clearNotes{
     min-height:76px!important;
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
     padding:10px 7px!important;
   }
 }
@@ -2167,7 +2167,7 @@ header h1{
   margin:0!important;
   box-sizing:border-box!important;
   color:#fff!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.15!important;
   font-weight:750!important;
   text-align:center!important;
@@ -2185,7 +2185,7 @@ header h1{
   .export-row > #exportAnalysis,
   .export-row > #clearNotes{
     min-height:76px!important;
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
     padding:10px 6px!important;
   }
 }
@@ -2218,7 +2218,7 @@ header h1{
   align-items:center!important;
   justify-content:center!important;
   color:#fff!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.15!important;
   font-weight:750!important;
   text-align:center!important;
@@ -2246,7 +2246,7 @@ header h1{
     width:clamp(118px,25vw,160px)!important;
     max-width:160px!important;
     min-height:76px!important;
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
     padding:9px 7px!important;
   }
 }
@@ -2281,7 +2281,7 @@ header h1{
   align-items:center!important;
   justify-content:center!important;
   color:#fff!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.18!important;
   font-weight:750!important;
   text-align:center!important;
@@ -2298,7 +2298,7 @@ header h1{
   .export-row > #clearNotes{
     width:100%!important;
     min-height:78px!important;
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
     padding:10px 6px!important;
   }
 }
@@ -2332,7 +2332,7 @@ header h1{
   padding:10px 8px!important;
   box-sizing:border-box!important;
   color:#fff!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.15!important;
   font-weight:750!important;
   text-align:center!important;
@@ -2363,7 +2363,7 @@ header h1{
     width:27%!important;
     max-width:none!important;
     height:78px!important;
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
     padding:9px 5px!important;
   }
 }
@@ -2371,11 +2371,11 @@ header h1{
 /* RC49 — exact mobile AI layout: action then engine line, full width */
 .ai-panel .ai-head{display:block!important;}
 .ai-panel .ai-head>div{display:block!important;}
-.ai-panel #aiAnalyse{width:100%!important;max-width:none!important;margin-top:14px!important;min-height:56px!important;font-size:var(--ui-font-size,11px)!important;}
-.ai-panel .mobile-engine-badge{display:flex!important;align-items:center!important;justify-content:center!important;width:100%!important;max-width:none!important;box-sizing:border-box!important;margin:10px 0 0!important;min-height:50px!important;padding:10px 14px!important;color:#fff!important;font-size:var(--ui-font-size,11px)!important;line-height:1.2!important;text-align:center!important;white-space:nowrap!important;overflow:hidden!important;}
+.ai-panel #aiAnalyse{width:100%!important;max-width:none!important;margin-top:14px!important;min-height:56px!important;font-size:var(--ui-font-size,14px)!important;}
+.ai-panel .mobile-engine-badge{display:flex!important;align-items:center!important;justify-content:center!important;width:100%!important;max-width:none!important;box-sizing:border-box!important;margin:10px 0 0!important;min-height:50px!important;padding:10px 14px!important;color:#fff!important;font-size:var(--ui-font-size,14px)!important;line-height:1.2!important;text-align:center!important;white-space:nowrap!important;overflow:hidden!important;}
 @media(max-width:760px){
- .ai-panel #aiAnalyse{min-height:54px!important;font-size:var(--ui-font-size,11px)!important;}
- .ai-panel .mobile-engine-badge{min-height:48px!important;font-size:var(--ui-font-size,11px)!important;padding:9px 8px!important;white-space:nowrap!important;}
+ .ai-panel #aiAnalyse{min-height:54px!important;font-size:var(--ui-font-size,14px)!important;}
+ .ai-panel .mobile-engine-badge{min-height:48px!important;font-size:var(--ui-font-size,14px)!important;padding:9px 8px!important;white-space:nowrap!important;}
 }
 
 
@@ -2404,7 +2404,7 @@ header h1{
 .time-mark{
   position:absolute!important;top:0!important;height:100%!important;display:flex!important;justify-content:center!important;align-items:flex-start!important;text-align:center!important;
   box-sizing:border-box!important;border-left:1px solid rgba(121,159,198,.42)!important;
-  padding:15px 0 0 0!important;color:#f2f7fc!important;font-size:var(--ui-font-size,11px)!important;font-weight:700!important;
+  padding:15px 0 0 0!important;color:#f2f7fc!important;font-size:var(--ui-font-size,14px)!important;font-weight:700!important;
 }
 .time-mark.major{border-left:2px solid rgba(139,185,226,.76)!important}
 .simple-wave,.simple-wave canvas{height:156px!important;background:#081421!important}
@@ -2429,10 +2429,10 @@ header h1{
   display:inline-flex!important;align-items:center!important;justify-content:center!important;
   min-height:42px!important;padding:6px 10px!important;box-sizing:border-box!important;
   border-radius:10px!important;border:1px solid #49bfe9!important;background:#173b52!important;
-  color:#fff!important;font-size:var(--ui-font-size,11px)!important;line-height:1!important;font-weight:850!important;white-space:nowrap!important;
+  color:#fff!important;font-size:var(--ui-font-size,14px)!important;line-height:1!important;font-weight:850!important;white-space:nowrap!important;
 }
 .note-token.fill{
-  border-color:#657d96!important;background:#142231!important;color:#e6edf4!important;font-size:var(--ui-font-size,11px)!important;font-weight:720!important;
+  border-color:#657d96!important;background:#142231!important;color:#e6edf4!important;font-size:var(--ui-font-size,14px)!important;font-weight:720!important;
 }
 .note-token.active{outline:3px solid #ffd166!important;outline-offset:2px!important}
 .timeline-playhead{
@@ -2443,8 +2443,8 @@ header h1{
 /* Loop row uses the full width now that Current Bass Note is gone. */
 .loop-range-row{display:grid!important;grid-template-columns:auto minmax(0,1fr)!important;gap:22px!important;align-items:center!important}
 .loop-range-row .range-group{display:grid!important;grid-template-columns:auto minmax(120px,1fr) auto minmax(120px,1fr) auto!important;gap:18px!important;align-items:center!important;width:100%!important}
-.loop-range-row .range-label,.loop-range-row .range-to{color:#fff!important;font-size:var(--ui-font-size,11px)!important;font-weight:750!important;white-space:nowrap!important}
-.loop-range-row #timeFrom,.loop-range-row #timeTo,.loop-range-row #clearLoop,.loop-range-row #loopToggle{font-size:var(--ui-font-size,11px)!important;color:#fff!important;min-height:68px!important}
+.loop-range-row .range-label,.loop-range-row .range-to{color:#fff!important;font-size:var(--ui-font-size,14px)!important;font-weight:750!important;white-space:nowrap!important}
+.loop-range-row #timeFrom,.loop-range-row #timeTo,.loop-range-row #clearLoop,.loop-range-row #loopToggle{font-size:var(--ui-font-size,14px)!important;color:#fff!important;min-height:68px!important}
 /* AI mode is one clean full-width line directly under the Analyse button. */
 .ai-panel{display:flex!important;flex-direction:column!important;gap:14px!important}
 .ai-panel .ai-head{display:flex!important;flex-direction:column!important;gap:14px!important;width:100%!important}
@@ -2452,7 +2452,7 @@ header h1{
 .mobile-engine-badge{
   display:flex!important;width:100%!important;min-height:58px!important;box-sizing:border-box!important;
   align-items:center!important;justify-content:center!important;margin:0!important;padding:10px 16px!important;
-  color:#fff!important;font-size:var(--ui-font-size,11px)!important;line-height:1.15!important;white-space:nowrap!important;
+  color:#fff!important;font-size:var(--ui-font-size,14px)!important;line-height:1.15!important;white-space:nowrap!important;
   overflow:hidden!important;text-overflow:ellipsis!important;
 }
 .ai-progress{width:100%!important}
@@ -2461,20 +2461,20 @@ header h1{
 .export-row>#exportWav,.export-row>#exportAnalysis,.export-row>#clearNotes{
   position:absolute!important;top:0!important;width:26%!important;max-width:none!important;min-width:0!important;height:78px!important;
   display:flex!important;align-items:center!important;justify-content:center!important;margin:0!important;padding:10px 8px!important;
-  box-sizing:border-box!important;color:#fff!important;font-size:var(--ui-font-size,11px)!important;font-weight:760!important;line-height:1.16!important;text-align:center!important;white-space:normal!important;
+  box-sizing:border-box!important;color:#fff!important;font-size:var(--ui-font-size,14px)!important;font-weight:760!important;line-height:1.16!important;text-align:center!important;white-space:normal!important;
 }
 .export-row>#exportWav{left:0!important}
 .export-row>#exportAnalysis{left:50%!important;transform:translateX(-50%)!important}
 .export-row>#clearNotes{right:0!important}
 @media(max-width:760px){
   :root{--rc50-cell-w:118px}
-  .time-ruler{height:54px!important}.time-mark{font-size:var(--ui-font-size,11px)!important;padding-top:14px!important}
+  .time-ruler{height:54px!important}.time-mark{font-size:var(--ui-font-size,14px)!important;padding-top:14px!important}
   .simple-wave,.simple-wave canvas{height:142px!important}.note-lane{height:150px!important}
-  .note-token{font-size:var(--ui-font-size,11px)!important;min-height:40px!important}.note-token.fill{font-size:var(--ui-font-size,11px)!important}
+  .note-token{font-size:var(--ui-font-size,14px)!important;min-height:40px!important}.note-token.fill{font-size:var(--ui-font-size,14px)!important}
   .loop-range-row{grid-template-columns:1fr!important;gap:14px!important}
   .loop-range-row .range-group{grid-template-columns:auto 1fr auto 1fr!important;gap:12px!important}
   .loop-range-row #clearLoop{grid-column:1/-1!important}
-  .mobile-engine-badge{font-size:var(--ui-font-size,11px)!important}
+  .mobile-engine-badge{font-size:var(--ui-font-size,14px)!important}
 }
 
 
@@ -2487,13 +2487,13 @@ header h1{
 #currentBassInfo,#timelineCurrentNote,.export-row{display:none!important}
 
 /* App name remains the strongest identity in the interface. */
-.brand h1{font-size:var(--ui-font-size,11px)!important;line-height:1.05!important;font-weight:850!important;color:#fff!important}
+.brand h1{font-size:var(--ui-font-size,14px)!important;line-height:1.05!important;font-weight:850!important;color:#fff!important}
 
 /* 1. Play Speed now has the same typographic weight/size as transport buttons. */
 .transport-main .transport-actions .btn,
 .transport-main .play-speed-control label,
 .transport-main .play-speed-control .tempo-select{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.1!important;
   font-weight:760!important;
   color:#fff!important;
@@ -2518,28 +2518,28 @@ header h1{
 .loop-range-row .range-label,
 .loop-range-row .range-to{
   color:#fff!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   font-weight:780!important;
   white-space:nowrap!important;
 }
-.loop-range-row .range-to{text-align:center!important;font-size:var(--ui-font-size,11px)!important}
+.loop-range-row .range-to{text-align:center!important;font-size:var(--ui-font-size,14px)!important}
 .loop-range-row #timeFrom,.loop-range-row #timeTo{
   width:108px!important;
   min-width:108px!important;
   max-width:108px!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   text-align:center!important;
   min-height:64px!important;
   padding:8px!important;
   box-sizing:border-box!important;
 }
-.loop-range-row #clearLoop{grid-column:6!important;justify-self:end!important;min-height:64px!important;font-size:var(--ui-font-size,11px)!important}
-.loop-range-row #loopToggle{min-height:64px!important;font-size:var(--ui-font-size,11px)!important}
+.loop-range-row #clearLoop{grid-column:6!important;justify-self:end!important;min-height:64px!important;font-size:var(--ui-font-size,14px)!important}
+.loop-range-row #loopToggle{min-height:64px!important;font-size:var(--ui-font-size,14px)!important}
 
 /* 5. Cleaner timeline: one readable ruler, compact waveform, larger note canvas. */
 :root{--rc50-cell-w:142px!important}
 .time-ruler{height:54px!important}
-.time-mark{font-size:var(--ui-font-size,11px)!important;padding:14px 0 0 8px!important}
+.time-mark{font-size:var(--ui-font-size,14px)!important;padding:14px 0 0 8px!important}
 .simple-wave,.simple-wave canvas{height:82px!important;min-height:82px!important;max-height:82px!important}
 .note-lane{min-height:250px!important;background:#0a1726!important}
 .note-time-cell{
@@ -2568,14 +2568,14 @@ header h1{
   padding:4px 8px!important;
   box-sizing:border-box!important;
   border-radius:8px!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1!important;
   justify-content:center!important;
 }
 .note-token.fill{
   min-height:31px!important;
   height:31px!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   background:#142231!important;
   border-color:#71879e!important;
   color:#f1f5f9!important;
@@ -2585,23 +2585,23 @@ header h1{
 .mobile-engine-badge{white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
 
 @media(max-width:760px){
-  .brand h1{font-size:var(--ui-font-size,11px)!important}
+  .brand h1{font-size:var(--ui-font-size,14px)!important}
   .transport-main .transport-actions .btn,
   .transport-main .play-speed-control label,
-  .transport-main .play-speed-control .tempo-select{font-size:var(--ui-font-size,11px)!important}
+  .transport-main .play-speed-control .tempo-select{font-size:var(--ui-font-size,14px)!important}
   .loop-range-row{grid-template-columns:auto minmax(0,1fr)!important;column-gap:14px!important}
   .loop-range-row .range-group{
     grid-template-columns:auto 92px 18px 92px minmax(8px,1fr) auto!important;
     gap:6px!important;
   }
-  .loop-range-row .range-label{font-size:var(--ui-font-size,11px)!important}
-  .loop-range-row .range-to{font-size:var(--ui-font-size,11px)!important}
-  .loop-range-row #timeFrom,.loop-range-row #timeTo{width:92px!important;min-width:92px!important;max-width:92px!important;font-size:var(--ui-font-size,11px)!important}
-  .loop-range-row #loopToggle,.loop-range-row #clearLoop{font-size:var(--ui-font-size,11px)!important}
+  .loop-range-row .range-label{font-size:var(--ui-font-size,14px)!important}
+  .loop-range-row .range-to{font-size:var(--ui-font-size,14px)!important}
+  .loop-range-row #timeFrom,.loop-range-row #timeTo{width:92px!important;min-width:92px!important;max-width:92px!important;font-size:var(--ui-font-size,14px)!important}
+  .loop-range-row #loopToggle,.loop-range-row #clearLoop{font-size:var(--ui-font-size,14px)!important}
   :root{--rc50-cell-w:136px!important}
   .simple-wave,.simple-wave canvas{height:76px!important;min-height:76px!important;max-height:76px!important}
-  .note-token{font-size:var(--ui-font-size,11px)!important}
-  .note-token.fill{font-size:var(--ui-font-size,11px)!important}
+  .note-token{font-size:var(--ui-font-size,14px)!important}
+  .note-token.fill{font-size:var(--ui-font-size,14px)!important}
 }
 
 
@@ -2634,7 +2634,7 @@ header h1{
   border-radius:50%!important;
   background:#18c8da!important;
   color:#07131f!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   font-weight:950!important;
 }
 .note-time-cell.tf-selected{
@@ -2696,13 +2696,13 @@ header h1{
 }
 .song-context-pill span{
   color:var(--muted)!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   font-weight:720!important;
   letter-spacing:.01em!important;
 }
 .song-context-pill strong{
   color:#fff!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   font-weight:850!important;
 }
 .song-context-pill.context-ready{
@@ -2719,11 +2719,11 @@ header h1{
     width:100%!important;
   }
   .loop-range-row #timeFrom,.loop-range-row #timeTo{
-    width:78px!important;min-width:78px!important;max-width:78px!important;min-height:56px!important;font-size:var(--ui-font-size,11px)!important;
+    width:78px!important;min-width:78px!important;max-width:78px!important;min-height:56px!important;font-size:var(--ui-font-size,14px)!important;
   }
-  .loop-range-row .range-label{font-size:var(--ui-font-size,11px)!important}
-  .loop-range-row .range-to{font-size:var(--ui-font-size,11px)!important}
-  .loop-range-row #clearLoop{grid-column:5!important;min-height:56px!important;font-size:var(--ui-font-size,11px)!important;padding-left:9px!important;padding-right:9px!important}
+  .loop-range-row .range-label{font-size:var(--ui-font-size,14px)!important}
+  .loop-range-row .range-to{font-size:var(--ui-font-size,14px)!important}
+  .loop-range-row #clearLoop{grid-column:5!important;min-height:56px!important;font-size:var(--ui-font-size,14px)!important;padding-left:9px!important;padding-right:9px!important}
   .song-context-strip{
     grid-column:1/-1!important;
     margin:2px 0 0!important;
@@ -2733,8 +2733,8 @@ header h1{
     gap:7px!important;
   }
   .song-context-pill{min-height:52px!important;padding:6px 9px!important;justify-content:center!important}
-  .song-context-pill span{font-size:var(--ui-font-size,11px)!important}
-  .song-context-pill strong{font-size:var(--ui-font-size,11px)!important}
+  .song-context-pill span{font-size:var(--ui-font-size,14px)!important}
+  .song-context-pill strong{font-size:var(--ui-font-size,14px)!important}
 }
 
 
@@ -2752,7 +2752,7 @@ header h1{
 .loop-range-row #timeTo,
 .loop-range-row .song-context-pill span,
 .loop-range-row .song-context-pill strong{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
 }
 .loop-range-row #loopToggle,
 .loop-range-row #clearLoop,
@@ -2773,7 +2773,7 @@ header h1{
 .loop-range-row #loopToggle strong,
 .loop-range-row #clearLoop span,
 .loop-range-row #clearLoop strong{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   font-weight:750!important;
   line-height:1.05!important;
 }
@@ -2851,11 +2851,11 @@ header h1{
   align-items:center!important;
   justify-content:center!important;
   color:#fff!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   font-weight:830!important;
   white-space:nowrap!important;
 }
-.loop-range-row .range-to{font-size:var(--ui-font-size,11px)!important;}
+.loop-range-row .range-to{font-size:var(--ui-font-size,14px)!important;}
 .loop-range-row #timeFrom,
 .loop-range-row #timeTo{
   width:100%!important;
@@ -2865,7 +2865,7 @@ header h1{
   padding:6px 7px!important;
   box-sizing:border-box!important;
   text-align:center!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   font-weight:780!important;
 }
 .loop-range-row #playTimeRange{display:none!important;}
@@ -2906,7 +2906,7 @@ header h1{
 .loop-range-row #clearLoop strong,
 .loop-range-row .song-context-pill span,
 .loop-range-row .song-context-pill strong{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.02!important;
   color:#fff!important;
   white-space:nowrap!important;
@@ -2945,7 +2945,7 @@ header h1{
   .loop-range-row #timeTo,
   .loop-range-row .song-context-pill{min-height:56px!important;}
   .loop-range-row .song-context-strip{grid-column:3!important;gap:6px!important;margin:0!important;}
-  .loop-range-row .range-to{font-size:var(--ui-font-size,11px)!important;}
+  .loop-range-row .range-to{font-size:var(--ui-font-size,14px)!important;}
 }
 
 /* Narrow phones: keep all five visible groups on ONE justified row by
@@ -2971,10 +2971,10 @@ header h1{
     grid-column:1/-1!important;
     grid-row:1!important;
     justify-content:center!important;
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
   }
   .loop-range-row #timeFrom{grid-column:1!important;grid-row:2!important;}
-  .loop-range-row .range-to{grid-column:2!important;grid-row:2!important;font-size:var(--ui-font-size,11px)!important;}
+  .loop-range-row .range-to{grid-column:2!important;grid-row:2!important;font-size:var(--ui-font-size,14px)!important;}
   .loop-range-row #timeTo{grid-column:3!important;grid-row:2!important;}
   .loop-range-row #loopToggle,
   .loop-range-row #clearLoop,
@@ -2984,7 +2984,7 @@ header h1{
     min-height:34px!important;
     height:34px!important;
     padding:3px 2px!important;
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
   }
   .loop-range-row .song-context-strip{gap:3px!important;}
   .loop-range-row .song-context-pill span,
@@ -2993,7 +2993,7 @@ header h1{
   .loop-range-row #loopToggle strong,
   .loop-range-row #clearLoop span,
   .loop-range-row #clearLoop strong{
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
     font-weight:850!important;
   }
 }
@@ -3035,7 +3035,7 @@ header h1{
   height:var(--rc58-control-h)!important;
   margin:0!important;
   box-sizing:border-box!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   font-weight:780!important;
   line-height:1.05!important;
 }
@@ -3064,7 +3064,7 @@ header h1{
 .transport-main .play-speed-control label,
 .transport-main .play-speed-control .tempo-select{
   margin:0!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   font-weight:780!important;
   line-height:1.05!important;
   color:#fff!important;
@@ -3124,7 +3124,7 @@ header h1{
   display:flex!important;
   align-items:center!important;
   justify-content:center!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   color:#fff!important;
   pointer-events:none!important;
 }
@@ -3150,7 +3150,7 @@ header h1{
 .loop-range-row #loopToggle span,
 .loop-range-row #loopToggle strong,
 .loop-range-row #clearLoop span{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.05!important;
   font-weight:800!important;
 }
@@ -3202,7 +3202,7 @@ header h1{
     min-height:var(--rc58-control-h)!important;
     height:var(--rc58-control-h)!important;
     padding:4px!important;
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
   }
   .transport-main .play-speed-control{
     grid-template-columns:1fr!important;
@@ -3211,7 +3211,7 @@ header h1{
   }
   .transport-main .play-speed-control label,
   .transport-main .play-speed-control .tempo-select{
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
     text-align:center!important;
   }
   .transport-main .play-speed-control .tempo-select{
@@ -3249,7 +3249,7 @@ header h1{
   .loop-range-row #loopToggle span,
   .loop-range-row #loopToggle strong,
   .loop-range-row #clearLoop span{
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
   }
   .simple-mixer{
     grid-template-columns:minmax(0,1fr) 34px minmax(0,1fr)!important;
@@ -3316,7 +3316,7 @@ header h1{
   padding:4px 5px!important;
   border-radius:10px!important;
   box-sizing:border-box!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.05!important;
   font-weight:800!important;
   text-align:center!important;
@@ -3350,7 +3350,7 @@ header h1{
   margin:0!important;
   padding:0!important;
   color:#fff!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   font-weight:800!important;
   line-height:1!important;
   text-align:center!important;
@@ -3369,7 +3369,7 @@ header h1{
   border-radius:0!important;
   background-color:transparent!important;
   color:#fff!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   font-weight:850!important;
   line-height:22px!important;
   text-align:center!important;
@@ -3402,7 +3402,7 @@ header h1{
 .loop-range-row #clearLoop,
 .loop-range-row .song-context-pill span,
 .loop-range-row .song-context-pill strong{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
 }
 
 /* ------------------------------------------------------------
@@ -3464,14 +3464,14 @@ header h1{
 .simple-mixer .mix-body label b{
   min-width:0!important;
   margin:0!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.1!important;
   white-space:normal!important;
   overflow-wrap:normal!important;
 }
 .simple-mixer .mix-body label span{
   margin:0!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.1!important;
   white-space:nowrap!important;
   text-align:right!important;
@@ -3506,12 +3506,12 @@ header h1{
     height:var(--rc59-control-h)!important;
     min-height:var(--rc59-control-h)!important;
     max-height:var(--rc59-control-h)!important;
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
     padding:3px!important;
   }
   .transport-main .play-speed-control label,
   .transport-main .play-speed-control .tempo-select{
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
   }
   .simple-mixer{
     grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
@@ -3536,8 +3536,8 @@ header h1{
   .simple-mixer .mix-row,
   .simple-mixer .mix-row:nth-child(1),
   .simple-mixer .mix-row:nth-child(2){padding:13px 10px!important}
-  .simple-mixer .mix-body label b{font-size:var(--ui-font-size,11px)!important}
-  .simple-mixer .mix-body label span{font-size:var(--ui-font-size,11px)!important}
+  .simple-mixer .mix-body label b{font-size:var(--ui-font-size,14px)!important}
+  .simple-mixer .mix-body label span{font-size:var(--ui-font-size,14px)!important}
 }
 
 
@@ -3584,7 +3584,7 @@ header h1{
   padding:0 0 1px!important;
   box-sizing:border-box!important;
   color:#fff!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   font-weight:800!important;
   line-height:1!important;
   text-align:center!important;
@@ -3610,7 +3610,7 @@ header h1{
   outline:0!important;
   background-color:transparent!important;
   color:#fff!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   font-weight:850!important;
   line-height:24px!important;
   text-align:center!important;
@@ -3689,7 +3689,7 @@ header h1{
   display:block!important;
   min-width:0!important;
   margin:0!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   font-weight:800!important;
   line-height:1.15!important;
   white-space:nowrap!important;
@@ -3698,7 +3698,7 @@ header h1{
 .source-below aside.card #bassTrackPanel .mix-body label span{
   display:block!important;
   margin:0!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   font-weight:650!important;
   line-height:1.15!important;
   white-space:nowrap!important;
@@ -3732,12 +3732,12 @@ header h1{
   }
   .source-below aside.card #mainTrackPanel .mix-body label b,
   .source-below aside.card #bassTrackPanel .mix-body label b{
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
     white-space:nowrap!important;
   }
   .source-below aside.card #mainTrackPanel .mix-body label span,
   .source-below aside.card #bassTrackPanel .mix-body label span{
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
   }
   .transport-main #speedControl{
     height:var(--rc59-control-h)!important;
@@ -3746,7 +3746,7 @@ header h1{
   }
   .transport-main #speedControl label,
   .transport-main #speedControl #tempo{
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
   }
 }
 
@@ -3760,10 +3760,10 @@ header h1{
     gap:3px!important;
   }
   .source-below aside.card #mainTrackPanel .mix-body label b,
-  .source-below aside.card #bassTrackPanel .mix-body label b{font-size:var(--ui-font-size,11px)!important}
+  .source-below aside.card #bassTrackPanel .mix-body label b{font-size:var(--ui-font-size,14px)!important}
   .source-below aside.card #mainTrackPanel .mix-body label span,
   .source-below aside.card #bassTrackPanel .mix-body label span{
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
     text-align:left!important;
   }
 }
@@ -3813,7 +3813,7 @@ header h1{
   margin:0!important;
   padding:2px 0 0!important;
   color:#fff!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   font-weight:850!important;
   line-height:1!important;
   text-align:center!important;
@@ -3841,7 +3841,7 @@ header h1{
   right:7px;
   bottom:7px;
   color:#91a7c2;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1;
   pointer-events:none;
 }
@@ -3908,7 +3908,7 @@ header h1{
 .source-below aside.card #bassTrackPanel .mix-body label b{
   display:block!important;
   margin:0!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   font-weight:800!important;
   line-height:1.15!important;
   white-space:nowrap!important;
@@ -3917,7 +3917,7 @@ header h1{
 .source-below aside.card #bassTrackPanel .mix-body label span{
   display:block!important;
   margin:0!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   font-weight:700!important;
   line-height:1.15!important;
   white-space:nowrap!important;
@@ -3957,11 +3957,11 @@ header h1{
   }
   .source-below aside.card #mainTrackPanel .mix-body label b,
   .source-below aside.card #bassTrackPanel .mix-body label b{
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
   }
   .source-below aside.card #mainTrackPanel .mix-body label span,
   .source-below aside.card #bassTrackPanel .mix-body label span{
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
   }
   .source-below aside.card #mainTrackPanel input[type=range],
   .source-below aside.card #bassTrackPanel input[type=range]{
@@ -3978,10 +3978,10 @@ header h1{
     grid-template-columns:minmax(0,1fr) auto!important;
   }
   .source-below aside.card #mainTrackPanel .mix-body label b,
-  .source-below aside.card #bassTrackPanel .mix-body label b{font-size:var(--ui-font-size,11px)!important}
+  .source-below aside.card #bassTrackPanel .mix-body label b{font-size:var(--ui-font-size,14px)!important}
   .source-below aside.card #mainTrackPanel .mix-body label span,
   .source-below aside.card #bassTrackPanel .mix-body label span{
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
     text-align:right!important;
   }
 }
@@ -4064,7 +4064,7 @@ header h1{
 .source-below aside.card #mainTrackPanel .mix-body label b,
 .source-below aside.card #bassTrackPanel .mix-body label b{
   margin:0!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   font-weight:800!important;
   line-height:1.15!important;
   white-space:nowrap!important;
@@ -4072,7 +4072,7 @@ header h1{
 .source-below aside.card #mainTrackPanel .mix-body label span,
 .source-below aside.card #bassTrackPanel .mix-body label span{
   margin:0!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   font-weight:750!important;
   line-height:1.15!important;
   white-space:nowrap!important;
@@ -4119,11 +4119,11 @@ header h1{
   }
   .source-below aside.card #mainTrackPanel .mix-body label b,
   .source-below aside.card #bassTrackPanel .mix-body label b{
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
   }
   .source-below aside.card #mainTrackPanel .mix-body label span,
   .source-below aside.card #bassTrackPanel .mix-body label span{
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
   }
   .source-below aside.card #mainTrackPanel input[type=range],
   .source-below aside.card #bassTrackPanel input[type=range]{
@@ -4143,11 +4143,11 @@ header h1{
   }
   .source-below aside.card #mainTrackPanel .mix-body label b,
   .source-below aside.card #bassTrackPanel .mix-body label b{
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
   }
   .source-below aside.card #mainTrackPanel .mix-body label span,
   .source-below aside.card #bassTrackPanel .mix-body label span{
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
   }
 }
 
@@ -4156,7 +4156,7 @@ header h1{
 #qualityHint,.transport-metric span,.transport-metric b,.mobile-engine-badge,
 .timeline-now,.time-mark,.lane-title,.note-sidebar-row,.roll-cell-time,
 #engineInfo,[id*="modelStatus"],[id*="aiStatus"]{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
 }
 
 
@@ -4222,7 +4222,7 @@ header h1{
   min-width:0!important;
   margin:0!important;
   padding:0!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   font-weight:800!important;
   line-height:1.15!important;
   color:var(--text)!important;
@@ -4232,7 +4232,7 @@ header h1{
   display:block!important;
   margin:0!important;
   padding:0!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   font-weight:750!important;
   line-height:1.15!important;
   color:var(--text)!important;
@@ -4258,7 +4258,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
 #qualityHint,.transport-metric span,.transport-metric b,.mobile-engine-badge,
 .timeline-now,.time-mark,.lane-title,.note-sidebar-row,.roll-cell-time,
 #engineInfo,[id*="modelStatus"],[id*="aiStatus"]{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
 }
 
 @media(max-width:760px){
@@ -4271,8 +4271,8 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
     grid-template-columns:minmax(102px,max-content) 52px minmax(0,1fr)!important;
     column-gap:10px!important;
   }
-  .source-below aside.card .track-name{font-size:var(--ui-font-size,11px)!important}
-  .source-below aside.card .track-value{font-size:var(--ui-font-size,11px)!important}
+  .source-below aside.card .track-name{font-size:var(--ui-font-size,14px)!important}
+  .source-below aside.card .track-value{font-size:var(--ui-font-size,14px)!important}
 }
 @media(max-width:390px){
   .source-below aside.card .simple-mixer{padding-left:10px!important}
@@ -4282,7 +4282,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
     column-gap:7px!important;
   }
   .source-below aside.card .track-name,
-  .source-below aside.card .track-value{font-size:var(--ui-font-size,11px)!important}
+  .source-below aside.card .track-value{font-size:var(--ui-font-size,14px)!important}
 }
 
 
@@ -4317,7 +4317,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
 .loop-range-row #clearLoop strong,
 .loop-range-row .song-context-pill span,
 .loop-range-row .song-context-pill strong{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.08!important;
 }
 
@@ -4422,7 +4422,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
 .transport-main #speedControl #tempo,
 .transport-main #speedControl #tempo option,
 .transport-main #speedControl #tempoText{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.08!important;
 }
 
@@ -4441,7 +4441,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
 .loop-range-row .song-context-pill,
 .loop-range-row .song-context-pill span,
 .loop-range-row .song-context-pill strong{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.08!important;
 }
 
@@ -4451,7 +4451,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
 .progress-time #durTime,
 .time-ruler,
 .time-mark{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.08!important;
 }
 
@@ -4461,7 +4461,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
 .note-event,
 .note-event.fill,
 .note-time-label{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.08!important;
 }
 
@@ -4470,7 +4470,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
 #fileMeta b,
 #fileMeta span,
 .meta{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.45!important;
 }
 
@@ -4479,7 +4479,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
 .source-below aside.card .track-value,
 .source-below aside.card #origVolText,
 .source-below aside.card #bassVolText{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.15!important;
 }
 
@@ -4507,7 +4507,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
 .transport-main #speedControl #tempo,
 .transport-main #speedControl #tempo option,
 .transport-main #speedControl #tempoText{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.08!important;
 }
 .transport-main #importBtn,
@@ -4545,7 +4545,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
 .loop-range-row .song-context-pill,
 .loop-range-row .song-context-pill span,
 .loop-range-row .song-context-pill strong{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.08!important;
 }
 .loop-range-row #loopToggle,
@@ -4563,7 +4563,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
 .progress-time #durTime,
 .time-ruler,
 .time-mark{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.08!important;
 }
 .time-ruler{height:54px!important;}
@@ -4575,7 +4575,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
 .note-event,
 .note-event.fill,
 .note-time-label{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.08!important;
 }
 .note-event{min-height:44px!important;}
@@ -4586,7 +4586,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
 #fileMeta b,
 #fileMeta span,
 .meta{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.4!important;
 }
 
@@ -4595,7 +4595,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
 .source-below aside.card .track-value,
 .source-below aside.card #origVolText,
 .source-below aside.card #bassVolText{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.15!important;
 }
 
@@ -4653,7 +4653,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
   min-width:0!important;
   margin:0!important;
   padding:0!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   font-weight:800!important;
   line-height:1!important;
   white-space:nowrap!important;
@@ -4719,7 +4719,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
   height:48px!important;
   padding:7px 12px!important;
   border-radius:12px!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1!important;
   font-weight:800!important;
   white-space:nowrap!important;
@@ -4736,7 +4736,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
   margin-top:-10px!important;
   margin-bottom:16px!important;
   color:var(--muted)!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.3!important;
 }
 /* RC69 — Save / Import aligned with the Source & Stem heading */
@@ -4775,7 +4775,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
     height:46px!important;
     min-height:46px!important;
     padding:6px 9px!important;
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
   }
 }
 @media(max-width:430px){
@@ -4784,7 +4784,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
     min-width:72px!important;
     padding-left:7px!important;
     padding-right:7px!important;
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
   }
 }
 
@@ -4851,7 +4851,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
   margin:0!important;
   min-width:0!important;
   align-self:center!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.08!important;
   white-space:nowrap!important;
 }
@@ -4876,7 +4876,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
   margin:0!important;
   padding:6px 7px!important;
   border-radius:11px!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1!important;
   font-weight:800!important;
   align-self:center!important;
@@ -4887,13 +4887,13 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
     column-gap:6px!important;
   }
   .source-heading-row h2{
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
   }
   .source-heading-row .source-project-actions .btn{
     height:42px!important;
     min-height:42px!important;
     padding:5px 5px!important;
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
   }
 }
 
@@ -4905,14 +4905,14 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
    ============================================================ */
 .source-heading-row #saveProjectBtn,
 .source-heading-row #importProjectBtn{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1!important;
   font-weight:800!important;
 }
 @media(max-width:430px){
   .source-heading-row #saveProjectBtn,
   .source-heading-row #importProjectBtn{
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
   }
 }
 
@@ -5001,7 +5001,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
   margin:0!important;
   padding:6px 8px!important;
   border-radius:10px!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.08!important;
   font-weight:800!important;
   text-align:center!important;
@@ -5019,7 +5019,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
   .source-heading-row #importProjectBtn{
     height:72px!important;
     min-height:72px!important;
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
     padding-left:4px!important;
     padding-right:4px!important;
   }
@@ -5077,7 +5077,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
    RC77 — dynamic timeline growth + centred time labels + lower note range
    ============================================================ */
 .time-ruler .time-mark{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.08!important;
   justify-content:center!important;
   text-align:center!important;
@@ -5088,7 +5088,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
 .loop-range-row #timeFrom,
 .loop-range-row #timeTo,
 .loop-range-row .range-to{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.08!important;
   text-align:center!important;
 }
@@ -5104,7 +5104,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
 .progress-time,
 .progress-time #curTime,
 .progress-time #durTime{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.08!important;
 }
 
@@ -5126,7 +5126,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
   height:72px!important;min-height:72px!important;padding:5px 6px!important;border-radius:10px!important;border:1px solid #365b73!important;background:#10243a!important;color:#fff!important;
 }
 .transport-main #bassPracticeToggle span,.transport-main #bassPracticeToggle strong,.transport-main #metronomeToggle span,.transport-main #metronomeToggle strong{
-  font-size:var(--ui-font-size,11px)!important;line-height:1!important;font-weight:800!important;white-space:nowrap!important;text-align:center!important;
+  font-size:var(--ui-font-size,14px)!important;line-height:1!important;font-weight:800!important;white-space:nowrap!important;text-align:center!important;
 }
 .transport-main #bassPracticeToggle[aria-pressed="true"]{border-color:#ff8a7a!important;background:#38202a!important;}
 .transport-main #bassPracticeToggle[aria-pressed="true"] strong{color:#ffb0a5!important;}
@@ -5136,9 +5136,9 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
 #songScaleWrap{position:relative!important;}
 #songScaleWrap #scaleSelect{
   display:block!important;width:100%!important;min-width:0!important;margin:0!important;padding:0 18px 0 2px!important;border:0!important;outline:0!important;
-  background:transparent!important;color:#fff!important;font-size:var(--ui-font-size,11px)!important;font-weight:800!important;line-height:1!important;text-align:center!important;text-align-last:center!important;appearance:auto!important;
+  background:transparent!important;color:#fff!important;font-size:var(--ui-font-size,14px)!important;font-weight:800!important;line-height:1!important;text-align:center!important;text-align-last:center!important;appearance:auto!important;
 }
-#songScaleWrap #scaleSelect option{background:#0d2034!important;color:#fff!important;font-size:var(--ui-font-size,11px)!important;}
+#songScaleWrap #scaleSelect option{background:#0d2034!important;color:#fff!important;font-size:var(--ui-font-size,14px)!important;}
 #songScaleWrap #scaleSelect:disabled{opacity:.65!important;}
 @media(max-width:360px){
   .transport-main{grid-template-columns:repeat(6,minmax(102px,1fr))!important;}
@@ -5220,7 +5220,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
 .source-below aside.card #metronomePanel .track-name,
 .source-below aside.card #metronomePanel .track-value,
 .source-below aside.card #metronomeVolText{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.15!important;
 }
 @media(max-width:390px){
@@ -5460,7 +5460,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
 /* Keep analysis controls readable at the same scale as the rest of the app. */
 .ai-panel #aiAnalyse,
 #aiProgressText{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.18!important;
 }
 .ai-progress{gap:12px!important;}
@@ -5489,7 +5489,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
   .transport-main .play-speed-control .tempo-select{
     min-width:0!important;
     width:100%!important;
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
   }
 
   .loop-range-row{
@@ -5518,7 +5518,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
     width:100%!important;
     min-width:0!important;
     max-width:none!important;
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
   }
   .loop-range-row #clearLoop{
     grid-column:1!important;
@@ -5541,7 +5541,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
   #songTempo{
     max-width:100%!important;
     min-width:0!important;
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
   }
 
   .source-heading-row{
@@ -5587,11 +5587,11 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
   .source-below aside.card .mix-body .track-name{
     grid-column:1!important;grid-row:1!important;
     min-width:0!important;
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
   }
   .source-below aside.card .mix-body .track-value{
     grid-column:2!important;grid-row:1!important;
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
   }
   .source-below aside.card .mix-body input[type="range"]{
     grid-column:1/-1!important;grid-row:2!important;
@@ -5606,7 +5606,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
   .transport-main .stacked-control,
   .transport-main .play-speed-control label,
   .transport-main .play-speed-control .tempo-select{
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
   }
 }
 
@@ -5679,7 +5679,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
     padding-left:4px!important;
     padding-right:4px!important;
     min-width:0!important;
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
   }
 }
 
@@ -5752,7 +5752,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
 @media(max-width:680px){
   .simple-timeline-head>div:first-child{width:100%!important;gap:10px!important;}
   .timeline-part-tabs{width:100%!important;padding-bottom:2px!important;}
-  .timeline-part-btn{min-width:62px!important;min-height:50px!important;font-size:var(--ui-font-size,11px)!important;}
+  .timeline-part-btn{min-width:62px!important;min-height:50px!important;font-size:var(--ui-font-size,14px)!important;}
 }
 
 
@@ -5790,7 +5790,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
   background:transparent;
   color:#9eb4ca;
   font-weight:900;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   letter-spacing:.1px;
 }
 .practice-view-btn.active{
@@ -5808,7 +5808,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
 .bass-string-selector>span{
   color:#93a9bd;
   font-weight:800;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   margin-right:2px;
 }
 .bass-string-btn{
@@ -5821,7 +5821,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
   background:#0b192a;
   color:#d9e8f5;
   font-weight:900;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
 }
 .bass-string-btn.active{
   color:#06160f;
@@ -5909,14 +5909,14 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
   height:34px;
   align-items:end;
   color:#a8bac8;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   font-weight:900;
   text-align:center;
   font-variant-numeric:tabular-nums;
 }
 .bass-tuning-head{
   align-self:center;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   letter-spacing:.6px;
   text-transform:uppercase;
   color:#73899b;
@@ -5924,7 +5924,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
 .bass-fret-number{
   padding-bottom:5px;
   transition:.14s ease;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
 }
 .bass-fret-number.active-fret-number{
   color:#72e6a2;
@@ -5947,12 +5947,12 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
   z-index:4;
 }
 .bass-string-label strong{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1;
 }
 .bass-string-label span{
   margin-top:3px;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   color:#91a4b4;
 }
 .bass-string-row.active-string .bass-string-label{
@@ -6031,7 +6031,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
   justify-content:center;
   white-space:nowrap;
   color:#06160f;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   font-weight:1000;
   background:linear-gradient(145deg,#d9fff0,#72e6a2 56%,#46c9a5);
   border:2px solid rgba(241,255,249,.92);
@@ -6089,7 +6089,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
   flex-wrap:wrap;
   padding:13px 2px 0;
   color:#92a6b7;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.35;
 }
 .bass-view-legend{
@@ -6122,7 +6122,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
   .practice-view-btn{
     min-height:50px;
     padding:7px 9px;
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
   }
   .timeline-part-tabs{
     order:2;
@@ -6138,7 +6138,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
   .bass-string-btn{
     width:54px;
     height:48px;
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
   }
   .bass-view-panel{
     padding:12px 9px 14px;
@@ -6169,25 +6169,25 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
   }
   .bass-fret-numbers{
     height:29px;
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
   }
   .bass-tuning-head{
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
   }
   .bass-string-row{
     min-height:40px;
   }
-  .bass-string-label strong{font-size:var(--ui-font-size,11px)!important}
-  .bass-string-label span{font-size:var(--ui-font-size,11px)!important}
+  .bass-string-label strong{font-size:var(--ui-font-size,14px)!important}
+  .bass-string-label span{font-size:var(--ui-font-size,14px)!important}
   .bass-fret-cell{border-right-width:1px}
   .bass-position-marker{
     min-width:var(--bass-marker-mobile-size,27px);
     height:var(--bass-marker-mobile-size,27px);
     padding:0 4px;
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
     border-width:1.5px;
   }
-  .bass-fret-number{font-size:var(--ui-font-size,11px)!important}
+  .bass-fret-number{font-size:var(--ui-font-size,14px)!important}
   .bass-pickup{
     left:7px;
     width:9px;
@@ -6198,7 +6198,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
     right:4px;bottom:8px;
   }
   .bass-view-foot{
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
   }
 }
 @media(max-width:430px){
@@ -6209,12 +6209,12 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
   .bass-string-row{
     grid-template-columns:31px 28px repeat(var(--bass-fret-count,12),minmax(14px,1fr));
   }
-  .bass-fret-number{font-size:var(--ui-font-size,11px)!important}
+  .bass-fret-number{font-size:var(--ui-font-size,14px)!important}
   .bass-string-row{min-height:38px}
   .bass-position-marker{
     min-width:var(--bass-marker-mobile-size,24px);
     height:var(--bass-marker-mobile-size,24px);
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
   }
 }
 
@@ -6246,7 +6246,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
   background:linear-gradient(180deg,#102033,#0a1624);
   color:#c9dae7;
   font-weight:900;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   font-variant-numeric:tabular-nums;
   text-align:center;
   padding:6px 7px;
@@ -6273,7 +6273,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
   .bass-time-cell{
     flex-basis:72px;
     min-height:46px;
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
   }
 }
 
@@ -6304,7 +6304,7 @@ small,.small,.tiny,.tag,.meta,.ai-note,.ai-head span,.ai-progress span,
   min-height:46px!important;
   height:auto!important;
   margin:0!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   opacity:.78;
 }
 
@@ -6330,18 +6330,18 @@ body.practice-ready .bass-string-row{
   min-height:64px!important;
 }
 body.practice-ready .bass-string-label strong{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
 }
 body.practice-ready .bass-string-label span{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
 }
 body.practice-ready .bass-fret-number{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
 }
 body.practice-ready .bass-position-marker{
   min-width:max(var(--bass-marker-size,34px),40px)!important;
   height:max(var(--bass-marker-size,34px),40px)!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   padding-left:7px!important;
   padding-right:7px!important;
 }
@@ -6368,15 +6368,15 @@ body.practice-ready .bass-position-marker{
     min-height:68px!important;
   }
   body.practice-ready .bass-string-label strong{
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
   }
   body.practice-ready .bass-string-label span{
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
   }
   body.practice-ready .bass-position-marker{
     min-width:max(var(--bass-marker-mobile-size,27px),34px)!important;
     height:max(var(--bass-marker-mobile-size,27px),34px)!important;
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
   }
   body.practice-ready .bass-headstock-art i{
     transform:scale(.72);
@@ -6401,7 +6401,7 @@ body.practice-ready .bass-position-marker{
   body.practice-ready .bass-position-marker{
     min-width:max(var(--bass-marker-mobile-size,24px),33px)!important;
     height:max(var(--bass-marker-mobile-size,24px),33px)!important;
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
   }
 }
 
@@ -6418,14 +6418,14 @@ body.practice-ready .bass-position-marker{
 
 /* User requirement: every visible word and number is at least 30px. */
 body *{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
 }
 .brand h1{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.05!important;
 }
 button, input, select, option{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
 }
 
 /* Metronome is deliberately unavailable in this version. */
@@ -6480,7 +6480,7 @@ button, input, select, option{
   display:block!important;
   width:100%!important;
   text-align:center!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1!important;
 }
 #playBtn{
@@ -6926,7 +6926,7 @@ body.practice-ready .bass-position-marker{
 @media(max-width:760px){
   .app{padding:8px!important}
   .top{padding:10px!important}
-  .brand h1{font-size:var(--ui-font-size,11px)!important}
+  .brand h1{font-size:var(--ui-font-size,14px)!important}
 
   /* No cramped five-across row: three equal controls, then two equal controls. */
   .transport-main{
@@ -6999,8 +6999,8 @@ body.practice-ready .bass-position-marker{
 
 @media(max-width:430px){
   /* Do not reduce type below 30px. Scroll when necessary instead. */
-  body *{font-size:var(--ui-font-size,11px)!important}
-  .brand h1{font-size:var(--ui-font-size,11px)!important}
+  body *{font-size:var(--ui-font-size,14px)!important}
+  .brand h1{font-size:var(--ui-font-size,14px)!important}
 
   .loop-range-row{
     min-width:640px!important;
@@ -7872,7 +7872,7 @@ body.practice-ready .bass-position-marker{
 .bass-string-label strong,
 .bass-string-label span,
 .bass-tuning-head{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
 }
 
 /* Slightly narrower neck side art means more actual frets remain visible. */
@@ -8066,7 +8066,7 @@ body.practice-ready .simple-timeline-card .bass-string-row{
 /* Keep the empty first header cell for alignment, but remove the word STRING. */
 .simple-timeline-card .bass-tuning-head,
 body.practice-ready .simple-timeline-card .bass-tuning-head{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   color:transparent!important;
   user-select:none!important;
 }
@@ -8074,7 +8074,7 @@ body.practice-ready .simple-timeline-card .bass-tuning-head{
 /* Every fret heading, including Open and 1–12, stays at a true 30px minimum. */
 .simple-timeline-card .bass-fret-number,
 body.practice-ready .simple-timeline-card .bass-fret-number{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1!important;
   font-weight:900!important;
 }
@@ -8086,7 +8086,7 @@ body.practice-ready .simple-timeline-card .bass-string-label{
   flex-wrap:nowrap!important;
   gap:6px!important;
   white-space:nowrap!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
 }
 .simple-timeline-card .bass-string-label strong,
 .simple-timeline-card .bass-string-label span,
@@ -8095,7 +8095,7 @@ body.practice-ready .simple-timeline-card .bass-string-label span{
   display:inline!important;
   margin:0!important;
   padding:0!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1!important;
   font-weight:800!important;
   color:inherit!important;
@@ -8133,7 +8133,7 @@ body.practice-ready .simple-timeline-card .bass-string-label{
   border:0!important;
   background:transparent!important;
   color:#fff!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   font-weight:800!important;
   line-height:42px!important;
   text-align:center!important;
@@ -8149,7 +8149,7 @@ body.practice-ready .simple-timeline-card .bass-string-label{
   right:7px!important;
   bottom:7px!important;
   z-index:2!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1!important;
   color:#d8e8f6!important;
   pointer-events:none!important;
@@ -8158,7 +8158,7 @@ body.practice-ready .simple-timeline-card .bass-string-label{
 /* Analyse Bass must match the app's 30px minimum. */
 .ai-panel #aiAnalyse,
 .ai-panel.compact-reanalyse #aiAnalyse{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.1!important;
 }
 
@@ -8188,7 +8188,7 @@ body.practice-ready .simple-timeline-card .bass-string-label{
 .premium-transport .song-context-pill span,
 .premium-transport .song-context-pill strong,
 .premium-transport #tempoText{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
 }
 
 /* Keep the six-card transport geometry; only Scale needs extra text room. */
@@ -8214,7 +8214,7 @@ body.practice-ready .simple-timeline-card .bass-string-label{
   min-width:0!important;
   max-width:100%!important;
   padding:0 20px 0 4px!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:42px!important;
   text-align:center!important;
   text-align-last:center!important;
@@ -8224,7 +8224,7 @@ body.practice-ready .simple-timeline-card .bass-string-label{
   -webkit-appearance:none!important;
 }
 .premium-transport .loop-range-row #songScaleWrap #scaleSelect option{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
 }
 /* Compact CSS triangle: no text glyph taking space from values such as “Eb Maj”. */
 .premium-transport .loop-range-row #songScaleWrap::after{
@@ -8252,7 +8252,7 @@ body.practice-ready .simple-timeline-card .bass-string-label{
 .simple-timeline-card .bass-string-label strong,
 .simple-timeline-card .bass-string-label span,
 .simple-timeline-card .timeline-part-tabs button{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
 }
 
 /* Source & Stem, mixer and analysis area. */
@@ -8271,13 +8271,13 @@ body.practice-ready .simple-timeline-card .bass-string-label{
 .source-below .ai-panel .small,
 .source-below .ai-panel button,
 .source-below .export-row button{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
 }
 
 /* Explicit release-critical controls. */
 .ai-panel #aiAnalyse,
 .ai-panel.compact-reanalyse #aiAnalyse{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.1!important;
 }
 .simple-timeline-card .bass-fret-number,
@@ -8288,7 +8288,7 @@ body.practice-ready .simple-timeline-card .bass-fret-number,
 body.practice-ready .simple-timeline-card .bass-string-label,
 body.practice-ready .simple-timeline-card .bass-string-label strong,
 body.practice-ready .simple-timeline-card .bass-string-label span{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
 }
 
 
@@ -8329,7 +8329,7 @@ html body .app #bassTrackPanel .track-value,
 html body .app #aiAnalyse,
 html body .app #aiProgressText,
 html body .app #aiState{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
 }
 
 
@@ -8411,7 +8411,7 @@ html body .app #aiState{
   appearance:none!important;
   -webkit-appearance:none!important;
   color:#f4f8ff!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1!important;
   font-weight:900!important;
   text-align:center!important;
@@ -8420,7 +8420,7 @@ html body .app #aiState{
   box-sizing:border-box!important;
 }
 .timeline-breakdown-select option{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
 }
 @media(max-width:760px){
   .simple-timeline-card .simple-timeline-head{
@@ -8441,7 +8441,7 @@ html body .app #aiState{
     width:80px!important;
     min-width:80px!important;
     max-width:80px!important;
-    font-size:var(--ui-font-size,11px)!important;
+    font-size:var(--ui-font-size,14px)!important;
   }
 }
 
@@ -8540,11 +8540,11 @@ html body .app #aiState{
 #speedControl{grid-column:6!important;grid-row:1!important;}
 
 /* Symbol-only controls retain full accessible labels but no visible wording. */
-#playBtn,#pauseBtn,#loopToggle,#clearLoop,#importBtn{font-size:var(--ui-font-size,11px)!important;}
+#playBtn,#pauseBtn,#loopToggle,#clearLoop,#importBtn{font-size:var(--ui-font-size,14px)!important;}
 #playBtn:disabled,#pauseBtn:disabled,#skipBack10:disabled,#skipForward10:disabled{opacity:.42!important;}
 
 /* BPM replaces Tempo and the value is numeric only. */
-#songTempoWrap span,#songTempoWrap strong{font-size:var(--ui-font-size,11px)!important;}
+#songTempoWrap span,#songTempoWrap strong{font-size:var(--ui-font-size,14px)!important;}
 #songTempoWrap span{line-height:1!important;}
 #songTempoWrap strong{line-height:1!important;margin-top:3px!important;}
 
@@ -8574,7 +8574,7 @@ html body .app #aiState{
 /* Preserve the 30px minimum text standard everywhere affected by this pass. */
 html body .app #pauseBtn,
 html body .app #songTempoWrap span,
-html body .app #songTempoWrap strong{font-size:var(--ui-font-size,11px)!important;}
+html body .app #songTempoWrap strong{font-size:var(--ui-font-size,14px)!important;}
 
 @media(max-width:760px){
   .transport-main{
@@ -8615,7 +8615,7 @@ html body .app #sourceCard .source-heading-row{
 }
 html body .app #sourceCard .source-heading-row h2{
   grid-column:1 / 5!important;grid-row:1!important;
-  font-size:var(--ui-font-size,11px)!important;margin:0!important;white-space:nowrap!important;
+  font-size:var(--ui-font-size,14px)!important;margin:0!important;white-space:nowrap!important;
 }
 html body .app #sourceCard .source-seek-actions{
   grid-column:5 / 7!important;grid-row:1!important;
@@ -8634,7 +8634,7 @@ html body .app #sourceCard #saveProjectBtn,
 html body .app #sourceCard #importProjectBtn{
   width:100%!important;min-width:0!important;max-width:none!important;
   height:72px!important;min-height:72px!important;max-height:72px!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
 }
 
 
@@ -8734,7 +8734,7 @@ html body .app .premium-transport .loop-range-row #songScaleWrap #scaleSelect{
   border:0!important;
   background:transparent!important;
   color:#fff!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   font-weight:800!important;
   line-height:42px!important;
   text-align:center!important;
@@ -8745,7 +8745,7 @@ html body .app .premium-transport .loop-range-row #songScaleWrap #scaleSelect{
   -webkit-appearance:none!important;
 }
 html body .app .premium-transport .loop-range-row #songScaleWrap #scaleSelect option{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
 }
 html body .app .premium-transport .loop-range-row #songScaleWrap::after{
   content:''!important;
@@ -8762,7 +8762,7 @@ html body .app .premium-transport .loop-range-row #songScaleWrap::after{
 
 /* Source & Stem must read as a true 30px+ heading on the phone. */
 html body .app #sourceCard .source-heading-row h2{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.05!important;
   font-weight:850!important;
   letter-spacing:-.01em!important;
@@ -8811,7 +8811,7 @@ html body .app .premium-transport #songScaleWrap span,
 html body .app .premium-transport #songScaleWrap select,
 html body .app .premium-transport #songTempoWrap span,
 html body .app .premium-transport #songTempoWrap strong{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
 }
 
 @media(max-width:760px){
@@ -8822,7 +8822,7 @@ html body .app .premium-transport #songTempoWrap strong{
     min-width:var(--rc116-row-w)!important;
     gap:0 var(--rc116-gap)!important;
   }
-  html body .app #sourceCard .source-heading-row h2{font-size:var(--ui-font-size,11px)!important;}
+  html body .app #sourceCard .source-heading-row h2{font-size:var(--ui-font-size,14px)!important;}
   html body .app #sourceCard .source-seek-btn .seek-icon{width:48px!important;height:48px!important;}
 }
 
@@ -8842,7 +8842,7 @@ html body .app #sourceCard .source-heading-row h2{
   grid-row:1!important;
   min-width:0!important;
   width:auto!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1!important;
   font-weight:850!important;
   letter-spacing:-.025em!important;
@@ -8897,7 +8897,7 @@ html body .app #sourceCard #importProjectBtn{
   height:72px!important;
   min-height:72px!important;
   max-height:72px!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
 }
 
 
@@ -8993,7 +8993,7 @@ html body .app #sourceCard .source-heading-row h2{
   min-width:0!important;
   width:auto!important;
   margin:0!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.05!important;
   font-weight:850!important;
   letter-spacing:-.02em!important;
@@ -9056,7 +9056,7 @@ html body .app #sourceCard #importProjectBtn{
   height:72px!important;
   min-height:72px!important;
   max-height:72px!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
 }
 
 @media(max-width:760px){
@@ -9068,7 +9068,7 @@ html body .app #sourceCard #importProjectBtn{
     max-width:100%!important;
     column-gap:var(--rc117-gap)!important;
   }
-  html body .app #sourceCard .source-heading-row h2{font-size:var(--ui-font-size,11px)!important;}
+  html body .app #sourceCard .source-heading-row h2{font-size:var(--ui-font-size,14px)!important;}
   html body .app #sourceCard .source-seek-btn .seek-icon{width:54px!important;height:54px!important;}
 }
 
@@ -9131,14 +9131,14 @@ html body .app #noteNumberToggle .view-mode-symbol{
   width:100%!important;height:100%!important;
   margin:0!important;padding:0!important;
   color:#fff!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1!important;
   font-weight:900!important;
   letter-spacing:-1px!important;
   text-shadow:0 2px 5px rgba(0,0,0,.22)!important;
 }
 html body .app #noteNumberToggle[aria-pressed="true"] .view-mode-symbol{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   letter-spacing:1px!important;
 }
 
@@ -9196,8 +9196,8 @@ html body .app #bassPracticeToggle:disabled{
 @media(max-width:760px){
   html body .app #importBtn .import-audio-icon{width:56px!important;height:56px!important;}
   html body .app #bassPracticeToggle .bass-state-icon{width:56px!important;height:56px!important;}
-  html body .app #noteNumberToggle .view-mode-symbol{font-size:var(--ui-font-size,11px)!important;}
-  html body .app #noteNumberToggle[aria-pressed="true"] .view-mode-symbol{font-size:var(--ui-font-size,11px)!important;}
+  html body .app #noteNumberToggle .view-mode-symbol{font-size:var(--ui-font-size,14px)!important;}
+  html body .app #noteNumberToggle[aria-pressed="true"] .view-mode-symbol{font-size:var(--ui-font-size,14px)!important;}
 }
 
 
@@ -9221,7 +9221,7 @@ html body .app .premium-transport .loop-range-row #songScaleWrap{
    preserving all playback, analysis, repeat, timeline and bass-view logic.
    ============================================================ */
 :root{
-  --ui-font-size:11px;
+  --ui-font-size:14px;
   --ui-gap:clamp(4px,calc(var(--ui-font-size) * .48),40px);
   --ui-pad:clamp(6px,calc(var(--ui-font-size) * .72),64px);
   --ui-card-pad:clamp(7px,calc(var(--ui-font-size) * .82),72px);
@@ -9236,7 +9236,7 @@ html body .app .premium-transport .loop-range-row #songScaleWrap{
 html body,
 html body .app,
 html body .app *{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
 }
 html body .app h1,
 html body .app h2,
@@ -9247,7 +9247,7 @@ html body .app h6,
 html body .app .brand h1,
 html body .app .source-heading-row h2,
 html body .app .ai-head b{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   font-weight:850!important;
   line-height:1.2!important;
   letter-spacing:0!important;
@@ -9423,7 +9423,7 @@ html body .app .premium-transport #songScaleWrap span,
 html body .app .premium-transport #songScaleWrap select,
 html body .app .premium-transport #songTempoWrap span,
 html body .app .premium-transport #songTempoWrap strong{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.05!important;
   margin:0!important;
   padding:0!important;
@@ -9450,7 +9450,7 @@ html body .app #bassPracticeToggle .bass-state-icon{
 }
 html body .app #noteNumberToggle .view-mode-symbol,
 html body .app #noteNumberToggle[aria-pressed="true"] .view-mode-symbol{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1!important;
 }
 
@@ -9695,8 +9695,8 @@ html body .app #sourceCard .ai-progress progress{height:clamp(8px,calc(var(--ui-
 
 /* Device-specific defaults are set before paint by the RC119 bootstrap.
    These selectors are fallbacks if script execution is blocked. */
-html[data-device="mobile"]{--ui-font-size:11px}
-html[data-device="desktop"]{--ui-font-size:11px}
+html[data-device="mobile"]{--ui-font-size:14px}
+html[data-device="desktop"]{--ui-font-size:14px}
 
 @media(max-width:520px){
   html body .app .display-size-control{width:100%!important;justify-content:flex-start!important;margin-left:0!important}
@@ -9728,7 +9728,7 @@ html[data-device="desktop"]{--ui-font-size:11px}
    two-ID !important selectors. This final lock must always win. */
 html body #appRoot#appRoot#appRoot,
 html body #appRoot#appRoot#appRoot *{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
 }
 html body #appRoot#appRoot#appRoot h1,
 html body #appRoot#appRoot#appRoot h2,
@@ -9739,7 +9739,7 @@ html body #appRoot#appRoot#appRoot h6,
 html body #appRoot#appRoot#appRoot .brand h1,
 html body #appRoot#appRoot#appRoot #sourceCard h2,
 html body #appRoot#appRoot#appRoot .ai-head b{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   font-weight:850!important;
   line-height:1.2!important;
   letter-spacing:0!important;
@@ -9810,7 +9810,7 @@ html body #appRoot#appRoot#appRoot #fontSizeInput{
   height:100%!important;
   min-height:0!important;
   max-height:none!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
 }
 
 /* Transport: six equal compact controls. */
@@ -9912,7 +9912,7 @@ html body #appRoot#appRoot#appRoot #songTempoWrap strong{
   max-height:none!important;
   margin:0!important;
   padding:0!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.02!important;
   text-align:center!important;
   text-align-last:center!important;
@@ -9936,7 +9936,7 @@ html body #appRoot#appRoot#appRoot #bassPracticeToggle .bass-state-icon{
   max-height:75%!important;
 }
 html body #appRoot#appRoot#appRoot #noteNumberModeText{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1!important;
 }
 
@@ -9953,7 +9953,7 @@ html body #appRoot#appRoot#appRoot .progress-row-premium{
 html body #appRoot#appRoot#appRoot .progress-time,
 html body #appRoot#appRoot#appRoot #curTime,
 html body #appRoot#appRoot#appRoot #durTime{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.1!important;
   min-width:0!important;
   white-space:nowrap!important;
@@ -10019,7 +10019,7 @@ html body #appRoot#appRoot#appRoot .timeline-part-btn{
   max-height:var(--rc120-control-h)!important;
   padding:0 calc(var(--rc120-pad) * .55)!important;
   border-radius:var(--rc120-radius)!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.1!important;
   box-sizing:border-box!important;
 }
@@ -10029,7 +10029,7 @@ html body #appRoot#appRoot#appRoot .time-ruler{
 }
 html body #appRoot#appRoot#appRoot .time-mark{
   padding-top:calc(var(--ui-font-size) * .48)!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
 }
 html body #appRoot#appRoot#appRoot .simple-wave,
 html body #appRoot#appRoot#appRoot .simple-wave canvas{
@@ -10054,7 +10054,7 @@ html body #appRoot#appRoot#appRoot .note-token.fill{
   min-height:clamp(20px,calc(var(--ui-font-size) * 1.9),170px)!important;
   padding:calc(var(--ui-font-size) * .22) calc(var(--ui-font-size) * .42)!important;
   border-radius:calc(var(--rc120-radius) * .7)!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
 }
 
 /* Bass view: keep enough vertical room for the fretboard without retaining the
@@ -10109,13 +10109,13 @@ html body.practice-ready #appRoot#appRoot#appRoot .bass-position-marker{
   min-width:clamp(22px,calc(var(--ui-font-size) * 2),180px)!important;
   width:auto!important;
   height:clamp(22px,calc(var(--ui-font-size) * 2),180px)!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
 }
 html body #appRoot#appRoot#appRoot .bass-view-foot,
 html body #appRoot#appRoot#appRoot .bass-view-legend{
   min-height:0!important;
   height:auto!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
 }
 
 /* Source & Stem: compact, separate Main/Bass rows, no inherited 30–35 px text. */
@@ -10211,7 +10211,7 @@ html body #appRoot#appRoot#appRoot #sourceCard .source-file-row{
 html body #appRoot#appRoot#appRoot #sourceCard #fileMeta,
 html body #appRoot#appRoot#appRoot #sourceCard #sourceFileTitle,
 html body #appRoot#appRoot#appRoot #sourceCard #sourceFileDetails{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1.3!important;
   margin:0!important;
 }
@@ -10468,7 +10468,7 @@ html body #appRoot#appRoot#appRoot #tempoText{
   max-height:none!important;
   margin:0!important;
   padding:0!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1!important;
   text-align:center!important;
   color:#fff!important;
@@ -10602,7 +10602,7 @@ html body #appRoot#appRoot#appRoot .bass-time-cell{
   max-height:clamp(30px,calc(var(--ui-font-size) * 2.55),42px)!important;
   padding:2px 5px!important;
   border-radius:clamp(6px,calc(var(--ui-font-size) * .62),10px)!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1!important;
 }
 
@@ -10664,7 +10664,7 @@ html body.practice-ready #appRoot#appRoot#appRoot .bass-string-label{
   width:auto!important;
   border-right:0!important;
   padding:0 3px!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
 }
 html body #appRoot#appRoot#appRoot .bass-string-label strong,
 html body #appRoot#appRoot#appRoot .bass-string-label span,
@@ -10672,7 +10672,7 @@ html body.practice-ready #appRoot#appRoot#appRoot .bass-string-label strong,
 html body.practice-ready #appRoot#appRoot#appRoot .bass-string-label span,
 html body #appRoot#appRoot#appRoot .bass-fret-number,
 html body.practice-ready #appRoot#appRoot#appRoot .bass-fret-number{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1!important;
 }
 html body #appRoot#appRoot#appRoot .bass-fret-number{
@@ -10712,7 +10712,7 @@ html body.practice-ready #appRoot#appRoot#appRoot .bass-position-marker{
   max-width:clamp(30px,calc(var(--ui-font-size) * 3.1),44px)!important;
   height:clamp(22px,calc(var(--ui-font-size) * 2),30px)!important;
   padding:0 4px!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
 }
 html body #appRoot#appRoot#appRoot .bass-view-foot{
   padding:clamp(5px,calc(var(--ui-font-size) * .42),8px) 0 0!important;
@@ -10878,8 +10878,8 @@ html body #appRoot#appRoot#appRoot #bassStringSelect{
    Open now labels the tuning/string-name column. Fret 1 starts immediately
    after the nut in the space previously occupied by the separate Open column.
    ============================================================ */
-html[data-device="mobile"]{--ui-font-size:11px}
-html[data-device="desktop"]{--ui-font-size:11px}
+html[data-device="mobile"]{--ui-font-size:14px}
+html[data-device="desktop"]{--ui-font-size:14px}
 
 /* The tuning label column is the physical open-string area. There is no
    separate fret-0 column, so every visible fret column is a real fret 1–12. */
@@ -10905,7 +10905,7 @@ html body.practice-ready #appRoot#appRoot#appRoot .bass-tuning-head{
   box-sizing:border-box!important;
   border-right:3px solid rgba(236,228,205,.96)!important;
   color:#e7edf2!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   font-weight:850!important;
   letter-spacing:0!important;
   text-transform:none!important;
@@ -11067,7 +11067,7 @@ html[data-device="mobile"] body #appRoot#appRoot#appRoot .timeline-part-btn{
   max-height:var(--rc120-control-h)!important;
   padding:2px!important;
   border-radius:var(--rc120-radius)!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1!important;
   box-sizing:border-box!important;
 }
@@ -11097,7 +11097,7 @@ html[data-device="mobile"] body #appRoot#appRoot#appRoot #timelineSplitSelect{
   border-radius:var(--rc120-radius)!important;
   text-align:center!important;
   text-align-last:center!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1!important;
   box-sizing:border-box!important;
 }
@@ -11137,7 +11137,7 @@ html[data-device="mobile"] body #appRoot#appRoot#appRoot .stacked-select-card::a
   transform:translateY(-50%)!important;
   z-index:1!important;
   color:#c7d5e3!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1!important;
   pointer-events:none!important;
 }
@@ -11179,7 +11179,7 @@ html[data-device="mobile"] body #appRoot#appRoot#appRoot .stacked-select-display
   margin:0!important;
   padding:0!important;
   color:#fff!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1!important;
   font-weight:850!important;
   white-space:nowrap!important;
@@ -11359,7 +11359,7 @@ html body #appRoot#appRoot#appRoot .chord-cell{
   box-sizing:border-box!important;
   border-left:1px solid rgba(94,133,172,.38)!important;
   color:#eef8ff!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   font-weight:850!important;
   line-height:1.05!important;
   text-align:center!important;
@@ -11388,13 +11388,13 @@ html body #appRoot#appRoot#appRoot .chord-cell.empty{
 html body #appRoot#appRoot#appRoot .bass-string-number{
   margin:0!important;
   color:#a8bac8!important;
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   font-weight:800!important;
   line-height:1!important;
   white-space:nowrap!important;
 }
 html body #appRoot#appRoot#appRoot .bass-string-label strong{
-  font-size:var(--ui-font-size,11px)!important;
+  font-size:var(--ui-font-size,14px)!important;
   line-height:1!important;
 }
 
@@ -11412,10 +11412,10 @@ html body #appRoot#appRoot#appRoot .note-token.uncertain{
 html body #appRoot#appRoot#appRoot .note-token{background:#175f47!important;border-color:#72e6a2!important;color:#effff6!important}
 html body #appRoot#appRoot#appRoot .note-token.fill{background:#76591a!important;border-color:#ffd166!important;color:#fff8df!important}
 html body #appRoot#appRoot#appRoot .note-token.uncertain{background:#6849a2!important;border-color:#c4adff!important;color:#fff!important}
-html body #appRoot#appRoot#appRoot *{font-size:var(--ui-font-size,11px)!important}
+html body #appRoot#appRoot#appRoot *{font-size:var(--ui-font-size,14px)!important}
 html body #appRoot#appRoot#appRoot *::before,
 html body #appRoot#appRoot#appRoot *::after,
-html body #appRoot#appRoot#appRoot *::placeholder{font-size:var(--ui-font-size,11px)!important}
+html body #appRoot#appRoot#appRoot *::placeholder{font-size:var(--ui-font-size,14px)!important}
 
 
 /* RC137: standard top control cards; speed and bass string count share the top row. */
@@ -11452,7 +11452,7 @@ html body #appRoot#appRoot#appRoot #bassStringSelector .top-card-label{
   min-width:0!important;max-width:100%!important;height:auto!important;min-height:0!important;
   max-height:none!important;margin:0!important;padding:0!important;border:0!important;
   background:transparent!important;box-shadow:none!important;color:#f1f6ff!important;
-  font-size:var(--ui-font-size,11px)!important;line-height:1.1!important;text-align:center!important;
+  font-size:var(--ui-font-size,14px)!important;line-height:1.1!important;text-align:center!important;
   text-align-last:center!important;white-space:nowrap!important;overflow:hidden!important;
 }
 html body #appRoot#appRoot#appRoot #speedControl #tempo,
@@ -11602,7 +11602,7 @@ html body #appRoot#appRoot#appRoot #displaySizeControl #bassStringSelect,
 html body #appRoot#appRoot#appRoot #displaySizeControl .top-card-label{
  position:static!important;display:block!important;flex:0 0 auto!important;
  width:100%!important;height:13px!important;min-height:13px!important;max-height:13px!important;
- line-height:13px!important;margin:0!important;padding:0!important;font-size:var(--ui-font-size,11px)!important;
+ line-height:13px!important;margin:0!important;padding:0!important;font-size:var(--ui-font-size,14px)!important;
  opacity:1!important;overflow:visible!important;text-align:center!important;text-align-last:center!important;
 }
 html body #appRoot#appRoot#appRoot #displaySizeControl #speedControl #tempo{
@@ -11617,6 +11617,32 @@ html body #appRoot#appRoot#appRoot #displaySizeControl #bassStringSelector{backg
 html body #appRoot#appRoot#appRoot #displaySizeControl #speedControl{background:linear-gradient(135deg,#76500b,#a66c12)!important;border-color:#e5b855!important}
 html body #appRoot#appRoot#appRoot #displaySizeControl .top-card-label{color:#fff!important}
 html{-webkit-text-size-adjust:100%!important;text-size-adjust:100%!important}
+
+
+/* RC141: five top settings, restrained colours and 14 px default. */
+html body #appRoot#appRoot#appRoot #displaySizeControl#displaySizeControl{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;grid-template-rows:var(--rc120-control-h)!important;height:var(--rc120-control-h)!important;gap:var(--rc120-tight-gap)!important}
+html body #appRoot#appRoot#appRoot #displaySizeControl#displaySizeControl > *{grid-row:1!important;position:relative!important;width:100%!important;min-width:0!important;max-width:none!important;height:var(--rc120-control-h)!important;min-height:var(--rc120-control-h)!important;max-height:var(--rc120-control-h)!important;margin:0!important;padding:3px!important;box-sizing:border-box!important;border-radius:10px!important;border:1px solid #43536b!important;box-shadow:none!important;overflow:hidden!important}
+html body #appRoot#appRoot#appRoot #displaySizeControl#displaySizeControl .display-size-readout{grid-column:1!important;background:#1c3047!important;border-color:#526b87!important}
+html body #appRoot#appRoot#appRoot #displaySizeControl#displaySizeControl #bassStringSelector{grid-column:2!important;background:#353044!important;border-color:#70627e!important}
+html body #appRoot#appRoot#appRoot #displaySizeControl#displaySizeControl #speedControl{grid-column:3!important;background:#3b3527!important;border-color:#82704c!important}
+html body #appRoot#appRoot#appRoot #displaySizeControl#displaySizeControl #songTempoWrap{grid-column:4!important;background:#283b39!important;border-color:#567f77!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:2px!important}
+html body #appRoot#appRoot#appRoot #displaySizeControl#displaySizeControl #timelineBreakdownControl{grid-column:5!important;background:#263444!important;border-color:#526a85!important;display:flex!important;align-items:center!important;justify-content:center!important}
+html body #appRoot#appRoot#appRoot #displaySizeControl#displaySizeControl #timelineSplitSelect{position:static!important;display:block!important;width:100%!important;min-width:0!important;max-width:none!important;height:100%!important;min-height:0!important;max-height:100%!important;margin:0!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important;text-align:center!important;text-align-last:center!important;color:#edf2f7!important}
+html body #appRoot#appRoot#appRoot #displaySizeControl#displaySizeControl #speedControl label,html body #appRoot#appRoot#appRoot #displaySizeControl#displaySizeControl #tempoText,html body #appRoot#appRoot#appRoot #displaySizeControl#displaySizeControl #bassStringSelect,html body #appRoot#appRoot#appRoot #displaySizeControl#displaySizeControl .top-card-label,html body #appRoot#appRoot#appRoot #displaySizeControl#displaySizeControl #songTempoWrap span,html body #appRoot#appRoot#appRoot #displaySizeControl#displaySizeControl #songTempo{height:calc(var(--ui-font-size) * 1.15)!important;min-height:0!important;max-height:none!important;line-height:1.15!important;margin:0!important;padding:0!important;flex:0 0 auto!important}
+html body #appRoot#appRoot#appRoot #displaySizeControl#displaySizeControl #fontSizeInput{width:60%!important;max-width:60%!important}
+html body #appRoot#appRoot#appRoot .premium-transport .loop-range-row.loop-range-row{grid-template-columns:repeat(5,minmax(0,1fr))!important}
+html body #appRoot#appRoot#appRoot .simple-timeline-head.simple-timeline-head{display:flex!important;align-items:center!important;gap:var(--rc120-tight-gap)!important}
+html body #appRoot#appRoot#appRoot .simple-timeline-head .practice-view-head{display:flex!important;flex:1 1 auto!important;width:100%!important;min-width:0!important}
+html body #appRoot#appRoot#appRoot #importBtn#importBtn{background:#1c4669!important;border-color:#4a779a!important;box-shadow:none!important}
+html body #appRoot#appRoot#appRoot #playBtn#playBtn{background:#245b48!important;border-color:#558d76!important;box-shadow:none!important}
+html body #appRoot#appRoot#appRoot #pauseBtn#pauseBtn{background:#172839!important;border-color:#3c5064!important;box-shadow:none!important}
+html body #appRoot#appRoot#appRoot #noteNumberToggle#noteNumberToggle{background:#244752!important;border-color:#4c7d8a!important;box-shadow:none!important}
+html body #appRoot#appRoot#appRoot #bassPracticeToggle#bassPracticeToggle{background:#573244!important;border-color:#8f6075!important;box-shadow:none!important}
+html body #appRoot#appRoot#appRoot #loopToggle#loopToggle{background:#443457!important;border-color:#7b6295!important;box-shadow:none!important}
+html body #appRoot#appRoot#appRoot #clearLoop#clearLoop{background:#293f5b!important;border-color:#52749c!important;box-shadow:none!important}
+html body #appRoot#appRoot#appRoot #songScaleWrap#songScaleWrap{background:#285052!important;border-color:#50898b!important;box-shadow:none!important}
+html body #appRoot#appRoot#appRoot .timeline-part-btn.timeline-part-btn{background:#183244!important;border-color:#3c5e75!important;box-shadow:none!important}
+html body #appRoot#appRoot#appRoot .timeline-part-btn.active.timeline-part-btn{background:#2a526e!important;border-color:#6c9cba!important}
 
 </style>
 <link rel="manifest" href="./manifest.webmanifest">
@@ -11640,13 +11666,11 @@ html{-webkit-text-size-adjust:100%!important;text-size-adjust:100%!important}
         <div class="tag"></div>
       </div>
 
-      <div class="display-size-control" id="displaySizeControl" role="group" aria-label="Interface text size">
-        <button class="display-size-btn" id="fontSizeDown" type="button" aria-label="Decrease text size" title="Decrease text size">−</button>
+      <div class="display-size-control" id="displaySizeControl" role="group" aria-label="Display and playback settings">
         <label class="display-size-readout" for="fontSizeInput">
           <input id="fontSizeInput" type="number" min="1" max="100" step="1" inputmode="numeric" aria-label="Text size in pixels">
           <span>px</span>
         </label>
-        <button class="display-size-btn" id="fontSizeUp" type="button" aria-label="Increase text size" title="Increase text size">+</button>
         <div class="bass-string-selector top-string-count" id="bassStringSelector" aria-label="Bass strings">
           <select id="bassStringSelect" aria-label="Bass strings">
             <option value="4">4</option><option value="5" selected>5</option><option value="6">6</option>
@@ -11661,6 +11685,23 @@ html{-webkit-text-size-adjust:100%!important;text-size-adjust:100%!important}
           </select>
           <b id="tempoText" style="display:none">100%</b><button id="tempoReset" style="display:none"></button>
         </div>
+        <div class="song-context-pill" id="songTempoWrap" title="Detected song tempo">
+          <span>BPM</span><strong id="songTempo">—</strong>
+        </div>
+      <div class="timeline-breakdown-control" id="timelineBreakdownControl" title="Choose how many seconds each Notes View and Bass View timeline cell represents">
+        <select class="timeline-breakdown-select" id="timelineSplitSelect" aria-label="Timeline breakdown interval">
+          <option value="1">1s</option>
+          <option value="2" selected>2s</option>
+          <option value="3">3s</option>
+          <option value="4">4s</option>
+          <option value="5">5s</option>
+          <option value="10">10s</option>
+          <option value="15">15s</option>
+          <option value="20">20s</option>
+          <option value="25">25s</option>
+          <option value="30">30s</option>
+        </select>
+      </div>
       </div>
       <div class="pill" id="engineBadge">Bb0–G3 Bass View</div>
     </div>
@@ -11738,9 +11779,7 @@ html{-webkit-text-size-adjust:100%!important;text-size-adjust:100%!important}
           <select id="scaleSelect" aria-label="Song key / transpose" disabled><option value="">—</option></select>
           <strong id="songScale" hidden>—</strong>
         </div>
-        <div class="song-context-pill" id="songTempoWrap" title="Detected song tempo">
-          <span>BPM</span><strong id="songTempo">—</strong>
-        </div>
+
       </div>
     </div>
     <span style="display:none"><b id="loopA">—</b><b id="loopB">—</b></span>
@@ -11766,20 +11805,7 @@ html{-webkit-text-size-adjust:100%!important;text-size-adjust:100%!important}
 
       </div>
 
-      <div class="timeline-breakdown-control" id="timelineBreakdownControl" title="Choose how many seconds each Notes View and Bass View timeline cell represents">
-        <select class="timeline-breakdown-select" id="timelineSplitSelect" aria-label="Timeline breakdown interval">
-          <option value="1">1s</option>
-          <option value="2" selected>2s</option>
-          <option value="3">3s</option>
-          <option value="4">4s</option>
-          <option value="5">5s</option>
-          <option value="10">10s</option>
-          <option value="15">15s</option>
-          <option value="20">20s</option>
-          <option value="25">25s</option>
-          <option value="30">30s</option>
-        </select>
-      </div>
+
       <span id="timelineCurrentNote" hidden></span>
     </div>
 
@@ -15495,7 +15521,7 @@ html{-webkit-text-size-adjust:100%!important;text-size-adjust:100%!important}
   function drawTimeGrid(g,w,y1,y2,labelY){
     const ticks=timelineTicks();
     g.save();
-    g.font='11px Arial, sans-serif';
+    g.font=`${Number(document.documentElement.dataset.fontPx)||14}px Arial, sans-serif`;
     g.textBaseline='middle';
     for(const s of ticks){
       const x=timelineX(s,w),major=isTimelineMajor(s);
@@ -15550,14 +15576,14 @@ html{-webkit-text-size-adjust:100%!important;text-size-adjust:100%!important}
 
     g.fillStyle='#0b1728';g.fillRect(0,0,w,rulerH);
     g.strokeStyle='#263c5b';g.beginPath();g.moveTo(0,rulerH-.5);g.lineTo(w,rulerH-.5);g.stroke();
-    g.font='11px system-ui';
+    g.font=`${Number(document.documentElement.dataset.fontPx)||14}px system-ui`;
     g.textBaseline='middle';
     g.strokeStyle='#193552'; g.fillStyle='#9fb1c8';
 
     // Exact same 4-second grid and x-coordinate function as the waveform.
     drawTimeGrid(g,w,0,h,rulerH/2);
 
-    g.font='11px system-ui';
+    g.font=`${Number(document.documentElement.dataset.fontPx)||14}px system-ui`;
     g.textBaseline='alphabetic';
     for(let m=minM;m<=maxM;m++){
       const y=rulerH+rollH-(m-minM+1)*rowH;
@@ -15597,7 +15623,7 @@ html{-webkit-text-size-adjust:100%!important;text-size-adjust:100%!important}
       const label=midiName(n.midi);
       if(cw>=14){
         g.save();g.beginPath();g.rect(x1+1,y+1,Math.max(1,cw-2),Math.max(1,ch-2));g.clip();
-        g.fillStyle='#04111d';g.font='bold 11px system-ui';
+        g.fillStyle='#04111d';g.font=`bold ${Number(document.documentElement.dataset.fontPx)||14}px system-ui`;
         g.textBaseline='middle';g.fillText(label,x1+3,y+ch/2);g.restore();
       }
     }
@@ -16660,12 +16686,9 @@ html{-webkit-text-size-adjust:100%!important;text-size-adjust:100%!important}
 /* RC135: shared 11px default with optional manual adjustment. */
 (() => {
   const root = document.documentElement;
-  const state = window.__bassStudioDisplay || {mode: root.dataset.device || 'desktop', autoSize: 11, selected: Number(root.dataset.fontPx) || 11};
-  const down = document.getElementById('fontSizeDown');
-  const up = document.getElementById('fontSizeUp');
+  const state = window.__bassStudioDisplay || {mode: root.dataset.device || 'desktop', autoSize: 14, selected: Number(root.dataset.fontPx) || 14};
   const input = document.getElementById('fontSizeInput');
-  const auto = document.getElementById('fontSizeAuto');
-  if (!down || !up || !input) return;
+  if (!input) return;
 
   const clamp = value => Math.max(1, Math.min(100, Math.round(Number(value) || state.autoSize)));
   const key = `bassStemStudioFontPxV3:${state.mode}`;
@@ -16685,8 +16708,6 @@ html{-webkit-text-size-adjust:100%!important;text-size-adjust:100%!important}
     requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
   }
 
-  down.addEventListener('click', () => apply(current - 1));
-  up.addEventListener('click', () => apply(current + 1));
   input.addEventListener('change', () => apply(input.value));
   input.addEventListener('keydown', event => {
     if (event.key === 'Enter') { event.preventDefault(); apply(input.value); input.blur(); }
