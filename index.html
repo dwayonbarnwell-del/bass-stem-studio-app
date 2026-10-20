@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bass Stem Studio RC144</title>
+<title>Bass Stem Studio RC145</title>
 <script>
 /* RC119: initialise the correct physical-device font before the first paint.
    This deliberately does not rely on viewport width alone, because Chrome's
@@ -11740,7 +11740,7 @@ html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-tuning-hea
         </select>
       </div>
       </div>
-      <div class="pill" id="engineBadge">Bb0–G3 Bass View</div>
+      <div class="pill" id="engineBadge">Bass View</div>
     </div>
 
     
@@ -11985,7 +11985,7 @@ html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-tuning-hea
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC136';
+  const APP_VERSION='RC145';
   const PROJECT_SCHEMA_VERSION=1;
   // RC125: compact practice-view and string selectors preserve space for P1/P2/P3; all RC124 audio, analysis, repeat, project and practice logic preserved.
 
@@ -12063,23 +12063,16 @@ html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-tuning-hea
     return n[((m%12)+12)%12] + (Math.floor(m/12)-1);
   }
   function freqToMidi(f){ return 69 + 12*Math.log2(f/440); }
+  // Keep the detected pitch and octave. Screen size and selected strings
+  // control only presentation; they must never rewrite the transcription.
   function mapPracticeMidi(rawMidi){
-    let midi=Math.round(Number(rawMidi));
-    if(!Number.isFinite(midi))return null;
-    const displayMinMidi=22, displayMaxMidi=55; // Bb0–G3
-    while(midi<displayMinMidi)midi+=12;
-    while(midi>displayMaxMidi)midi-=12;
-    if(midi<displayMinMidi)midi+=12;
-    return midi;
+    if(rawMidi===null || rawMidi===undefined || rawMidi==='')return null;
+    const midi=Math.round(Number(rawMidi));
+    return Number.isFinite(midi) && midi>=0 && midi<=127 ? midi : null;
   }
 
   function mapFreshCloudMidi(rawMidi){
-    const midi=Math.round(Number(rawMidi));
-    if(!Number.isFinite(midi))return null;
-    // The backend already owns the authoritative Bb0–G3 accuracy gate.
-    // A fresh cloud note outside that range is rejected, never moved by an
-    // octave into a different playable note/fret.
-    return (midi>=22 && midi<=55)?midi:null;
+    return mapPracticeMidi(rawMidi);
   }
 
   function resetAnalysisParts(){
@@ -12136,7 +12129,7 @@ html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-tuning-hea
   }
 
   function scrollTimelineToTime(t){
-    if(!timelineScroll||!buffer)return;
+    if(!timelineScroll||!buffer||practiceVisualMode!=='timeline')return;
     const inner=timelineScroll.querySelector('.timeline-inner');
     if(!inner)return;
     const w=inner.getBoundingClientRect().width;
@@ -12363,12 +12356,12 @@ html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-tuning-hea
       // changing the currently open song. A damaged project must never clear
       // the working rehearsal stems or replace the current audio half-way.
       const restored=project.analysis.notes.map(n=>({
-        midi:mapPracticeMidi(Number.isFinite(Number(n.cloudMidi))?Number(n.cloudMidi):Number(n.midi)),
+        midi:mapPracticeMidi(mapPracticeMidi(n.cloudMidi)??n.midi),
         start:Number(n.start),end:Number(n.end),
         confidence:Number(n.confidence)||0,
         isFill:typeof n.isFill==='boolean'?n.isFill:false,
         scaleNumber:(n.scaleNumber===null||n.scaleNumber===undefined||n.scaleNumber==='')?null:String(n.scaleNumber),
-        cloudMidi:Number.isFinite(Number(n.cloudMidi))?Number(n.cloudMidi):Number(n.midi),
+        cloudMidi:mapPracticeMidi(n.cloudMidi)??mapPracticeMidi(n.midi),
         source:n.source||'Saved project'
       })).filter(n=>Number.isFinite(n.midi)&&Number.isFinite(n.start)&&Number.isFinite(n.end)&&n.end>n.start)
         .sort((a,b)=>a.start-b.start);
@@ -14031,6 +14024,7 @@ html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-tuning-hea
     // Rebuild the neck after layout settles so all marker geometry is correct.
     if(bassFretboard){
       requestAnimationFrame(()=>{
+        if(practiceVisualMode!=='bass')return;
         renderBassFretboard();
         rebuildBassTimeRuler();
         updateBassView(currentTime());
@@ -14090,18 +14084,29 @@ html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-tuning-hea
       if(!phrase.length)return;
       const layers=[];
       for(let i=0;i<phrase.length;i++){
-        const candidates=phrase[i].candidates;
-        const layer=candidates.map(position=>({position,cost:0,previous:-1}));
+        const layer=[];
+        for(const position of phrase[i].candidates){
+          // Four adjacent frets can be reached without moving the hand.
+          // An open string keeps the hand position from the surrounding run;
+          // it is not a free jump from one end of the neck to the other.
+          const first=position.fret===0?1:Math.max(1,position.fret-3);
+          const last=position.fret===0?21:Math.min(21,position.fret);
+          for(let hand=first;hand<=last;hand++){
+            layer.push({position,hand,cost:i?Infinity:Math.abs(hand-7)*.001,previous:-1});
+          }
+        }
         if(i){
           const previous=layers[i-1];
+          const interval=Math.max(.04,Number(phrase[i].note.start)-Number(phrase[i-1].note.start));
+          const timeWeight=1+Math.min(2,.18/interval);
+          const repeated=Number(phrase[i].note.midi)===Number(phrase[i-1].note.midi);
           for(const state of layer){
-            state.cost=Infinity;
             for(let j=0;j<previous.length;j++){
-              const before=previous[j].position;
-              // Open strings do not require a left-hand fret change.
-              const shift=before.fret===0 || state.position.fret===0 ? 0 : Math.abs(before.fret-state.position.fret);
-              const crossing=Math.abs(before.stringIndex-state.position.stringIndex);
-              const cost=previous[j].cost+shift+Math.max(0,shift-4)*1.5+crossing*.6;
+              const before=previous[j];
+              const shift=Math.abs(before.hand-state.hand);
+              const crossing=Math.abs(before.position.stringIndex-state.position.stringIndex);
+              const refinger=repeated && crossing>0 ? 1 : 0;
+              const cost=before.cost+(shift+Math.max(0,shift-4)*1.5)*timeWeight+crossing*.6+refinger;
               if(cost<state.cost){state.cost=cost;state.previous=j;}
             }
           }
@@ -14109,16 +14114,11 @@ html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-tuning-hea
         layers.push(layer);
       }
       const last=layers[layers.length-1];
-      // Equal-motion fingerings are ambiguous. Use a neutral middle-neck
-      // tie-break, rather than always selecting the lowest fret.
       let selected=0;
-      for(let i=1;i<last.length;i++){
-        if(last[i].cost<last[selected].cost ||
-           (last[i].cost===last[selected].cost && Math.abs(last[i].position.fret-7)<Math.abs(last[selected].position.fret-7)))selected=i;
-      }
+      for(let i=1;i<last.length;i++)if(last[i].cost<last[selected].cost)selected=i;
       for(let i=layers.length-1;i>=0;i--){
         const state=layers[i][selected];
-        positions.set(phrase[i].note,state.position);
+        positions.set(phrase[i].note,{...state.position,handPosition:state.hand});
         selected=state.previous;
       }
       phrase=[];
@@ -14227,7 +14227,7 @@ html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-tuning-hea
 
         for(let fret=firstFret;fret<=maxFret;fret++){
           const cell=document.createElement('div');
-          cell.className='bass-fret-cell'+([3,5,7,9,12].includes(fret)?' inlay':'')+(fret===12?' double-inlay':'');
+          cell.className='bass-fret-cell'+([3,5,7,9,12,15,17,19,21,24].includes(fret)?' inlay':'')+([12,24].includes(fret)?' double-inlay':'');
           if(fret===firstFret)cell.classList.add('window-first');
           if(fret===maxFret)cell.classList.add('window-last');
           cell.dataset.stringIndex=String(stringIndex);
@@ -14360,10 +14360,13 @@ html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-tuning-hea
       updateBassTimePlayhead(currentTime());
     }else{
       requestAnimationFrame(()=>{
+        if(practiceVisualMode!=='timeline')return;
         updateTimelineGeometry();
         rebuildSimpleTimeline._sig='';
         rebuildSimpleTimeline();
         drawWaveform();
+        updateSimpleTimeline(currentTime());
+        if(playing)scrollTimelineToTime(currentTime());
       });
     }
   }
@@ -14627,7 +14630,7 @@ html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-tuning-hea
     const cloudNotes=Array.isArray(out.notes)?out.notes:[];
     const mapped=cloudNotes.map(n=>{
       const start=Number(n.start),end=Number(n.end);
-      const rawMidi=Number(n.midi);
+      const rawMidi=mapPracticeMidi(n.midi);
       const midi=mapFreshCloudMidi(rawMidi);
       if(!Number.isFinite(start)||!Number.isFinite(end)||end<=start||!Number.isFinite(midi)) return null;
       return {
@@ -14971,7 +14974,7 @@ html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-tuning-hea
       const meta=pending.parts[i];
       const engineLabel=cloudVersionLabel(out.analysis_version);
       (Array.isArray(out.notes)?out.notes:[]).forEach(n=>{
-        const rawMidi=Number(n.midi),midi=mapFreshCloudMidi(rawMidi);
+        const rawMidi=mapPracticeMidi(n.midi),midi=mapFreshCloudMidi(rawMidi);
         const localStart=Number(n.start),localEnd=Number(n.end);
         if(!Number.isFinite(localStart)||!Number.isFinite(localEnd)||localEnd<=localStart||!Number.isFinite(midi))return;
         const start=localStart+Number(meta.audioStart||0);
@@ -15050,7 +15053,7 @@ html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-tuning-hea
       clearPendingRunPodJob();
 
       aiStatus(
-        `Analysis ready · ${result.count} bass notes · Bb0–G3 · ${result.partCount} ${result.partCount===1?'part':'parts'}${result.bassStemReady?' · clean Bass Track ready':' · some Bass Track audio unavailable'}`,
+        `Analysis ready · ${result.count} bass notes · ${result.partCount} ${result.partCount===1?'part':'parts'}${result.bassStemReady?' · clean Bass Track ready':' · some Bass Track audio unavailable'}`,
         100
       );
     }catch(err){
@@ -15099,7 +15102,7 @@ html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-tuning-hea
       clearPendingRunPodJob();
 
       aiStatus(
-        `Analysis ready · ${result.count} bass notes · Bb0–G3 · ${result.partCount} ${result.partCount===1?'part':'parts'}${result.bassStemReady?' · clean Bass Track ready':' · some Bass Track audio unavailable'}`,
+        `Analysis ready · ${result.count} bass notes · ${result.partCount} ${result.partCount===1?'part':'parts'}${result.bassStemReady?' · clean Bass Track ready':' · some Bass Track audio unavailable'}`,
         100
       );
       return true;
@@ -15246,11 +15249,8 @@ html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-tuning-hea
         else merged.push({...n});
       }
 
-      // Display mapping: E1-B1 lifts one octave; C2-E3 stays distinct.
-      analysedBassNotes=merged.map(n=>{
-        let m=n.midi;while(m<22)m+=12;while(m>55)m-=12;if(m<22)m+=12;
-        return {midi:m,start:n.start,end:n.end};
-      });
+      // Preserve the measured octave in both practice views.
+      analysedBassNotes=merged.map(n=>({...n}));
 
       offlineAnalysisReady=true;notes=analysedBassNotes.map(n=>({...n}));updatePracticeLayoutState(true);waveCacheDirty=true;
       if(analysisProgress)analysisProgress.value=100;
@@ -15279,9 +15279,8 @@ html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-tuning-hea
     const sr=ctx.sampleRate, binHz=sr/analyser.fftSize;
     const threshold=Number(confidence?.value||74)/100;
 
-    // Analyse neighbouring bass octaves too. Notes are normalised by octave into the visible Bb0-G3 range
-    // after the most credible musical pitch has been selected.
-    const minMidi=22, maxMidi=67; // analyse Bb0 through G4, then fold only if outside the Bb0-G3 practice view
+    // Search the existing bass range and preserve the winning octave.
+    const minMidi=22, maxMidi=67;
 
     function dbAt(freq){
       const k=Math.round(freq/binHz);
@@ -15399,10 +15398,7 @@ html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-tuning-hea
       if(jump>12 && pcJump>5 && dominance<1.12 && best.harmonicSupport<2) return null;
     }
 
-    // RC101 Bb0–G3 practice view. Fold by whole octaves only, preserving pitch class.
-    while(midi < 22) midi += 12;
-    while(midi > 55) midi -= 12;
-    if(midi < 22) midi += 12;
+    // Keep the measured octave; the fretboard chooses a page, not a new pitch.
 
     return {
       freq:440*Math.pow(2,(midi-69)/12),
@@ -16006,9 +16002,12 @@ html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-tuning-hea
   function updateSongInfo(t){
     const n=noteAtTime(t);
     if(currentBassInfo)currentBassInfo.textContent=n?displayNoteLabel(n.midi,n.scaleNumber):'—';
-    updateSimpleTimeline(t);
-    updateBassView(t);
-    updateBassTimePlayhead(t);
+    if(practiceVisualMode==='bass'){
+      updateBassView(t);
+      updateBassTimePlayhead(t);
+    }else{
+      updateSimpleTimeline(t);
+    }
   }
 
   function drawAll(){
@@ -16019,13 +16018,17 @@ html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-tuning-hea
     curTime.textContent=fmt(t);
     durTime.textContent=fmt(buffer.duration);
     seek.value=Math.round((t/buffer.duration)*1000)||0;
-    updateTimelineGeometry();rebuildSimpleTimeline();drawWaveform();drawRoll();updateSongInfo(t);rebuildNoteSidebar();rebuildRollCellGrid();
+    if(practiceVisualMode==='timeline'){
+      updateTimelineGeometry();rebuildSimpleTimeline();drawWaveform();drawRoll();
+      rebuildNoteSidebar();rebuildRollCellGrid();
+    }
+    updateSongInfo(t);
     if(!drawAll._alignedOnce){
       drawAll._alignedOnce=true;
       requestAnimationFrame(rebuildNoteSidebar);
     }
     // Follow the playhead horizontally while playing, but keep fixed note labels visible.
-    if(playing && timelineScroll){
+    if(playing && practiceVisualMode==='timeline' && timelineScroll){
       const inner=timelineScroll.querySelector('.timeline-inner');
       const fullW=inner?inner.getBoundingClientRect().width:2200;
       const x=timelineX(t,fullW),vw=timelineScroll.clientWidth;
