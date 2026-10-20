@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bass Stem Studio RC145</title>
+<title>Bass Stem Studio RC146</title>
 <script>
 /* RC119: initialise the correct physical-device font before the first paint.
    This deliberately does not rely on viewport width alone, because Chrome's
@@ -11985,7 +11985,7 @@ html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-tuning-hea
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC145';
+  const APP_VERSION='RC146';
   const PROJECT_SCHEMA_VERSION=1;
   // RC125: compact practice-view and string selectors preserve space for P1/P2/P3; all RC124 audio, analysis, repeat, project and practice logic preserved.
 
@@ -12029,6 +12029,7 @@ html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-tuning-hea
   let bassFretWindowStart=1;
   let bassRenderedWindowStart=0;
   let bassPositionPlanCache=null;
+  let practiceRegisterCache=null;
   let bassFretboardRendering=false;
   let candidateMidi=null, candidateSince=0, pitchHistory=[], lastAcceptedMidi=null, lastEnergy=0, switchMidi=null, switchSince=0;
   let analysedBassNotes=[], offlineAnalysisReady=false, offlineAnalysisRunning=false;
@@ -14075,9 +14076,10 @@ html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-tuning-hea
   }
 
   function bassPositionPlan(count=bassViewStringCount){
+    const registerCentre=practiceDisplayRange().centre;
     const cached=bassPositionPlanCache;
     if(cached && cached.notesRef===notes && cached.length===notes.length &&
-       cached.transpose===transposeSemitones && cached.count===count)return cached;
+       cached.transpose===transposeSemitones && cached.count===count && cached.registerCentre===registerCentre)return cached;
     const positions=new Map();
     let phrase=[];
     const finishPhrase=()=>{
@@ -14099,7 +14101,7 @@ html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-tuning-hea
           const previous=layers[i-1];
           const interval=Math.max(.04,Number(phrase[i].note.start)-Number(phrase[i-1].note.start));
           const timeWeight=1+Math.min(2,.18/interval);
-          const repeated=Number(phrase[i].note.midi)===Number(phrase[i-1].note.midi);
+          const repeated=practiceDisplayMidi(phrase[i].note.midi)===practiceDisplayMidi(phrase[i-1].note.midi);
           for(const state of layer){
             for(let j=0;j<previous.length;j++){
               const before=previous[j];
@@ -14126,7 +14128,7 @@ html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-tuning-hea
     const ordered=notes.filter(n=>Number.isFinite(Number(n?.midi))).slice().sort((a,b)=>Number(a.start)-Number(b.start));
     let previousEnd=null;
     for(const note of ordered){
-      const candidates=bassPositionCandidates(Number(note.midi)+transposeSemitones,count);
+      const candidates=bassPositionCandidates(practiceDisplayMidi(note.midi),count);
       if(previousEnd!==null && Number(note.start)-previousEnd>1.5)finishPhrase();
       if(!candidates.length){finishPhrase();previousEnd=Number(note.end);continue;}
       phrase.push({note,candidates});
@@ -14135,8 +14137,51 @@ html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-tuning-hea
     finishPhrase();
     let maxFret=5;
     for(const p of positions.values())maxFret=Math.max(maxFret,p.fret);
-    bassPositionPlanCache={notesRef:notes,length:notes.length,transpose:transposeSemitones,count,positions,maxFret};
+    bassPositionPlanCache={notesRef:notes,length:notes.length,transpose:transposeSemitones,count,registerCentre,positions,maxFret};
     return bassPositionPlanCache;
+  }
+
+  // A stable song-wide register keeps octave fills while containing outliers.
+  // This affects practice notation only; original analysis and audio are kept.
+  function songBassRegister(){
+    const tail=notes[notes.length-1];
+    const cached=practiceRegisterCache;
+    if(cached && cached.notesRef===notes && cached.length===notes.length &&
+       cached.tailMidi===tail?.midi && cached.tailEnd===tail?.end)return cached.centre;
+    const valid=notes.filter(n=>Number.isFinite(n.midi) && n.midi>=22 && n.midi<=72);
+    const main=valid.filter(n=>!n.isFill);
+    const pool=main.length>=3?main:valid;
+    const reliable=pool.filter(n=>Number.isFinite(n.confidence) && n.confidence>=.65);
+    const selected=reliable.length>=3?reliable:pool;
+    const weighted=selected.map(n=>({
+      midi:Math.round(n.midi),
+      weight:Math.max(.06,Math.min(1.5,Number(n.end)-Number(n.start)||.06)) *
+        (n.isFill ? .25 : 1) * (Number.isFinite(n.confidence)?Math.max(.1,Math.min(1,n.confidence)):1)
+    })).sort((a,b)=>a.midi-b.midi);
+    const halfway=weighted.reduce((sum,n)=>sum+n.weight,0)/2;
+    let centre=40,total=0;
+    for(const n of weighted){total+=n.weight;if(total>=halfway){centre=n.midi;break;}}
+    practiceRegisterCache={notesRef:notes,length:notes.length,tailMidi:tail?.midi,tailEnd:tail?.end,centre};
+    return centre;
+  }
+
+  function practiceDisplayRange(){
+    const rows=BASS_STANDARD_TUNINGS[bassViewStringCount]||BASS_STANDARD_TUNINGS[5];
+    const lowest=Math.min(...rows.map(s=>s.openMidi));
+    const highest=Math.max(...rows.map(s=>s.openMidi))+24;
+    // Respect the selected bass at the open-string and top-fret limits.
+    const centre=Math.max(lowest,Math.min(highest,songBassRegister()+transposeSemitones));
+    return {centre,low:Math.max(lowest,centre-12),high:Math.min(highest,centre+12)};
+  }
+
+  function practiceDisplayMidi(rawMidi){
+    let midi=mapPracticeMidi(rawMidi);
+    if(midi===null)return null;
+    midi+=transposeSemitones;
+    const range=practiceDisplayRange();
+    while(midi<range.low)midi+=12;
+    while(midi>range.high)midi-=12;
+    return midi;
   }
 
   function preferredBassPosition(targetMidi,count=bassViewStringCount,note=null){
@@ -14162,7 +14207,7 @@ html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-tuning-hea
     try{
       const rows=BASS_STANDARD_TUNINGS[bassViewStringCount]||BASS_STANDARD_TUNINGS[5];
       const activeNote=noteAtTime(Number(t)||0);
-      const activePosition=activeNote && preferredBassPosition(Number(activeNote.midi)+transposeSemitones,bassViewStringCount,activeNote);
+      const activePosition=activeNote && preferredBassPosition(practiceDisplayMidi(activeNote.midi),bassViewStringCount,activeNote);
       if(activePosition)bassFretWindowStart=bassFretPageStart(activePosition.fret);
       else if((Number(t)||0)<=0)bassFretWindowStart=1;
       const firstFret=bassFretWindowStart;
@@ -14330,7 +14375,9 @@ html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-tuning-hea
     const stringDisplay=document.getElementById('bassStringDisplayValue');
     if(stringDisplay)stringDisplay.textContent=String(n);
     try{localStorage.setItem('bassStemBassStringCount',String(n))}catch(e){}
-    renderBassFretboard();
+    if(practiceVisualMode==='bass')renderBassFretboard();
+    rebuildSimpleTimeline._sig='';
+    drawAll();
   }
 
   function setPracticeVisualMode(mode){
@@ -14395,7 +14442,7 @@ html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-tuning-hea
     }
 
     const originalMidi=Math.round(Number(n.midi));
-    const targetMidi=originalMidi+transposeSemitones;
+    const targetMidi=practiceDisplayMidi(originalMidi);
     const noteLabel=midiName(targetMidi);
     const degree=scaleDegreeLabel(targetMidi);
     const pos=preferredBassPosition(targetMidi,bassViewStringCount,n);
@@ -14425,6 +14472,7 @@ html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-tuning-hea
       marker.title=pos.fret===0
         ? 'Estimated position: '+noteLabel+' on open string '+pos.stringNumber+' ('+pos.stringName+')'
         : 'Estimated position: '+noteLabel+' on string '+pos.stringNumber+' ('+pos.stringName+'), fret '+pos.fret;
+      if(targetMidi!==originalMidi+transposeSemitones)marker.title+=' · detected '+midiName(originalMidi+transposeSemitones);
       cell.appendChild(marker);
     }
     if(fretNumber)fretNumber.classList.add('active-fret-number');
@@ -14482,7 +14530,7 @@ html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-tuning-hea
   }
 
   function displayNoteLabel(midi,savedScaleNumber=null){
-    const shifted=Math.round(Number(midi))+transposeSemitones;
+    const shifted=practiceDisplayMidi(midi);
     if(noteDisplayMode==='numbers'){
       // Always calculate from the CURRENT scale context. This deliberately
       // overrides an older saved minor-key number so imported projects also
@@ -15829,7 +15877,7 @@ html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-tuning-hea
     const cellCount=Math.max(1,Math.ceil(duration/TIMELINE_CELL_SECONDS));
     const scaleSig=currentScaleContext?`${currentScaleContext.rootPc}:${currentScaleContext.mode}`:'no-scale';
     const chordSig=(detectedChordChanges||[]).map(c=>`${c.rootPc}:${c.quality}:${Number(c.start).toFixed(2)}:${Number(c.end).toFixed(2)}`).join('|');
-    const sig=[duration.toFixed(3),TIMELINE_CELL_SECONDS,notes.length,notes.map(n=>`${n.midi}:${n.start.toFixed(3)}:${n.end.toFixed(3)}`).join('|'),cellW,noteDisplayMode,scaleSig,transposeSemitones,chordSig].join('~');
+    const sig=[duration.toFixed(3),TIMELINE_CELL_SECONDS,notes.length,notes.map(n=>`${n.midi}:${n.start.toFixed(3)}:${n.end.toFixed(3)}`).join('|'),cellW,noteDisplayMode,scaleSig,transposeSemitones,chordSig,practiceDisplayRange().centre].join('~');
     if(rebuildSimpleTimeline._sig===sig)return;
     rebuildSimpleTimeline._sig=sig;
 
@@ -15901,13 +15949,14 @@ html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-tuning-hea
       const seq=document.createElement('div');
       seq.className='note-sequence';
       for(const n of bucket){
-        const name=midiName(Math.round(n.midi)+transposeSemitones);
+        const name=midiName(practiceDisplayMidi(n.midi));
         const shown=displayNoteLabel(n.midi,n.scaleNumber);
         const token=document.createElement('span');
         token.className='note-token'+(n.isFill?' fill':isLowConfidenceNote(n)?' uncertain':'');
         token.dataset.start=n.start;token.dataset.end=n.end;
         token.textContent=n.isFill?`(${shown})`:shown;
         token.title=`${name}${shown!==name?' · '+shown:''} · ${fmt(n.start)}–${fmt(n.end)}${n.isFill?' · fill':''}`;
+        if(practiceDisplayMidi(n.midi)!==Math.round(n.midi)+transposeSemitones)token.title+=' · detected '+midiName(Math.round(n.midi)+transposeSemitones);
         seq.appendChild(token);
       }
       cell.appendChild(seq);
