@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bass Stem Studio RC141</title>
+<title>Bass Stem Studio RC142</title>
 <script>
 /* RC119: initialise the correct physical-device font before the first paint.
    This deliberately does not rely on viewport width alone, because Chrome's
@@ -11990,7 +11990,7 @@ html body #appRoot#appRoot#appRoot .timeline-part-btn.active.timeline-part-btn{b
   try{bassViewStringCount=Number(localStorage.getItem('bassStemBassStringCount')||5)}catch(e){}
   if(![4,5,6].includes(bassViewStringCount))bassViewStringCount=5;
   let bassRenderedMaxFret=12;
-  let bassFretMaxCache={notesRef:null,length:-1,transpose:NaN,count:0,value:12};
+  let bassPositionPlanCache=null;
   let bassFretboardRendering=false;
   let candidateMidi=null, candidateSince=0, pitchHistory=[], lastAcceptedMidi=null, lastEnergy=0, switchMidi=null, switchSince=0;
   let analysedBassNotes=[], offlineAnalysisReady=false, offlineAnalysisRunning=false;
@@ -14030,50 +14030,85 @@ html body #appRoot#appRoot#appRoot .timeline-part-btn.active.timeline-part-btn{b
     return [...rows].reverse().map(s=>s.name).join('–');
   }
 
-  function preferredBassPosition(targetMidi,count=bassViewStringCount){
+  // Pitch alone does not identify the original string/fret. Estimate a
+  // consistent fingering across each phrase, without preferring low frets.
+  function bassPositionCandidates(targetMidi,count){
     const rows=BASS_STANDARD_TUNINGS[count]||BASS_STANDARD_TUNINGS[5];
     const midi=Math.round(Number(targetMidi));
-    if(!Number.isFinite(midi))return null;
+    if(!Number.isFinite(midi))return [];
+    return rows.map((s,stringIndex)=>({
+      stringIndex,stringName:s.name,stringNumber:stringIndex+1,
+      openNote:s.openNote,fret:midi-s.openMidi
+    })).filter(p=>p.fret>=0 && p.fret<=24);
+  }
 
-    const candidates=[];
-    rows.forEach((s,stringIndex)=>{
-      const fret=midi-s.openMidi;
-      if(fret>=0 && fret<=songAwareBassMaxFret(count)){
-        // User preference: frets 1-12 first. Open strings are used only when
-        // there is no practical fretted alternative inside the practice neck.
-        const score=(fret===0?50:fret)+(stringIndex*.015);
-        candidates.push({
-          stringIndex,
-          stringName:s.name,
-          stringNumber:stringIndex+1,
-          openNote:s.openNote,
-          fret,
-          score
-        });
+  function bassPositionPlan(count=bassViewStringCount){
+    const cached=bassPositionPlanCache;
+    if(cached && cached.notesRef===notes && cached.length===notes.length &&
+       cached.transpose===transposeSemitones && cached.count===count)return cached;
+    const positions=new Map();
+    let phrase=[];
+    const finishPhrase=()=>{
+      if(!phrase.length)return;
+      const layers=[];
+      for(let i=0;i<phrase.length;i++){
+        const candidates=phrase[i].candidates;
+        const layer=candidates.map(position=>({position,cost:0,previous:-1}));
+        if(i){
+          const previous=layers[i-1];
+          for(const state of layer){
+            state.cost=Infinity;
+            for(let j=0;j<previous.length;j++){
+              const before=previous[j].position;
+              // Open strings do not require a left-hand fret change.
+              const shift=before.fret===0 || state.position.fret===0 ? 0 : Math.abs(before.fret-state.position.fret);
+              const crossing=Math.abs(before.stringIndex-state.position.stringIndex);
+              const cost=previous[j].cost+shift+Math.max(0,shift-4)*1.5+crossing*.6;
+              if(cost<state.cost){state.cost=cost;state.previous=j;}
+            }
+          }
+        }
+        layers.push(layer);
       }
-    });
-    if(!candidates.length)return null;
-    candidates.sort((a,b)=>a.score-b.score || a.stringIndex-b.stringIndex);
-    return candidates[0];
+      const last=layers[layers.length-1];
+      // Equal-motion fingerings are ambiguous. Use a neutral middle-neck
+      // tie-break, rather than always selecting the lowest fret.
+      let selected=0;
+      for(let i=1;i<last.length;i++){
+        if(last[i].cost<last[selected].cost ||
+           (last[i].cost===last[selected].cost && Math.abs(last[i].position.fret-7)<Math.abs(last[selected].position.fret-7)))selected=i;
+      }
+      for(let i=layers.length-1;i>=0;i--){
+        const state=layers[i][selected];
+        positions.set(phrase[i].note,state.position);
+        selected=state.previous;
+      }
+      phrase=[];
+    };
+    const ordered=notes.filter(n=>Number.isFinite(Number(n?.midi))).slice().sort((a,b)=>Number(a.start)-Number(b.start));
+    let previousEnd=null;
+    for(const note of ordered){
+      const candidates=bassPositionCandidates(Number(note.midi)+transposeSemitones,count);
+      if(previousEnd!==null && Number(note.start)-previousEnd>1.5)finishPhrase();
+      if(!candidates.length){finishPhrase();previousEnd=Number(note.end);continue;}
+      phrase.push({note,candidates});
+      previousEnd=Number(note.end);
+    }
+    finishPhrase();
+    let maxFret=5;
+    for(const p of positions.values())maxFret=Math.max(maxFret,p.fret);
+    bassPositionPlanCache={notesRef:notes,length:notes.length,transpose:transposeSemitones,count,positions,maxFret};
+    return bassPositionPlanCache;
+  }
+
+  function preferredBassPosition(targetMidi,count=bassViewStringCount,note=null){
+    const planned=note && bassPositionPlan(count).positions.get(note);
+    if(planned)return planned;
+    return bassPositionCandidates(targetMidi,count).sort((a,b)=>Math.abs(a.fret-7)-Math.abs(b.fret-7))[0]||null;
   }
 
   function songAwareBassMaxFret(count=bassViewStringCount){
-    if(bassFretMaxCache.notesRef===notes &&
-       bassFretMaxCache.length===notes.length &&
-       bassFretMaxCache.transpose===transposeSemitones &&
-       bassFretMaxCache.count===count)return bassFretMaxCache.value;
-    const rows=BASS_STANDARD_TUNINGS[count]||BASS_STANDARD_TUNINGS[5];
-    let required=12;
-    for(const note of notes){
-      const midi=Math.round(Number(note?.midi))+transposeSemitones;
-      if(!Number.isFinite(midi))continue;
-      const playable=rows.map(stringInfo=>midi-stringInfo.openMidi).filter(fret=>fret>=0);
-      if(playable.length)required=Math.max(required,Math.min(...playable));
-    }
-    // Keep the familiar 0/Open-to-12 neck for ordinary keys. Extend it only
-    // when transposing raises notes above fret 12, up to the practical 24th fret.
-    bassFretMaxCache={notesRef:notes,length:notes.length,transpose:transposeSemitones,count,value:Math.min(24,required)};
-    return bassFretMaxCache.value;
+    return bassPositionPlan(count).maxFret;
   }
 
   function clearBassFretboardHighlight(){
@@ -14310,7 +14345,7 @@ html body #appRoot#appRoot#appRoot .timeline-part-btn.active.timeline-part-btn{b
     const targetMidi=originalMidi+transposeSemitones;
     const noteLabel=midiName(targetMidi);
     const degree=scaleDegreeLabel(targetMidi);
-    const pos=preferredBassPosition(targetMidi,bassViewStringCount);
+    const pos=preferredBassPosition(targetMidi,bassViewStringCount,n);
 
     if(!pos){
       return;
@@ -14328,8 +14363,8 @@ html body #appRoot#appRoot#appRoot .timeline-part-btn.active.timeline-part-btn{b
       marker.className='bass-position-marker'+(n.isFill?' fill':isLowConfidenceNote(n)?' uncertain':'');
       marker.textContent=noteLabel;
       marker.title=pos.fret===0
-        ? 'Play '+noteLabel+' on open string '+pos.stringNumber+' ('+pos.stringName+')'
-        : 'Play '+noteLabel+' on string '+pos.stringNumber+' ('+pos.stringName+'), fret '+pos.fret;
+        ? 'Estimated position: '+noteLabel+' on open string '+pos.stringNumber+' ('+pos.stringName+')'
+        : 'Estimated position: '+noteLabel+' on string '+pos.stringNumber+' ('+pos.stringName+'), fret '+pos.fret;
       cell.appendChild(marker);
     }
     if(fretNumber)fretNumber.classList.add('active-fret-number');
