@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bass Stem Studio RC142</title>
+<title>Bass Stem Studio RC143</title>
 <script>
 /* RC119: initialise the correct physical-device font before the first paint.
    This deliberately does not rely on viewport width alone, because Chrome's
@@ -11644,6 +11644,11 @@ html body #appRoot#appRoot#appRoot #songScaleWrap#songScaleWrap{background:#2850
 html body #appRoot#appRoot#appRoot .timeline-part-btn.timeline-part-btn{background:#183244!important;border-color:#3c5e75!important;box-shadow:none!important}
 html body #appRoot#appRoot#appRoot .timeline-part-btn.active.timeline-part-btn{background:#2a526e!important;border-color:#6c9cba!important}
 
+
+/* RC143: active-note follow controls only the neck's horizontal viewport. */
+html body #appRoot#appRoot#appRoot .bass-fretboard-wrap.bass-fretboard-wrap{
+ scroll-behavior:auto!important;overflow-anchor:none!important;
+}
 </style>
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#09111f">
@@ -14325,6 +14330,27 @@ html body #appRoot#appRoot#appRoot .timeline-part-btn.active.timeline-part-btn{b
     return !Number.isFinite(confidence)||confidence<0.70;
   }
 
+  // Follow only the horizontal neck scroller; never move the page itself.
+  function followBassFretPosition(cell,fretNumber){
+    const wrap=bassFretboard?.closest('.bass-fretboard-wrap');
+    if(!wrap || !cell || wrap.clientWidth<=0)return;
+    const viewport=wrap.getBoundingClientRect();
+    const left=viewport.left+wrap.clientLeft;
+    const right=left+wrap.clientWidth;
+    const targets=[cell,fretNumber,cell.querySelector('.bass-position-marker')].filter(Boolean);
+    const bounds=targets.map(el=>el.getBoundingClientRect());
+    const first=Math.min(...bounds.map(r=>r.left));
+    const last=Math.max(...bounds.map(r=>r.right));
+    const padding=Math.min(18,wrap.clientWidth*.06);
+    if(first>=left+padding && last<=right-padding)return;
+    const target=wrap.scrollLeft+(first+last)/2-(left+right)/2;
+    const max=Math.max(0,wrap.scrollWidth-wrap.clientWidth);
+    const next=Math.max(0,Math.min(max,target));
+    // Instant, boundary-triggered movement keeps fast notes visible without
+    // repeatedly restarting a smooth animation or drifting between notes.
+    if(Math.abs(wrap.scrollLeft-next)>=1)wrap.scrollLeft=next;
+  }
+
   function updateBassView(t){
     if(!bassFretboard)return;
 
@@ -14368,6 +14394,7 @@ html body #appRoot#appRoot#appRoot .timeline-part-btn.active.timeline-part-btn{b
       cell.appendChild(marker);
     }
     if(fretNumber)fretNumber.classList.add('active-fret-number');
+    followBassFretPosition(cell,fretNumber);
 
 
   }
