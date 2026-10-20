@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bass Stem Studio RC143</title>
+<title>Bass Stem Studio RC144</title>
 <script>
 /* RC119: initialise the correct physical-device font before the first paint.
    This deliberately does not rely on viewport width alone, because Chrome's
@@ -11649,6 +11649,38 @@ html body #appRoot#appRoot#appRoot .timeline-part-btn.active.timeline-part-btn{b
 html body #appRoot#appRoot#appRoot .bass-fretboard-wrap.bass-fretboard-wrap{
  scroll-behavior:auto!important;overflow-anchor:none!important;
 }
+
+/* RC144: eight real fret columns per page, without horizontal scrolling. */
+html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard{
+ width:100%!important;min-width:0!important;max-width:100%!important;
+}
+html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-fret-numbers,
+html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-string-row{
+ display:grid!important;grid-template-columns:clamp(44px,calc(var(--ui-font-size) * 4),58px) repeat(8,minmax(0,1fr))!important;
+ width:100%!important;min-width:0!important;max-width:100%!important;
+}
+html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-fret-number,
+html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-fret-cell{
+ min-width:0!important;width:auto!important;max-width:none!important;
+}
+html body #appRoot#appRoot#appRoot .bass-fretboard-wrap.bass-fretboard-wrap{
+ overflow-x:hidden!important;scroll-behavior:auto!important;
+}
+html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-position-marker{
+ width:max-content!important;min-width:24px!important;max-width:none!important;padding:0 2px!important;box-sizing:border-box!important;
+}
+html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .window-first .bass-position-marker{
+ left:0!important;right:auto!important;transform:translateY(-50%)!important;
+}
+html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .window-last .bass-position-marker{
+ right:0!important;left:auto!important;transform:translateY(-50%)!important;
+}
+
+
+html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-string-label,
+html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-tuning-head{
+ min-width:0!important;width:100%!important;max-width:100%!important;box-sizing:border-box!important;
+}
 </style>
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#09111f">
@@ -11994,7 +12026,8 @@ html body #appRoot#appRoot#appRoot .bass-fretboard-wrap.bass-fretboard-wrap{
   let bassViewStringCount=5;
   try{bassViewStringCount=Number(localStorage.getItem('bassStemBassStringCount')||5)}catch(e){}
   if(![4,5,6].includes(bassViewStringCount))bassViewStringCount=5;
-  let bassRenderedMaxFret=12;
+  let bassFretWindowStart=1;
+  let bassRenderedWindowStart=0;
   let bassPositionPlanCache=null;
   let bassFretboardRendering=false;
   let candidateMidi=null, candidateSince=0, pitchHistory=[], lastAcceptedMidi=null, lastEnergy=0, switchMidi=null, switchSince=0;
@@ -14123,22 +14156,30 @@ html body #appRoot#appRoot#appRoot .bass-fretboard-wrap.bass-fretboard-wrap{
     bassFretboard.querySelectorAll('.bass-position-marker').forEach(el=>el.remove());
   }
 
-  function renderBassFretboard(){
+  function renderBassFretboard(t=currentTime()){
     if(!bassFretboard)return;
     bassFretboardRendering=true;
     try{
       const rows=BASS_STANDARD_TUNINGS[bassViewStringCount]||BASS_STANDARD_TUNINGS[5];
-      const maxFret=songAwareBassMaxFret(bassViewStringCount);
-      bassRenderedMaxFret=maxFret;
+      const activeNote=noteAtTime(Number(t)||0);
+      const activePosition=activeNote && preferredBassPosition(Number(activeNote.midi)+transposeSemitones,bassViewStringCount,activeNote);
+      if(activePosition)bassFretWindowStart=bassFretPageStart(activePosition.fret);
+      else if((Number(t)||0)<=0)bassFretWindowStart=1;
+      const firstFret=bassFretWindowStart;
+      const maxFret=firstFret+7;
+      bassRenderedWindowStart=firstFret;
+      bassFretboard.setAttribute('aria-label',`Bass fretboard, frets ${firstFret} to ${maxFret}`);
 
       bassFretboard.innerHTML='';
       bassFretboard.style.setProperty('--bass-string-count',String(rows.length));
-      bassFretboard.style.setProperty('--bass-fret-count',String(maxFret));
+      bassFretboard.style.setProperty('--bass-fret-count','8');
+      const neckViewport=bassFretboard.closest('.bass-fretboard-wrap');
+      if(neckViewport)neckViewport.scrollLeft=0;
 
       // Fewer required frets should not merely remove columns: use the freed
       // neck length to make each remaining fret, fret number and live note
       // marker materially larger and easier to read.
-      const expansion=Math.max(1,Math.min(1.75,12/Math.max(5,maxFret)));
+      const expansion=Math.max(1,Math.min(1.75,12/8));
       const markerSize=Math.round(34*Math.sqrt(expansion));
       const markerMobile=Math.round(24*Math.sqrt(expansion));
       const markerFont=Math.round(13*Math.sqrt(expansion));
@@ -14159,7 +14200,7 @@ html body #appRoot#appRoot#appRoot .bass-fretboard-wrap.bass-fretboard-wrap{
       tuningHead.textContent='Open';
       tuningHead.setAttribute('aria-label','Open strings');
       numbers.appendChild(tuningHead);
-      for(let fret=1;fret<=maxFret;fret++){
+      for(let fret=firstFret;fret<=maxFret;fret++){
         const n=document.createElement('span');
         n.className='bass-fret-number';
         n.dataset.fret=String(fret);
@@ -14184,9 +14225,11 @@ html body #appRoot#appRoot#appRoot .bass-fretboard-wrap.bass-fretboard-wrap{
         label.innerHTML='<span class="bass-string-number">'+stringNumber+'</span><strong>'+s.name+(octave?' ('+octave+')':'')+'</strong>';
         row.appendChild(label);
 
-        for(let fret=1;fret<=maxFret;fret++){
+        for(let fret=firstFret;fret<=maxFret;fret++){
           const cell=document.createElement('div');
           cell.className='bass-fret-cell'+([3,5,7,9,12].includes(fret)?' inlay':'')+(fret===12?' double-inlay':'');
+          if(fret===firstFret)cell.classList.add('window-first');
+          if(fret===maxFret)cell.classList.add('window-last');
           cell.dataset.stringIndex=String(stringIndex);
           cell.dataset.fret=String(fret);
           cell.dataset.midi=String(s.openMidi+fret);
@@ -14204,7 +14247,7 @@ html body #appRoot#appRoot#appRoot .bass-fretboard-wrap.bass-fretboard-wrap{
         btn.setAttribute('aria-pressed',active?'true':'false');
       });
       if(bassStringSelect)bassStringSelect.value=String(bassViewStringCount);
-      updateBassView(currentTime());
+      updateBassView(t);
     }finally{
       bassFretboardRendering=false;
     }
@@ -14330,40 +14373,21 @@ html body #appRoot#appRoot#appRoot .bass-fretboard-wrap.bass-fretboard-wrap{
     return !Number.isFinite(confidence)||confidence<0.70;
   }
 
-  // Follow only the horizontal neck scroller; never move the page itself.
-  function followBassFretPosition(cell,fretNumber){
-    const wrap=bassFretboard?.closest('.bass-fretboard-wrap');
-    if(!wrap || !cell || wrap.clientWidth<=0)return;
-    const viewport=wrap.getBoundingClientRect();
-    const left=viewport.left+wrap.clientLeft;
-    const right=left+wrap.clientWidth;
-    const targets=[cell,fretNumber,cell.querySelector('.bass-position-marker')].filter(Boolean);
-    const bounds=targets.map(el=>el.getBoundingClientRect());
-    const first=Math.min(...bounds.map(r=>r.left));
-    const last=Math.max(...bounds.map(r=>r.right));
-    const padding=Math.min(18,wrap.clientWidth*.06);
-    if(first>=left+padding && last<=right-padding)return;
-    const target=wrap.scrollLeft+(first+last)/2-(left+right)/2;
-    const max=Math.max(0,wrap.scrollWidth-wrap.clientWidth);
-    const next=Math.max(0,Math.min(max,target));
-    // Instant, boundary-triggered movement keeps fast notes visible without
-    // repeatedly restarting a smooth animation or drifting between notes.
-    if(Math.abs(wrap.scrollLeft-next)>=1)wrap.scrollLeft=next;
+  function bassFretPageStart(fret){
+    return fret<=0 ? 1 : 1+Math.floor((Math.min(24,fret)-1)/8)*8;
   }
 
   function updateBassView(t){
     if(!bassFretboard)return;
 
-    const desiredMaxFret=songAwareBassMaxFret(bassViewStringCount);
-    if(!bassFretboardRendering && desiredMaxFret!==bassRenderedMaxFret){
-      renderBassFretboard();
-      return;
-    }
-
     clearBassFretboardHighlight();
 
     const n=noteAtTime(Number(t)||0);
     if(!n){
+      if((Number(t)||0)<=0 && bassFretWindowStart!==1 && !bassFretboardRendering){
+        bassFretWindowStart=1;
+        renderBassFretboard(t);
+      }
       return;
     }
 
@@ -14374,6 +14398,13 @@ html body #appRoot#appRoot#appRoot .bass-fretboard-wrap.bass-fretboard-wrap{
     const pos=preferredBassPosition(targetMidi,bassViewStringCount,n);
 
     if(!pos){
+      return;
+    }
+
+    const pageStart=bassFretPageStart(pos.fret);
+    if(pageStart!==bassRenderedWindowStart && !bassFretboardRendering){
+      bassFretWindowStart=pageStart;
+      renderBassFretboard(t);
       return;
     }
 
@@ -14394,7 +14425,6 @@ html body #appRoot#appRoot#appRoot .bass-fretboard-wrap.bass-fretboard-wrap{
       cell.appendChild(marker);
     }
     if(fretNumber)fretNumber.classList.add('active-fret-number');
-    followBassFretPosition(cell,fretNumber);
 
 
   }
