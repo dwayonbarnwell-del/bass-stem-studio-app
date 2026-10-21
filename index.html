@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bass Stem Studio RC146</title>
+<title>Bass Stem Studio RC147</title>
 <script>
 /* RC119: initialise the correct physical-device font before the first paint.
    This deliberately does not rely on viewport width alone, because Chrome's
@@ -11681,6 +11681,15 @@ html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-string-lab
 html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-tuning-head{
  min-width:0!important;width:100%!important;max-width:100%!important;box-sizing:border-box!important;
 }
+
+/* RC147: remove two text-line heights from the space between mixer rows. */
+html body #appRoot#appRoot#appRoot #sourceCard #mainTrackPanel,
+html body #appRoot#appRoot#appRoot #sourceCard #bassTrackPanel{
+ min-height:0!important;padding-top:0!important;padding-bottom:0!important;
+}
+html body #appRoot#appRoot#appRoot #sourceCard .simple-mixer{
+ row-gap:max(2px,calc(var(--rc120-card-pad) * 2 + var(--rc120-gap) - var(--ui-font-size) * 2))!important;
+}
 </style>
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#09111f">
@@ -11985,7 +11994,7 @@ html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-tuning-hea
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC146';
+  const APP_VERSION='RC147';
   const PROJECT_SCHEMA_VERSION=1;
   // RC125: compact practice-view and string selectors preserve space for P1/P2/P3; all RC124 audio, analysis, repeat, project and practice logic preserved.
 
@@ -12022,6 +12031,7 @@ html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-tuning-hea
   const ANALYSIS_PART_OVERLAP=.85;
   const ANALYSIS_PART_BITRATE_KBPS=256;
   let analysisParts=[], activeAnalysisPartIndex=0, stemTimelineOffset=0, stemTimelineEnd=Infinity, stemPartSwitchBusy=false;
+  let audioKeyBuffer=null,audioKeySections=[],audioKeyReady=false,audioKeyRun=0;
   let practiceVisualMode='timeline';
   let bassViewStringCount=5;
   try{bassViewStringCount=Number(localStorage.getItem('bassStemBassStringCount')||5)}catch(e){}
@@ -12318,6 +12328,7 @@ html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-tuning-hea
           timelineCellSeconds:Number(TIMELINE_CELL_SECONDS)||2,
           practiceView:['timeline','bass'].includes(String(practiceVisualMode))?String(practiceVisualMode):'timeline',
           bassStringCount:[4,5,6].includes(Number(bassViewStringCount))?Number(bassViewStringCount):5,
+          transposeSemitones,
           selectedScale:String(songScale?.textContent||detectedScaleContext?.scaleText||'—'),
           transposeSemitones:Number(transposeSemitones)||0,
           bassMuted:!!bassPracticeMuted,
@@ -12462,7 +12473,14 @@ html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-tuning-hea
           {clearSelection:false,rebuild:false}
         );
         origVolText.textContent=origVol.value+'%';bassVolText.textContent=bassVol.value+'%';metronomeVolText.textContent=metronomeVol.value+'%';applyTempo();
-        if(project.settings.selectedScale)selectScaleByText(String(project.settings.selectedScale));
+        if(Number.isFinite(project.settings.transposeSemitones)){
+          transposeSemitones=Math.max(-12,Math.min(12,Math.round(project.settings.transposeSemitones)));
+          if(detectedScaleContext){
+            currentScaleContext={...detectedScaleContext,rootPc:(detectedScaleContext.rootPc+transposeSemitones+12)%12};
+            currentScaleContext.scaleText=scaleTextFor(currentScaleContext.rootPc,currentScaleContext.mode);
+            populateScaleSelect(currentScaleContext);if(songScale)songScale.textContent=currentScaleContext.scaleText;
+          }
+        }else if(project.settings.selectedScale)selectScaleByText(String(project.settings.selectedScale));
         const savedStringCount=Number(project.settings.bassStringCount);
         if([4,5,6].includes(savedStringCount))setBassStringCount(savedStringCount);
         const savedPracticeView=String(project.settings.practiceView||'');
@@ -14566,6 +14584,105 @@ html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-tuning-hea
     return `${r.n} ${short}`;
   }
   function signedTranspose(fromPc,toPc){let d=(toPc-fromPc+12)%12;if(d>6)d-=12;return d;}
+  function scoreAudioKey(chroma){
+    const profiles=[
+      {mode:'major',values:[6.35,2.23,3.48,2.33,4.38,4.09,2.52,5.19,2.39,3.66,2.29,2.88]},
+      {mode:'minor',values:[6.33,2.68,3.52,5.38,2.60,3.53,2.54,4.75,3.98,2.69,3.34,3.17]}
+    ];
+    const mean=chroma.reduce((a,b)=>a+b,0)/12;
+    const energy=chroma.reduce((sum,v)=>sum+(v-mean)**2,0);
+    if(energy<1e-9)return null;
+    const candidates=[];
+    for(const profile of profiles){
+      const pm=profile.values.reduce((a,b)=>a+b,0)/12;
+      const pe=profile.values.reduce((sum,v)=>sum+(v-pm)**2,0);
+      for(let root=0;root<12;root++){
+        let dot=0;
+        for(let pc=0;pc<12;pc++)dot+=(chroma[pc]-mean)*(profile.values[(pc-root+12)%12]-pm);
+        candidates.push({rootPc:root,mode:profile.mode,score:dot/Math.sqrt(energy*pe)});
+      }
+    }
+    candidates.sort((a,b)=>b.score-a.score);
+    return {...candidates[0],margin:candidates[0].score-candidates[1].score};
+  }
+
+  async function analyseAudioKeySections(audio,isCurrent=()=>true){
+    const n=8192,step=Math.max(1,Math.floor(audio.sampleRate/8000)),sr=audio.sampleRate/step;
+    const channels=Array.from({length:audio.numberOfChannels},(_,c)=>audio.getChannelData(c));
+    const window=Float64Array.from({length:n},(_,j)=>.5-.5*Math.cos(2*Math.PI*j/(n-1)));
+    const blocks=Array.from({length:Math.max(1,Math.ceil(audio.duration/30))},()=>({chroma:new Float64Array(12),frames:0}));
+    const re=new Float64Array(n),im=new Float64Array(n),mag=new Float64Array(n/2+1);
+    for(let t=0,frame=0;t+n/sr<audio.duration;t+=1,frame++){
+      if(!isCurrent())return [];
+      const start=Math.floor(t*audio.sampleRate);
+      let power=0;
+      for(let j=0;j<n;j++){
+        let v=0;
+        for(const channel of channels)for(let k=0;k<step;k++)v+=channel[start+j*step+k]||0;
+        v/=channels.length*step;power+=v*v;re[j]=v*window[j];im[j]=0;
+      }
+      if(power/n>1e-8){
+        fftInPlace(re,im);
+        for(let k=0;k<mag.length;k++)mag[k]=Math.hypot(re[k],im[k]);
+        const chroma=new Float64Array(12);
+        for(let k=Math.ceil(65*n/sr);k<Math.min(mag.length-1,1500*n/sr);k++){
+          if(mag[k]<=mag[k-1] || mag[k]<mag[k+1])continue;
+          const midi=69+12*Math.log2((k*sr/n)/440),nearest=Math.round(midi);
+          const weight=mag[k]**.6*Math.max(0,1-Math.abs(midi-nearest)/.45);
+          chroma[(nearest%12+12)%12]+=weight;
+        }
+        const sum=chroma.reduce((a,b)=>a+b,0);
+        if(sum>0){const block=blocks[Math.floor(t/30)];for(let pc=0;pc<12;pc++)block.chroma[pc]+=chroma[pc]/sum;block.frames++;}
+      }
+      if(frame%12===0)await new Promise(resolve=>setTimeout(resolve,0));
+    }
+    const raw=blocks.map((block,i)=>{
+      if(block.frames<6)return null;
+      const chroma=new Float64Array(12);
+      for(let j=Math.max(0,i-1);j<=Math.min(blocks.length-1,i+1);j++)for(let pc=0;pc<12;pc++)chroma[pc]+=blocks[j].chroma[pc];
+      return scoreAudioKey(chroma);
+    });
+    const same=(a,b)=>!!a&&!!b&&a.rootPc===b.rootPc&&a.mode===b.mode;
+    const accepted=raw.map((key,i)=>key&&key.score>=.62&&key.margin>=.06&&
+      (same(key,raw[i-1])||same(key,raw[i+1])||(key.score>=.85&&key.margin>=.15))?key:null);
+    // Bridge an ambiguous passage only when both sides agree and its own
+    // best candidate supports that key; never turn a chord into a new key.
+    for(let i=0;i<accepted.length;i++)if(!accepted[i]&&raw[i]&&raw[i].score>=.55){
+      let left=i-1,right=i+1;
+      while(left>=0&&!accepted[left])left--;
+      while(right<accepted.length&&!accepted[right])right++;
+      if(left>=0&&right<accepted.length&&same(accepted[left],accepted[right])&&same(raw[i],accepted[left]))accepted[i]=raw[i];
+    }
+    return accepted.map((key,i)=>({start:i*30,end:Math.min(audio.duration,(i+1)*30),scale:key?scaleTextFor(key.rootPc,key.mode):'',score:key?.score||0}));
+  }
+
+  function ensureSongKeyAnalysis(){
+    if(!buffer||buffer===audioKeyBuffer)return;
+    const audio=buffer,run=++audioKeyRun;
+    audioKeyBuffer=audio;audioKeySections=[];audioKeyReady=false;
+    analyseAudioKeySections(audio,()=>buffer===audio&&run===audioKeyRun).then(sections=>{
+      if(buffer!==audio||run!==audioKeyRun)return;
+      audioKeySections=sections;audioKeyReady=true;
+      updateSectionKey(currentTime());rebuildSimpleTimeline._sig='';drawAll();
+    }).catch(error=>{if(buffer===audio&&run===audioKeyRun){audioKeyReady=true;audioKeySections=[];updateSectionKey(currentTime());}console.warn('Section key analysis unavailable',error);});
+  }
+
+  function updateSectionKey(t){
+    if(!audioKeyReady||audioKeyBuffer!==buffer)return;
+    const section=audioKeySections.find((s,i)=>t>=s.start&&(t<s.end||(i===audioKeySections.length-1&&t<=s.end)));
+    const detected=section?.scale?parseSongScaleContext(section.scale):null;
+    const shifted=detected?{...detected,rootPc:(detected.rootPc+transposeSemitones+120)%12}:null;
+    if(shifted)shifted.scaleText=scaleTextFor(shifted.rootPc,shifted.mode);
+    if((detectedScaleContext?.scaleText||'')===(detected?.scaleText||'')&&
+       (currentScaleContext?.scaleText||'')===(shifted?.scaleText||''))return;
+    detectedScaleContext=detected;currentScaleContext=shifted;
+    populateScaleSelect(shifted);refreshNoteNumberToggle();rebuildSimpleTimeline._sig='';
+    if(songScale)songScale.textContent=shifted?.scaleText||'—';
+    if(songScaleWrap){songScaleWrap.classList.toggle('context-ready',!!shifted);songScaleWrap.title=detected?`Estimated section key: ${detected.scaleText}${transposeSemitones?` · transpose ${transposeSemitones>0?'+':''}${transposeSemitones}`:''}`:'Section key uncertain';}
+    // Detection updates notation only. Only the user's scale selection changes
+    // transposeSemitones or the audio pitch controls.
+  }
+
   function populateScaleSelect(ctxInfo){
     if(!scaleSelect)return;
     scaleSelect.innerHTML='';
@@ -14593,6 +14710,7 @@ html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-tuning-hea
   }
   function selectScaleByText(scaleText){const p=parseSongScaleContext(scaleText);if(p&&detectedScaleContext&&p.mode===detectedScaleContext.mode)applySelectedScaleRoot(p.rootPc);}
   function resetSongContext(){
+    audioKeyRun++;audioKeyBuffer=null;audioKeySections=[];audioKeyReady=false;
     currentScaleContext=null;detectedScaleContext=null;transposeSemitones=0;metronomeEnabled=false;lastMetronomeBeat=-1;lastMetronomeTime=null;detectedTempoBpm=null;
     detectedBeatTimes=[];detectedBeatsPerBar=4;detectedDownbeatPhase=0;beatGridConfidence=null;detectedChordChanges=[];
     populateScaleSelect(null);refreshNoteNumberToggle();refreshMetronomeToggle();
@@ -14665,6 +14783,7 @@ html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-tuning-hea
     rebuildSimpleTimeline._sig='';
     lastMetronomeBeat=-1;lastMetronomeTime=null;
     refreshMetronomeToggle();
+    updateSectionKey(currentTime());
   }
 
   async function applyRunPodResult(finalData){
@@ -16049,6 +16168,7 @@ html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-tuning-hea
   }
 
   function updateSongInfo(t){
+    updateSectionKey(t);
     const n=noteAtTime(t);
     if(currentBassInfo)currentBassInfo.textContent=n?displayNoteLabel(n.midi,n.scaleNumber):'—';
     if(practiceVisualMode==='bass'){
@@ -16060,10 +16180,12 @@ html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-tuning-hea
   }
 
   function drawAll(){
+    ensureSongKeyAnalysis();
     updateProjectButtons();
     updatePracticeLayoutState();
     if(!buffer) return;
     const t=currentTime();
+    updateSectionKey(t);
     curTime.textContent=fmt(t);
     durTime.textContent=fmt(buffer.duration);
     seek.value=Math.round((t/buffer.duration)*1000)||0;
