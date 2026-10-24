@@ -1,0 +1,60 @@
+Bass Stem Studio RC152
+24 October 2026
+
+Simpler corrections and compact chord display
+
+Baseline: RC151, frontend commit a3f48e2d4a56a04aa131f0ef76a3ddae8254fddd.
+
+Changes
+- Rename Practice tools to Corrections and remove its duplicate transpose
+  input/button. The existing Scale card remains the single transpose control.
+- Keep key-label correction separate from audio transposition. Key correction
+  shows the exact range and can target a selected continuous passage.
+- Disable actions until the song, analysis or required selection is ready.
+  Reanalyse selection shows its time range and uses the existing repeat
+  selection. Non-neighbouring cells are not submitted as one passage.
+- Keep key controls and earlier results collapsed until needed. Hide empty
+  history. Use Done editing to leave edit mode; closing Corrections also exits
+  editing, so normal timeline taps resume selecting repeats.
+- Correct a delayed-open event that could overwrite a newly chosen key.
+- Combine adjacent identical chord fragments in the preview only. Preserve
+  uncertainty and all original results, times, separate notes and edits.
+- Show at most two chord previews per timestamp cell, with +N more opening
+  the complete timed list. Every chord preview is touch/keyboard accessible.
+  Edit mode also works through this list, including individual fragments.
+- Keep chord roots, M/m, extensions, slash bass and uncertainty marks visible.
+  Measure row height at the user's chosen font size instead of stacking every
+  chord into a tall strip. Correct fractional timestamp padding.
+- Update the page title and PWA cache version.
+
+Preserved
+14 px editable default; existing main player and track layout; equal bass
+note cards; Notes and Bass views; eight-fret paging; restricted practice
+octave mapping; audio analysis models; stored projects and recovery.
+
+Verification
+- Inline JavaScript parses.
+- Existing correction/recovery suite passed: key correction and modulation,
+  transposition through Scale, note/chord editing, saved project round trip,
+  correction replay, recovery, selected-passage merging, failure preservation,
+  input validation and equal note cards.
+- Additional regression suite passed: disabled empty/busy controls, unique
+  transpose control, compact chord previews, complete timed detail lists,
+  uncertainty preservation, exact fragment editing, keyboard access,
+  non-contiguous selection rejection, key correction scope and edit-mode exit.
+- Layout checks passed at widths 360, 412 and 800 px with 11, 14 and 22 px text.
+  No horizontal page overflow, cropped chord labels or mismatched card sizes.
+  The crowded chord fixture was 78 px high at the default 14 px font.
+- 412 px screenshots inspected. The selected-range option was shortened to
+  Selection to avoid clipped text on the phone.
+- Bass register, restricted octave, fretboard, note mapping and fill
+  classification functions were compared with RC151 and are unchanged.
+
+Scope
+This release improves presentation and interaction. It does not change the
+audio recognition model or claim a new accuracy score. No cloud audio job was
+submitted. Reload the app for the new interface; existing saved analysis can
+use this display without reanalysis.
+
+The floating black toolbar in the supplied screenshots is not present in the
+app source or the isolated browser rendering. It appears to be a phone overlay.

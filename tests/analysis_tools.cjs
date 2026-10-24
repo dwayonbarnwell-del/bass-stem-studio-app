@@ -14,10 +14,10 @@ const fixture=`window.__test={
  state(){return {notes,detectedChordChanges,transposeSemitones,currentScaleContext,detectedScaleContext,manualCorrections,keyCorrections,analysisHistory,playing,selected:[...selectedTimeframes]};},
  correctSongKey,updateSectionKey,analysisSnapshot,restoreAnalysisSnapshot,restoreDeviceAnalysis,persistAnalysisRecovery,
  replayManualCorrections,applySectionAnalysis,openAnalysisEditor,commitAnalysisEdit,
- recoveryStore,selectedAnalysisRange,parseNotePitch,scaleDegreeLabel,collectPendingAnalysisParts,applySegmentedRunPodResults,
+ drawAll,updateAnalysisToolsState,setAnalysisEditMode,chordPreviewGroups,chordEventsInRange,openChordDetails,reliableChord,keyCorrectionRange,applySelectedScaleRoot,recoveryStore,selectedAnalysisRange,parseNotePitch,scaleDegreeLabel,collectPendingAnalysisParts,applySegmentedRunPodResults,
  setNotes(value){notes=value;},setChords(value){detectedChordChanges=value;},
  reset(){notes=[];detectedChordChanges=[];manualCorrections=[];keyCorrections=[];analysisHistory=[];},
- select(value){selectedTimeframes=new Set(value);},
+ select(value){selectedTimeframes=new Set(value);updateAnalysisToolsState();},
  async project(){await saveBassStudioProject();},
  importProject:importBassStudioProject
 };\n`;
@@ -29,13 +29,13 @@ const testHtml=html.replace(marker,fixture+marker);
  await page.route('**/*',route=>route.request().url().startsWith('http://127.0.0.1:8151/')?route.continue():route.abort());
  await page.route('http://127.0.0.1:8151/index.html',route=>route.fulfill({contentType:'text/html',body:testHtml}));
  await page.goto('http://127.0.0.1:8151/index.html');await page.evaluate(()=>__test.fixture());
- await page.locator('#analysisTools summary').click();
+ await page.locator('#analysisTools > summary').click();
  await page.evaluate(()=>__test.correctSongKey(5,'minor','section'));
  let s=await page.evaluate(()=>__test.state());assert.equal(s.transposeSemitones,0);assert.equal(s.currentScaleContext.rootPc,5);assert.equal(s.currentScaleContext.mode,'minor');
  assert.equal(await page.evaluate(()=>__test.scaleDegreeLabel(41)),'1');
  await page.evaluate(()=>__test.updateSectionKey(12));s=await page.evaluate(()=>__test.state());assert.equal(s.currentScaleContext.rootPc,2,'later modulation kept');
  await page.evaluate(()=>__test.updateSectionKey(1));s=await page.evaluate(()=>__test.state());assert.equal(s.currentScaleContext.rootPc,5);
- await page.locator('#transposeInput').fill('2');await page.locator('#transposeApply').click();s=await page.evaluate(()=>__test.state());assert.equal(s.transposeSemitones,2);assert.equal(s.currentScaleContext.rootPc,7);
+ await page.locator('#scaleSelect').selectOption('7');s=await page.evaluate(()=>__test.state());assert.equal(s.transposeSemitones,2);assert.equal(s.currentScaleContext.rootPc,7);
  await page.locator('#editAnalysisToggle').click();
  await page.locator('.note-token').first().click();assert(await page.locator('#analysisEditDialog').isVisible());
  await page.locator('#editPitch').fill('D2');await page.locator('#analysisEditForm button[type=submit]').click();
@@ -77,7 +77,8 @@ const testHtml=html.replace(marker,fixture+marker);
    assert(!layout.overflow,`overflow ${width}/${size}`);if(layout.cards.length>1)assert(layout.cards.every(c=>Math.abs(c[0]-layout.cards[0][0])<1&&Math.abs(c[1]-layout.cards[0][1])<1));
  }}
  await page.setViewportSize({width:412,height:900});await page.locator('#fontSizeInput').fill('14');await page.locator('#fontSizeInput').dispatchEvent('change');
- await page.screenshot({path:'/tmp/bass151-tools.png',fullPage:true});
+ await page.screenshot({path:'/tmp/bass152-tools.png',fullPage:true});
  assert.deepEqual(errors,[]);console.log('PASS: key correction, modulation, transpose, manual notes/chords, replay, recovery, section merging, validation, equal cards and mobile sizes.');
  await browser.close();
 })().catch(e=>{console.error(e);process.exit(1);});
+
