@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bass Stem Studio RC148</title>
+<title>Bass Stem Studio RC149</title>
 <script>
 /* RC119: initialise the correct physical-device font before the first paint.
    This deliberately does not rely on viewport width alone, because Chrome's
@@ -8448,36 +8448,6 @@ html body .app #aiState{
 
 
 /* ============================================================
-   RC114 — centre a single detected note within its timeline cell
-   RC113 layout, timeline splitting, repeat behaviour and sizing remain unchanged.
-   ============================================================ */
-.simple-timeline-card .note-time-cell.single-note{
-  display:flex!important;
-  align-items:center!important;
-  justify-content:center!important;
-}
-.simple-timeline-card .note-time-cell.single-note .note-sequence{
-  display:flex!important;
-  flex-direction:row!important;
-  flex-wrap:nowrap!important;
-  align-items:center!important;
-  justify-content:center!important;
-  align-content:center!important;
-  width:100%!important;
-  height:100%!important;
-  gap:0!important;
-}
-.simple-timeline-card .note-time-cell.single-note .note-token,
-.simple-timeline-card .note-time-cell.single-note .note-token.fill{
-  flex:0 0 calc(50% - 5px)!important;
-  width:calc(50% - 5px)!important;
-  min-width:0!important;
-  max-width:160px!important;
-  margin:0 auto!important;
-}
-
-
-/* ============================================================
    RC115 — playback and transport enhancements
    RC114 remains the functional/visual baseline.
    - symbol-only Import / Play / Pause / Repeat / Clear
@@ -11301,38 +11271,6 @@ html[data-device="mobile"] body #appRoot#appRoot#appRoot .display-size-readout s
 
 
 /* ============================================================
-   RC128 — top-pack single-note timeline cells
-   RC114 deliberately centred a cell containing exactly one note vertically.
-   That made isolated notes appear low in otherwise empty cells. Keep the
-   approved horizontal centring, but always start note content at the top so
-   single-note and multi-note cells share the same reading direction.
-   ============================================================ */
-html body #appRoot#appRoot#appRoot .simple-timeline-card .note-time-cell.single-note{
-  display:block!important;
-  align-items:initial!important;
-  justify-content:initial!important;
-}
-html body #appRoot#appRoot#appRoot .simple-timeline-card .note-time-cell.single-note .note-sequence{
-  display:flex!important;
-  flex-direction:row!important;
-  flex-wrap:nowrap!important;
-  align-items:flex-start!important;
-  justify-content:center!important;
-  align-content:flex-start!important;
-  align-self:flex-start!important;
-  width:100%!important;
-  height:auto!important;
-  min-height:0!important;
-  margin:0!important;
-}
-html body #appRoot#appRoot#appRoot .simple-timeline-card .note-time-cell.single-note .note-token,
-html body #appRoot#appRoot#appRoot .simple-timeline-card .note-time-cell.single-note .note-token.fill{
-  margin:0 auto!important;
-}
-
-
-
-/* ============================================================
    RC131 — main chord timeline row
    Aligned one-for-one with the timestamp and bass-note cells.
    ============================================================ */
@@ -11690,6 +11628,54 @@ html body #appRoot#appRoot#appRoot #sourceCard #bassTrackPanel{
 html body #appRoot#appRoot#appRoot #sourceCard .simple-mixer{
  row-gap:max(2px,calc(var(--rc120-card-pad) * 2 + var(--rc120-gap) - var(--ui-font-size) * 2))!important;
 }
+
+/* RC149: timestamp-aligned chords and one size for all note cards. */
+html body #appRoot#appRoot#appRoot .chord-ruler{
+  height:var(--chord-row-height,36px)!important;
+  min-height:var(--chord-row-height,36px)!important;
+  max-height:var(--chord-row-height,36px)!important;
+}
+html body #appRoot#appRoot#appRoot .chord-cell{
+  display:grid!important;
+  grid-template-columns:repeat(var(--chord-columns,1),minmax(0,1fr))!important;
+  grid-auto-rows:calc(var(--ui-font-size) * 1.35)!important;
+  align-content:center!important;
+  gap:0 calc(var(--ui-font-size) * .3)!important;
+  padding:calc(var(--ui-font-size) * .35) calc(var(--ui-font-size) * .34)!important;
+}
+html body #appRoot#appRoot#appRoot .chord-name{
+  display:block!important;
+  min-width:0!important;
+  white-space:nowrap!important;
+  line-height:1.35!important;
+  text-align:center!important;
+}
+html body #appRoot#appRoot#appRoot .simple-timeline-card .note-sequence{
+  --note-card-height:max(54px,clamp(20px,calc(var(--ui-font-size) * 1.9),170px));
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  grid-auto-rows:var(--note-card-height)!important;
+  align-content:start!important;
+  align-items:stretch!important;
+  height:auto!important;
+}
+html body #appRoot#appRoot#appRoot .simple-timeline-card .note-token{
+  width:var(--note-card-width,100%)!important;
+  justify-self:center!important;
+  min-width:0!important;
+  max-width:none!important;
+  height:var(--note-card-height)!important;
+  min-height:var(--note-card-height)!important;
+  max-height:var(--note-card-height)!important;
+  margin:0!important;
+  box-sizing:border-box!important;
+}
+html body #appRoot#appRoot#appRoot .simple-timeline-card .single-note .note-token{
+  grid-column:1 / -1!important;
+  justify-self:center!important;
+  width:var(--note-card-width,calc((100% - var(--rc120-tight-gap) * .8) / 2))!important;
+}
+
 </style>
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#09111f">
@@ -11994,7 +11980,7 @@ html body #appRoot#appRoot#appRoot #sourceCard .simple-mixer{
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC148';
+  const APP_VERSION='RC149';
   const PROJECT_SCHEMA_VERSION=1;
   // RC125: compact practice-view and string selectors preserve space for P1/P2/P3; all RC124 audio, analysis, repeat, project and practice logic preserved.
 
@@ -15937,14 +15923,14 @@ html body #appRoot#appRoot#appRoot #sourceCard .simple-mixer{
     }
   }
 
-  const CHORD_QUALITY_LABELS={maj:'Maj',min:'Min',sus2:'sus2',sus4:'sus4',dim:'dim',aug:'Aug','7':'7',maj7:'Maj7',min7:'Min7'};
+  const CHORD_QUALITY_LABELS={maj:'M',min:'m',sus2:'sus2',sus4:'sus4',dim:'dim',aug:'aug','7':'7',maj7:'M7',min7:'m7'};
   function chordDisplayLabel(chord){
     if(!chord||!Number.isFinite(Number(chord.rootPc)))return '—';
     const pc=((Math.round(Number(chord.rootPc))+transposeSemitones)%12+12)%12;
     const root=(SCALE_ROOTS.find(x=>x.pc===pc)||SCALE_ROOTS[0]).n;
     const quality=String(chord.quality||'maj').toLowerCase();
     const q=CHORD_QUALITY_LABELS[quality]||String(chord.quality||'');
-    return quality==='7'?`${root}7`:`${root} ${q||'Maj'}`;
+    return `${root}${q||'M'}`;
   }
   function reliableChord(c){
     return c && c.evidenceVersion==='chord-timeline-v2' && Number(c.confidence)>=.76 &&
@@ -15967,23 +15953,46 @@ html body #appRoot#appRoot#appRoot #sourceCard .simple-mixer{
   function rebuildChordRuler(cellCount,cellW,duration){
     if(!chordRuler)return;
     chordRuler.innerHTML='';
-    const pxPerSecond=cellW/TIMELINE_CELL_SECONDS;
-    // Chord boundaries follow their own timestamps, not the two-second cells.
-    // Unknown passages remain blank. Old guesses need a fresh analysis.
+    const fontSize=parseFloat(getComputedStyle(chordRuler).fontSize)||14;
+    const canvas=document.createElement('canvas'),measure=canvas.getContext('2d');
+    if(measure)measure.font=`850 ${fontSize}px ${getComputedStyle(chordRuler).fontFamily}`;
+    const buckets=Array.from({length:cellCount},()=>[]);
     for(const chord of detectedChordChanges||[]){
       if(!reliableChord(chord))continue;
-      const start=Math.max(0,chord.start),end=Math.min(duration,chord.end);
-      if(end<=start)continue;
-      const d=document.createElement('div');d.className='chord-cell';
-      d.style.left=(start*pxPerSecond)+'px';d.style.width=((end-start)*pxPerSecond)+'px';
-      d.dataset.start=start;d.dataset.end=end;
-      d.textContent=chordDisplayLabel(chord);
-      d.title=`${fmtShort(start)}–${fmtShort(end)} · ${d.textContent} · estimated accompaniment chord`;
-      d.setAttribute('aria-label',d.title);chordRuler.appendChild(d);
+      const first=Math.max(0,Math.floor(chord.start/TIMELINE_CELL_SECONDS));
+      const last=Math.min(cellCount-1,Math.ceil(chord.end/TIMELINE_CELL_SECONDS)-1);
+      for(let i=first;i<=last;i++){
+        const start=Math.max(i*TIMELINE_CELL_SECONDS,chord.start);
+        const end=Math.min(duration,(i+1)*TIMELINE_CELL_SECONDS,chord.end);
+        if(end>start)buckets[i].push({chord,start,end});
+      }
     }
+    let maxRows=1;
+    buckets.forEach((events,i)=>{
+      const start=i*TIMELINE_CELL_SECONDS,end=Math.min(duration,start+TIMELINE_CELL_SECONDS);
+      const d=document.createElement('div');
+      d.className='chord-cell'+(isTimelineMajor(start)?' major':'')+(events.length?'':' empty');
+      d.style.left=(i*cellW)+'px';d.style.width=cellW+'px';
+      d.dataset.start=start;d.dataset.end=end;
+      const labels=events.sort((a,b)=>a.start-b.start).map(e=>({...e,label:chordDisplayLabel(e.chord)}));
+      const longest=Math.max(fontSize,...labels.map(e=>measure?measure.measureText(e.label).width:e.label.length*fontSize*.85));
+      const columns=Math.min(2,Math.max(1,Math.floor((cellW-fontSize*.8)/(longest+fontSize*.7))));
+      d.style.setProperty('--chord-columns',String(columns));
+      maxRows=Math.max(maxRows,Math.ceil(labels.length/columns));
+      for(const e of labels){
+        const name=document.createElement('span');name.className='chord-name';name.textContent=e.label;
+        name.dataset.start=e.start;name.dataset.end=e.end;
+        name.title=`${fmtShort(e.start)}–${fmtShort(e.end)} · ${e.label} · estimated accompaniment chord`;
+        name.setAttribute('aria-label',name.title);d.appendChild(name);
+      }
+      if(!labels.length)d.textContent='—';
+      d.setAttribute('aria-label',`${fmtShort(start)}–${fmtShort(end)} · ${labels.map(e=>e.label).join(', ')||'uncertain'}`);
+      chordRuler.appendChild(d);
+    });
+    chordRuler.style.setProperty('--chord-row-height',Math.max(30,fontSize*2.55,maxRows*fontSize*1.35+fontSize*.7)+'px');
     chordRuler.title=(detectedChordChanges||[]).some(c=>!c.evidenceVersion)
       ? 'Re-analyse Bass to update chord estimates'
-      : 'Estimated accompaniment chords; blank where uncertain';
+      : 'Estimated chords in time order within each interval; blank where uncertain';
   }
 
   function classifyTimelineNotes(){
@@ -16098,6 +16107,14 @@ html body #appRoot#appRoot#appRoot #sourceCard .simple-mixer{
       noteLane.appendChild(cell);
     });
 
+    // A major grid line is wider than other lines. Use one measured width for
+    // every card so those borders cannot make isolated/main/fill cards differ.
+    const sequences=[...noteLane.querySelectorAll('.note-sequence')];
+    const widths=sequences.map(el=>el.getBoundingClientRect().width).filter(w=>w>0);
+    if(widths.length){
+      const gap=parseFloat(getComputedStyle(sequences[0]).columnGap)||0;
+      noteLane.style.setProperty('--note-card-width',Math.max(1,(Math.min(...widths)-gap)/2)+'px');
+    }
     const tallestSequence=Math.max(0,...[...noteLane.querySelectorAll('.note-sequence')].map(el=>el.scrollHeight||0));
     const fittedLaneH=Math.max(220,Math.min(1200,tallestSequence+20));
     noteLane.style.setProperty('height',fittedLaneH+'px','important');
