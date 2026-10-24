@@ -1,0 +1,46 @@
+Bass Stem Studio RC151
+24 October 2026
+
+The approved main player, Notes view, eight-fret Bass view and restricted
+practice-octave mapping are preserved. Default font remains 14 px.
+
+Practice tools, below the track sliders:
+- Set key corrects the displayed scale without shifting the recording.
+- Shift audio transposes separately, from -12 to +12 semitones.
+- Edit notes / chords enables tapping an existing note or chord to correct it.
+  Enter the original pitch before transposition. Leave edit mode to select
+  repeat cells as before.
+- Undo and Restore version recover earlier notes, chords and key corrections.
+  Five versions are retained. Audio stems are not rolled back by these controls.
+- Reanalyse selection sends only a continuous selected passage, plus one second
+  of surrounding audio. Normal analysis-service usage applies. Corrections are
+  retained and results outside the selection are preserved.
+
+Completed analysis parts are cached as they finish. The latest song and analysis
+can reopen from device storage. Browser storage can be cleared or run out of
+space; the existing Save button creates a portable .bassstudio backup.
+Project schema 2 preserves manual corrections and history. RC151 reads schema 1
+and schema 2 projects. Earlier app versions may not open schema 2 projects.
+
+Backend requirements:
+Use the RC151 bass-stem-studio-runpod source and rebuild its Docker image.
+The new engine returns cloud-bass-v17-attack-alignment and chord-timeline-v4.
+RC151 also displays compatible v2/v3 chord results from earlier workers.
+Updating this PWA does not by itself prove that the RunPod worker is updated.
+
+Installation:
+Upload index.html, sw.js, manifest.webmanifest and icons/ to the repository root.
+Keep the existing Render service settings. Reopen the app to receive the new
+service-worker cache. HTTPS is required for installation and browser storage.
+
+Verification:
+Mobile browser checks: widths 360, 412 and 800 px; text sizes 11, 14 and 22 px.
+Key correction, key changes, transposition, manual edits, undo, saved-project
+round trips, cached results, section merging and failed-result preservation.
+Restricted octave and fretboard functions were checked byte-for-byte against
+RC150. No API credentials or user audio are included in this release.
+
+Developer UI test:
+Install Playwright separately; serve this directory on port 8151.
+Run node tests/analysis_tools.cjs with PLAYWRIGHT_MODULE and CHROMIUM_PATH if
+using an existing runtime/browser. No cloud analysis is submitted by the test.

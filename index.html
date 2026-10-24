@@ -11692,6 +11692,23 @@ html body #appRoot#appRoot#appRoot #noteLane{max-height:none!important}
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#09111f">
 <link rel="apple-touch-icon" href="./icons/icon-192.png">
+<style>
+/* RC151: secondary tools keep the approved player and timeline layout intact. */
+html body #appRoot#appRoot#appRoot .analysis-tools{display:block!important;margin:12px 0!important;padding:10px!important;border:1px solid #355065!important;border-radius:12px!important;background:#0c1b2b!important;color:#e9f2f6!important}
+html body #appRoot#appRoot#appRoot .analysis-tools summary{cursor:pointer;padding:6px 0}
+html body #appRoot#appRoot#appRoot .tools-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;margin-top:8px!important}
+html body #appRoot#appRoot#appRoot .tools-wide{grid-column:1/-1!important}
+html body #appRoot#appRoot#appRoot .analysis-tools label,html body #appRoot#appRoot#appRoot .analysis-edit-dialog label{display:flex!important;flex-direction:column!important;gap:4px!important;min-width:0!important}
+html body #appRoot#appRoot#appRoot .analysis-tools input,html body #appRoot#appRoot#appRoot .analysis-tools select,html body #appRoot#appRoot#appRoot .analysis-tools button,html body #appRoot#appRoot#appRoot .analysis-edit-dialog input,html body #appRoot#appRoot#appRoot .analysis-edit-dialog select,html body #appRoot#appRoot#appRoot .analysis-edit-dialog button{position:static!important;width:100%!important;min-width:0!important;max-width:100%!important;min-height:44px!important;height:auto!important;box-sizing:border-box!important;margin:0!important;padding:8px!important;border:1px solid #526c7d!important;border-radius:8px!important;background:#20384a!important;color:#eef5f8!important;font-size:var(--ui-font-size,14px)!important;line-height:1.3!important;white-space:normal!important}
+html body #appRoot#appRoot#appRoot .analysis-tools p,html body #appRoot#appRoot#appRoot .analysis-edit-dialog p{margin:8px 0 0!important;line-height:1.4!important}
+html body #appRoot#appRoot#appRoot .analysis-edit-dialog{max-width:calc(100vw - 24px)!important;width:340px!important;max-height:88dvh!important;overflow:auto!important;box-sizing:border-box!important;padding:16px!important;border:1px solid #678296!important;border-radius:12px!important;background:#101f30!important;color:#edf5f8!important}
+html body #appRoot#appRoot#appRoot .analysis-edit-dialog:not([open]){display:none!important}
+html body #appRoot#appRoot#appRoot .analysis-edit-dialog label{margin:8px 0!important}
+html body #appRoot#appRoot#appRoot .analysis-edit-dialog label[hidden]{display:none!important}
+html body #appRoot#appRoot#appRoot .analysis-edit-dialog::backdrop{background:rgba(0,0,0,.65)}
+html body #appRoot#appRoot#appRoot.analysis-editing .note-token,html body #appRoot#appRoot#appRoot.analysis-editing .chord-name{cursor:pointer;outline:1px dashed #c2d6e0;outline-offset:-4px}
+
+</style>
 </head>
 <body>
 <div id="sectionCompatibility" style="display:none" aria-hidden="true">
@@ -11944,6 +11961,39 @@ html body #appRoot#appRoot#appRoot #noteLane{max-height:none!important}
         </div>
       </div>
 
+      <details id="analysisTools" class="analysis-tools">
+        <summary>Practice tools</summary>
+        <div class="tools-grid">
+          <label>Correct key<select id="correctKeyRoot" aria-label="Correct key root"></select></label>
+          <label>Mode<select id="correctKeyMode"><option value="major">Major</option><option value="minor">Minor</option></select></label>
+          <label>Apply to<select id="correctKeyScope"><option value="section">This section</option><option value="song">Whole song</option></select></label>
+          <button id="correctKeyApply" type="button">Set key</button>
+          <label>Transpose<input id="transposeInput" type="number" min="-12" max="12" step="1" value="0" aria-label="Transpose semitones"></label>
+          <button id="transposeApply" type="button">Shift audio</button>
+          <button id="editAnalysisToggle" type="button" aria-pressed="false">Edit notes / chords</button>
+          <button id="undoAnalysisEdit" type="button">Undo</button>
+          <button id="analyseSelection" type="button">Reanalyse selection</button>
+          <button id="useDetectedKey" type="button">Use detected key</button>
+          <label class="tools-wide">Earlier notes &amp; chords<select id="analysisHistorySelect" aria-label="Earlier analysis versions"></select></label>
+          <button id="restoreAnalysisVersion" class="tools-wide" type="button">Restore version</button>
+        </div>
+        <p id="analysisToolsMessage" role="status">Set key changes the scale. Transpose shifts the audio.</p>
+      </details>
+      <dialog id="analysisEditDialog" class="analysis-edit-dialog" aria-labelledby="analysisEditTitle">
+        <form id="analysisEditForm">
+          <b id="analysisEditTitle">Correct note</b>
+          <label id="editPitchRow">Note<input id="editPitch" type="text" placeholder="C#2" autocomplete="off"></label>
+          <label id="editChordRootRow">Root<select id="editChordRoot"></select></label>
+          <label id="editChordQualityRow">Chord<select id="editChordQuality"></select></label>
+          <label id="editChordBassRow">Bass<select id="editChordBass"></select></label>
+          <label>Start (seconds)<input id="editEventStart" type="number" min="0" step="0.001" required></label>
+          <label>End (seconds)<input id="editEventEnd" type="number" min="0" step="0.001" required></label>
+          <p id="editEventHint">Use the original pitch, before transposing.</p>
+          <div class="tools-grid"><button type="submit">Save</button><button id="deleteAnalysisEvent" type="button">Remove</button><button id="closeAnalysisEdit" class="tools-wide" type="button">Cancel</button></div>
+          <p id="editEventError" role="alert"></p>
+        </form>
+      </dialog>
+
       <!-- Detection controls retained for compatibility but hidden from the simplified player. -->
       <div class="advanced-hidden" aria-hidden="true">
         <input id="cutoff" type="range" min="110" max="360" value="240"><b id="cutoffText">240 Hz</b>
@@ -11997,8 +12047,8 @@ html body #appRoot#appRoot#appRoot #noteLane{max-height:none!important}
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC150';
-  const PROJECT_SCHEMA_VERSION=1;
+  const APP_VERSION='RC151';
+  const PROJECT_SCHEMA_VERSION=2;
   // RC125: compact practice-view and string selectors preserve space for P1/P2/P3; all RC124 audio, analysis, repeat, project and practice logic preserved.
 
   // ---------- DOM ----------
@@ -12063,6 +12113,221 @@ html body #appRoot#appRoot#appRoot #noteLane{max-height:none!important}
       sections=JSON.parse(JSON.stringify(defaultPsalmSections)), baseSections=JSON.parse(JSON.stringify(defaultPsalmSections)), storageKey='',
       selectedSections=new Set(), sectionQueue=[], queueIndex=0, multiSectionMode=false,
       selectedTimeframes=new Set(), timeframeQueue=[], timeframeQueueIndex=0, timeframeLoopMode=false;
+
+  // RC151: corrections use raw performance pitches; practice-octave mapping is unchanged.
+  let analysisHistory=[], manualCorrections=[], keyCorrections=[], analysisEditMode=false, editingEvent=null;
+  let detectedBaseScale=null, recoveryWriteQueue=Promise.resolve();
+  const copyAnalysis=value=>JSON.parse(JSON.stringify(value));
+  function toolsMessage(text){$('analysisToolsMessage').textContent=text;}
+  function analysisSnapshot(label='Saved analysis'){
+    return {label,createdAt:new Date().toISOString(),notes:copyAnalysis(notes),chords:copyAnalysis(detectedChordChanges),
+      scale:copyAnalysis(detectedBaseScale||detectedScaleContext),keySections:copyAnalysis(audioKeySections),keyReady:audioKeyReady,
+      keyCorrections:copyAnalysis(keyCorrections),corrections:copyAnalysis(manualCorrections),tempo:detectedTempoBpm,
+      beats:detectedBeatTimes.slice(),meter:detectedBeatsPerBar,phase:detectedDownbeatPhase,beatConfidence:beatGridConfidence};
+  }
+  function rememberAnalysis(label){
+    if(!notes.length&&!detectedChordChanges.length)return;
+    analysisHistory.push(analysisSnapshot(label));analysisHistory=analysisHistory.slice(-5);renderAnalysisHistory();
+  }
+  function renderAnalysisHistory(){
+    const select=$('analysisHistorySelect');select.replaceChildren();
+    analysisHistory.forEach((item,index)=>{const opt=document.createElement('option');opt.value=index;
+      opt.textContent=`${item.label} · ${new Date(item.createdAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`;select.append(opt);});
+    if(analysisHistory.length)select.value=String(analysisHistory.length-1);
+    $('restoreAnalysisVersion').disabled=!analysisHistory.length;$('undoAnalysisEdit').disabled=!analysisHistory.length;
+  }
+  function refreshEditedAnalysis(){
+    analysedBassNotes=notes.map(n=>({...n}));offlineAnalysisReady=notes.length>0;
+    bassPositionPlanCache=null;practiceRegisterCache=null;rebuildSimpleTimeline._sig='';
+    updateSectionKey(currentTime());drawAll();updateProjectButtons();renderAnalysisHistory();
+  }
+  function restoreAnalysisSnapshot(s){
+    if(!s||!Array.isArray(s.notes)||!Array.isArray(s.chords))throw new Error('This version is incomplete.');
+    notes=copyAnalysis(s.notes);detectedChordChanges=copyAnalysis(s.chords);
+    detectedBaseScale=copyAnalysis(s.scale||null);detectedScaleContext=copyAnalysis(s.scale||null);
+    keyCorrections=copyAnalysis(s.keyCorrections||[]);manualCorrections=copyAnalysis(s.corrections||[]);
+    audioKeySections=copyAnalysis(s.keySections||[]);audioKeyReady=!!s.keyReady;audioKeyBuffer=audioKeyReady?buffer:null;
+    detectedTempoBpm=s.tempo;detectedBeatTimes=(s.beats||[]).slice();detectedBeatsPerBar=s.meter||4;
+    detectedDownbeatPhase=s.phase||0;beatGridConfidence=s.beatConfidence??null;
+    if(songTempo)songTempo.textContent=detectedTempoBpm?String(Math.round(detectedTempoBpm)):'—';
+    refreshEditedAnalysis();
+  }
+  async function recoveryStore(storeName,operation){
+    const db=await openRecoveryDb();
+    try{return await new Promise((resolve,reject)=>{const tx=db.transaction(storeName,'readwrite');
+      let result;const request=operation(tx.objectStore(storeName));
+      if(request)request.onsuccess=()=>{result=request.result;};
+      tx.oncomplete=()=>resolve(result);tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('Save interrupted.'));});}
+    finally{db.close();}
+  }
+  function persistAnalysisRecovery(){
+    if(!activeAudioFile||!buffer||(!notes.length&&!detectedChordChanges.length))return Promise.resolve(false);
+    const record={signature:cloudFileSignature(activeAudioFile),savedAt:Date.now(),state:analysisSnapshot('Latest'),
+      history:copyAnalysis(analysisHistory),parts:copyAnalysis(analysisParts),bassBase64:bassStemBase64,bassMime:bassStemMime,
+      noBassBase64,noBassMime,rehearsalVersion:currentRehearsalVersion,transpose:transposeSemitones};
+    recoveryWriteQueue=recoveryWriteQueue.catch(()=>{}).then(()=>recoveryStore('analyses',s=>s.put(record)))
+      .then(()=>true).catch(()=>{toolsMessage('Device backup unavailable. Use Save to keep your work.');return false;});
+    return recoveryWriteQueue;
+  }
+  async function restoreDeviceAnalysis(){
+    if(!activeAudioFile)return false;
+    const signature=cloudFileSignature(activeAudioFile);
+    try{const saved=await recoveryStore('analyses',s=>s.get(signature));
+      if(!saved?.state||signature!==cloudFileSignature(activeAudioFile))return false;
+      analysisParts=Array.isArray(saved.parts)?saved.parts:[];renderTimelinePartTabs();
+      analysisHistory=(saved.history||[]).slice(-5);transposeSemitones=clamp(Number(saved.transpose)||0,-12,12);
+      restoreAnalysisSnapshot(saved.state);
+      if(analysisParts.length)await activateAnalysisPart(analysisPartIndexForTime(currentTime()),{seek:false});
+      else{if(saved.bassBase64)await loadBassStemFromBase64(saved.bassBase64,saved.bassMime);
+        if(saved.noBassBase64)await loadNoBassFromBase64(saved.noBassBase64,saved.noBassMime);}
+      currentRehearsalVersion=saved.rehearsalVersion||'';updateAudioParams();refreshEditedAnalysis();
+      toolsMessage('Saved analysis restored.');return true;
+    }catch(error){console.warn('Device analysis recovery unavailable',error);return false;}
+  }
+  async function restoreLatestSession(){
+    if(buffer||activeAudioFile||readPendingRunPodJob()||pendingResumeBusy)return false;
+    pendingResumeBusy=true;
+    try{const saved=await recoveryStore(RUNPOD_RECOVERY_STORE,s=>s.getAll());
+      const last=(saved||[]).sort((a,b)=>b.cachedAt-a.cachedAt)[0];
+      if(!last?.blob||buffer)return false;
+      const record=await recoveryStore('analyses',s=>s.get(last.signature));if(!record?.state||buffer)return false;
+      return await loadAudioFile(new File([last.blob],last.name,{type:last.type,lastModified:last.lastModified}),{cacheForRecovery:false,recoveryRestore:true});
+    }catch{return false;}finally{pendingResumeBusy=false;}
+  }
+  function selectedAnalysisRange(){
+    const selected=[...selectedTimeframes].sort((a,b)=>a-b);
+    if(selected.length){
+      for(let i=1;i<selected.length;i++)if(Math.abs(selected[i]-selected[i-1]-TIMELINE_CELL_SECONDS)>.01)throw new Error('Select neighbouring time cells for reanalysis.');
+      return {start:selected[0],end:Math.min(buffer.duration,selected.at(-1)+TIMELINE_CELL_SECONDS)};
+    }
+    if(Number.isFinite(loopStart)&&Number.isFinite(loopEnd)&&loopEnd>loopStart)return {start:loopStart,end:Math.min(buffer.duration,loopEnd)};
+    throw new Error('Select time cells or set a repeat start and end first.');
+  }
+  function correctSongKey(root,mode,scope='section'){
+    if(!buffer)return;
+    if(!Number.isInteger(root)||root<0||root>11||!['major','minor'].includes(mode))throw new Error('Choose a valid key.');
+    const t=currentTime(),section=audioKeySections.find(s=>t>=s.start&&t<s.end);
+    const range=scope==='song'?{start:0,end:buffer.duration}:section||{start:Math.floor(t/TIMELINE_CELL_SECONDS)*TIMELINE_CELL_SECONDS,end:Math.min(buffer.duration,(Math.floor(t/TIMELINE_CELL_SECONDS)+1)*TIMELINE_CELL_SECONDS)};
+    rememberAnalysis('Before key correction');
+    keyCorrections.push({start:range.start,end:range.end,rootPc:root,mode,scaleText:scaleTextFor(root,mode)});
+    refreshEditedAnalysis();persistAnalysisRecovery();toolsMessage(`Key corrected: ${scaleTextFor(root,mode)}. Audio pitch unchanged.`);
+  }
+  function splitAroundRange(items,start,end){
+    return items.flatMap(item=>item.end<=start||item.start>=end?[{...item}]:[
+      ...(item.start<start?[{...item,end:start}]:[]),...(item.end>end?[{...item,start:end}]:[])]);
+  }
+  function replayManualCorrections(){
+    for(const edit of manualCorrections){
+      if(edit.kind==='note'){
+        notes=notes.filter(n=>!(Math.abs(n.start-edit.original.start)<.08&&(n.midi===edit.original.midi||n.manual)));
+        if(edit.value)notes.push(copyAnalysis(edit.value));
+      }else{
+        const start=Math.min(edit.original.start,edit.value?.start??edit.original.start),end=Math.max(edit.original.end,edit.value?.end??edit.original.end);
+        detectedChordChanges=splitAroundRange(detectedChordChanges,start,end);
+        if(edit.value)detectedChordChanges.push(copyAnalysis(edit.value));
+      }
+    }
+    notes.sort((a,b)=>a.start-b.start);detectedChordChanges.sort((a,b)=>a.start-b.start);
+  }
+  function parseNotePitch(text){
+    const match=String(text).trim().match(/^([A-Ga-g])([#b]?)(-?\d)$/);if(!match)return null;
+    const pc={C:0,D:2,E:4,F:5,G:7,A:9,B:11}[match[1].toUpperCase()]+(match[2]==='#'?1:match[2]==='b'?-1:0);
+    const midi=(Number(match[3])+1)*12+pc;return Number.isInteger(midi)&&midi>=0&&midi<=127?midi:null;
+  }
+  function openAnalysisEditor(kind,item){
+    if(aiBusy)return;editingEvent={kind,original:copyAnalysis(item)};
+    $('analysisEditTitle').textContent=kind==='note'?'Correct note':'Correct chord';
+    $('editPitchRow').hidden=kind!=='note';
+    for(const id of ['editChordRootRow','editChordQualityRow','editChordBassRow'])$(id).hidden=kind!=='chord';
+    $('editPitch').value=kind==='note'?midiName(item.midi):'';
+    $('editChordRoot').value=String(item.rootPc??0);$('editChordQuality').value=item.quality||'maj';$('editChordBass').value=item.bassPc==null?'':String(item.bassPc);
+    $('editEventStart').value=item.start;$('editEventEnd').value=item.end;$('editEventError').textContent='';
+    $('analysisEditDialog').showModal();
+  }
+  function commitAnalysisEdit(remove=false){
+    if(!editingEvent||aiBusy)return;
+    const {kind,original}=editingEvent,start=Number($('editEventStart').value),end=Number($('editEventEnd').value);
+    if(!remove&&(!Number.isFinite(start)||!Number.isFinite(end)||start<0||end<=start||end>buffer.duration+.001))throw new Error('Enter a start and end within this song.');
+    let value=null;
+    if(!remove){
+      if(kind==='note'){
+        const midi=parseNotePitch($('editPitch').value);if(midi===null)throw new Error('Enter a note with its octave, such as C#2.');
+        value={...original,start,end,midi,manual:true,source:'User correction',onsetSupported:true};
+      }else value={...original,start,end,rootPc:Number($('editChordRoot').value),quality:$('editChordQuality').value,
+        bassPc:$('editChordBass').value===''?null:Number($('editChordBass').value),manual:true,evidenceVersion:'user-correction-v1',uncertain:false,source:'User correction'};
+    }
+    rememberAnalysis('Before correction');manualCorrections.push({kind,original,value});
+    if(kind==='note')notes=notes.filter(n=>!(n.start===original.start&&n.midi===original.midi));
+    else detectedChordChanges=splitAroundRange(detectedChordChanges,original.start,original.end);
+    replayManualCorrections();refreshEditedAnalysis();persistAnalysisRecovery();$('analysisEditDialog').close();editingEvent=null;
+    toolsMessage('Correction saved. Undo is available.');
+  }
+  async function applySectionAnalysis(pending,finalDataList){
+    if(!pending.range||!notes.length)throw new Error('Restore the previous analysis before updating a selection.');
+    const {start,end}=pending.range;
+    const outputs=finalDataList.map(data=>{if(data.status!=='COMPLETED'||!data.output?.ok)throw new Error('Selection analysis did not finish.');return data.output;});
+    const replacement=[];
+    outputs.forEach((out,i)=>{const p=pending.parts[i];for(const n of out.notes||[]){
+      const ns=Number(n.start)+p.audioStart,ne=Number(n.end)+p.audioStart,midi=mapFreshCloudMidi(n.midi);
+      if(Number.isFinite(midi)&&Number.isFinite(ns)&&Number.isFinite(ne)&&ne>ns&&ns>=p.coreStart&&ns<p.coreEnd)
+        replacement.push({midi,start:ns,end:Math.min(buffer.duration,ne),confidence:Number(n.confidence)||0,isFill:!!n.is_fill,onsetSupported:!!n.onset_supported,cloudMidi:midi,source:cloudVersionLabel(out.analysis_version)});
+    }});
+    if(!replacement.length)throw new Error('No bass notes returned. Your previous selection is unchanged.');
+    const rawContext=chooseCombinedSongContext(pending.parts,outputs);
+    const chords=(rawContext.chords||[]).map(c=>({start:Math.max(start,Number(c.start)),end:Math.min(end,Number(c.end)),rootPc:Number(c.root_pc??c.rootPc),quality:String(c.quality),
+      confidence:Number(c.confidence)||0,evidenceVersion:String(c.evidence_version||c.evidenceVersion||''),bassPc:c.bass_pc??c.bassPc??null,uncertain:!!c.uncertain,source:String(c.source||'')}))
+      .filter(c=>Number.isFinite(c.rootPc)&&c.end>c.start);
+    rememberAnalysis('Before selection analysis');
+    notes=notes.filter(n=>n.start<start||n.start>=end).concat(dedupeSegmentBoundaryNotes(replacement)).sort((a,b)=>a.start-b.start);
+    detectedChordChanges=splitAroundRange(detectedChordChanges,start,end).concat(chords).sort((a,b)=>a.start-b.start);
+    replayManualCorrections();refreshEditedAnalysis();await persistAnalysisRecovery();
+    return {count:notes.length,partCount:pending.parts.length,bassStemReady:!!bassStemReady,selection:true};
+  }
+  async function analyseSelectedRange(){
+    if(aiBusy||!buffer||!offlineAnalysisReady)return;
+    try{
+      const range=selectedAnalysisRange(),file=activeAudioFile,signature=cloudFileSignature(file),existing=readPendingRunPodJob();
+      if(existing)throw new Error('Finish the saved analysis before starting another.');
+      const key=getRunPodKey();if(!key)return;
+      await persistAnalysisRecovery();
+      const pending=makePendingPartGroup(file,signature);pending.scope='section';pending.range=range;
+      pending.parts=[];for(let start=range.start;start<range.end;start+=ANALYSIS_PART_SECONDS){const end=Math.min(range.end,start+ANALYSIS_PART_SECONDS),index=pending.parts.length;
+        pending.parts.push({index,label:`S${index+1}`,coreStart:start,coreEnd:end,audioStart:Math.max(0,start-1),audioEnd:Math.min(buffer.duration,end+1),id:null});}
+      savePendingRunPodJob(pending);aiBusy=true;aiAnalyse.disabled=true;
+      await submitPendingAnalysisParts(pending,key,file);const results=await collectPendingAnalysisParts(pending,key);
+      await applySectionAnalysis(pending,results);clearPendingRunPodJob();
+      aiStatus('Selection updated',100);toolsMessage('Selection updated. Your corrections are kept.');
+    }catch(error){toolsMessage(error.message||'Selection analysis could not finish.');}
+    finally{aiBusy=false;aiAnalyse.disabled=!buffer;updatePracticeLayoutState(true);}
+  }
+  function initAnalysisTools(){
+    $('analysisTools').addEventListener('toggle',()=>{if($('analysisTools').open&&detectedScaleContext){$('correctKeyRoot').value=String(detectedScaleContext.rootPc);$('correctKeyMode').value=detectedScaleContext.mode==='minor'?'minor':'major';}});
+    for(const id of ['correctKeyRoot','editChordRoot','editChordBass']){
+      const select=$(id);if(id==='editChordBass'){const o=document.createElement('option');o.value='';o.textContent='No slash bass';select.append(o);}
+      for(const root of SCALE_ROOTS){const o=document.createElement('option');o.value=root.pc;o.textContent=root.n;select.append(o);}
+    }
+    for(const [quality,label] of Object.entries(CHORD_QUALITY_LABELS)){const o=document.createElement('option');o.value=quality;o.textContent=label;$('editChordQuality').append(o);}
+    $('correctKeyApply').onclick=()=>{if(aiBusy)return;correctSongKey(Number($('correctKeyRoot').value),$('correctKeyMode').value,$('correctKeyScope').value);};
+    $('useDetectedKey').onclick=()=>{if(aiBusy)return;rememberAnalysis('Before key reset');keyCorrections=[];refreshEditedAnalysis();persistAnalysisRecovery();toolsMessage('Detected key restored.');};
+    $('transposeApply').onclick=()=>{const value=Number($('transposeInput').value);if(!Number.isInteger(value)||value< -12||value>12){toolsMessage('Choose between -12 and 12 semitones.');return;}
+      transposeSemitones=value;updateSectionKey(currentTime());updateAudioParams();refreshEditedAnalysis();persistAnalysisRecovery();toolsMessage(`Audio shifted ${value} semitones.`);};
+    $('editAnalysisToggle').onclick=()=>{analysisEditMode=!analysisEditMode;$('editAnalysisToggle').setAttribute('aria-pressed',String(analysisEditMode));
+      $('appRoot').classList.toggle('analysis-editing',analysisEditMode);toolsMessage(analysisEditMode?'Tap a note or chord to correct it.':'Tap time cells to select a repeat.');};
+    $('undoAnalysisEdit').onclick=()=>{if(aiBusy)return;const s=analysisHistory.pop();if(s){restoreAnalysisSnapshot(s);persistAnalysisRecovery();toolsMessage('Previous notes and chords restored.');}};
+    $('restoreAnalysisVersion').onclick=()=>{if(aiBusy)return;const s=analysisHistory[Number($('analysisHistorySelect').value)];if(s){rememberAnalysis('Before restore');restoreAnalysisSnapshot(s);persistAnalysisRecovery();toolsMessage('Notes and chords restored.');}};
+    $('analyseSelection').onclick=analyseSelectedRange;
+    $('analysisEditForm').onsubmit=e=>{e.preventDefault();try{commitAnalysisEdit();}catch(error){$('editEventError').textContent=error.message;}};
+    $('deleteAnalysisEvent').onclick=()=>{try{commitAnalysisEdit(true);}catch(error){$('editEventError').textContent=error.message;}};
+    $('closeAnalysisEdit').onclick=()=>$('analysisEditDialog').close();
+    for(const [element,kind,selector] of [[noteLane,'note','.note-token'],[chordRuler,'chord','.chord-name']]){
+      element?.addEventListener('click',event=>{if(!analysisEditMode)return;event.preventDefault();event.stopImmediatePropagation();
+        const token=event.target.closest(selector);if(!token)return;
+        const source=kind==='note'?notes:detectedChordChanges;
+        const index=Number(token.dataset.eventIndex),item=source[index];if(item)openAnalysisEditor(kind,item);
+      },true);
+    }
+    renderAnalysisHistory();
+  }
 
   // ---------- Formatting ----------
   function fmt(sec){
@@ -12274,7 +12539,7 @@ html body #appRoot#appRoot#appRoot #noteLane{max-height:none!important}
         isFill:!!n.isFill,
         onsetSupported:!!n.onsetSupported,
         cloudMidi:Number.isFinite(Number(n.cloudMidi))?Number(n.cloudMidi):null,
-        source:n.source||'Analysis'
+        manual:!!n.manual,source:n.source||'Analysis'
       }));
       const project={
         format:'Bass Stem Studio Project',
@@ -12293,6 +12558,8 @@ html body #appRoot#appRoot#appRoot #noteLane{max-height:none!important}
         },
         analysis:{
           ready:true,
+          history:analysisHistory,manualCorrections,keyCorrections,
+          keySections:audioKeySections,keyReady:audioKeyReady,baseScale:detectedBaseScale,
           noteCount:savedNotes.length,
           scale:String(detectedScaleContext?.scaleText||songScale?.textContent||'—'),
           tempoBpm:currentTempoBpm(),
@@ -12323,7 +12590,7 @@ html body #appRoot#appRoot#appRoot #noteLane{max-height:none!important}
           chords:Array.isArray(detectedChordChanges)?detectedChordChanges.map(c=>({
             start:Number(c.start)||0,end:Number(c.end)||0,rootPc:Number(c.rootPc),
             quality:String(c.quality||''),label:String(c.label||''),confidence:Number(c.confidence)||0,
-            evidence_version:String(c.evidenceVersion||''),bassPc:c.bassPc??null,uncertain:!!c.uncertain,source:String(c.source||'')
+            evidence_version:String(c.evidenceVersion||''),bassPc:c.bassPc??null,uncertain:!!c.uncertain,manual:!!c.manual,source:String(c.source||'')
           })):[],
           notes:savedNotes
         },
@@ -12359,6 +12626,7 @@ html body #appRoot#appRoot#appRoot #noteLane{max-height:none!important}
   }
 
   async function importBassStudioProject(file){
+    if(aiBusy){toolsMessage('Wait for the current analysis before importing another song.');return;}
     if(!file)return;
     try{
       aiStatus('Opening saved Bass Studio project…',8);
@@ -12375,14 +12643,14 @@ html body #appRoot#appRoot#appRoot #noteLane{max-height:none!important}
       // changing the currently open song. A damaged project must never clear
       // the working rehearsal stems or replace the current audio half-way.
       const restored=project.analysis.notes.map(n=>({
-        midi:mapPracticeMidi(mapPracticeMidi(n.cloudMidi)??n.midi),
+        midi:mapPracticeMidi(n.manual?n.midi:(mapPracticeMidi(n.cloudMidi)??n.midi)),
         start:Number(n.start),end:Number(n.end),
         confidence:Number(n.confidence)||0,
         isFill:typeof n.isFill==='boolean'?n.isFill:false,
         onsetSupported:!!(n.onsetSupported??n.onset_supported),
         scaleNumber:(n.scaleNumber===null||n.scaleNumber===undefined||n.scaleNumber==='')?null:String(n.scaleNumber),
         cloudMidi:mapPracticeMidi(n.cloudMidi)??mapPracticeMidi(n.midi),
-        source:n.source||'Saved project'
+        manual:!!n.manual,source:n.source||'Saved project'
       })).filter(n=>Number.isFinite(n.midi)&&Number.isFinite(n.start)&&Number.isFinite(n.end)&&n.end>n.start)
         .sort((a,b)=>a.start-b.start);
       if(!restored.length)throw new Error('The saved project contains no usable bass notes.');
@@ -12470,6 +12738,12 @@ html body #appRoot#appRoot#appRoot #noteLane{max-height:none!important}
         beat_grid_confidence:Number(project.analysis.beatGridConfidence),
         chords:Array.isArray(project.analysis.chords)?project.analysis.chords:[]
       });
+      analysisHistory=(Array.isArray(project.analysis.history)?project.analysis.history:[]).slice(-5);
+      manualCorrections=Array.isArray(project.analysis.manualCorrections)?project.analysis.manualCorrections:[];
+      keyCorrections=Array.isArray(project.analysis.keyCorrections)?project.analysis.keyCorrections:[];
+      detectedBaseScale=project.analysis.baseScale||detectedBaseScale;
+      if(Array.isArray(project.analysis.keySections)&&project.analysis.keyReady){audioKeySections=project.analysis.keySections;audioKeyReady=true;audioKeyBuffer=buffer;}
+      renderAnalysisHistory();
       noteDisplayMode=project.analysis.displayMode==='numbers'?'numbers':'notes';refreshNoteNumberToggle();
 
       if(project.settings){
@@ -12522,6 +12796,7 @@ html body #appRoot#appRoot#appRoot #noteLane{max-height:none!important}
       updateSongInfo(0);
       updateButtons();updateProjectButtons();
       try{localStorage.removeItem(RUNPOD_PENDING_JOB)}catch(e){}
+      updateSectionKey(0);await cacheAudioForRecovery(activeAudioFile);await persistAnalysisRecovery();
       aiStatus(`Saved project ready · ${restored.length} notes · no new analysis needed`,100);
     }catch(err){
       console.error(err);
@@ -12964,6 +13239,7 @@ html body #appRoot#appRoot#appRoot #noteLane{max-height:none!important}
 
   // ---------- File Load ----------
   async function loadAudioFile(f,{cacheForRecovery=true,recoveryRestore=false}={}){
+    if(aiBusy&&!recoveryRestore){toolsMessage('Wait for the current analysis before importing another song.');return false;}
     if(!f)return false;
 
     // RC131: validate and decode the candidate file before changing the current
@@ -13026,7 +13302,8 @@ html body #appRoot#appRoot#appRoot #noteLane{max-height:none!important}
       status.className='status good';status.textContent='';
       if(timelineScroll)timelineScroll.scrollLeft=0;
       drawAll();updateButtons();
-      if(cacheForRecovery)cacheAudioForRecovery(f);
+      if(cacheForRecovery)await cacheAudioForRecovery(f);
+      await restoreDeviceAnalysis();
       return true;
     }catch(err){
       console.error(err);
@@ -13703,9 +13980,10 @@ html body #appRoot#appRoot#appRoot #noteLane{max-height:none!important}
   function openRecoveryDb(){
     return new Promise((resolve,reject)=>{
       if(!('indexedDB' in window)){reject(new Error('Recovery storage is not available in this browser.'));return}
-      const request=indexedDB.open(RUNPOD_RECOVERY_DB,1);
+      const request=indexedDB.open(RUNPOD_RECOVERY_DB,2);
       request.onupgradeneeded=()=>{
         const db=request.result;
+        for(const name of ['analyses','results'])if(!db.objectStoreNames.contains(name))db.createObjectStore(name,{keyPath:name==='analyses'?'signature':'id'});
         if(!db.objectStoreNames.contains(RUNPOD_RECOVERY_STORE))
           db.createObjectStore(RUNPOD_RECOVERY_STORE,{keyPath:'signature'});
       };
@@ -14670,19 +14948,19 @@ html body #appRoot#appRoot#appRoot #noteLane{max-height:none!important}
   }
 
   function updateSectionKey(t){
-    if(!audioKeyReady||audioKeyBuffer!==buffer)return;
-    const section=audioKeySections.find((s,i)=>t>=s.start&&(t<s.end||(i===audioKeySections.length-1&&t<=s.end)));
-    const detected=section?.scale?parseSongScaleContext(section.scale):null;
+    const section=audioKeyReady&&audioKeyBuffer===buffer?audioKeySections.find((s,i)=>t>=s.start&&(t<s.end||(i===audioKeySections.length-1&&t<=s.end))):null;
+    const corrected=keyCorrections.slice().reverse().find(s=>t>=s.start&&(t<s.end||t===buffer?.duration&&t===s.end));
+    const detected=corrected?parseSongScaleContext(corrected.scaleText):
+      section?.scale?parseSongScaleContext(section.scale):audioKeyReady&&audioKeyBuffer===buffer?null:detectedBaseScale||detectedScaleContext;
     const shifted=detected?{...detected,rootPc:(detected.rootPc+transposeSemitones+120)%12}:null;
     if(shifted)shifted.scaleText=scaleTextFor(shifted.rootPc,shifted.mode);
+    $('transposeInput').value=String(transposeSemitones);
     if((detectedScaleContext?.scaleText||'')===(detected?.scaleText||'')&&
        (currentScaleContext?.scaleText||'')===(shifted?.scaleText||''))return;
     detectedScaleContext=detected;currentScaleContext=shifted;
     populateScaleSelect(shifted);refreshNoteNumberToggle();rebuildSimpleTimeline._sig='';
     if(songScale)songScale.textContent=shifted?.scaleText||'—';
-    if(songScaleWrap){songScaleWrap.classList.toggle('context-ready',!!shifted);songScaleWrap.title=detected?`Estimated section key: ${detected.scaleText}${transposeSemitones?` · transpose ${transposeSemitones>0?'+':''}${transposeSemitones}`:''}`:'Section key uncertain';}
-    // Detection updates notation only. Only the user's scale selection changes
-    // transposeSemitones or the audio pitch controls.
+    if(songScaleWrap){songScaleWrap.classList.toggle('context-ready',!!shifted);songScaleWrap.title=detected?`${corrected?'Corrected':'Estimated section'} key: ${detected.scaleText}${transposeSemitones?` · transpose ${transposeSemitones>0?'+':''}${transposeSemitones}`:''}`:'Section key uncertain';}
   }
 
   function populateScaleSelect(ctxInfo){
@@ -14706,12 +14984,14 @@ html body #appRoot#appRoot#appRoot #noteLane{max-height:none!important}
     if(songScale)songScale.textContent=currentScaleContext.scaleText;
     if(scaleSelect && scaleSelect.value!==String(pc))scaleSelect.value=String(pc);
     if(songScaleWrap)songScaleWrap.title=`Detected ${detectedScaleContext.scaleText} · rehearsal key ${currentScaleContext.scaleText}${transposeSemitones?` · ${transposeSemitones>0?'+':''}${transposeSemitones} semitone${Math.abs(transposeSemitones)===1?'':'s'}`:''}`;
+    $('transposeInput').value=String(transposeSemitones);persistAnalysisRecovery();
     updateAudioParams();refreshNoteNumberToggle();rebuildSimpleTimeline._sig='';
     if(buffer){rebuildSimpleTimeline();updateSongInfo(currentTime());}
     updateBassView(currentTime());
   }
   function selectScaleByText(scaleText){const p=parseSongScaleContext(scaleText);if(p&&detectedScaleContext&&p.mode===detectedScaleContext.mode)applySelectedScaleRoot(p.rootPc);}
   function resetSongContext(){
+    analysisHistory=[];manualCorrections=[];keyCorrections=[];detectedBaseScale=null;renderAnalysisHistory();
     audioKeyRun++;audioKeyBuffer=null;audioKeySections=[];audioKeyReady=false;
     currentScaleContext=null;detectedScaleContext=null;transposeSemitones=0;metronomeEnabled=false;lastMetronomeBeat=-1;lastMetronomeTime=null;detectedTempoBpm=null;
     detectedBeatTimes=[];detectedBeatsPerBar=4;detectedDownbeatPhase=0;beatGridConfidence=null;detectedChordChanges=[];
@@ -14732,7 +15012,7 @@ html body #appRoot#appRoot#appRoot #noteLane{max-height:none!important}
     }
     if(scale){
       scale=scale.replace(/\bmajor\b/gi,'Maj').replace(/\bminor\b/gi,'Min');
-      detectedScaleContext=parseSongScaleContext(scale);
+      detectedScaleContext=parseSongScaleContext(scale);detectedBaseScale=detectedScaleContext?{...detectedScaleContext}:null;
       currentScaleContext=detectedScaleContext?{...detectedScaleContext}:null;
       transposeSemitones=0;populateScaleSelect(detectedScaleContext);
       refreshNoteNumberToggle();
@@ -14744,7 +15024,7 @@ html body #appRoot#appRoot#appRoot #noteLane{max-height:none!important}
         songScaleWrap.title=Number.isFinite(c)?`Detected song scale · ${Math.round(c*100)}% confidence`:'Detected song scale';
       }
     }else{
-      currentScaleContext=null;detectedScaleContext=null;transposeSemitones=0;populateScaleSelect(null);
+      currentScaleContext=null;detectedScaleContext=null;detectedBaseScale=null;transposeSemitones=0;populateScaleSelect(null);
       refreshNoteNumberToggle();
       rebuildSimpleTimeline._sig='';
       if(songScale) songScale.textContent='—';
@@ -14780,7 +15060,7 @@ html body #appRoot#appRoot#appRoot #noteLane{max-height:none!important}
         start:Math.max(0,start),end:Math.max(start,end),rootPc:((Math.round(rootPc)%12)+12)%12,
         quality:String(c?.quality||'maj').toLowerCase(),label:String(c?.label||''),
         confidence:Number.isFinite(Number(c?.confidence))?Number(c.confidence):0,
-        evidenceVersion:String(c?.evidence_version||c?.evidenceVersion||''),
+        evidenceVersion:String(c?.evidence_version||c?.evidenceVersion||''),manual:!!c?.manual,
         bassPc:(c?.bass_pc??c?.bassPc)==null?null:((Math.round(Number(c.bass_pc??c.bassPc))%12)+12)%12,uncertain:!!c?.uncertain,source:String(c?.source||'')
       };
     }).filter(Boolean).sort((a,b)=>a.start-b.start);
@@ -14942,6 +15222,8 @@ html body #appRoot#appRoot#appRoot #noteLane{max-height:none!important}
       aiStatus(`Analysing ${part.label} of ${total} — you can use other apps`,
                Math.min(94,20+Math.round((i/Math.max(1,total))*70)));
 
+      const cached=await recoveryStore('results',s=>s.get(part.id)).catch(()=>null);
+      if(cached?.signature===pending.signature&&cached?.data?.status==='COMPLETED'){results.push(cached.data);continue;}
       let current=await runPodFetch(
         `https://api.runpod.ai/v2/${encodeURIComponent(RUNPOD_ENDPOINT)}/status/${encodeURIComponent(part.id)}`,
         key,{method:'GET'},8
@@ -14953,6 +15235,7 @@ html body #appRoot#appRoot#appRoot #noteLane{max-height:none!important}
       }
       if(st!=='COMPLETED')
         throw new Error(`${part.label} analysis finished with status ${st}.`);
+      await recoveryStore('results',s=>s.put({id:part.id,signature:pending.signature,savedAt:Date.now(),data:current})).catch(()=>toolsMessage('Part backup unavailable. Keep the app open until analysis finishes.'));
       results.push(current);
     }
     return results;
@@ -15130,6 +15413,7 @@ html body #appRoot#appRoot#appRoot #noteLane{max-height:none!important}
   }
 
   async function applySegmentedRunPodResults(pending,finalDataList){
+    if(pending.scope==='section')return applySectionAnalysis(pending,finalDataList);
     if(!Array.isArray(finalDataList)||finalDataList.length!==pending.parts.length)
       throw new Error('Not all song parts returned an analysis result.');
 
@@ -15141,7 +15425,7 @@ html body #appRoot#appRoot#appRoot #noteLane{max-height:none!important}
       return out;
     });
 
-    applySongContext(chooseCombinedSongContext(pending.parts,outputs));
+    const nextContext=chooseCombinedSongContext(pending.parts,outputs);
 
     const mergedNotes=[],parts=[];
     outputs.forEach((out,i)=>{
@@ -15185,14 +15469,16 @@ html body #appRoot#appRoot#appRoot #noteLane{max-height:none!important}
     const cleanMergedNotes=dedupeSegmentBoundaryNotes(mergedNotes);
     if(!cleanMergedNotes.length)throw new Error('Analysis completed but no reliable bass notes were returned.');
 
+    rememberAnalysis('Before reanalysis');
+    const keepTranspose=transposeSemitones;applySongContext(nextContext);transposeSemitones=keepTranspose;updateSectionKey(currentTime());updateAudioParams();
     analysisParts=parts;activeAnalysisPartIndex=0;renderTimelinePartTabs();
-    notes=cleanMergedNotes;analysedBassNotes=cleanMergedNotes.map(n=>({...n}));
+    notes=cleanMergedNotes;replayManualCorrections();analysedBassNotes=notes.map(n=>({...n}));
     offlineAnalysisReady=true;updatePracticeLayoutState(true);waveCacheDirty=true;rebuildSimpleTimeline._sig='';
     if(timelineScroll)timelineScroll.scrollLeft=0;
 
     await activateAnalysisPart(0,{seek:false});
     currentRehearsalVersion=String(parts[0]?.rehearsalVersion||'');
-    drawAll();updateProjectButtons();
+    drawAll();updateProjectButtons();await persistAnalysisRecovery();
 
     return {
       count:cleanMergedNotes.length,
@@ -15216,7 +15502,8 @@ html body #appRoot#appRoot#appRoot #noteLane{max-height:none!important}
       let pending=readPendingRunPodJob();
       const matching=!!(pending?.signature===signature&&Array.isArray(pending?.parts)&&pending.parts.length);
 
-      if(forceFreshAnalysis){clearPendingRunPodJob();pending=null;}
+      if(pending&&!matching)throw new Error('Re-open the song with the saved analysis before starting another.');
+      if(forceFreshAnalysis&&!matching){await persistAnalysisRecovery();pending=null;}
       if(!pending||!matching){
         pending=makePendingPartGroup(file,signature);
         savePendingRunPodJob(pending);
@@ -15249,14 +15536,15 @@ html body #appRoot#appRoot#appRoot #noteLane{max-height:none!important}
   async function resumeSavedRunPodAnalysis(){
     if(pendingResumeBusy||aiBusy)return false;
     let pending=readPendingRunPodJob();
-    if(!pending?.signature||!Array.isArray(pending?.parts)||!pending.parts.length)return false;
+    if(!pending?.signature||!Array.isArray(pending?.parts)||!pending.parts.length)return restoreLatestSession();
     const key=storedRunPodKey();
     if(!key)return false;
 
     pendingResumeBusy=true;aiBusy=true;
     if(aiAnalyse){aiAnalyse.disabled=true;aiAnalyse.textContent='In Progress.....';aiAnalyse.setAttribute('aria-busy','true');}
     try{
-      if(!buffer||!activeAudioFile||cloudFileSignature(activeAudioFile)!==pending.signature){
+      if(activeAudioFile&&cloudFileSignature(activeAudioFile)!==pending.signature)return false;
+      if(!buffer||!activeAudioFile){
         const saved=await getRecoveryAudio(pending.signature);
         if(!saved?.blob){
           aiStatus('Previous analysis is saved. Re-open the same audio file to collect the result.',12);
@@ -15955,8 +16243,8 @@ html body #appRoot#appRoot#appRoot #noteLane{max-height:none!important}
     return `${root}${q||'M'}${bass}${chord.uncertain?'?':''}`;
   }
   function reliableChord(c){
-    return c && ((c.evidenceVersion==='chord-timeline-v2'&&Number(c.confidence)>=.76) ||
-      (c.evidenceVersion==='chord-timeline-v3'&&Number(c.confidence)>=(c.uncertain ? .67 : .76))) &&
+    return c && ((c.manual===true&&c.evidenceVersion==='user-correction-v1') || (c.evidenceVersion==='chord-timeline-v2'&&Number(c.confidence)>=.76) ||
+      (['chord-timeline-v3','chord-timeline-v4'].includes(c.evidenceVersion)&&Number(c.confidence)>=(c.uncertain ? .67 : .76))) &&
       Number.isFinite(c.rootPc) && Object.hasOwn(CHORD_QUALITY_LABELS,c.quality) &&
       Number.isFinite(c.start) && Number.isFinite(c.end) && c.end>c.start;
   }
@@ -16004,7 +16292,7 @@ html body #appRoot#appRoot#appRoot #noteLane{max-height:none!important}
       maxRows=Math.max(maxRows,Math.ceil(labels.length/columns)*Math.max(1,Math.ceil(longest/(cellW-fontSize*1.5))));
       for(const e of labels){
         const name=document.createElement('span');name.className='chord-name'+(e.chord.uncertain?' tentative':'');name.textContent=e.label;
-        name.dataset.start=e.start;name.dataset.end=e.end;
+        name.dataset.start=e.start;name.dataset.end=e.end;name.dataset.eventIndex=detectedChordChanges.indexOf(e.chord);
         name.title=`${fmtShort(e.start)}–${fmtShort(e.end)} · ${e.label} · ${e.chord.uncertain?'tentative':'estimated'} ${e.chord.source==='separated-piano'?'keyboard':e.chord.source==='full-mix-fallback'?'full-mix':'accompaniment'} chord`;
         name.setAttribute('aria-label',name.title);d.appendChild(name);
       }
@@ -16118,7 +16406,7 @@ html body #appRoot#appRoot#appRoot #noteLane{max-height:none!important}
         const shown=displayNoteLabel(n.midi,n.scaleNumber);
         const token=document.createElement('span');
         token.className='note-token'+(n.isFill?' fill':isLowConfidenceNote(n)?' uncertain':'');
-        token.dataset.start=n.start;token.dataset.end=n.end;
+        token.dataset.start=n.start;token.dataset.end=n.end;token.dataset.eventIndex=notes.findIndex(x=>x.start===n.start&&x.midi===n.midi);
         token.textContent=n.isFill?`(${shown})`:shown;
         token.title=`${name}${shown!==name?' · '+shown:''} · ${fmt(n.start)}–${fmt(n.end)}${n.isFill?' · fill':''}`;
         if(practiceDisplayMidi(n.midi)!==Math.round(n.midi)+transposeSemitones)token.title+=' · detected '+midiName(Math.round(n.midi)+transposeSemitones);
@@ -16292,6 +16580,7 @@ html body #appRoot#appRoot#appRoot #noteLane{max-height:none!important}
     raf=requestAnimationFrame(loop);
   }
 
+  initAnalysisTools();
   renderBassFretboard();
   setPracticeVisualMode('timeline');
   rebuildNoteSidebar();
