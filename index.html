@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bass Stem Studio RC153</title>
+<title>Bass Stem Studio RC154</title>
 <script>
 /* RC119: initialise the correct physical-device font before the first paint.
    This deliberately does not rely on viewport width alone, because Chrome's
@@ -12078,7 +12078,7 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC153';
+  const APP_VERSION='RC154';
   const PROJECT_SCHEMA_VERSION=2;
   // RC125: compact practice-view and string selectors preserve space for P1/P2/P3; all RC124 audio, analysis, repeat, project and practice logic preserved.
 
@@ -12103,6 +12103,53 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
   // ---------- State ----------
   let ctx=null, buffer=null, source=null, startedAt=0, pausedAt=0, playing=false, mediaNode=null, bassStemMediaNode=null, noBassMediaNode=null, mediaURL=null, bassStemURL=null, noBassURL=null, graphReady=false;
   let activeAudioFile=null, loadedProjectName='';
+  // Each committed song owns its asynchronous work. An earlier import,
+  // recovery or cloud response must never write into a newer song.
+  let songSession=0, songLoadRequest=0, songImportBusy=false, stemPartRequest=0;
+  const pendingStemLoads=new WeakMap();
+  function assertSongSession(session){
+    if(session!==songSession)throw new DOMException('Song replaced','AbortError');
+  }
+  function setSongImportBusy(value){
+    songImportBusy=value;
+    if(importProjectBtn){importProjectBtn.textContent=value?'Opening…':'Import';importProjectBtn.setAttribute('aria-busy',String(value));}
+    if(aiAnalyse)aiAnalyse.disabled=value||aiBusy||!buffer;
+    updateProjectButtons();updateAnalysisToolsState();
+  }
+  function replaceSongSession({preservePending=false}={}){
+    songSession++;
+    aiBusy=false;pendingResumeBusy=false;offlineAnalysisRunning=false;
+    if(aiAnalyse)aiAnalyse.removeAttribute('aria-busy');
+    if(!preservePending)clearPendingRunPodJob();
+    preparedAnalysisUploadCache=null;
+    masterAudio.pause();stopBassStemPlayback(false);stopNoBassPlayback(false);
+    playing=false;cancelAnimationFrame(raf);stopSource();
+    clearBassStemPlayback();clearNoBassPlayback();resetAnalysisParts();
+    notes=[];analysedBassNotes=[];offlineAnalysisReady=false;
+    bassPositionPlanCache=null;practiceRegisterCache=null;bassFretWindowStart=1;bassRenderedWindowStart=0;
+    candidateMidi=null;candidateSince=0;pitchHistory=[];lastAcceptedMidi=null;switchMidi=null;switchSince=0;
+    lastNoteMidi=null;noteStart=0;pausedAt=0;prevBassSpec=null;lastSpectralFlux=0;
+    selectedSections.clear();selectedTimeframes.clear();sectionQueue=[];queueIndex=0;multiSectionMode=false;
+    timeframeQueue=[];timeframeQueueIndex=0;timeframeLoopMode=false;loopEnabled=false;loopStart=null;loopEnd=null;
+    editingEvent=null;resetSongContext();
+  }
+  function cancelStemLoad(audio){pendingStemLoads.get(audio)?.();}
+  function prepareStemMedia(audio,url){
+    cancelStemLoad(audio);
+    return new Promise((resolve,reject)=>{
+      let timer;
+      const cleanup=()=>{clearTimeout(timer);audio.removeEventListener('loadedmetadata',ok);audio.removeEventListener('error',bad);
+        if(pendingStemLoads.get(audio)===cancel)pendingStemLoads.delete(audio);};
+      const ok=()=>{cleanup();resolve();};
+      const bad=()=>{cleanup();reject(new Error('Saved backing track could not be opened.'));};
+      const cancel=()=>{cleanup();reject(new DOMException('Backing track replaced','AbortError'));};
+      pendingStemLoads.set(audio,cancel);
+      audio.addEventListener('loadedmetadata',ok);audio.addEventListener('error',bad);
+      timer=setTimeout(bad,15000);
+      audio.src=url;audio.load();
+      if(audio.readyState>=1)ok();
+    });
+  }
   let origGain, bassGain, analyser, masterGain, mainDryGain, mainPracticeGain, practiceBassCutFilter, pitchDryGain, pitchWetGain, pitchBus, pitchShift, sourceBus, bassCancelGain, mainSourceGain, noBassSourceGain, bassStemSourceGain, bassPitchDryGain, bassPitchWetGain, bassPitchBus, bassPitchShift;
   let hpFilter, lpFilter, boostFilter, compressor, splitter, merger, centreGainL, centreGainR;
   let notes=[], raf=0, objectName='', lastNoteMidi=null, noteStart=0, lastDetectedAt=0;
@@ -12194,37 +12241,41 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
   }
   function persistAnalysisRecovery(){
     if(!activeAudioFile||!buffer||(!notes.length&&!detectedChordChanges.length))return Promise.resolve(false);
+    const session=songSession;
     const record={signature:cloudFileSignature(activeAudioFile),savedAt:Date.now(),state:analysisSnapshot('Latest'),
       history:copyAnalysis(analysisHistory),parts:copyAnalysis(analysisParts),bassBase64:bassStemBase64,bassMime:bassStemMime,
       noBassBase64,noBassMime,rehearsalVersion:currentRehearsalVersion,transpose:transposeSemitones};
     recoveryWriteQueue=recoveryWriteQueue.catch(()=>{}).then(()=>recoveryStore('analyses',s=>s.put(record)))
-      .then(()=>true).catch(()=>{toolsMessage('Device backup unavailable. Use Save to keep your work.');return false;});
+      .then(()=>true).catch(()=>{if(session===songSession)toolsMessage('Device backup unavailable. Use Save to keep your work.');return false;});
     return recoveryWriteQueue;
   }
   async function restoreDeviceAnalysis(){
     if(!activeAudioFile)return false;
-    const signature=cloudFileSignature(activeAudioFile);
+    const signature=cloudFileSignature(activeAudioFile),session=songSession,request=songLoadRequest;
     try{const saved=await recoveryStore('analyses',s=>s.get(signature));
-      if(!saved?.state||signature!==cloudFileSignature(activeAudioFile))return false;
+      if(!saved?.state||session!==songSession||request!==songLoadRequest||signature!==cloudFileSignature(activeAudioFile))return false;
       analysisParts=Array.isArray(saved.parts)?saved.parts:[];renderTimelinePartTabs();
       analysisHistory=(saved.history||[]).slice(-5);transposeSemitones=clamp(Number(saved.transpose)||0,-12,12);
       restoreAnalysisSnapshot(saved.state);
       if(analysisParts.length)await activateAnalysisPart(analysisPartIndexForTime(currentTime()),{seek:false});
       else{if(saved.bassBase64)await loadBassStemFromBase64(saved.bassBase64,saved.bassMime);
+        if(session!==songSession||request!==songLoadRequest)return false;
         if(saved.noBassBase64)await loadNoBassFromBase64(saved.noBassBase64,saved.noBassMime);}
+      if(session!==songSession||request!==songLoadRequest)return false;
       currentRehearsalVersion=saved.rehearsalVersion||'';updateAudioParams();refreshEditedAnalysis();
       toolsMessage('Saved analysis restored.');return true;
     }catch(error){console.warn('Device analysis recovery unavailable',error);return false;}
   }
   async function restoreLatestSession(){
-    if(buffer||activeAudioFile||readPendingRunPodJob()||pendingResumeBusy)return false;
+    if(songImportBusy||buffer||activeAudioFile||readPendingRunPodJob()||pendingResumeBusy)return false;
+    const request=songLoadRequest,session=songSession;
     pendingResumeBusy=true;
     try{const saved=await recoveryStore(RUNPOD_RECOVERY_STORE,s=>s.getAll());
       const last=(saved||[]).sort((a,b)=>b.cachedAt-a.cachedAt)[0];
-      if(!last?.blob||buffer)return false;
-      const record=await recoveryStore('analyses',s=>s.get(last.signature));if(!record?.state||buffer)return false;
+      if(!last?.blob||buffer||request!==songLoadRequest||session!==songSession)return false;
+      const record=await recoveryStore('analyses',s=>s.get(last.signature));if(!record?.state||buffer||request!==songLoadRequest||session!==songSession)return false;
       return await loadAudioFile(new File([last.blob],last.name,{type:last.type,lastModified:last.lastModified}),{cacheForRecovery:false,recoveryRestore:true});
-    }catch{return false;}finally{pendingResumeBusy=false;}
+    }catch{return false;}finally{if(session===songSession)pendingResumeBusy=false;}
   }
   function selectedAnalysisRange(){
     const selected=[...selectedTimeframes].sort((a,b)=>a-b);
@@ -12293,7 +12344,8 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
     replayManualCorrections();refreshEditedAnalysis();persistAnalysisRecovery();$('analysisEditDialog').close();editingEvent=null;
     toolsMessage('Correction saved. Undo is available.');
   }
-  async function applySectionAnalysis(pending,finalDataList){
+  async function applySectionAnalysis(pending,finalDataList,session=songSession){
+    assertSongSession(session);
     if(!pending.range||!notes.length)throw new Error('Restore the previous analysis before updating a selection.');
     const {start,end}=pending.range;
     const outputs=finalDataList.map(data=>{if(data.status!=='COMPLETED'||!data.output?.ok)throw new Error('Selection analysis did not finish.');return data.output;});
@@ -12315,21 +12367,22 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
     return {count:notes.length,partCount:pending.parts.length,bassStemReady:!!bassStemReady,selection:true};
   }
   async function analyseSelectedRange(){
-    if(aiBusy||!buffer||!offlineAnalysisReady)return;
+    if(aiBusy||songImportBusy||!buffer||!offlineAnalysisReady)return;
+    const session=songSession;
     try{
       const range=selectedAnalysisRange(),file=activeAudioFile,signature=cloudFileSignature(file),existing=readPendingRunPodJob();
       if(existing)throw new Error('Finish the saved analysis before starting another.');
       const key=getRunPodKey();if(!key)return;
-      await persistAnalysisRecovery();
+      await persistAnalysisRecovery();assertSongSession(session);
       const pending=makePendingPartGroup(file,signature);pending.scope='section';pending.range=range;
       pending.parts=[];for(let start=range.start;start<range.end;start+=ANALYSIS_PART_SECONDS){const end=Math.min(range.end,start+ANALYSIS_PART_SECONDS),index=pending.parts.length;
         pending.parts.push({index,label:`S${index+1}`,coreStart:start,coreEnd:end,audioStart:Math.max(0,start-1),audioEnd:Math.min(buffer.duration,end+1),id:null});}
       savePendingRunPodJob(pending);aiBusy=true;aiAnalyse.disabled=true;
-      await submitPendingAnalysisParts(pending,key,file);const results=await collectPendingAnalysisParts(pending,key);
-      await applySectionAnalysis(pending,results);clearPendingRunPodJob();
+      await submitPendingAnalysisParts(pending,key,file,session);assertSongSession(session);const results=await collectPendingAnalysisParts(pending,key,session);assertSongSession(session);
+      await applySectionAnalysis(pending,results,session);assertSongSession(session);clearPendingRunPodJob();
       aiStatus('Selection updated',100);toolsMessage('Selection updated. Your corrections are kept.');
-    }catch(error){toolsMessage(error.message||'Selection analysis could not finish.');}
-    finally{aiBusy=false;aiAnalyse.disabled=!buffer;updatePracticeLayoutState(true);}
+    }catch(error){if(session!==songSession)return;toolsMessage(error.message||'Selection analysis could not finish.');}
+    finally{if(session!==songSession)return;aiBusy=false;aiAnalyse.disabled=!buffer||songImportBusy;updatePracticeLayoutState(true);}
   }
   function keyCorrectionRange(scope){
     if(!buffer)return null;
@@ -12348,7 +12401,7 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
     updateAnalysisToolsState();
   }
   function updateAnalysisToolsState(){
-    const loaded=!!buffer,ready=loaded&&(notes.length>0||detectedChordChanges.length>0),busy=aiBusy;
+    const loaded=!!buffer,ready=loaded&&(notes.length>0||detectedChordChanges.length>0),busy=aiBusy||songImportBusy;
     let range=null,selectionHint='Select time cells to reanalyse a passage.';
     if(loaded)try{range=selectedAnalysisRange();}catch(error){if(selectedTimeframes.size)selectionHint='Select neighbouring time cells for one passage.';}
     let keyRange=null;try{keyRange=keyCorrectionRange($('correctKeyScope').value);}catch{}
@@ -12438,6 +12491,7 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
   }
 
   function resetAnalysisParts(){
+    stemPartRequest++;
     analysisParts=[];
     activeAnalysisPartIndex=0;
     stemTimelineOffset=0;
@@ -12506,6 +12560,8 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
     if(!part)return false;
     if(stemPartSwitchBusy&&idx===activeAnalysisPartIndex)return false;
     stemPartSwitchBusy=true;
+    const session=songSession,request=++stemPartRequest;
+    const current=()=>session===songSession&&request===stemPartRequest;
     const wasPlaying=playing;
     const keepMuted=bassPracticeMuted;
     try{
@@ -12519,13 +12575,15 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
       }else{
         clearBassStemPlayback();
       }
+      if(!current())return false;
       if(part.noBassBase64){
         await loadNoBassFromBase64(String(part.noBassBase64),String(part.noBassMime||'audio/mpeg'));
       }else{
         clearNoBassPlayback();
       }
 
-      bassPracticeMuted=keepMuted;
+      if(!current())return false;
+      bassPracticeMuted=keepMuted&&noBassReady;
       refreshBassPracticeToggle();refreshStemMixerUI();updateAudioParams();
 
       if(seek){
@@ -12542,7 +12600,7 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
       }
       return true;
     }finally{
-      stemPartSwitchBusy=false;
+      if(current())stemPartSwitchBusy=false;
     }
   }
 
@@ -12566,7 +12624,7 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
   }
 
   function updateProjectButtons(){
-    if(saveProjectBtn)saveProjectBtn.disabled=!(buffer && offlineAnalysisReady && notes.length && activeAudioFile);
+    if(saveProjectBtn)saveProjectBtn.disabled=songImportBusy||aiBusy||!(buffer && offlineAnalysisReady && notes.length && activeAudioFile);
   }
 
   function arrayBufferToBase64(ab){
@@ -12596,6 +12654,7 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
   }
 
   async function saveBassStudioProject(){
+    if(songImportBusy||aiBusy)return;
     if(!buffer || !activeAudioFile || !offlineAnalysisReady || !notes.length){
       aiStatus('Analyse the song first, then save it.',0);return;
     }
@@ -12603,10 +12662,12 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
     const chosen=window.prompt('Name this saved Bass Studio song:',defaultBase);
     if(chosen===null)return;
     const projectName=safeProjectFilename(chosen);
+    const session=songSession;
     try{
       if(saveProjectBtn){saveProjectBtn.disabled=true;saveProjectBtn.textContent='Saving…';}
       aiStatus('Preparing saved song project…',92);
       const audioAB=await activeAudioFile.arrayBuffer();
+      if(session!==songSession)return;
       const audioBase64=arrayBufferToBase64(audioAB);
       const sorted=notes.slice().sort((a,b)=>a.start-b.start);
       const savedNotes=sorted.map((n,i)=>({
@@ -12701,18 +12762,20 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
       loadedProjectName=projectName;
       aiStatus(`Saved “${projectName}” · ${savedNotes.length} notes + scale numbers`,100);
     }catch(err){
-      console.error(err);aiStatus('Could not save this song project. Please try again.',0);
+      if(session===songSession){console.error(err);aiStatus('Could not save this song project. Please try again.',0);}
     }finally{
       if(saveProjectBtn){saveProjectBtn.textContent='Save';updateProjectButtons();}
     }
   }
 
   async function importBassStudioProject(file){
-    if(aiBusy){toolsMessage('Wait for the current analysis before importing another song.');return;}
-    if(!file)return;
+    if(!file)return false;
+    const request=++songLoadRequest;
+    setSongImportBusy(true);
     try{
       aiStatus('Opening saved Bass Studio project…',8);
       const project=JSON.parse(await file.text());
+      if(request!==songLoadRequest)return false;
       if(project?.format!=='Bass Stem Studio Project' || !Array.isArray(project?.analysis?.notes))
         throw new Error('This is not a valid Bass Stem Studio saved project.');
       const schemaVersion=Number(project?.schemaVersion ?? 1);
@@ -12720,6 +12783,11 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
         throw new Error(`This saved project uses schema ${schemaVersion}. ${APP_VERSION} supports schema ${PROJECT_SCHEMA_VERSION}.`);
       const src=project.source||{};
       if(!src.audioBase64)throw new Error('This saved project does not contain the original audio.');
+      for(const key of ['parts','history','manualCorrections','keyCorrections','keySections','chords']){
+        const items=project.analysis[key];
+        if(items!=null&&(!Array.isArray(items)||items.some(item=>!item||typeof item!=='object')))
+          throw new Error('This saved project contains damaged analysis data.');
+      }
 
       // RC132: validate every essential part of the incoming project BEFORE
       // changing the currently open song. A damaged project must never clear
@@ -12756,9 +12824,11 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
         throw new Error('This saved Bass Studio project contains damaged or unsupported audio.');
       }
 
+      if(request!==songLoadRequest)return false;
+
       // Commit only after the candidate project has passed all destructive
       // validation above.
-      masterAudio.pause();stopBassStemPlayback(false);stopNoBassPlayback(false);playing=false;cancelAnimationFrame(raf);clearBassStemPlayback();clearNoBassPlayback();
+      replaceSongSession();
       activeAudioFile=new File([audioBlob],audioName,{type,lastModified:Date.now()});
       buffer=decodedBuffer;
       if(mediaURL)URL.revokeObjectURL(mediaURL);
@@ -12783,26 +12853,6 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
           rehearsalVersion:String(p.rehearsalVersion||project?.analysis?.rehearsalVersion||'')
         })).filter(p=>p.coreEnd>p.coreStart);
         renderTimelinePartTabs();
-        if(analysisParts.length)await activateAnalysisPart(0,{seek:false});
-      }else{
-        if(project?.analysis?.bassAudioBase64){
-          await loadBassStemFromBase64(String(project.analysis.bassAudioBase64),String(project.analysis.bassAudioMime||'audio/mpeg'));
-        }
-        const savedRehearsalVersion=String(project?.analysis?.rehearsalVersion||'');
-        if(project?.analysis?.noBassAudioBase64 && (
-          /^rehearsal-v(?:2|3|4)-summed-non-bass-stems$/.test(savedRehearsalVersion) ||
-          /^rehearsal-v5-clean-bass-preview$/.test(savedRehearsalVersion) ||
-          /^rehearsal-v6-segmented-high-quality$/.test(savedRehearsalVersion) ||
-          /^rehearsal-v7-bb0-g3-validated-notes$/.test(savedRehearsalVersion) ||
-          /^rehearsal-v8-roformer-bass-chords$/.test(savedRehearsalVersion) ||
-          /^rehearsal-v9-evidence-chords$/.test(savedRehearsalVersion) ||
-          /^rehearsal-v10-keyboard-chord-evidence$/.test(savedRehearsalVersion)
-        )){
-          currentRehearsalVersion=savedRehearsalVersion;
-          await loadNoBassFromBase64(String(project.analysis.noBassAudioBase64),String(project.analysis.noBassAudioMime||'audio/mpeg'));
-        }else{
-          clearNoBassPlayback();
-        }
       }
 
       notes=restored;analysedBassNotes=restored.map(n=>({...n}));offlineAnalysisReady=true;offlineAnalysisRunning=false;updatePracticeLayoutState(true);
@@ -12828,6 +12878,10 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
       renderAnalysisHistory();
       noteDisplayMode=project.analysis.displayMode==='numbers'?'numbers':'notes';refreshNoteNumberToggle();
 
+      baseSections=isPsalmRecording(audioName,buffer.duration)?cloneSections(defaultPsalmSections):buildTimedSections(buffer.duration,20);
+      sections=cloneSections(baseSections);
+      origVol.value='70';bassVol.value='70';metronomeVol.value='70';tempo.value='100';
+      project.settings=project.settings&&typeof project.settings==='object'?project.settings:{};
       if(project.settings){
         if(Number.isFinite(Number(project.settings.mainVolume)))origVol.value=String(Math.max(0,Math.min(100,Number(project.settings.mainVolume))));
         if(Number.isFinite(Number(project.settings.bassVolume)))bassVol.value=String(Math.max(0,Math.min(100,Number(project.settings.bassVolume))));
@@ -12855,9 +12909,13 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
         bassPracticeMuted=!!project.settings.bassMuted && noBassReady;
         metronomeEnabled=false;
         refreshBassPracticeToggle();refreshMetronomeToggle();updateAudioParams();
-        if(project.settings.sections && typeof project.settings.sections==='object')sections=project.settings.sections;
+        if(project.settings.sections && typeof project.settings.sections==='object'){
+          const validSections=Object.entries(project.settings.sections).filter(([,range])=>
+            range&&Number.isFinite(Number(range.start))&&Number.isFinite(Number(range.end))&&Number(range.end)>Number(range.start));
+          if(validSections.length)sections=Object.fromEntries(validSections.map(([name,range])=>[name,{
+            start:clamp(Number(range.start),0,buffer.duration),end:clamp(Number(range.end),0,buffer.duration)}]));
+        }
       }
-      baseSections=isPsalmRecording(audioName,buffer.duration)?cloneSections(defaultPsalmSections):buildTimedSections(buffer.duration,20);
       storageKey='bassStemSections:'+audioName+'|saved|'+Math.round(buffer.duration*1000);
       selectedSections.clear();selectedTimeframes.clear();multiSectionMode=false;sectionQueue=[];queueIndex=0;
       timeframeQueue=[];timeframeQueueIndex=0;timeframeLoopMode=false;loopEnabled=false;loopStart=null;loopEnd=null;
@@ -12867,7 +12925,7 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
       renderSourceMeta(audioName,buffer.numberOfChannels,buffer.sampleRate,buffer.duration);
       durTime.textContent=fmt(buffer.duration);seek.disabled=false;playBtn.disabled=false;pauseBtn.disabled=true;stopBtn.disabled=false;
       loopToggle.disabled=false;timeFrom.disabled=false;timeTo.disabled=false;clearLoop.disabled=false;
-      refreshStemMixerUI();if(exportAnalysis)exportAnalysis.disabled=false;clearNotes.disabled=false;if(aiAnalyse)aiAnalyse.disabled=false;
+      refreshStemMixerUI();if(exportAnalysis)exportAnalysis.disabled=false;clearNotes.disabled=false;if(aiAnalyse)aiAnalyse.disabled=songImportBusy;
       if(timelineScroll)timelineScroll.scrollLeft=0;
       // Force a complete visual rebuild from the saved analysis. No service call
       // is required: notes, detected scale, selected rehearsal key and tempo are
@@ -12877,17 +12935,61 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
       rebuildSimpleTimeline();
       updateSongInfo(0);
       updateButtons();updateProjectButtons();
-      try{localStorage.removeItem(RUNPOD_PENDING_JOB)}catch(e){}
-      updateSectionKey(0);await cacheAudioForRecovery(activeAudioFile);await persistAnalysisRecovery();
-      aiStatus(`Saved project ready · ${restored.length} notes · no new analysis needed`,100);
+      updateSectionKey(0);
+      seek.value=0;curTime.textContent=fmt(0);
+      status.className='status good';status.textContent='';
+      aiStatus(`Opened “${loadedProjectName||audioName}” · ${restored.length} notes`,100);
+      // The old song has already been replaced. A slow/missing optional stem
+      // cannot leave its title, notes, selection or transport on screen.
+      if(analysisParts.length){
+        await activateAnalysisPart(0,{seek:false});
+      }else{
+        if(project?.analysis?.bassAudioBase64){
+          await loadBassStemFromBase64(String(project.analysis.bassAudioBase64),String(project.analysis.bassAudioMime||'audio/mpeg'));
+        }
+        if(request!==songLoadRequest)return false;
+        const savedRehearsalVersion=String(project?.analysis?.rehearsalVersion||'');
+        if(project?.analysis?.noBassAudioBase64 && (
+          /^rehearsal-v(?:2|3|4)-summed-non-bass-stems$/.test(savedRehearsalVersion) ||
+          /^rehearsal-v5-clean-bass-preview$/.test(savedRehearsalVersion) ||
+          /^rehearsal-v6-segmented-high-quality$/.test(savedRehearsalVersion) ||
+          /^rehearsal-v7-bb0-g3-validated-notes$/.test(savedRehearsalVersion) ||
+          /^rehearsal-v8-roformer-bass-chords$/.test(savedRehearsalVersion) ||
+          /^rehearsal-v9-evidence-chords$/.test(savedRehearsalVersion) ||
+          /^rehearsal-v10-keyboard-chord-evidence$/.test(savedRehearsalVersion)
+        )){
+          currentRehearsalVersion=savedRehearsalVersion;
+          await loadNoBassFromBase64(String(project.analysis.noBassAudioBase64),String(project.analysis.noBassAudioMime||'audio/mpeg'));
+        }else{
+          clearNoBassPlayback();
+        }
+      }
+
+      if(request!==songLoadRequest)return false;
+      bassPracticeMuted=!!project.settings.bassMuted&&noBassReady;
+      refreshBassPracticeToggle();refreshStemMixerUI();updateAudioParams();
+      const expectedBass=analysisParts.length?!!analysisParts[0].bassBase64:!!project.analysis.bassAudioBase64;
+      const expectedNoBass=analysisParts.length?!!analysisParts[0].noBassBase64:!!project.analysis.noBassAudioBase64;
+      const warning=(expectedBass&&!bassStemReady)||(expectedNoBass&&!noBassReady);
+      aiStatus(`Opened “${loadedProjectName||audioName}” · ${restored.length} notes${warning?' · some saved backing audio unavailable':''}`,100);
+      await cacheAudioForRecovery(activeAudioFile);
+      if(request!==songLoadRequest)return false;
+      await persistAnalysisRecovery();
+      return true;
     }catch(err){
+      if(request!==songLoadRequest)return false;
       console.error(err);
       const message=err instanceof SyntaxError
         ? 'This saved Bass Studio project is damaged or invalid.'
         : (err?.message||'Could not open this saved Bass Studio project.');
       aiStatus(message,0);
+      status.className='status warn';status.textContent=message;
+      return false;
     }finally{
-      if(projectFileInput)projectFileInput.value='';
+      if(request===songLoadRequest){
+        if(projectFileInput)projectFileInput.value='';
+        setSongImportBusy(false);updatePracticeLayoutState(true);
+      }
     }
   }
 
@@ -12897,6 +12999,7 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
   }
 
   function clearBassStemPlayback(){
+    cancelStemLoad(bassStemAudio);
     try{bassStemAudio?.pause()}catch(e){}
     if(bassStemAudio){bassStemAudio.removeAttribute('src');try{bassStemAudio.load()}catch(e){}}
     if(bassStemURL){try{URL.revokeObjectURL(bassStemURL)}catch(e){}}
@@ -12911,28 +13014,22 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
   }
 
   async function loadBassStemFromBase64(base64,mime='audio/mpeg'){
+    const session=songSession;let ownURL=bassStemURL;
     if(!base64){clearBassStemPlayback();return false;}
     try{
+      cancelStemLoad(bassStemAudio);
       try{bassStemAudio?.pause()}catch(e){}
       if(bassStemURL){try{URL.revokeObjectURL(bassStemURL)}catch(e){}}
       const bytes=base64ToUint8Array(base64);
       const blob=new Blob([bytes],{type:mime||'audio/mpeg'});
-      bassStemURL=URL.createObjectURL(blob);
+      bassStemURL=ownURL=URL.createObjectURL(blob);
       bassStemBase64=String(base64);
       bassStemMime=mime||'audio/mpeg';
       bassStemReady=false;
-      bassStemAudio.src=bassStemURL;
       bassStemAudio.preservesPitch=true;
       if('webkitPreservesPitch' in bassStemAudio)bassStemAudio.webkitPreservesPitch=true;
-      await new Promise((resolve,reject)=>{
-        const ok=()=>{cleanup();resolve()};
-        const bad=()=>{cleanup();reject(new Error('Could not prepare the separated bass stem for rehearsal.'))};
-        const cleanup=()=>{bassStemAudio.removeEventListener('loadedmetadata',ok);bassStemAudio.removeEventListener('error',bad)};
-        bassStemAudio.addEventListener('loadedmetadata',ok,{once:true});
-        bassStemAudio.addEventListener('error',bad,{once:true});
-        bassStemAudio.load();
-        if(bassStemAudio.readyState>=1)ok();
-      });
+      await prepareStemMedia(bassStemAudio,ownURL);
+      if(session!==songSession||bassStemURL!==ownURL)return false;
       bassStemReady=true;
       bassStemAudio.playbackRate=Number(tempo?.value||100)/100;
       try{bassStemAudio.currentTime=clamp((masterAudio.currentTime||0)-stemTimelineOffset,0,Math.max(0,(bassStemAudio.duration||0)-.01))}catch(e){}
@@ -12940,6 +13037,7 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
       updateAudioParams();
       return true;
     }catch(err){
+      if(session!==songSession||bassStemURL!==ownURL||err?.name==='AbortError')return false;
       console.error('Bass rehearsal stem preparation failed',err);
       clearBassStemPlayback();
       return false;
@@ -12971,6 +13069,7 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
   }
 
   function clearNoBassPlayback(){
+    cancelStemLoad(noBassAudio);
     try{noBassAudio?.pause()}catch(e){}
     if(noBassAudio){noBassAudio.removeAttribute('src');try{noBassAudio.load()}catch(e){}}
     if(noBassURL){try{URL.revokeObjectURL(noBassURL)}catch(e){}}
@@ -12986,28 +13085,22 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
   }
 
   async function loadNoBassFromBase64(base64,mime='audio/mpeg'){
+    const session=songSession;let ownURL=noBassURL;
     if(!base64){clearNoBassPlayback();return false;}
     try{
+      cancelStemLoad(noBassAudio);
       try{noBassAudio?.pause()}catch(e){}
       if(noBassURL){try{URL.revokeObjectURL(noBassURL)}catch(e){}}
       const bytes=base64ToUint8Array(base64);
       const blob=new Blob([bytes],{type:mime||'audio/mpeg'});
-      noBassURL=URL.createObjectURL(blob);
+      noBassURL=ownURL=URL.createObjectURL(blob);
       noBassBase64=String(base64);
       noBassMime=mime||'audio/mpeg';
       noBassReady=false;
-      noBassAudio.src=noBassURL;
       noBassAudio.preservesPitch=true;
       if('webkitPreservesPitch' in noBassAudio)noBassAudio.webkitPreservesPitch=true;
-      await new Promise((resolve,reject)=>{
-        const ok=()=>{cleanup();resolve()};
-        const bad=()=>{cleanup();reject(new Error('Could not prepare the no-bass rehearsal track.'))};
-        const cleanup=()=>{noBassAudio.removeEventListener('loadedmetadata',ok);noBassAudio.removeEventListener('error',bad)};
-        noBassAudio.addEventListener('loadedmetadata',ok,{once:true});
-        noBassAudio.addEventListener('error',bad,{once:true});
-        noBassAudio.load();
-        if(noBassAudio.readyState>=1)ok();
-      });
+      await prepareStemMedia(noBassAudio,ownURL);
+      if(session!==songSession||noBassURL!==ownURL)return false;
       noBassReady=true;
       noBassAudio.playbackRate=Number(tempo?.value||100)/100;
       try{noBassAudio.currentTime=clamp((masterAudio.currentTime||0)-stemTimelineOffset,0,Math.max(0,(noBassAudio.duration||0)-.01))}catch(e){}
@@ -13015,6 +13108,7 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
       updateAudioParams();
       return true;
     }catch(err){
+      if(session!==songSession||noBassURL!==ownURL||err?.name==='AbortError')return false;
       console.error('No-bass rehearsal track preparation failed',err);
       clearNoBassPlayback();
       return false;
@@ -13276,18 +13370,22 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
 
   async function play(){
     if(!buffer) return;
-    ensureCtx(); await ctx.resume(); buildGraph();
+    const session=songSession;
+    ensureCtx(); await ctx.resume(); if(session!==songSession)return;buildGraph();
     if(playing) return;
     masterAudio.playbackRate=Number(tempo.value)/100;
     masterAudio.preservesPitch=true;
     if('webkitPreservesPitch' in masterAudio) masterAudio.webkitPreservesPitch=true;
     try{
       await masterAudio.play();
+      if(session!==songSession)return;
       playing=true;lastMetronomeBeat=-1;lastMetronomeTime=currentTime()-.045;
       if(noBassReady)await startNoBassPlayback();
       if(bassStemReady)await startBassStemPlayback();
+      if(session!==songSession)return;
       updateButtons(); tick();
     }catch(e){
+      if(session!==songSession)return;
       status.className='status warn'; status.textContent='Playback was blocked. Tap Play again.';
     }
   }
@@ -13321,8 +13419,10 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
 
   // ---------- File Load ----------
   async function loadAudioFile(f,{cacheForRecovery=true,recoveryRestore=false}={}){
-    if(aiBusy&&!recoveryRestore){toolsMessage('Wait for the current analysis before importing another song.');return false;}
     if(!f)return false;
+    const request=recoveryRestore?songLoadRequest:++songLoadRequest;
+    const session=songSession;
+    if(!recoveryRestore)setSongImportBusy(true);
 
     // RC131: validate and decode the candidate file before changing the current
     // working song. A damaged/non-audio import must not leave the previous song
@@ -13333,6 +13433,8 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
       const decodeSource=await f.arrayBuffer();
       decodedBuffer=await ctx.decodeAudioData(decodeSource.slice(0));
     }catch(err){
+      if(request!==songLoadRequest||session!==songSession)return false;
+      if(!recoveryRestore)setSongImportBusy(false);
       console.error(err);
       const message='Could not decode this audio file. Try MP3 or WAV.';
       status.className='status warn';status.textContent=message;
@@ -13340,6 +13442,8 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
       return false;
     }
 
+    if(request!==songLoadRequest||session!==songSession)return false;
+    if(!recoveryRestore)replaceSongSession({preservePending:readPendingRunPodJob()?.signature===cloudFileSignature(f)});
     activeAudioFile=f;loadedProjectName='';
     if(preparedAnalysisUploadCache?.signature!==cloudFileSignature(f))preparedAnalysisUploadCache=null;
     masterAudio.pause();stopBassStemPlayback(false);stopNoBassPlayback(false);playing=false;cancelAnimationFrame(raf);
@@ -13385,18 +13489,21 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
       if(timelineScroll)timelineScroll.scrollLeft=0;
       drawAll();updateButtons();
       if(cacheForRecovery)await cacheAudioForRecovery(f);
+      if(request!==songLoadRequest)return false;
       await restoreDeviceAnalysis();
+      if(request!==songLoadRequest)return false;
       return true;
     }catch(err){
+      if(request!==songLoadRequest)return false;
       console.error(err);
       status.className='status warn';status.textContent='Could not decode this audio file. Try MP3 or WAV.';
       return false;
-    }
+    }finally{if(!recoveryRestore&&request===songLoadRequest)setSongImportBusy(false);}
   }
 
-  importBtn.onclick=()=>fileInput.click();
+  importBtn.onclick=()=>{fileInput.value='';fileInput.click();};
   fileInput.onchange=async()=>{
-    const f=fileInput.files?.[0];if(!f)return;
+    const f=fileInput.files?.[0];fileInput.value='';if(!f)return;
     await loadAudioFile(f,{cacheForRecovery:true,recoveryRestore:false});
   };
 
@@ -14077,9 +14184,10 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
 
   async function cacheAudioForRecovery(file){
     if(!file)return false;
-    const signature=cloudFileSignature(file);
+    const signature=cloudFileSignature(file),session=songSession;
     try{
       const db=await openRecoveryDb();
+      if(session!==songSession){db.close();return false;}
       await new Promise((resolve,reject)=>{
         const tx=db.transaction(RUNPOD_RECOVERY_STORE,'readwrite');
         const store=tx.objectStore(RUNPOD_RECOVERY_STORE);
@@ -14200,8 +14308,9 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
     return v<0 ? Math.round(v*32768) : Math.round(v*32767);
   }
 
-  async function encodeAudioBufferForAnalysis(audioBuffer,kbps,startSeconds=0,endSeconds=null,progressLabel=''){
+  async function encodeAudioBufferForAnalysis(audioBuffer,kbps,startSeconds=0,endSeconds=null,progressLabel='',session=songSession){
     const lame=await ensureLargeSongEncoder();
+    assertSongSession(session);
     const channels=Math.min(2,Math.max(1,audioBuffer.numberOfChannels||1));
     const sampleRate=Math.round(audioBuffer.sampleRate||44100);
     const supportedRates=new Set([48000,44100,32000,24000,22050,16000,12000,11025,8000]);
@@ -14224,6 +14333,7 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
     let lastYield=performance.now();
 
     for(let offset=0;offset<total;offset+=blockSize){
+      assertSongSession(session);
       const len=Math.min(blockSize,total-offset);
       const sourceStart=startSample+offset;
       for(let i=0;i<len;i++){
@@ -14304,9 +14414,10 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
     };
   }
 
-  async function runPodFetch(url,key,options={},maxAttempts=8){
+  async function runPodFetch(url,key,options={},maxAttempts=8,session=songSession){
     let lastErr;
     for(let attempt=1;attempt<=maxAttempts;attempt++){
+      assertSongSession(session);
       try{
         const res=await fetch(url,{...options,headers:{
           'Accept':'application/json',
@@ -14315,6 +14426,7 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
           ...(options.headers||{})
         }});
         const text=await res.text();
+        assertSongSession(session);
         let data;try{data=JSON.parse(text)}catch{data={raw:text}}
         if(!res.ok){
           const err=new Error(`RunPod HTTP ${res.status}: ${JSON.stringify(data).slice(0,900)}`);
@@ -14322,6 +14434,7 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
         }
         return data;
       }catch(err){
+        assertSongSession(session);
         lastErr=err;
         if(err?.httpStatus===401) throw err;
         const msg=String(err?.message||err);
@@ -14334,9 +14447,10 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
     throw lastErr;
   }
 
-  async function pollRunPodJob(key,id){
+  async function pollRunPodJob(key,id,session=songSession){
     for(let checks=0;checks<360;checks++){
-      const d=await runPodFetch(`https://api.runpod.ai/v2/${encodeURIComponent(RUNPOD_ENDPOINT)}/status/${encodeURIComponent(id)}`,key,{method:'GET'},12);
+      const d=await runPodFetch(`https://api.runpod.ai/v2/${encodeURIComponent(RUNPOD_ENDPOINT)}/status/${encodeURIComponent(id)}`,key,{method:'GET'},12,session);
+      assertSongSession(session);
       const st=String(d.status||'UNKNOWN').toUpperCase();
       const pct=Math.min(94,18+checks*.7);
       aiStatus('Analysis sent — you can use other apps',pct);
@@ -14386,6 +14500,7 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
 
   function updatePracticeLayoutState(force=false){
     updateAnalysisToolsState();
+    updateProjectButtons();
     const ready=!!buffer && !!offlineAnalysisReady;
 
     document.body.classList.toggle('practice-ready',ready);
@@ -15219,7 +15334,8 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
     });
   }
 
-  async function prepareAnalysisPartUpload(file,part,totalParts){
+  async function prepareAnalysisPartUpload(file,part,totalParts,session=songSession){
+    assertSongSession(session);
     const wholeSong=totalParts===1 && part.audioStart<=.001 && Math.abs(part.audioEnd-buffer.duration)<.05;
     if(wholeSong && file.size<=RUNPOD_RUN_RAW_SAFE_BYTES){
       return {file,bitrate:null,prepared:false};
@@ -15228,7 +15344,8 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
     const rates=[ANALYSIS_PART_BITRATE_KBPS,224,192,160,144,128];
     for(const rate of rates){
       const label=`Preparing ${part.label} of ${totalParts} — keep this screen open`;
-      const blob=await encodeAudioBufferForAnalysis(buffer,rate,part.audioStart,part.audioEnd,label);
+      const blob=await encodeAudioBufferForAnalysis(buffer,rate,part.audioStart,part.audioEnd,label,session);
+      assertSongSession(session);
       if(blob.size<=RUNPOD_RUN_RAW_SAFE_BYTES){
         const base=(file.name||'song').replace(/\.[^.]+$/,'');
         return {
@@ -15251,9 +15368,11 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
     };
   }
 
-  async function submitPendingAnalysisParts(pending,key,file){
+  async function submitPendingAnalysisParts(pending,key,file,session=songSession){
+    assertSongSession(session);
     const total=pending.parts.length;
     await cacheAudioForRecovery(file);
+    assertSongSession(session);
 
     for(let i=0;i<total;i++){
       const part=pending.parts[i];
@@ -15261,11 +15380,13 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
 
       aiStatus(`Preparing ${part.label} of ${total} — keep this screen open`,
                Math.max(2,Math.round((i/Math.max(1,total))*12)));
-      const upload=await prepareAnalysisPartUpload(file,part,total);
+      const upload=await prepareAnalysisPartUpload(file,part,total,session);
+      assertSongSession(session);
 
       aiStatus(`Uploading ${part.label} of ${total} — keep this screen open`,
                Math.max(7,Math.round(((i+.45)/Math.max(1,total))*15)));
       const b64=await fileToBase64(upload.file);
+      assertSongSession(session);
 
       const submitted=await runPodFetch(
         `https://api.runpod.ai/v2/${encodeURIComponent(RUNPOD_ENDPOINT)}/run`,
@@ -15278,9 +15399,10 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
             quality:'accuracy',
             return_bass_audio:true
           }})
-        },1
+        },1,session
       );
 
+      assertSongSession(session);
       const immediate=String(submitted?.status||'UNKNOWN').toUpperCase();
       if(['FAILED','CANCELLED','TIMED_OUT'].includes(immediate))
         throw new Error(`${part.label} was rejected by the analysis service (${immediate}).`);
@@ -15297,29 +15419,35 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
     return pending;
   }
 
-  async function collectPendingAnalysisParts(pending,key){
+  async function collectPendingAnalysisParts(pending,key,session=songSession){
+    assertSongSession(session);
     const total=pending.parts.length;
     const results=[];
     for(let i=0;i<total;i++){
+      assertSongSession(session);
       const part=pending.parts[i];
       if(!part.id)throw new Error(`${part.label} has not been submitted yet.`);
       aiStatus(`Analysing ${part.label} of ${total} — you can use other apps`,
                Math.min(94,20+Math.round((i/Math.max(1,total))*70)));
 
       const cached=await recoveryStore('results',s=>s.get(part.id)).catch(()=>null);
+      assertSongSession(session);
       if(cached?.signature===pending.signature&&cached?.data?.status==='COMPLETED'){results.push(cached.data);continue;}
       let current=await runPodFetch(
         `https://api.runpod.ai/v2/${encodeURIComponent(RUNPOD_ENDPOINT)}/status/${encodeURIComponent(part.id)}`,
-        key,{method:'GET'},8
+        key,{method:'GET'},8,session
       );
+      assertSongSession(session);
       let st=String(current?.status||'UNKNOWN').toUpperCase();
       if(!['COMPLETED','FAILED','CANCELLED','TIMED_OUT'].includes(st)){
-        current=await pollRunPodJob(key,part.id);
+        current=await pollRunPodJob(key,part.id,session);
+        assertSongSession(session);
         st=String(current?.status||'UNKNOWN').toUpperCase();
       }
       if(st!=='COMPLETED')
         throw new Error(`${part.label} analysis finished with status ${st}.`);
-      await recoveryStore('results',s=>s.put({id:part.id,signature:pending.signature,savedAt:Date.now(),data:current})).catch(()=>toolsMessage('Part backup unavailable. Keep the app open until analysis finishes.'));
+      await recoveryStore('results',s=>s.put({id:part.id,signature:pending.signature,savedAt:Date.now(),data:current})).catch(()=>{if(session===songSession)toolsMessage('Part backup unavailable. Keep the app open until analysis finishes.');});
+      assertSongSession(session);
       results.push(current);
     }
     return results;
@@ -15496,8 +15624,9 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
     return out;
   }
 
-  async function applySegmentedRunPodResults(pending,finalDataList){
-    if(pending.scope==='section')return applySectionAnalysis(pending,finalDataList);
+  async function applySegmentedRunPodResults(pending,finalDataList,session=songSession){
+    assertSongSession(session);
+    if(pending.scope==='section')return applySectionAnalysis(pending,finalDataList,session);
     if(!Array.isArray(finalDataList)||finalDataList.length!==pending.parts.length)
       throw new Error('Not all song parts returned an analysis result.');
 
@@ -15561,6 +15690,7 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
     if(timelineScroll)timelineScroll.scrollLeft=0;
 
     await activateAnalysisPart(0,{seek:false});
+    assertSongSession(session);
     currentRehearsalVersion=String(parts[0]?.rehearsalVersion||'');
     drawAll();updateProjectButtons();await persistAnalysisRecovery();
 
@@ -15573,7 +15703,8 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
 
   async function analyseBassWithAI(){
     const file=activeAudioFile||fileInput.files?.[0];
-    if(!buffer||!file||aiBusy)return;
+    if(!buffer||!file||aiBusy||songImportBusy)return;
+    const session=songSession;
     const key=getRunPodKey();
     if(!key){aiStatus('Analysis cancelled · API key not entered',0);return;}
 
@@ -15587,15 +15718,18 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
       const matching=!!(pending?.signature===signature&&Array.isArray(pending?.parts)&&pending.parts.length);
 
       if(pending&&!matching)throw new Error('Re-open the song with the saved analysis before starting another.');
-      if(forceFreshAnalysis&&!matching){await persistAnalysisRecovery();pending=null;}
+      if(forceFreshAnalysis&&!matching){await persistAnalysisRecovery();assertSongSession(session);pending=null;}
       if(!pending||!matching){
         pending=makePendingPartGroup(file,signature);
         savePendingRunPodJob(pending);
       }
 
-      await submitPendingAnalysisParts(pending,key,file);
-      const finalParts=await collectPendingAnalysisParts(pending,key);
-      const result=await applySegmentedRunPodResults(pending,finalParts);
+      await submitPendingAnalysisParts(pending,key,file,session);
+      assertSongSession(session);
+      const finalParts=await collectPendingAnalysisParts(pending,key,session);
+      assertSongSession(session);
+      const result=await applySegmentedRunPodResults(pending,finalParts,session);
+      assertSongSession(session);
       clearPendingRunPodJob();
 
       aiStatus(
@@ -15603,6 +15737,7 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
         100
       );
     }catch(err){
+      if(session!==songSession)return;
       console.error('Bass analysis failure',err);
       if(err?.httpStatus===401){
         forgetRunPodKey();
@@ -15611,25 +15746,28 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
         aiStatus(`Analysis error: ${String(err?.message||err)}`,0);
       }
     }finally{
-      aiBusy=false;aiAnalyse.disabled=!buffer;
+      if(session!==songSession)return;
+      aiBusy=false;aiAnalyse.disabled=!buffer||songImportBusy;
       aiAnalyse.removeAttribute('aria-busy');
       updatePracticeLayoutState(true);
     }
   }
 
   async function resumeSavedRunPodAnalysis(){
-    if(pendingResumeBusy||aiBusy)return false;
+    if(pendingResumeBusy||aiBusy||songImportBusy)return false;
     let pending=readPendingRunPodJob();
     if(!pending?.signature||!Array.isArray(pending?.parts)||!pending.parts.length)return restoreLatestSession();
     const key=storedRunPodKey();
     if(!key)return false;
 
+    const session=songSession,request=songLoadRequest;
     pendingResumeBusy=true;aiBusy=true;
     if(aiAnalyse){aiAnalyse.disabled=true;aiAnalyse.textContent='In Progress.....';aiAnalyse.setAttribute('aria-busy','true');}
     try{
       if(activeAudioFile&&cloudFileSignature(activeAudioFile)!==pending.signature)return false;
       if(!buffer||!activeAudioFile){
         const saved=await getRecoveryAudio(pending.signature);
+        assertSongSession(session);if(request!==songLoadRequest)return false;
         if(!saved?.blob){
           aiStatus('Previous analysis is saved. Re-open the same audio file to collect the result.',12);
           return false;
@@ -15639,13 +15777,13 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
           {type:saved.type||pending.type||'audio/mpeg',lastModified:Number(saved.lastModified)||Date.now()}
         );
         const ok=await loadAudioFile(restored,{cacheForRecovery:false,recoveryRestore:true});
-        if(!ok)return false;
+        assertSongSession(session);if(!ok||request!==songLoadRequest)return false;
       }
 
       pending=readPendingRunPodJob()||pending;
-      await submitPendingAnalysisParts(pending,key,activeAudioFile);
-      const finalParts=await collectPendingAnalysisParts(pending,key);
-      const result=await applySegmentedRunPodResults(pending,finalParts);
+      await submitPendingAnalysisParts(pending,key,activeAudioFile,session);assertSongSession(session);
+      const finalParts=await collectPendingAnalysisParts(pending,key,session);assertSongSession(session);
+      const result=await applySegmentedRunPodResults(pending,finalParts,session);assertSongSession(session);
       clearPendingRunPodJob();
 
       aiStatus(
@@ -15654,6 +15792,7 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
       );
       return true;
     }catch(err){
+      if(session!==songSession)return false;
       console.error('Saved analysis recovery failed',err);
       if(err?.httpStatus===401){
         forgetRunPodKey();
@@ -15666,8 +15805,9 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
       }
       return false;
     }finally{
+      if(session!==songSession)return false;
       pendingResumeBusy=false;aiBusy=false;
-      if(aiAnalyse){aiAnalyse.disabled=!buffer;aiAnalyse.removeAttribute('aria-busy');}
+      if(aiAnalyse){aiAnalyse.disabled=!buffer||songImportBusy;aiAnalyse.removeAttribute('aria-busy');}
       updatePracticeLayoutState(true);
     }
   }
@@ -17271,8 +17411,8 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
 
   // ---------- Controls ----------
   refreshNoteNumberToggle();refreshStemMixerUI();updatePracticeLayoutState(true);
-  importProjectBtn?.addEventListener('click',()=>projectFileInput?.click());
-  projectFileInput?.addEventListener('change',()=>importBassStudioProject(projectFileInput.files?.[0]));
+  importProjectBtn?.addEventListener('click',()=>{projectFileInput.value='';projectFileInput.click();});
+  projectFileInput?.addEventListener('change',()=>{const file=projectFileInput.files?.[0];projectFileInput.value='';importBassStudioProject(file);});
   saveProjectBtn?.addEventListener('click',saveBassStudioProject);
   noteNumberSelect?.addEventListener('change',()=>{
     const value=noteNumberSelect.value;

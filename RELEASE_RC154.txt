@@ -1,0 +1,41 @@
+Bass Stem Studio RC154
+24 October 2026
+
+Saved imports replace the open song
+
+- Commit and display the imported audio, title, notes and chords before
+  preparing optional saved bass/backing tracks. The previous song no longer
+  stays on screen while a saved track is loading.
+- Stop old playback and clear its stems, parts, selections, repeats, editing
+  history, cached fret positions and transpose state. Restore the imported
+  settings, using defaults for absent song settings in older saved files.
+- Selecting the same saved file again starts a fresh import.
+- The latest file selection wins. Delayed imports, recovery reads, stem
+  loads and cloud responses cannot replace or mix with the newer song.
+- Bound optional stem loading to 15 seconds per track and cancel its local
+  event wait when replaced. Report unavailable backing audio while keeping
+  the imported original audio, notes and chords usable.
+- Validate original audio and analysis before replacing a working song.
+  Invalid files show an error and preserve the current usable project.
+- Importing during analysis detaches the old song's local work. Already
+  submitted remote jobs are not cancelled; their responses are ignored and
+  no additional old-song parts are submitted after the replacement.
+- Prevent automatic recovery or a new analysis starting during an import.
+  Restore normal Save and Analyse controls when opening finishes.
+
+Verification
+- Reproduced RC153 showing Song A after Song B's original audio had loaded
+  while waiting for its optional bass stem. The regression now passes.
+- Tested import while playing, segmented and single saved stems, repeat
+  selection of the same file, legacy missing settings, saved settings,
+  invalid original audio, invalid analysis, stalled backing audio, overlapping
+  imports, late stem/recovery/cloud responses and raw audio replacement.
+- Ordinary analysis still completes and enables Save. Cloud requests in
+  these tests are intercepted locally; no paid analysis jobs were submitted.
+- Existing correction, transpose, project save/import, recovery, section
+  reanalysis and mobile layout regression suites pass.
+- Bass octave restrictions, eight-fret paging, note classification, chord
+  evidence thresholds and all-visible chord display are unchanged.
+
+Reload the app. Existing saved .bassstudio files require no reanalysis.
+No backend change is required.
