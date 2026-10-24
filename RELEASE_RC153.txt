@@ -1,0 +1,41 @@
+Bass Stem Studio RC153
+24 October 2026
+
+All chord changes visible
+
+- Remove the two-name limit and every +N more button. All successive chord
+  names are shown directly below the relevant timestamp, from top to bottom.
+- Align each list at the top of its timestamp cell. Allow the row to grow
+  enough to show complete names at the chosen font size.
+- Highlight the current chord using its start and end times. Preserve the
+  purple question mark for uncertain chords, even when highlighted. Leave
+  gaps unhighlighted rather than inventing or carrying forward a chord.
+- Keep optional exact-time details and editing available by tapping a name.
+  These are no longer required to see a chord name.
+- Keep adjacent identical chord grouping, all original detection data,
+  confidence safeguards, correction tools, bass settings and audio unchanged.
+
+How to read the chord row
+With 2s selected, a cell covers two seconds. A vertical list represents the
+app's estimated sequence of chord changes during that interval. It is not
+a list of alternatives to choose from. A purple ? means the individual
+estimate is uncertain. Rapid apparent changes may include detection errors;
+this display update does not establish that all chord detections are correct.
+
+Verification
+- All inline JavaScript parses.
+- Existing key, transpose, note/chord editing, recovery, save/import,
+  reanalysis and failure-preservation checks passed.
+- All four distinct chords in a crowded fixture are visible without clicking.
+  No +N more controls remain. Source notes and chords are not rewritten.
+- The fourth chord highlights at its time, uncertainty is retained, and a
+  later gap has no active chord. Exact fragment editing still works.
+- Mobile/layout checks passed at 360, 412 and 800 px widths with 11, 14 and
+  22 px fonts: aligned columns, complete labels, no page overflow, equal
+  bass-note cards. Four chord names need 88 px at the default 14 px font.
+- The 412 px result was inspected visually.
+- Bass display, octave restriction, fretboard, note classification, chord
+  evidence thresholds and chord grouping match RC152 unchanged.
+
+Reload the app to see these changes. Existing saved analyses work without
+reanalysis. No backend change or paid cloud audio test is required.

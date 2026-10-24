@@ -16,6 +16,7 @@ const fixture=`window.__layout={
  busy(value){aiBusy=value;updateAnalysisToolsState();},
  select(value){selectedTimeframes=new Set(value);loopStart=null;loopEnd=null;updateAnalysisToolsState();},
  reset(){buffer=null;resetSongContext();notes=[];offlineAnalysisReady=false;updateAnalysisToolsState();},
+ at(t){updateSimpleTimeline(t);},
  refresh(){rebuildSimpleTimeline._sig='';drawAll();}
 };\n`;
 (async()=>{
@@ -33,10 +34,14 @@ const fixture=`window.__layout={
  await page.evaluate(()=>__layout.load());
  const original=await page.evaluate(()=>JSON.stringify([__layout.state().notes,__layout.state().detectedChordChanges]));
  const first=page.locator('.chord-cell').first();
- assert.deepEqual(await first.locator('.chord-name').allTextContents(),['C#sus2?','AbM?']);
- assert.equal(await first.locator('.chord-more').innerText(),'+2 more');
+ assert.deepEqual(await first.locator('.chord-name').allTextContents(),['C#sus2?','AbM?','Ab11','Cm7']);
+ assert.equal(await page.locator('.chord-more').count(),0,'no chord is hidden behind a count');
+ await page.evaluate(()=>__layout.at(1.5));assert.equal(await page.locator('.current-chord').innerText(),'Cm7','fourth chord follows the clock');
+ await page.evaluate(()=>__layout.at(.5));assert.equal(await page.locator('.current-chord').innerText(),'AbM?');
+ assert(await page.locator('.current-chord.tentative').isVisible(),'highlight must preserve uncertainty');
+ await page.evaluate(()=>__layout.at(6.5));assert.equal(await page.locator('.current-chord').count(),0,'no invented chord in a gap');
  assert.equal(await page.evaluate(()=>JSON.stringify([__layout.state().notes,__layout.state().detectedChordChanges])),original,'preview does not rewrite analysis');
- await first.locator('.chord-more').click();
+ await first.locator('.chord-name').first().click();
  assert(await page.locator('#chordDetailsDialog').isVisible());
  assert.equal(await page.locator('.chord-detail-row').count(),5,'all original changes remain available');
  assert((await page.locator('#chordDetailsList').innerText()).includes('0:00.750 to 0:01'));
@@ -56,8 +61,8 @@ const fixture=`window.__layout={
  await page.locator('#scaleSelect').selectOption('7');state=await page.evaluate(()=>__layout.state());assert.equal(state.transposeSemitones,2);
  await page.locator('#editAnalysisToggle').click();assert.equal(await page.locator('#editAnalysisToggle').innerText(),'Done editing');
  assert(await page.locator('#analyseSelection').isDisabled());
- await page.locator('.chord-cell').first().locator('.chord-more').click();
- assert(await page.locator('#chordDetailsDialog').isVisible(),'more remains accessible while editing');
+ await page.locator('.chord-cell').first().locator('.chord-name').nth(1).click();
+ assert(await page.locator('#chordDetailsDialog').isVisible(),'merged chord fragments remain individually editable');
  await page.locator('#chordDetailsList button').nth(2).click();
  assert(await page.locator('#analysisEditDialog').isVisible());
  assert.equal(await page.locator('#editEventStart').inputValue(),'0.75');
@@ -76,7 +81,7 @@ const fixture=`window.__layout={
    const rect=e=>{const r=e.getBoundingClientRect();return {x:r.x,width:r.width,height:r.height,top:r.top,bottom:r.bottom};};
    return {overflow:document.documentElement.scrollWidth>innerWidth+2,ruler:rect(document.querySelector('#chordRuler')),
     cells:[...document.querySelectorAll('.chord-cell')].map(rect),times:[...document.querySelectorAll('.time-mark')].map(rect),
-    labels:[...document.querySelectorAll('.chord-name,.chord-more')].map(e=>({...rect(e),scroll:e.scrollHeight,client:e.clientHeight})),
+    labels:[...document.querySelectorAll('.chord-name')].map(e=>({...rect(e),scroll:e.scrollHeight,client:e.clientHeight})),
     cards:[...document.querySelectorAll('.note-token')].map(rect)};
   });
   assert(!metrics.overflow,`page overflow ${width}/${font}`);
@@ -88,9 +93,9 @@ const fixture=`window.__layout={
  }}
  await page.setViewportSize({width:412,height:900});await page.locator('#fontSizeInput').fill('14');await page.locator('#fontSizeInput').dispatchEvent('change');
  await page.locator('#analysisTools > summary').click();await page.locator('.simple-timeline-card').scrollIntoViewIfNeeded();
- await page.screenshot({path:'/workspace/scratch/fd45fc3be636/work152/timeline-mobile.png'});
+ await page.screenshot({path:'/workspace/scratch/fd45fc3be636/work153/timeline-mobile.png'});
  await page.locator('#analysisTools > summary').click();await page.locator('#analysisTools').scrollIntoViewIfNeeded();
- await page.screenshot({path:'/workspace/scratch/fd45fc3be636/work152/corrections-mobile.png'});
+ await page.screenshot({path:'/workspace/scratch/fd45fc3be636/work153/corrections-mobile.png'});
  await page.evaluate(()=>__layout.reset());assert(await page.locator('#editAnalysisToggle').isDisabled());
  assert.deepEqual(errors,[]);console.log(JSON.stringify({result:'PASS',measurements}));
  await browser.close();

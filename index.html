@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bass Stem Studio RC152</title>
+<title>Bass Stem Studio RC153</title>
 <script>
 /* RC119: initialise the correct physical-device font before the first paint.
    This deliberately does not rely on viewport width alone, because Chrome's
@@ -11708,11 +11708,11 @@ html body #appRoot#appRoot#appRoot .analysis-edit-dialog label[hidden]{display:n
 html body #appRoot#appRoot#appRoot .analysis-edit-dialog::backdrop{background:rgba(0,0,0,.65)}
 html body #appRoot#appRoot#appRoot.analysis-editing .note-token,html body #appRoot#appRoot#appRoot.analysis-editing .chord-name{cursor:pointer;outline:1px dashed #c2d6e0;outline-offset:-4px}
 
-/* RC152: compact previews and progressive correction controls. */
-html body #appRoot#appRoot#appRoot .chord-cell{display:flex!important;flex-direction:column!important;justify-content:center!important;align-items:stretch!important;gap:0!important;overflow:visible!important}
+/* RC153: every chord visible in time order; correction controls remain compact. */
+html body #appRoot#appRoot#appRoot .chord-cell{display:flex!important;flex-direction:column!important;justify-content:flex-start!important;align-items:stretch!important;gap:0!important;overflow:visible!important}
 html body #appRoot#appRoot#appRoot .chord-name{flex:0 0 auto!important;width:100%!important;max-width:100%!important;min-height:calc(var(--ui-font-size)*1.35)!important;white-space:normal!important;overflow:visible!important;overflow-wrap:anywhere!important;cursor:pointer!important}
-html body #appRoot#appRoot#appRoot .chord-more{display:block!important;flex:0 0 auto!important;position:static!important;width:100%!important;min-width:0!important;height:auto!important;min-height:28px!important;padding:2px!important;margin:0!important;background:transparent!important;border:0!important;box-shadow:none!important;color:#a8d4e4!important;font:inherit!important;line-height:1.35!important;cursor:pointer!important}
-html body #appRoot#appRoot#appRoot .chord-name:focus-visible,html body #appRoot#appRoot#appRoot .chord-more:focus-visible{outline:2px solid #78cde8!important;outline-offset:-2px!important}
+html body #appRoot#appRoot#appRoot .chord-name:focus-visible{outline:2px solid #78cde8!important;outline-offset:-2px!important}
+html body #appRoot#appRoot#appRoot .chord-name.current-chord{background:#23475a!important;box-shadow:inset 0 0 0 1px #6ca8bb!important;border-radius:4px!important}
 html body #appRoot#appRoot#appRoot .analysis-tools [hidden]{display:none!important}
 html body #appRoot#appRoot#appRoot .analysis-tools .tools-section{margin-top:10px!important;border-top:1px solid #355065!important;padding-top:5px!important}
 html body #appRoot#appRoot#appRoot .analysis-tools button:disabled,html body #appRoot#appRoot#appRoot .analysis-tools select:disabled{opacity:.45!important;cursor:default!important}
@@ -12078,7 +12078,7 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC152';
+  const APP_VERSION='RC153';
   const PROJECT_SCHEMA_VERSION=2;
   // RC125: compact practice-view and string selectors preserve space for P1/P2/P3; all RC124 audio, analysis, repeat, project and practice logic preserved.
 
@@ -16398,8 +16398,8 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
       const d=document.createElement('div');d.className='chord-cell'+(isTimelineMajor(start)?' major':'')+(events.length?'':' empty');
       d.style.left=(i*cellW)+'px';d.style.width=cellW+'px';d.dataset.start=start;d.dataset.end=end;
       const groups=chordPreviewGroups(events.sort((a,b)=>a.start-b.start||a.end-b.end));
-      const previews=groups.slice(0,2);
-      for(const e of previews){
+      // Show every successive chord. No change is hidden behind a count or button.
+      for(const e of groups){
         const name=document.createElement('span');name.className='chord-name'+(e.chord.uncertain?' tentative':'');name.textContent=chordDisplayLabel(e.chord);
         name.dataset.start=e.start;name.dataset.end=e.end;name.dataset.eventIndex=e.index;name.dataset.memberCount=e.members.length;
         name.tabIndex=0;name.setAttribute('role','button');
@@ -16408,18 +16408,16 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
         name.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();name.click();}};
         d.append(name);
       }
-      if(groups.length>2){const more=document.createElement('button');more.type='button';more.className='chord-more';
-        more.textContent=`+${groups.length-2} more`;more.setAttribute('aria-label',`All chord changes from ${fmtShort(start)} to ${fmtShort(end)}`);
-        more.onclick=()=>openChordDetails(start);d.append(more);}
       if(!groups.length)d.textContent='—';
-      d.setAttribute('aria-label',`${fmtShort(start)} to ${fmtShort(end)} · ${groups.length?groups.map(e=>chordDisplayLabel(e.chord)).join(', '):'uncertain'}`);
+      d.setAttribute('aria-label',`Chord changes, top to bottom, ${fmtShort(start)} to ${fmtShort(end)} · ${groups.length?groups.map(e=>chordDisplayLabel(e.chord)).join(', '):'uncertain'}`);
       chordRuler.append(d);
       // Measure complete labels at the user's chosen text size; never clip roots or extensions.
       const contentHeight=[...d.children].reduce((sum,e)=>sum+Math.max(e.scrollHeight,e.getBoundingClientRect().height),0);
       maxLines=Math.max(maxLines,contentHeight/(fontSize*1.35));
     });
     chordRuler.style.setProperty('--chord-row-height',Math.max(36,Math.ceil(maxLines*fontSize*1.35+fontSize*.8))+'px');
-    chordRuler.title='Chords in time order. Tap for exact times. Purple ? means uncertain.';
+    chordRuler.title='Chord changes run from top to bottom. The highlighted chord is current. Purple ? means uncertain.';
+    updateCurrentChord(currentTime());
   }
 
   function classifyTimelineNotes(){
@@ -16550,7 +16548,22 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
     }
   }
 
+  function updateCurrentChord(t){
+    if(!chordRuler||!buffer)return;
+    const index=Math.min(chordRuler.children.length-1,Math.floor(Math.max(0,t)/TIMELINE_CELL_SECONDS));
+    const cell=chordRuler.children[index];
+    const active=cell?[...cell.querySelectorAll('.chord-name')].filter(el=>
+      t>=Number(el.dataset.start)&&(t<Number(el.dataset.end)||(t===buffer.duration&&t===Number(el.dataset.end))))
+      .sort((a,b)=>Number(b.dataset.start)-Number(a.dataset.start))[0]:null;
+    const previous=updateCurrentChord.previous;
+    if(previous===active)return;
+    if(previous){previous.classList.remove('current-chord');previous.removeAttribute('aria-current');}
+    if(active){active.classList.add('current-chord');active.setAttribute('aria-current','true');}
+    updateCurrentChord.previous=active;
+  }
+
   function updateSimpleTimeline(t){
+    updateCurrentChord(t);
     if(timelineCurrentNote){
       const n=noteAtTime(t);
       timelineCurrentNote.textContent=n?displayNoteLabel(n.midi,n.scaleNumber):'—';
