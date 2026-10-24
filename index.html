@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bass Stem Studio RC147</title>
+<title>Bass Stem Studio RC148</title>
 <script>
 /* RC119: initialise the correct physical-device font before the first paint.
    This deliberately does not rely on viewport width alone, because Chrome's
@@ -11994,7 +11994,7 @@ html body #appRoot#appRoot#appRoot #sourceCard .simple-mixer{
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC147';
+  const APP_VERSION='RC148';
   const PROJECT_SCHEMA_VERSION=1;
   // RC125: compact practice-view and string selectors preserve space for P1/P2/P3; all RC124 audio, analysis, repeat, project and practice logic preserved.
 
@@ -12316,7 +12316,8 @@ html body #appRoot#appRoot#appRoot #sourceCard .simple-mixer{
           beatGridConfidence:Number.isFinite(Number(beatGridConfidence))?Number(beatGridConfidence):null,
           chords:Array.isArray(detectedChordChanges)?detectedChordChanges.map(c=>({
             start:Number(c.start)||0,end:Number(c.end)||0,rootPc:Number(c.rootPc),
-            quality:String(c.quality||''),label:String(c.label||''),confidence:Number(c.confidence)||0
+            quality:String(c.quality||''),label:String(c.label||''),confidence:Number(c.confidence)||0,
+            evidence_version:String(c.evidenceVersion||'')
           })):[],
           notes:savedNotes
         },
@@ -14773,11 +14774,12 @@ html body #appRoot#appRoot#appRoot #sourceCard .simple-mixer{
     const rawChords=Array.isArray(out?.chords)?out.chords:(Array.isArray(out?.chord_changes)?out.chord_changes:[]);
     detectedChordChanges=rawChords.map(c=>{
       const start=Number(c?.start),end=Number(c?.end),rootPc=Number(c?.root_pc??c?.rootPc);
-      if(!Number.isFinite(start)||!Number.isFinite(end)||end<=start||!Number.isFinite(rootPc))return null;
+      if((c?.root_pc??c?.rootPc)==null||!c?.quality||!Number.isFinite(start)||!Number.isFinite(end)||end<=start||!Number.isFinite(rootPc))return null;
       return {
         start:Math.max(0,start),end:Math.max(start,end),rootPc:((Math.round(rootPc)%12)+12)%12,
         quality:String(c?.quality||'maj').toLowerCase(),label:String(c?.label||''),
-        confidence:Number.isFinite(Number(c?.confidence))?Number(c.confidence):0
+        confidence:Number.isFinite(Number(c?.confidence))?Number(c.confidence):0,
+        evidenceVersion:String(c?.evidence_version||c?.evidenceVersion||'')
       };
     }).filter(Boolean).sort((a,b)=>a.start-b.start);
     rebuildSimpleTimeline._sig='';
@@ -14988,12 +14990,12 @@ html body #appRoot#appRoot#appRoot #sourceCard .simple-mixer{
 
       (Array.isArray(out?.chords)?out.chords:[]).forEach(c=>{
         const localStart=Number(c?.start),localEnd=Number(c?.end),rootPc=Number(c?.root_pc??c?.rootPc);
-        if(!Number.isFinite(localStart)||!Number.isFinite(localEnd)||localEnd<=localStart||!Number.isFinite(rootPc))return;
+        if((c?.root_pc??c?.rootPc)==null||!c?.quality||!Number.isFinite(localStart)||!Number.isFinite(localEnd)||localEnd<=localStart||!Number.isFinite(rootPc))return;
         let start=localStart+Number(meta.audioStart||0),end=localEnd+Number(meta.audioStart||0);
         start=Math.max(start,Number(meta.coreStart)||0);
         end=Math.min(end,Number(meta.coreEnd)||end);
         if(end-start<.12)return;
-        chordEvents.push({start,end,rootPc:((Math.round(rootPc)%12)+12)%12,quality:String(c?.quality||'maj').toLowerCase(),label:String(c?.label||''),confidence:Number(c?.confidence)||0});
+        chordEvents.push({start,end,rootPc:((Math.round(rootPc)%12)+12)%12,quality:String(c?.quality||'maj').toLowerCase(),label:String(c?.label||''),confidence:Number(c?.confidence)||0,evidenceVersion:String(c?.evidence_version||c?.evidenceVersion||'')});
       });
 
       const meter=Math.max(1,Math.round(Number(out?.beats_per_bar)||4));
@@ -15063,9 +15065,9 @@ html body #appRoot#appRoot#appRoot #sourceCard .simple-mixer{
     const mergedChords=[];
     for(const c of chordEvents){
       const prev=mergedChords[mergedChords.length-1];
-      if(prev&&prev.rootPc===c.rootPc&&prev.quality===c.quality&&c.start<=prev.end+.12){
+      if(prev&&prev.rootPc===c.rootPc&&prev.quality===c.quality&&prev.evidenceVersion===c.evidenceVersion&&c.start<=prev.end+.001){
         prev.end=Math.max(prev.end,c.end);
-        prev.confidence=Math.max(Number(prev.confidence)||0,Number(c.confidence)||0);
+        prev.confidence=Math.min(Number(prev.confidence)||0,Number(c.confidence)||0);
       }else mergedChords.push({...c});
     }
 
@@ -15944,32 +15946,44 @@ html body #appRoot#appRoot#appRoot #sourceCard .simple-mixer{
     const q=CHORD_QUALITY_LABELS[quality]||String(chord.quality||'');
     return quality==='7'?`${root}7`:`${root} ${q||'Maj'}`;
   }
+  function reliableChord(c){
+    return c && c.evidenceVersion==='chord-timeline-v2' && Number(c.confidence)>=.76 &&
+      Number.isFinite(c.rootPc) && Object.hasOwn(CHORD_QUALITY_LABELS,c.quality) &&
+      Number.isFinite(c.start) && Number.isFinite(c.end) && c.end>c.start;
+  }
   function mainChordForRange(start,end){
-    let best=null,bestWeight=0;
+    if(!(end>start))return null;
+    const votes=new Map();
     for(const c of detectedChordChanges||[]){
-      const overlap=Math.max(0,Math.min(end,Number(c.end))-Math.max(start,Number(c.start)));
+      if(!reliableChord(c))continue;
+      const overlap=Math.max(0,Math.min(end,c.end)-Math.max(start,c.start));
       if(overlap<=0)continue;
-      const weight=overlap*(0.65+0.35*Math.max(0,Math.min(1,Number(c.confidence)||0)));
-      if(weight>bestWeight){best=c;bestWeight=weight;}
+      const key=`${c.rootPc}:${c.quality}`,v=votes.get(key)||{chord:c,seconds:0};
+      v.seconds+=overlap;votes.set(key,v);
     }
-    return best;
+    const ranked=[...votes.values()].sort((a,b)=>b.seconds-a.seconds);
+    return ranked[0] && ranked[0].seconds>=(end-start)*.6 ? ranked[0].chord : null;
   }
   function rebuildChordRuler(cellCount,cellW,duration){
     if(!chordRuler)return;
     chordRuler.innerHTML='';
-    for(let i=0;i<cellCount;i++){
-      const start=i*TIMELINE_CELL_SECONDS,end=Math.min(duration,start+TIMELINE_CELL_SECONDS);
-      const chord=mainChordForRange(start,end);
-      const d=document.createElement('div');
-      d.className='chord-cell'+(isTimelineMajor(start)?' major':'')+(chord?'':' empty');
-      d.style.left=(i*cellW)+'px';d.style.width=cellW+'px';
+    const pxPerSecond=cellW/TIMELINE_CELL_SECONDS;
+    // Chord boundaries follow their own timestamps, not the two-second cells.
+    // Unknown passages remain blank. Old guesses need a fresh analysis.
+    for(const chord of detectedChordChanges||[]){
+      if(!reliableChord(chord))continue;
+      const start=Math.max(0,chord.start),end=Math.min(duration,chord.end);
+      if(end<=start)continue;
+      const d=document.createElement('div');d.className='chord-cell';
+      d.style.left=(start*pxPerSecond)+'px';d.style.width=((end-start)*pxPerSecond)+'px';
       d.dataset.start=start;d.dataset.end=end;
-      d.textContent=chord?chordDisplayLabel(chord):'—';
-      const confidence=chord&&Number.isFinite(Number(chord.confidence))?` · ${Math.round(Number(chord.confidence)*100)}% confidence`:'';
-      d.title=`${fmtShort(start)}–${fmtShort(end)} · ${d.textContent}${confidence}`;
-      d.setAttribute('aria-label',`Main chord ${d.textContent} from ${fmtShort(start)} to ${fmtShort(end)}`);
-      chordRuler.appendChild(d);
+      d.textContent=chordDisplayLabel(chord);
+      d.title=`${fmtShort(start)}–${fmtShort(end)} · ${d.textContent} · estimated accompaniment chord`;
+      d.setAttribute('aria-label',d.title);chordRuler.appendChild(d);
     }
+    chordRuler.title=(detectedChordChanges||[]).some(c=>!c.evidenceVersion)
+      ? 'Re-analyse Bass to update chord estimates'
+      : 'Estimated accompaniment chords; blank where uncertain';
   }
 
   function classifyTimelineNotes(){
@@ -15995,7 +16009,7 @@ html body #appRoot#appRoot#appRoot #sourceCard .simple-mixer{
     const cellW=timelineCellWidth(),duration=buffer.duration;
     const cellCount=Math.max(1,Math.ceil(duration/TIMELINE_CELL_SECONDS));
     const scaleSig=currentScaleContext?`${currentScaleContext.rootPc}:${currentScaleContext.mode}`:'no-scale';
-    const chordSig=(detectedChordChanges||[]).map(c=>`${c.rootPc}:${c.quality}:${Number(c.start).toFixed(2)}:${Number(c.end).toFixed(2)}`).join('|');
+    const chordSig=(detectedChordChanges||[]).map(c=>`${c.rootPc}:${c.quality}:${Number(c.start).toFixed(2)}:${Number(c.end).toFixed(2)}:${c.evidenceVersion||''}:${c.confidence}`).join('|');
     const sig=[duration.toFixed(3),TIMELINE_CELL_SECONDS,notes.length,notes.map(n=>`${n.midi}:${n.start.toFixed(3)}:${n.end.toFixed(3)}`).join('|'),cellW,noteDisplayMode,scaleSig,transposeSemitones,chordSig,practiceDisplayRange().centre].join('~');
     if(rebuildSimpleTimeline._sig===sig)return;
     rebuildSimpleTimeline._sig=sig;
