@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bass Stem Studio RC149</title>
+<title>Bass Stem Studio RC150</title>
 <script>
 /* RC119: initialise the correct physical-device font before the first paint.
    This deliberately does not rely on viewport width alone, because Chrome's
@@ -11629,7 +11629,7 @@ html body #appRoot#appRoot#appRoot #sourceCard .simple-mixer{
  row-gap:max(2px,calc(var(--rc120-card-pad) * 2 + var(--rc120-gap) - var(--ui-font-size) * 2))!important;
 }
 
-/* RC149: timestamp-aligned chords and one size for all note cards. */
+/* RC150: timestamp-aligned chords and one size for all note cards. */
 html body #appRoot#appRoot#appRoot .chord-ruler{
   height:var(--chord-row-height,36px)!important;
   min-height:var(--chord-row-height,36px)!important;
@@ -11676,6 +11676,18 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .single-note .note-toke
   width:var(--note-card-width,calc((100% - var(--rc120-tight-gap) * .8) / 2))!important;
 }
 
+
+/* RC150: existing transport slot now offers explicit numbering conventions. */
+html body #appRoot#appRoot#appRoot #noteNumberToggle{position:relative!important;cursor:pointer}
+html body #appRoot#appRoot#appRoot #noteNumberSelect{
+ position:absolute!important;inset:0!important;width:100%!important;height:100%!important;
+ opacity:0!important;cursor:pointer!important;padding:0!important;margin:0!important;
+}
+html body #appRoot#appRoot#appRoot #noteNumberToggle:focus-within{outline:2px solid #78cde8;outline-offset:2px}
+html body #appRoot#appRoot#appRoot .chord-cell{grid-auto-rows:minmax(calc(var(--ui-font-size)*1.35),max-content)!important}
+html body #appRoot#appRoot#appRoot .chord-name{white-space:normal!important;overflow-wrap:anywhere!important}
+html body #appRoot#appRoot#appRoot .chord-name.tentative{color:#d6c2ff!important;text-decoration:underline dotted;text-underline-offset:3px}
+html body #appRoot#appRoot#appRoot #noteLane{max-height:none!important}
 </style>
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#09111f">
@@ -11761,9 +11773,14 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .single-note .note-toke
       </button>
       <button class="btn" id="stopBtn" disabled style="display:none!important" aria-hidden="true" tabindex="-1">Stop</button>
     </div>
-    <button class="btn stacked-control icon-state-control view-symbol-control" id="noteNumberToggle" type="button" disabled aria-pressed="false" aria-label="Notes view" title="Analyse the song scale first to use scale numbers">
-      <span id="noteNumberModeText" class="view-mode-symbol" aria-hidden="true">♫</span>
-    </button>
+    <label class="btn stacked-control icon-state-control view-symbol-control" id="noteNumberToggle" title="Note names or scale numbers">
+      <span id="noteNumberModeText" class="view-mode-symbol" aria-hidden="true">Notes</span>
+      <select id="noteNumberSelect" aria-label="Note names or numbering convention">
+        <option value="notes">Notes</option>
+        <option value="key">Key 1 — minor tonic is 1</option>
+        <option value="relative-major">Maj 1 — minor tonic is 6</option>
+      </select>
+    </label>
     <button class="btn stacked-control icon-state-control bass-symbol-control" id="bassPracticeToggle" type="button" disabled aria-pressed="false" aria-label="Mute bass" title="Mute the bass range for rehearsal">
       <svg class="bass-state-icon" viewBox="0 0 72 72" aria-hidden="true" focusable="false">
         <path class="bass-speaker" d="M12 29h12l15-12v38L24 43H12z"/>
@@ -11980,14 +11997,14 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .single-note .note-toke
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC149';
+  const APP_VERSION='RC150';
   const PROJECT_SCHEMA_VERSION=1;
   // RC125: compact practice-view and string selectors preserve space for P1/P2/P3; all RC124 audio, analysis, repeat, project and practice logic preserved.
 
   // ---------- DOM ----------
   const $ = id => document.getElementById(id);
   const masterAudio=$('masterAudio'), bassStemAudio=$('bassStemAudio'), noBassAudio=$('noBassAudio'), tempo=$('tempo'), tempoText=$('tempoText'), tempoReset=$('tempoReset');
-  const aiAnalyse=$('aiAnalyse'), aiState=$('aiState'), aiProgress=$('aiProgress'), aiProgressText=$('aiProgressText'), cloudEngineBadge=$('cloudEngineBadge'), songScale=$('songScale'), songTempo=$('songTempo'), songScaleWrap=$('songScaleWrap'), songTempoWrap=$('songTempoWrap'), scaleSelect=$('scaleSelect'), noteNumberToggle=$('noteNumberToggle'), noteNumberModeText=$('noteNumberModeText'), bassPracticeToggle=$('bassPracticeToggle'), bassPracticeText=$('bassPracticeText'), metronomeToggle=$('metronomeToggle'), metronomeText=$('metronomeText'), saveProjectBtn=$('saveProjectBtn'), importProjectBtn=$('importProjectBtn'), projectFileInput=$('projectFileInput'), sourceFileTitle=$('sourceFileTitle'), sourceFileDetails=$('sourceFileDetails'),
+  const aiAnalyse=$('aiAnalyse'), aiState=$('aiState'), aiProgress=$('aiProgress'), aiProgressText=$('aiProgressText'), cloudEngineBadge=$('cloudEngineBadge'), songScale=$('songScale'), songTempo=$('songTempo'), songScaleWrap=$('songScaleWrap'), songTempoWrap=$('songTempoWrap'), scaleSelect=$('scaleSelect'), noteNumberToggle=$('noteNumberToggle'), noteNumberSelect=$('noteNumberSelect'), noteNumberModeText=$('noteNumberModeText'), bassPracticeToggle=$('bassPracticeToggle'), bassPracticeText=$('bassPracticeText'), metronomeToggle=$('metronomeToggle'), metronomeText=$('metronomeText'), saveProjectBtn=$('saveProjectBtn'), importProjectBtn=$('importProjectBtn'), projectFileInput=$('projectFileInput'), sourceFileTitle=$('sourceFileTitle'), sourceFileDetails=$('sourceFileDetails'),
         sourceCard=$('sourceCard'), aiPanel=$('aiPanel'), aiPanelHome=$('aiPanelHome'), exportRow=$('exportRow');
   const qualityMode=null, qualityHint=null, testComputer=null;
   const importBtn=$('importBtn'), fileInput=$('fileInput'), playBtn=$('playBtn'),
@@ -12008,6 +12025,7 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .single-note .note-toke
   let origGain, bassGain, analyser, masterGain, mainDryGain, mainPracticeGain, practiceBassCutFilter, pitchDryGain, pitchWetGain, pitchBus, pitchShift, sourceBus, bassCancelGain, mainSourceGain, noBassSourceGain, bassStemSourceGain, bassPitchDryGain, bassPitchWetGain, bassPitchBus, bassPitchShift;
   let hpFilter, lpFilter, boostFilter, compressor, splitter, merger, centreGainL, centreGainR;
   let notes=[], raf=0, objectName='', lastNoteMidi=null, noteStart=0, lastDetectedAt=0;
+  let numberingConvention='key';
   let noteDisplayMode='notes', currentScaleContext=null, detectedScaleContext=null, transposeSemitones=0;
   let bassPracticeMuted=false, metronomeEnabled=false, lastMetronomeBeat=-1, lastMetronomeTime=null, detectedTempoBpm=null;
   let detectedBeatTimes=[], detectedBeatsPerBar=4, detectedDownbeatPhase=0, beatGridConfidence=null, detectedChordChanges=[];
@@ -12254,6 +12272,7 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .single-note .note-toke
         duration:Math.max(0,Number(n.end)-Number(n.start)),
         confidence:Number(n.confidence)||0,
         isFill:!!n.isFill,
+        onsetSupported:!!n.onsetSupported,
         cloudMidi:Number.isFinite(Number(n.cloudMidi))?Number(n.cloudMidi):null,
         source:n.source||'Analysis'
       }));
@@ -12278,6 +12297,7 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .single-note .note-toke
           scale:String(detectedScaleContext?.scaleText||songScale?.textContent||'—'),
           tempoBpm:currentTempoBpm(),
           displayMode:noteDisplayMode,
+          numberingConvention,
           bassAudioMime:analysisParts.length?null:(bassStemReady?bassStemMime:null),
           bassAudioBase64:analysisParts.length?null:(bassStemReady?bassStemBase64:null),
           noBassAudioMime:analysisParts.length?null:(noBassReady?noBassMime:null),
@@ -12303,7 +12323,7 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .single-note .note-toke
           chords:Array.isArray(detectedChordChanges)?detectedChordChanges.map(c=>({
             start:Number(c.start)||0,end:Number(c.end)||0,rootPc:Number(c.rootPc),
             quality:String(c.quality||''),label:String(c.label||''),confidence:Number(c.confidence)||0,
-            evidence_version:String(c.evidenceVersion||'')
+            evidence_version:String(c.evidenceVersion||''),bassPc:c.bassPc??null,uncertain:!!c.uncertain,source:String(c.source||'')
           })):[],
           notes:savedNotes
         },
@@ -12359,6 +12379,7 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .single-note .note-toke
         start:Number(n.start),end:Number(n.end),
         confidence:Number(n.confidence)||0,
         isFill:typeof n.isFill==='boolean'?n.isFill:false,
+        onsetSupported:!!(n.onsetSupported??n.onset_supported),
         scaleNumber:(n.scaleNumber===null||n.scaleNumber===undefined||n.scaleNumber==='')?null:String(n.scaleNumber),
         cloudMidi:mapPracticeMidi(n.cloudMidi)??mapPracticeMidi(n.midi),
         source:n.source||'Saved project'
@@ -12423,7 +12444,9 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .single-note .note-toke
           /^rehearsal-v5-clean-bass-preview$/.test(savedRehearsalVersion) ||
           /^rehearsal-v6-segmented-high-quality$/.test(savedRehearsalVersion) ||
           /^rehearsal-v7-bb0-g3-validated-notes$/.test(savedRehearsalVersion) ||
-          /^rehearsal-v8-roformer-bass-chords$/.test(savedRehearsalVersion)
+          /^rehearsal-v8-roformer-bass-chords$/.test(savedRehearsalVersion) ||
+          /^rehearsal-v9-evidence-chords$/.test(savedRehearsalVersion) ||
+          /^rehearsal-v10-keyboard-chord-evidence$/.test(savedRehearsalVersion)
         )){
           currentRehearsalVersion=savedRehearsalVersion;
           await loadNoBassFromBase64(String(project.analysis.noBassAudioBase64),String(project.analysis.noBassAudioMime||'audio/mpeg'));
@@ -12434,6 +12457,7 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .single-note .note-toke
 
       notes=restored;analysedBassNotes=restored.map(n=>({...n}));offlineAnalysisReady=true;offlineAnalysisRunning=false;updatePracticeLayoutState(true);
       noteDisplayMode=project.analysis.displayMode==='numbers'?'numbers':'notes';
+      numberingConvention=project.analysis.numberingConvention==='key'?'key':project.analysis.numberingConvention==='relative-major'?'relative-major':noteDisplayMode==='numbers'?'relative-major':'key';
       resetSongContext();
       const scale=String(project.analysis.scale||'').trim();
       const tempoBpm=Number(project.analysis.tempoBpm);
@@ -14493,10 +14517,8 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .single-note .note-toke
 
   function numberingScaleContext(){
     if(!currentScaleContext)return null;
-    // RC103: when the detected/selected key is natural minor, use the
-    // RELATIVE MAJOR for Nashville-style numbering. Example:
-    // A Min -> C Maj numbers, so A=6, B=7, C=1, D=2, E=3, F=4, G=5.
-    if(currentScaleContext.mode==='minor'){
+    // Choose actual-key or relative-major numbering without changing pitches.
+    if(numberingConvention==='relative-major' && currentScaleContext.mode==='minor'){
       const majorRootPc=(currentScaleContext.rootPc+3)%12;
       return {
         rootPc:majorRootPc,
@@ -14512,7 +14534,7 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .single-note .note-toke
   function numberingScaleDescription(){
     const ctx=numberingScaleContext();
     if(!ctx)return '';
-    if(currentScaleContext?.mode==='minor')
+    if(numberingConvention==='relative-major' && currentScaleContext?.mode==='minor')
       return `${ctx.scaleText} numbers (relative major of ${currentScaleContext.scaleText})`;
     return `${ctx.scaleText} numbers`;
   }
@@ -14537,9 +14559,7 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .single-note .note-toke
   function displayNoteLabel(midi,savedScaleNumber=null){
     const shifted=practiceDisplayMidi(midi);
     if(noteDisplayMode==='numbers'){
-      // Always calculate from the CURRENT scale context. This deliberately
-      // overrides an older saved minor-key number so imported projects also
-      // follow the RC103 relative-major numbering rule.
+      // Calculate from the current key and chosen numbering convention.
       const degree=scaleDegreeLabel(shifted);
       if(degree)return degree;
       if(savedScaleNumber!==null && savedScaleNumber!==undefined && String(savedScaleNumber).trim())
@@ -14549,17 +14569,12 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .single-note .note-toke
   }
 
   function refreshNoteNumberToggle(){
-    if(!noteNumberToggle || !noteNumberModeText)return;
+    if(!noteNumberToggle || !noteNumberModeText || !noteNumberSelect)return;
     const numbers=noteDisplayMode==='numbers';
-    noteNumberModeText.textContent=numbers?'123':'♫';
-    noteNumberToggle.setAttribute('aria-pressed',numbers?'true':'false');
-    noteNumberToggle.setAttribute('aria-label',numbers?'Numbers view. Tap to show note names':'Notes view. Tap to show scale numbers');
-    noteNumberToggle.disabled=!currentScaleContext;
-    noteNumberToggle.title=currentScaleContext
-      ? (numbers
-          ? 'Show note names'
-          : 'Show '+numberingScaleDescription())
-      : 'Analyse the song scale first to use scale numbers';
+    noteNumberModeText.textContent=numbers?(numberingConvention==='key'?'Key 1':'Maj 1'):'Notes';
+    noteNumberSelect.value=numbers?numberingConvention:'notes';
+    for(const option of noteNumberSelect.options)option.disabled=option.value!=='notes'&&!currentScaleContext;
+    noteNumberToggle.title=numbers?numberingScaleDescription():'Note names; choose Key 1 or Maj 1 for numbers';
   }
 
   const SCALE_ROOTS=[{pc:0,n:'C'},{pc:1,n:'C#'},{pc:2,n:'D'},{pc:3,n:'Eb'},{pc:4,n:'E'},{pc:5,n:'F'},{pc:6,n:'F#'},{pc:7,n:'G'},{pc:8,n:'Ab'},{pc:9,n:'A'},{pc:10,n:'Bb'},{pc:11,n:'B'}];
@@ -14765,7 +14780,8 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .single-note .note-toke
         start:Math.max(0,start),end:Math.max(start,end),rootPc:((Math.round(rootPc)%12)+12)%12,
         quality:String(c?.quality||'maj').toLowerCase(),label:String(c?.label||''),
         confidence:Number.isFinite(Number(c?.confidence))?Number(c.confidence):0,
-        evidenceVersion:String(c?.evidence_version||c?.evidenceVersion||'')
+        evidenceVersion:String(c?.evidence_version||c?.evidenceVersion||''),
+        bassPc:(c?.bass_pc??c?.bassPc)==null?null:((Math.round(Number(c.bass_pc??c.bassPc))%12)+12)%12,uncertain:!!c?.uncertain,source:String(c?.source||'')
       };
     }).filter(Boolean).sort((a,b)=>a.start-b.start);
     rebuildSimpleTimeline._sig='';
@@ -14794,6 +14810,7 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .single-note .note-toke
         end,
         confidence:Number(n.confidence)||0,
         isFill:typeof n.is_fill==='boolean'?n.is_fill:undefined,
+        onsetSupported:!!(n.onset_supported??n.onsetSupported),
         cloudMidi:rawMidi,
         source:engineLabel
       };
@@ -14981,7 +14998,8 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .single-note .note-toke
         start=Math.max(start,Number(meta.coreStart)||0);
         end=Math.min(end,Number(meta.coreEnd)||end);
         if(end-start<.12)return;
-        chordEvents.push({start,end,rootPc:((Math.round(rootPc)%12)+12)%12,quality:String(c?.quality||'maj').toLowerCase(),label:String(c?.label||''),confidence:Number(c?.confidence)||0,evidenceVersion:String(c?.evidence_version||c?.evidenceVersion||'')});
+        chordEvents.push({start,end,rootPc:((Math.round(rootPc)%12)+12)%12,quality:String(c?.quality||'maj').toLowerCase(),label:String(c?.label||''),confidence:Number(c?.confidence)||0,evidenceVersion:String(c?.evidence_version||c?.evidenceVersion||''),
+        bassPc:(c?.bass_pc??c?.bassPc)==null?null:((Math.round(Number(c.bass_pc??c.bassPc))%12)+12)%12,uncertain:!!c?.uncertain,source:String(c?.source||'')});
       });
 
       const meter=Math.max(1,Math.round(Number(out?.beats_per_bar)||4));
@@ -15051,7 +15069,7 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .single-note .note-toke
     const mergedChords=[];
     for(const c of chordEvents){
       const prev=mergedChords[mergedChords.length-1];
-      if(prev&&prev.rootPc===c.rootPc&&prev.quality===c.quality&&prev.evidenceVersion===c.evidenceVersion&&c.start<=prev.end+.001){
+      if(prev&&prev.rootPc===c.rootPc&&prev.quality===c.quality&&prev.bassPc===c.bassPc&&prev.uncertain===c.uncertain&&prev.source===c.source&&prev.evidenceVersion===c.evidenceVersion&&c.start<=prev.end+.001){
         prev.end=Math.max(prev.end,c.end);
         prev.confidence=Math.min(Number(prev.confidence)||0,Number(c.confidence)||0);
       }else mergedChords.push({...c});
@@ -15097,6 +15115,7 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .single-note .note-toke
         prev.start=Math.min(Number(prev.start),Number(note.start));
         prev.end=Math.max(Number(prev.end),Number(note.end));
         prev.confidence=Math.max(Number(prev.confidence)||0,Number(note.confidence)||0);
+        prev.onsetSupported=!!(prev.onsetSupported||note.onsetSupported);
         if(stronger){
           prev.isFill=note.isFill;
           prev.cloudMidi=note.cloudMidi;
@@ -15143,6 +15162,7 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .single-note .note-toke
           end:Math.min(Number(buffer?.duration)||end,end),
           confidence:Number(n.confidence)||0,
           isFill:typeof n.is_fill==='boolean'?n.is_fill:undefined,
+        onsetSupported:!!(n.onset_supported??n.onsetSupported),
           cloudMidi:rawMidi,
           source:engineLabel
         });
@@ -15923,17 +15943,20 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .single-note .note-toke
     }
   }
 
-  const CHORD_QUALITY_LABELS={maj:'M',min:'m',sus2:'sus2',sus4:'sus4',dim:'dim',aug:'aug','7':'7',maj7:'M7',min7:'m7'};
+  const CHORD_QUALITY_LABELS={maj:'M',min:'m',sus2:'sus2',sus4:'sus4',dim:'dim',aug:'aug','7':'7',maj7:'M7',min7:'m7','6':'6',min6:'m6',add9:'add9',minadd9:'madd9','9':'9',maj9:'M9',min9:'m9','11':'11',min11:'m11','13':'13',min13:'m13','7sus4':'7sus4',dim7:'dim7',min7b5:'m7b5','7b9':'7b9','7#9':'7#9'};
   function chordDisplayLabel(chord){
     if(!chord||!Number.isFinite(Number(chord.rootPc)))return '—';
     const pc=((Math.round(Number(chord.rootPc))+transposeSemitones)%12+12)%12;
     const root=(SCALE_ROOTS.find(x=>x.pc===pc)||SCALE_ROOTS[0]).n;
     const quality=String(chord.quality||'maj').toLowerCase();
     const q=CHORD_QUALITY_LABELS[quality]||String(chord.quality||'');
-    return `${root}${q||'M'}`;
+    const bassPc=chord.bassPc==null?null:((Math.round(Number(chord.bassPc))+transposeSemitones)%12+12)%12;
+    const bass=bassPc!==null&&bassPc!==pc?'/'+(SCALE_ROOTS.find(x=>x.pc===bassPc)?.n||''):'';
+    return `${root}${q||'M'}${bass}${chord.uncertain?'?':''}`;
   }
   function reliableChord(c){
-    return c && c.evidenceVersion==='chord-timeline-v2' && Number(c.confidence)>=.76 &&
+    return c && ((c.evidenceVersion==='chord-timeline-v2'&&Number(c.confidence)>=.76) ||
+      (c.evidenceVersion==='chord-timeline-v3'&&Number(c.confidence)>=(c.uncertain ? .67 : .76))) &&
       Number.isFinite(c.rootPc) && Object.hasOwn(CHORD_QUALITY_LABELS,c.quality) &&
       Number.isFinite(c.start) && Number.isFinite(c.end) && c.end>c.start;
   }
@@ -15944,7 +15967,7 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .single-note .note-toke
       if(!reliableChord(c))continue;
       const overlap=Math.max(0,Math.min(end,c.end)-Math.max(start,c.start));
       if(overlap<=0)continue;
-      const key=`${c.rootPc}:${c.quality}`,v=votes.get(key)||{chord:c,seconds:0};
+      const key=`${c.rootPc}:${c.quality}:${c.bassPc}:${c.uncertain}`,v=votes.get(key)||{chord:c,seconds:0};
       v.seconds+=overlap;votes.set(key,v);
     }
     const ranked=[...votes.values()].sort((a,b)=>b.seconds-a.seconds);
@@ -15978,11 +16001,11 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .single-note .note-toke
       const longest=Math.max(fontSize,...labels.map(e=>measure?measure.measureText(e.label).width:e.label.length*fontSize*.85));
       const columns=Math.min(2,Math.max(1,Math.floor((cellW-fontSize*.8)/(longest+fontSize*.7))));
       d.style.setProperty('--chord-columns',String(columns));
-      maxRows=Math.max(maxRows,Math.ceil(labels.length/columns));
+      maxRows=Math.max(maxRows,Math.ceil(labels.length/columns)*Math.max(1,Math.ceil(longest/(cellW-fontSize*1.5))));
       for(const e of labels){
-        const name=document.createElement('span');name.className='chord-name';name.textContent=e.label;
+        const name=document.createElement('span');name.className='chord-name'+(e.chord.uncertain?' tentative':'');name.textContent=e.label;
         name.dataset.start=e.start;name.dataset.end=e.end;
-        name.title=`${fmtShort(e.start)}–${fmtShort(e.end)} · ${e.label} · estimated accompaniment chord`;
+        name.title=`${fmtShort(e.start)}–${fmtShort(e.end)} · ${e.label} · ${e.chord.uncertain?'tentative':'estimated'} ${e.chord.source==='separated-piano'?'keyboard':e.chord.source==='full-mix-fallback'?'full-mix':'accompaniment'} chord`;
         name.setAttribute('aria-label',name.title);d.appendChild(name);
       }
       if(!labels.length)d.textContent='—';
@@ -15992,7 +16015,7 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .single-note .note-toke
     chordRuler.style.setProperty('--chord-row-height',Math.max(30,fontSize*2.55,maxRows*fontSize*1.35+fontSize*.7)+'px');
     chordRuler.title=(detectedChordChanges||[]).some(c=>!c.evidenceVersion)
       ? 'Re-analyse Bass to update chord estimates'
-      : 'Estimated chords in time order within each interval; blank where uncertain';
+      : 'Estimated chords in time order; ? means tentative; — means insufficient evidence';
   }
 
   function classifyTimelineNotes(){
@@ -16018,8 +16041,8 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .single-note .note-toke
     const cellW=timelineCellWidth(),duration=buffer.duration;
     const cellCount=Math.max(1,Math.ceil(duration/TIMELINE_CELL_SECONDS));
     const scaleSig=currentScaleContext?`${currentScaleContext.rootPc}:${currentScaleContext.mode}`:'no-scale';
-    const chordSig=(detectedChordChanges||[]).map(c=>`${c.rootPc}:${c.quality}:${Number(c.start).toFixed(2)}:${Number(c.end).toFixed(2)}:${c.evidenceVersion||''}:${c.confidence}`).join('|');
-    const sig=[duration.toFixed(3),TIMELINE_CELL_SECONDS,notes.length,notes.map(n=>`${n.midi}:${n.start.toFixed(3)}:${n.end.toFixed(3)}`).join('|'),cellW,noteDisplayMode,scaleSig,transposeSemitones,chordSig,practiceDisplayRange().centre].join('~');
+    const chordSig=(detectedChordChanges||[]).map(c=>`${c.rootPc}:${c.quality}:${c.bassPc}:${c.uncertain}:${c.source}:${Number(c.start).toFixed(2)}:${Number(c.end).toFixed(2)}:${c.evidenceVersion||''}:${c.confidence}`).join('|');
+    const sig=[duration.toFixed(3),TIMELINE_CELL_SECONDS,notes.length,notes.map(n=>`${n.midi}:${n.start.toFixed(3)}:${n.end.toFixed(3)}`).join('|'),cellW,noteDisplayMode,numberingConvention,scaleSig,transposeSemitones,chordSig,practiceDisplayRange().centre].join('~');
     if(rebuildSimpleTimeline._sig===sig)return;
     rebuildSimpleTimeline._sig=sig;
 
@@ -16057,7 +16080,7 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .single-note .note-toke
       const out=[];
       for(const n of bucket.sort((a,b)=>a.start-b.start)){
         const p=out[out.length-1];
-        if(p && !p.isFill && !n.isFill && p.midi===n.midi && n.start-p.end<=.08){
+        if(p && !p.isFill && !n.isFill && !n.onsetSupported && p.midi===n.midi && n.start-p.end<=.08){
           p.end=Math.max(p.end,n.end);
         }else out.push({...n});
       }
@@ -16068,7 +16091,7 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .single-note .note-toke
     // tallest four-second cell so notes never drop below the border and the
     // bottom gap stays tight when the song has no extra low-note content.
     const maxItems=Math.max(1,...displayBuckets.map(b=>b.length));
-    const roughLaneH=Math.max(240,Math.min(1200,28+maxItems*42));
+    const roughLaneH=Math.max(240,28+maxItems*42);
     noteLane.style.setProperty('height',roughLaneH+'px','important');
     if(noteLane.parentElement){
       noteLane.parentElement.style.setProperty('min-height',(roughLaneH+190)+'px','important');
@@ -16116,7 +16139,7 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .single-note .note-toke
       noteLane.style.setProperty('--note-card-width',Math.max(1,(Math.min(...widths)-gap)/2)+'px');
     }
     const tallestSequence=Math.max(0,...[...noteLane.querySelectorAll('.note-sequence')].map(el=>el.scrollHeight||0));
-    const fittedLaneH=Math.max(220,Math.min(1200,tallestSequence+20));
+    const fittedLaneH=Math.max(220,tallestSequence+20);
     noteLane.style.setProperty('height',fittedLaneH+'px','important');
     if(noteLane.parentElement){
       noteLane.parentElement.style.setProperty('min-height',(fittedLaneH+190)+'px','important');
@@ -16831,9 +16854,11 @@ html body #appRoot#appRoot#appRoot .simple-timeline-card .single-note .note-toke
   importProjectBtn?.addEventListener('click',()=>projectFileInput?.click());
   projectFileInput?.addEventListener('change',()=>importBassStudioProject(projectFileInput.files?.[0]));
   saveProjectBtn?.addEventListener('click',saveBassStudioProject);
-  noteNumberToggle?.addEventListener('click',()=>{
-    if(!currentScaleContext)return;
-    noteDisplayMode=noteDisplayMode==='notes'?'numbers':'notes';
+  noteNumberSelect?.addEventListener('change',()=>{
+    const value=noteNumberSelect.value;
+    if(value!=='notes'&&!currentScaleContext)return;
+    noteDisplayMode=value==='notes'?'notes':'numbers';
+    if(value!=='notes')numberingConvention=value==='relative-major'?'relative-major':'key';
     refreshNoteNumberToggle();
     rebuildSimpleTimeline._sig='';
     if(buffer){rebuildSimpleTimeline();updateSongInfo(currentTime());}
