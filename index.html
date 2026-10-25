@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bass Stem Studio RC159</title>
+<title>Bass Stem Studio RC160</title>
 <script>
 /* RC119: initialise the correct physical-device font before the first paint.
    This deliberately does not rely on viewport width alone, because Chrome's
@@ -12164,7 +12164,7 @@ html body #appRoot#appRoot#appRoot .bass-view-foot{flex:0 0 auto!important;min-h
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC159';
+  const APP_VERSION='RC160';
   const PROJECT_SCHEMA_VERSION=2;
   // RC125: compact practice-view and string selectors preserve space for P1/P2/P3; all RC124 audio, analysis, repeat, project and practice logic preserved.
 
@@ -17796,7 +17796,7 @@ html body #appRoot#appRoot#appRoot .bass-view-foot{flex:0 0 auto!important;min-h
     const maxNotes=Math.max(1,...counts.values()),maxChords=Math.max(1,...chordCounts.values());
     const line=font*1.35,chordLimit=Math.max(line+12,Math.floor(height*.32));
     const chordRows=Math.max(1,Math.floor((chordLimit-12)/line));
-    const chordColumns=Math.min(Math.max(1,Math.floor((width-16)/labelWidth)),Math.ceil(maxChords/chordRows));
+    let chordColumns=Math.min(Math.max(1,Math.floor((width-16)/labelWidth)),Math.ceil(maxChords/chordRows));
     const chordHeight=Math.min(chordLimit,Math.max(36,Math.ceil(maxChords/chordColumns)*line+font*.8));
     const rulerHeight=timeRuler.getBoundingClientRect().height||26;
     const noteSpace=Math.max(36,height-rulerHeight-chordHeight-26),minNoteH=Math.max(32,font*1.5+10),minNoteW=Math.max(56,font*4.2);
@@ -17807,7 +17807,11 @@ html body #appRoot#appRoot#appRoot .bass-view-foot{flex:0 0 auto!important;min-h
     const cardHeight=Math.max(minNoteH,Math.min(54,Math.floor((noteSpace-4*(rows-1))/rows)));
     const requiredWidth=Math.max(118,practiceNoteColumns*(minNoteW+4)+12,chordColumns*labelWidth+16);
     const wholeCells=Math.max(1,Math.floor((width-2)/requiredWidth));
-    practiceCellWidth=(width-2)/wholeCells;
+    // RC160: show twice as many time columns at the same font size.
+    practiceCellWidth=(width-2)/(wholeCells*2);
+    // Reflow into fewer columns so note/chord names retain their readable width.
+    practiceNoteColumns=Math.max(1,Math.floor(practiceNoteColumns/2));
+    chordColumns=Math.max(1,Math.floor(chordColumns/2));
     document.documentElement.style.setProperty('--practice-note-columns',practiceNoteColumns);
     document.documentElement.style.setProperty('--practice-note-height',cardHeight+'px');
     document.documentElement.style.setProperty('--practice-chord-columns',chordColumns);

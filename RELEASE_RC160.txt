@@ -1,0 +1,15 @@
+Bass Stem Studio RC160: narrower time columns
+
+- Halved timeline column widths from RC159 in portrait and landscape.
+- Shows twice as many time columns at once.
+- Reflows note and chord labels to keep the chosen font size readable.
+- Preserves every note/chord and automatically follows the active events.
+- Existing device rotation, settings location, repeat controls and note editing remain.
+
+Checks
+- Compared RC159 and RC160 with the same fixture at 360, 390, 740 and 844px.
+  Every measured timeline column was exactly 50% narrower (within 0.1px).
+- Note labels fit at 14px without reducing the selected font size.
+- Existing repeat, inline edit, import isolation, active-note/chord following,
+  rotation during playback and six-string Bass View checks passed.
+- No backend deployment or paid analysis tests were needed.
