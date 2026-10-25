@@ -1,0 +1,30 @@
+Bass Stem Studio RC159: device rotation and a full-screen practice workspace
+
+Changes
+- Removed the Portrait/Landscape button and all orientation-lock/fullscreen requests.
+- Follows normal device rotation and resizes with browser bars and split-screen.
+- PWA manifest explicitly allows any orientation. Device rotation lock is respected.
+- Moved the font, strings, speed, BPM and interval row directly above Source & Stem.
+- Fits the practice workspace to available screen height. Landscape keeps playback
+  controls beside Notes View/Bass View; portrait uses the full width for notes.
+- Shows whole timeline intervals across the screen. All note cards remain equal.
+- Uses compact cards and extra columns for dense passages. Notes and chords read
+  across each row, then down. No note/chord events or pitches are removed or changed.
+- Automatically follows the active note/chord if a large chosen interval or font
+  cannot fit at once. No manual scrolling is needed to follow the performance.
+- Fits all four, five or six strings and the current eight frets in Bass View.
+- Keeps editable repeat ranges, X clearing, inline note editing and 1s default.
+- Resuming a multi-section repeat preserves the rest of the selected queue.
+
+Verification
+- Portrait 360x640, 360x800, 390x844 and 412x915.
+- Landscape 740x360 and 844x390; rotation during playback keeps playback running.
+- A synthetic dense one-second passage: all 24 notes and eight chords visible.
+- Six-string Bass View within the screen in all four dense-passage viewport sizes.
+- Editable section ranges, resume, clear, inline note edits and import isolation.
+- Existing chord alignment/card sizing across 11px, 14px and 22px text sizes.
+- Existing automatic section analysis, multi-part selection and cache/import guards.
+
+The physical phone's rotation setting is controlled by its operating system.
+Browser viewport tests do not replace testing on every phone model.
+No backend changes or paid analysis tests were required.

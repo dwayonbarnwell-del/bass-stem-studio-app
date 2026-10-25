@@ -1,8 +1,8 @@
-Bass Stem Studio RC158
+Bass Stem Studio RC159
 
 Upload index.html, sw.js, manifest.webmanifest and icons/ to the frontend root.
 The existing RC155 song-structure backend remains compatible. No backend
-change is required for RC158.
+change is required for RC159.
 
 Repeat
 Importing audio or an older project starts section detection in the background
@@ -23,11 +23,16 @@ Select neighbouring time cells to reanalyse a passage.
 Screen
 14px remains the editable font default. New songs use 1-second time cells.
 An explicit interval in a saved project is preserved on import.
-Portrait/Landscape uses the browser's screen rotation when available, with
-full screen if required. Otherwise the app asks you to turn the phone.
-The landscape layout keeps controls beside the active practice view. Dense
-notes can scroll vertically and follow the active note. No transcription
-content is discarded to make the screen fit.
+The app follows the device's orientation. No rotation button or orientation lock
+is used. On phones, enable the device's Auto rotate setting if needed.
+Font, strings, speed, BPM and interval now sit above Source & Stem.
+The practice workspace fits the available viewport, including browser bars.
+Landscape keeps playback controls beside the timeline. Whole time cells fit
+across the view. Equal note cards and extra columns fit dense passages without
+changing note data. Notes/chords follow automatically when a very large chosen
+interval or text size needs more space. Six bass strings and eight frets stay
+within the practice area. Notes read left to right, then down, as do chords
+when a dense passage needs more than one column.
 
 Saved projects
 Import replaces the open song. Old imports and analysis responses cannot

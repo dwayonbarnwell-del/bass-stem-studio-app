@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bass Stem Studio RC158</title>
+<title>Bass Stem Studio RC159</title>
 <script>
 /* RC119: initialise the correct physical-device font before the first paint.
    This deliberately does not rely on viewport width alone, because Chrome's
@@ -11745,13 +11745,8 @@ html body #appRoot#appRoot#appRoot .repeat-actions{display:grid!important;grid-t
 html body #appRoot#appRoot#appRoot .repeat-actions.single-action{grid-template-columns:minmax(0,1fr)!important}
 html body #appRoot#appRoot#appRoot #repeatSectionList button[aria-pressed="true"],html body #appRoot#appRoot#appRoot #repeatChosenSections{background:#28574e!important;border-color:#83b4a4!important}
 </style>
-<style id="rc158-practice-layout">
-/* RC158: direct editing and a responsive practice workspace. */
-html body #appRoot#appRoot#appRoot #playerControls{position:sticky!important;top:0!important;z-index:30!important;background:#091321!important;padding-bottom:6px!important;min-width:0!important}
-html body #appRoot#appRoot#appRoot .player-title-row{display:flex!important;align-items:center!important;justify-content:space-between!important;width:100%!important;gap:8px!important}
-html body #appRoot#appRoot#appRoot #orientationToggle{position:static!important;width:auto!important;min-width:90px!important;min-height:36px!important;height:auto!important;padding:6px 10px!important;border:1px solid #526a85!important;border-radius:9px!important;background:#263444!important;color:#edf2f7!important;line-height:1.2!important;white-space:normal!important;box-shadow:none!important}
-html body #appRoot#appRoot#appRoot #orientationMessage{color:#c4d6e1!important;margin:6px 0!important;line-height:1.4!important}
-html body #appRoot#appRoot#appRoot #orientationMessage[hidden]{display:none!important}
+<style id="direct-note-editing">
+/* RC159: direct editing and a responsive practice workspace. */
 html body #appRoot#appRoot#appRoot .analysis-tools{padding:0!important;background:none!important;border:0!important}
 html body #appRoot#appRoot#appRoot .note-token{cursor:pointer!important}
 html body #appRoot#appRoot#appRoot .note-token:focus-visible{outline:2px solid #b8e0ed!important;outline-offset:-2px!important}
@@ -11762,33 +11757,6 @@ html body #appRoot#appRoot#appRoot .note-inline-editor input,html body #appRoot#
 html body #appRoot#appRoot#appRoot .note-inline-editor small{color:#bbd0dc!important}
 html body #appRoot#appRoot#appRoot .note-inline-editor [role="alert"]{color:#ffc6b8!important}
 html body #appRoot#appRoot#appRoot .note-inline-editor [role="alert"]:empty{display:none!important}
-html body #appRoot#appRoot#appRoot #timelineScroll{overflow-x:auto!important;overflow-y:auto!important;max-height:max(180px,calc(100dvh - var(--player-controls-height,270px) - 100px))!important;overscroll-behavior:contain!important;scroll-padding-top:calc(var(--time-row-height,28px) + var(--chord-row-height,36px))!important}
-html body #appRoot#appRoot#appRoot #timeRuler{position:sticky!important;top:0!important;z-index:15!important;background:#0a1826!important}
-html body #appRoot#appRoot#appRoot #chordRuler{position:sticky!important;top:var(--time-row-height,28px)!important;z-index:14!important;background:#102034!important}
-html body #appRoot#appRoot#appRoot .simple-timeline-card{min-height:0!important}
-@media (orientation:landscape) and (max-height:700px) {
- html body #appRoot#appRoot#appRoot{padding:8px!important;margin:0 auto!important;max-width:none!important;width:100%!important;--rc120-control-h:max(38px,calc(var(--ui-font-size)*2.6));--rc120-gap:6px;--rc120-tight-gap:5px}
- html body #appRoot#appRoot#appRoot > .top{display:grid!important;grid-template-columns:minmax(290px,37%) minmax(0,1fr)!important;align-items:start!important;gap:8px!important;padding:0!important;margin:0!important}
- html body #appRoot#appRoot#appRoot #playerControls{grid-column:1!important;grid-row:1!important;top:8px!important;max-height:calc(100dvh - 16px)!important;overflow:auto!important;overscroll-behavior:contain!important;padding:0!important}
- html body #appRoot#appRoot#appRoot .brand{margin:0!important;padding:0!important;gap:5px!important}
- html body #appRoot#appRoot#appRoot .brand h1{margin:0!important;line-height:1.3!important}
- html body #appRoot#appRoot#appRoot .premium-transport{padding:5px 0!important;margin:0!important;gap:6px!important}
- html body #appRoot#appRoot#appRoot .premium-transport .transport-row{margin:0!important;padding:0!important}
- html body #appRoot#appRoot#appRoot .progress-row-premium{min-height:38px!important;height:auto!important;gap:6px!important}
- html body #appRoot#appRoot#appRoot .simple-timeline-card{grid-column:2!important;grid-row:1!important;position:sticky!important;top:8px!important;height:calc(100dvh - 16px)!important;max-height:calc(100dvh - 16px)!important;margin:0!important;display:flex!important;flex-direction:column!important;overflow:hidden!important}
- html body #appRoot#appRoot#appRoot .simple-timeline-head{padding:6px!important;margin:0!important;flex:0 0 auto!important;min-height:0!important}
- html body #appRoot#appRoot#appRoot #practiceViewCard,html body #appRoot#appRoot#appRoot .timeline-part-btn{height:var(--rc120-control-h)!important;min-height:var(--rc120-control-h)!important;max-height:var(--rc120-control-h)!important}
- html body #appRoot#appRoot#appRoot #timelineScroll{flex:1 1 auto!important;min-height:0!important;height:auto!important;max-height:none!important}
- html body #appRoot#appRoot#appRoot .source-below{grid-column:1/-1!important;grid-row:2!important;margin-top:8px!important}
- html body #appRoot#appRoot#appRoot .legend{grid-column:1/-1!important}
- html body #appRoot#appRoot#appRoot #bassViewPanel{flex:1 1 auto!important;min-height:0!important;overflow:auto!important;padding:6px!important}
- html body #appRoot#appRoot#appRoot .bass-time-strip{margin:0 0 6px!important;min-height:34px!important;height:34px!important}
- html body #appRoot#appRoot#appRoot .bass-neck-shell{margin:0!important;min-height:0!important}
- html body #appRoot#appRoot#appRoot #bassFretboard{min-height:0!important;height:auto!important;padding-top:0!important;padding-bottom:0!important}
- html body #appRoot#appRoot#appRoot #bassFretboard .bass-fret-numbers{height:26px!important;min-height:26px!important}
- html body #appRoot#appRoot#appRoot #bassFretboard .bass-string-row{height:max(25px,calc((100dvh - 170px) / 6))!important;min-height:25px!important;max-height:none!important}
- html body #appRoot#appRoot#appRoot .bass-view-foot{margin-top:4px!important;min-height:0!important;padding:0!important}
-}
 
 </style>
 <style>
@@ -11798,6 +11766,49 @@ html body #appRoot#appRoot#appRoot #displaySizeControl#displaySizeControl #bassS
 html body #appRoot#appRoot#appRoot #displaySizeControl#displaySizeControl .top-card-label{width:100%!important;text-align:center!important;letter-spacing:0!important}
 </style>
 <style>html body #appRoot#appRoot#appRoot .note-inline-editor button{grid-column:1/-1!important}html body #appRoot#appRoot#appRoot .note-inline-editor button[hidden]{display:none!important}</style>
+<style id="rc159-device-layout">
+/* The device owns orientation. The practice workspace always fits its viewport. */
+html body{margin:0!important;padding:0!important}
+html body #appRoot#appRoot#appRoot{margin:0 auto!important;padding:10px!important;box-sizing:border-box!important;width:100%!important;--rc120-control-h:max(40px,calc(var(--ui-font-size)*2.7));--rc120-gap:6px;--rc120-tight-gap:5px}
+html body #appRoot#appRoot#appRoot > .top{display:block!important;margin:0!important;padding:0!important}
+html body #appRoot#appRoot#appRoot #practiceWorkspace{display:flex!important;flex-direction:column!important;gap:8px!important;height:calc(var(--device-view-height,100dvh) - 24px)!important;min-height:0!important;scroll-margin-top:10px!important}
+html body #appRoot#appRoot#appRoot #playerControls{position:static!important;min-width:0!important;flex:0 0 auto!important;padding:0!important;background:#091321!important}
+html body #appRoot#appRoot#appRoot .brand{margin:0!important;padding:0!important;gap:0!important;min-height:0!important}
+html body #appRoot#appRoot#appRoot .player-title-row{display:block!important;padding:0 0 6px!important}
+html body #appRoot#appRoot#appRoot .brand h1{margin:0!important;line-height:1.3!important}
+html body #appRoot#appRoot#appRoot .premium-transport{padding:0!important;margin:0!important;gap:6px!important}
+html body #appRoot#appRoot#appRoot .premium-transport .transport-row{padding:0!important;margin:0!important}
+html body #appRoot#appRoot#appRoot .progress-row-premium{min-height:32px!important;height:32px!important;gap:8px!important}
+html body #appRoot#appRoot#appRoot .simple-timeline-card{position:relative!important;flex:1 1 0!important;display:flex!important;flex-direction:column!important;min-height:0!important;max-height:none!important;height:auto!important;margin:0!important;overflow:hidden!important}
+html body #appRoot#appRoot#appRoot .simple-timeline-head{flex:0 0 auto!important;margin:0!important;padding:5px!important;min-height:0!important;gap:5px!important}
+html body #appRoot#appRoot#appRoot #practiceViewCard,html body #appRoot#appRoot#appRoot .timeline-part-btn{height:var(--rc120-control-h)!important;min-height:var(--rc120-control-h)!important;max-height:var(--rc120-control-h)!important}
+html body #appRoot#appRoot#appRoot #timelineScroll{flex:1 1 0!important;min-height:0!important;max-height:none!important;height:auto!important;overflow:auto!important;overscroll-behavior:contain!important;scroll-behavior:auto!important;overflow-anchor:none!important}
+html body #appRoot#appRoot#appRoot #timelineScroll[hidden],html body #appRoot#appRoot#appRoot #bassViewPanel[hidden]{display:none!important}
+html body #appRoot#appRoot#appRoot .timeline-inner.simple-inner{min-height:100%!important;height:auto!important;padding:0!important}
+html body #appRoot#appRoot#appRoot #timeRuler{position:sticky!important;top:0!important;z-index:15!important;background:#0a1826!important;height:max(26px,calc(var(--ui-font-size)*1.8))!important}
+html body #appRoot#appRoot#appRoot #chordRuler{position:sticky!important;top:var(--time-row-height,26px)!important;z-index:14!important;background:#102034!important;max-height:var(--practice-chord-limit,110px)!important;overflow-y:auto!important;overflow-x:hidden!important;scrollbar-width:none!important;overflow-anchor:none!important}
+html body #appRoot#appRoot#appRoot .chord-cell{display:grid!important;grid-template-columns:repeat(var(--practice-chord-columns,1),minmax(0,1fr))!important;align-content:start!important;gap:0 4px!important;grid-auto-rows:auto!important}
+html body #appRoot#appRoot#appRoot .simple-timeline-card .note-sequence{--note-card-height:var(--practice-note-height,54px);grid-template-columns:repeat(var(--practice-note-columns,2),minmax(0,1fr))!important;gap:4px!important}
+html body #appRoot#appRoot#appRoot .note-time-cell{padding:6px!important}
+html body #appRoot#appRoot#appRoot #noteLane{min-height:0!important}
+html body #appRoot#appRoot#appRoot #displaySizeControl#displaySizeControl{margin:12px 0 8px!important;min-width:0!important;width:100%!important;grid-template-columns:repeat(5,minmax(0,1fr))!important}
+html body #appRoot#appRoot#appRoot .source-below{margin:0!important}
+html body #appRoot#appRoot#appRoot #bassViewPanel{flex:1 1 0!important;display:flex!important;flex-direction:column!important;gap:5px!important;min-height:0!important;padding:6px!important;overflow:hidden!important}
+html body #appRoot#appRoot#appRoot .bass-time-strip{flex:0 0 32px!important;margin:0!important;min-height:32px!important;height:32px!important}
+html body #appRoot#appRoot#appRoot .bass-time-cell{height:30px!important;min-height:30px!important}
+html body #appRoot#appRoot#appRoot .bass-neck-shell{flex:1 1 0!important;margin:0!important;min-height:0!important;max-height:none!important;height:auto!important}
+html body #appRoot#appRoot#appRoot .bass-fretboard-wrap.bass-fretboard-wrap{height:100%!important;min-height:0!important;max-height:none!important;overflow:hidden!important}
+html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard{display:flex!important;flex-direction:column!important;height:100%!important;min-height:0!important;padding:0!important}
+html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-fret-numbers{flex:0 0 26px!important;height:26px!important;min-height:26px!important}
+html body #appRoot#appRoot#appRoot #bassFretboard#bassFretboard .bass-string-row{flex:1 1 0!important;height:auto!important;min-height:0!important;max-height:none!important}
+html body #appRoot#appRoot#appRoot .bass-view-foot{flex:0 0 auto!important;min-height:0!important;margin:0!important;padding:0!important}
+@media (orientation:landscape) and (max-height:700px){
+ html body #appRoot#appRoot#appRoot #practiceWorkspace{display:grid!important;grid-template-columns:minmax(285px,34%) minmax(0,1fr)!important;align-items:stretch!important}
+ html body #appRoot#appRoot#appRoot #playerControls{grid-column:1!important;grid-row:1!important}
+ html body #appRoot#appRoot#appRoot .simple-timeline-card{grid-column:2!important;grid-row:1!important}
+}
+</style>
+
 </head>
 <body>
 <div id="sectionCompatibility" style="display:none" aria-hidden="true">
@@ -11810,50 +11821,13 @@ html body #appRoot#appRoot#appRoot #displaySizeControl#displaySizeControl .top-c
 <audio id="noBassAudio" preload="auto" playsinline style="display:none"></audio>
 <div class="app" id="appRoot">
   <div class="top">
+  <div id="practiceWorkspace">
   <div id="playerControls">
     <div class="brand">
       <div class="player-title-row">
         <h1>Bass Stem Studio</h1>
-        <button id="orientationToggle" type="button" aria-label="Switch to landscape">Landscape</button>
       </div>
 
-      <div class="display-size-control" id="displaySizeControl" role="group" aria-label="Display and playback settings">
-        <label class="display-size-readout" for="fontSizeInput">
-          <input id="fontSizeInput" type="number" min="1" max="100" step="1" inputmode="numeric" aria-label="Text size in pixels">
-          <span>px</span>
-        </label>
-        <div class="bass-string-selector top-string-count" id="bassStringSelector" aria-label="Bass strings">
-          <select id="bassStringSelect" aria-label="Bass strings">
-            <option value="4">4</option><option value="5" selected>5</option><option value="6">6</option>
-          </select>
-          <span class="top-card-label">Strings</span>
-        </div>
-        <div class="speed-top-card" id="speedControl">
-          <label for="tempo">Speed</label>
-          <select id="tempo" aria-label="Speed">
-            <option value="100" selected>100%</option><option value="90">90%</option>
-            <option value="80">80%</option><option value="70">70%</option><option value="60">60%</option>
-          </select>
-          <b id="tempoText" style="display:none">100%</b><button id="tempoReset" style="display:none"></button>
-        </div>
-        <div class="song-context-pill" id="songTempoWrap" title="Detected song tempo">
-          <span>BPM</span><strong id="songTempo">—</strong>
-        </div>
-      <div class="timeline-breakdown-control" id="timelineBreakdownControl" title="Choose how many seconds each Notes View and Bass View timeline cell represents">
-        <select class="timeline-breakdown-select" id="timelineSplitSelect" aria-label="Timeline breakdown interval">
-          <option value="1" selected>1s</option>
-          <option value="2">2s</option>
-          <option value="3">3s</option>
-          <option value="4">4s</option>
-          <option value="5">5s</option>
-          <option value="10">10s</option>
-          <option value="15">15s</option>
-          <option value="20">20s</option>
-          <option value="25">25s</option>
-          <option value="30">30s</option>
-        </select>
-      </div>
-      </div>
       <div class="pill" id="engineBadge">Bass View</div>
     </div>
 
@@ -11946,7 +11920,6 @@ html body #appRoot#appRoot#appRoot #displaySizeControl#displaySizeControl .top-c
 </div>
 
 
-  <p id="orientationMessage" role="status" hidden></p>
   </div>
   <section class="simple-timeline-card">
     <div class="simple-timeline-head">
@@ -12001,6 +11974,45 @@ html body #appRoot#appRoot#appRoot #displaySizeControl#displaySizeControl .top-c
       </div>
     </div>
   </section>
+
+  </div>
+      <div class="display-size-control" id="displaySizeControl" role="group" aria-label="Display and playback settings">
+        <label class="display-size-readout" for="fontSizeInput">
+          <input id="fontSizeInput" type="number" min="1" max="100" step="1" inputmode="numeric" aria-label="Text size in pixels">
+          <span>px</span>
+        </label>
+        <div class="bass-string-selector top-string-count" id="bassStringSelector" aria-label="Bass strings">
+          <select id="bassStringSelect" aria-label="Bass strings">
+            <option value="4">4</option><option value="5" selected>5</option><option value="6">6</option>
+          </select>
+          <span class="top-card-label">Strings</span>
+        </div>
+        <div class="speed-top-card" id="speedControl">
+          <label for="tempo">Speed</label>
+          <select id="tempo" aria-label="Speed">
+            <option value="100" selected>100%</option><option value="90">90%</option>
+            <option value="80">80%</option><option value="70">70%</option><option value="60">60%</option>
+          </select>
+          <b id="tempoText" style="display:none">100%</b><button id="tempoReset" style="display:none"></button>
+        </div>
+        <div class="song-context-pill" id="songTempoWrap" title="Detected song tempo">
+          <span>BPM</span><strong id="songTempo">—</strong>
+        </div>
+      <div class="timeline-breakdown-control" id="timelineBreakdownControl" title="Choose how many seconds each Notes View and Bass View timeline cell represents">
+        <select class="timeline-breakdown-select" id="timelineSplitSelect" aria-label="Timeline breakdown interval">
+          <option value="1" selected>1s</option>
+          <option value="2">2s</option>
+          <option value="3">3s</option>
+          <option value="4">4s</option>
+          <option value="5">5s</option>
+          <option value="10">10s</option>
+          <option value="15">15s</option>
+          <option value="20">20s</option>
+          <option value="25">25s</option>
+          <option value="30">30s</option>
+        </select>
+      </div>
+      </div>
 
   <div class="grid source-below">
     <aside class="card" id="sourceCard">
@@ -12152,7 +12164,7 @@ html body #appRoot#appRoot#appRoot #displaySizeControl#displaySizeControl .top-c
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC158';
+  const APP_VERSION='RC159';
   const PROJECT_SCHEMA_VERSION=2;
   // RC125: compact practice-view and string selectors preserve space for P1/P2/P3; all RC124 audio, analysis, repeat, project and practice logic preserved.
 
@@ -12615,8 +12627,9 @@ html body #appRoot#appRoot#appRoot #displaySizeControl#displaySizeControl .top-c
     const inner=timelineScroll.querySelector('.timeline-inner');
     if(!inner)return;
     const w=inner.getBoundingClientRect().width;
-    const x=timelineX(Number(t)||0,w);
-    timelineScroll.scrollLeft=Math.max(0,x-timelineScroll.clientWidth*.08);
+    const start=Math.floor(Math.max(0,Number(t)||0)/TIMELINE_CELL_SECONDS)*timelineCellWidth();
+    timelineScroll.scrollLeft=Math.max(0,start);
+    updateSimpleTimeline(Number(t)||0);
   }
 
   async function activateAnalysisPart(index,{seek=false}={}){
@@ -16302,7 +16315,9 @@ html body #appRoot#appRoot#appRoot #displaySizeControl#displaySizeControl .top-c
     const n=Number(sec)||0;
     return Math.abs(n/TIMELINE_MAJOR_SECONDS-Math.round(n/TIMELINE_MAJOR_SECONDS))<0.001;
   }
+  let practiceCellWidth=0,practiceNoteColumns=2;
   function timelineCellWidth(){
+    if(practiceCellWidth>0)return practiceCellWidth;
     const css=getComputedStyle(document.documentElement).getPropertyValue('--rc50-cell-w').trim();
     const n=parseFloat(css); return Number.isFinite(n)&&n>60?n:118;
   }
@@ -16624,14 +16639,15 @@ html body #appRoot#appRoot#appRoot #displaySizeControl#displaySizeControl .top-c
         d.append(name);
       }
       if(!groups.length)d.textContent='—';
-      d.setAttribute('aria-label',`Chord changes, top to bottom, ${fmtShort(start)} to ${fmtShort(end)} · ${groups.length?groups.map(e=>chordDisplayLabel(e.chord)).join(', '):'uncertain'}`);
+      d.setAttribute('aria-label',`Chord changes, reading order, ${fmtShort(start)} to ${fmtShort(end)} · ${groups.length?groups.map(e=>chordDisplayLabel(e.chord)).join(', '):'uncertain'}`);
       chordRuler.append(d);
       // Measure complete labels at the user's chosen text size; never clip roots or extensions.
-      const contentHeight=[...d.children].reduce((sum,e)=>sum+Math.max(e.scrollHeight,e.getBoundingClientRect().height),0);
+      const rows=Math.ceil(d.children.length/Number(chordRuler.dataset.columns||1));
+      const contentHeight=rows*Math.max(fontSize*1.35,...[...d.children].map(e=>Math.max(e.scrollHeight,e.getBoundingClientRect().height)));
       maxLines=Math.max(maxLines,contentHeight/(fontSize*1.35));
     });
     chordRuler.style.setProperty('--chord-row-height',Math.max(36,Math.ceil(maxLines*fontSize*1.35+fontSize*.8))+'px');
-    chordRuler.title='Chord changes run from top to bottom. The highlighted chord is current. Purple ? means uncertain.';
+    chordRuler.title='Chord changes run in reading order. The highlighted chord is current. Purple ? means uncertain.';
     updateCurrentChord(currentTime());
   }
 
@@ -16654,12 +16670,13 @@ html body #appRoot#appRoot#appRoot #displaySizeControl#displaySizeControl .top-c
 
   function rebuildSimpleTimeline(){
     if(!buffer||!noteLane||!timeRuler)return;
+    fitPracticeTimeline();
     updateTimelineGeometry();
     const cellW=timelineCellWidth(),duration=buffer.duration;
     const cellCount=Math.max(1,Math.ceil(duration/TIMELINE_CELL_SECONDS));
     const scaleSig=currentScaleContext?`${currentScaleContext.rootPc}:${currentScaleContext.mode}`:'no-scale';
     const chordSig=(detectedChordChanges||[]).map(c=>`${c.rootPc}:${c.quality}:${c.bassPc}:${c.uncertain}:${c.source}:${Number(c.start).toFixed(2)}:${Number(c.end).toFixed(2)}:${c.evidenceVersion||''}:${c.confidence}`).join('|');
-    const sig=[duration.toFixed(3),TIMELINE_CELL_SECONDS,notes.length,notes.map(n=>`${n.midi}:${n.start.toFixed(3)}:${n.end.toFixed(3)}`).join('|'),cellW,noteDisplayMode,numberingConvention,scaleSig,transposeSemitones,chordSig,practiceDisplayRange().centre].join('~');
+    const sig=[duration.toFixed(3),TIMELINE_CELL_SECONDS,notes.length,notes.map(n=>`${n.midi}:${n.start.toFixed(3)}:${n.end.toFixed(3)}`).join('|'),cellW,noteDisplayMode,numberingConvention,scaleSig,transposeSemitones,chordSig,practiceDisplayRange().centre,timelineScroll.clientHeight,document.documentElement.dataset.fontPx].join('~');
     if(rebuildSimpleTimeline._sig===sig||inlineNoteEditor)return;
     rebuildSimpleTimeline._sig=sig;
 
@@ -16755,13 +16772,13 @@ html body #appRoot#appRoot#appRoot #displaySizeControl#displaySizeControl .top-c
     const widths=sequences.map(el=>el.getBoundingClientRect().width).filter(w=>w>0);
     if(widths.length){
       const gap=parseFloat(getComputedStyle(sequences[0]).columnGap)||0;
-      noteLane.style.setProperty('--note-card-width',Math.max(1,(Math.min(...widths)-gap)/2)+'px');
+      noteLane.style.setProperty('--note-card-width',Math.max(1,(Math.min(...widths)-gap*(practiceNoteColumns-1))/practiceNoteColumns)+'px');
     }
     const tallestSequence=Math.max(0,...[...noteLane.querySelectorAll('.note-sequence')].map(el=>el.scrollHeight||0));
-    const fittedLaneH=Math.max(220,tallestSequence+20);
+    const fittedLaneH=Math.max(60,tallestSequence+16);
     noteLane.style.setProperty('height',fittedLaneH+'px','important');
     if(noteLane.parentElement){
-      noteLane.parentElement.style.setProperty('min-height',(fittedLaneH+190)+'px','important');
+      noteLane.parentElement.style.setProperty('min-height','100%','important');
     }
   }
 
@@ -16773,6 +16790,7 @@ html body #appRoot#appRoot#appRoot #displaySizeControl#displaySizeControl .top-c
       t>=Number(el.dataset.start)&&(t<Number(el.dataset.end)||(t===buffer.duration&&t===Number(el.dataset.end))))
       .sort((a,b)=>Number(b.dataset.start)-Number(a.dataset.start))[0]:null;
     const previous=updateCurrentChord.previous;
+    if(active)keepChordVisible(active);
     if(previous===active)return;
     if(previous){previous.classList.remove('current-chord');previous.removeAttribute('aria-current');}
     if(active){active.classList.add('current-chord');active.setAttribute('aria-current','true');}
@@ -16805,7 +16823,7 @@ html body #appRoot#appRoot#appRoot #displaySizeControl#displaySizeControl .top-c
         // Bass is monophonic, but if two candidates overlap at a transition,
         // prefer the one whose attack is closest to the current time.
         matches.sort((a,b)=>Number(b.dataset.start)-Number(a.dataset.start));
-        if(matches[0]){matches[0].classList.add('active');if(playing&&!inlineNoteEditor)keepPracticeItemVisible(matches[0]);}
+        if(matches[0]){matches[0].classList.add('active');if(!inlineNoteEditor)keepPracticeItemVisible(matches[0]);}
       }
     }
     if(timelinePlayhead&&buffer){
@@ -17746,33 +17764,7 @@ html body #appRoot#appRoot#appRoot #displaySizeControl#displaySizeControl .top-c
   bindMaskedTimeEntry(timeTo);
 
 
-  // The browser handles real screen rotation. Unsupported devices keep a usable
-  // responsive layout and receive a short, honest instruction to turn the phone.
-  let rotationBusy=false,rotationOwnedFullscreen=false,orientationHintTarget='';
-  function refreshOrientationUI(){
-    const landscape=window.matchMedia('(orientation: landscape)').matches;
-    $('orientationToggle').textContent=landscape?'Portrait':'Landscape';
-    $('orientationToggle').setAttribute('aria-label',landscape?'Switch to portrait':'Switch to landscape');
-    if(orientationHintTarget===(landscape?'landscape':'portrait')){$('orientationMessage').hidden=true;orientationHintTarget='';}
-    const controls=$('playerControls');
-    document.documentElement.style.setProperty('--player-controls-height',controls.getBoundingClientRect().height+'px');
-    if(timeRuler)document.documentElement.style.setProperty('--time-row-height',timeRuler.getBoundingClientRect().height+'px');
-  }
-  async function toggleOrientation(){
-    if(rotationBusy)return;rotationBusy=true;
-    const desired=window.matchMedia('(orientation: landscape)').matches?'portrait':'landscape';
-    const message=$('orientationMessage');message.hidden=true;
-    try{
-      if(typeof screen.orientation?.lock!=='function')throw new Error('unsupported');
-      if(!document.fullscreenElement&&document.documentElement.requestFullscreen){
-        await document.documentElement.requestFullscreen();rotationOwnedFullscreen=true;
-      }
-      await screen.orientation.lock(desired);
-    }catch{
-      if(rotationOwnedFullscreen&&document.fullscreenElement){try{await document.exitFullscreen();}catch{}rotationOwnedFullscreen=false;}
-      orientationHintTarget=desired;message.textContent=`Turn your phone to ${desired}. This browser cannot rotate it using a button.`;message.hidden=false;
-    }finally{rotationBusy=false;refreshOrientationUI();requestAnimationFrame(()=>{if(buffer){drawAll();scrollTimelineToTime(currentTime());}});}
-  }
+  // Device rotation, browser bars and split-screen resizing all use the same layout.
   function keepPracticeItemVisible(item){
     if(!timelineScroll||!item||!item.isConnected)return;
     const viewport=timelineScroll.getBoundingClientRect(),rect=item.getBoundingClientRect();
@@ -17781,15 +17773,70 @@ html body #appRoot#appRoot#appRoot #displaySizeControl#displaySizeControl .top-c
     if(rect.top<top)timelineScroll.scrollTop-=top-rect.top;
     else if(rect.bottom>bottom)timelineScroll.scrollTop+=rect.height>bottom-top?rect.top-top:rect.bottom-bottom;
   }
-  $('orientationToggle').onclick=toggleOrientation;
-  const layoutObserver=new ResizeObserver(()=>refreshOrientationUI());
-  layoutObserver.observe($('playerControls'));if(timeRuler)layoutObserver.observe(timeRuler);
-  screen.orientation?.addEventListener('change',()=>{
-    $('orientationMessage').hidden=true;refreshOrientationUI();
-    requestAnimationFrame(()=>{if(buffer){drawAll();scrollTimelineToTime(currentTime());}});
-  });
-  document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement){try{screen.orientation?.unlock();}catch{}rotationOwnedFullscreen=false;}refreshOrientationUI();});
-  refreshOrientationUI();
+  function keepChordVisible(item){
+    if(!item||!chordRuler)return;
+    const r=item.getBoundingClientRect(),v=chordRuler.getBoundingClientRect();
+    if(r.top<v.top)chordRuler.scrollTop-=v.top-r.top;
+    else if(r.bottom>v.bottom)chordRuler.scrollTop+=r.bottom-v.bottom;
+  }
+  function fitPracticeTimeline(){
+    if(!timelineScroll||timelineScroll.hidden||inlineNoteEditor)return;
+    const height=timelineScroll.clientHeight,width=timelineScroll.clientWidth;
+    if(height<1||width<1)return;
+    const font=Number(document.documentElement.dataset.fontPx)||14;
+    const fitKey=[height,width,font,TIMELINE_CELL_SECONDS,transposeSemitones,notes.length,(detectedChordChanges||[]).length].join(':');
+    if(fitPracticeTimeline.key===fitKey&&fitPracticeTimeline.notes===notes&&fitPracticeTimeline.chords===detectedChordChanges)return;
+    fitPracticeTimeline.key=fitKey;fitPracticeTimeline.notes=notes;fitPracticeTimeline.chords=detectedChordChanges;
+    const counts=new Map();notes.forEach(n=>{const i=Math.floor(n.start/TIMELINE_CELL_SECONDS);counts.set(i,(counts.get(i)||0)+1);});
+    const chordCounts=new Map();let labelWidth=60;
+    (detectedChordChanges||[]).filter(reliableChord).forEach(c=>{
+      labelWidth=Math.max(labelWidth,chordDisplayLabel(c).length*font*.68+12);
+      for(let i=Math.max(0,Math.floor(c.start/TIMELINE_CELL_SECONDS));i<Math.ceil(c.end/TIMELINE_CELL_SECONDS);i++)chordCounts.set(i,(chordCounts.get(i)||0)+1);
+    });
+    const maxNotes=Math.max(1,...counts.values()),maxChords=Math.max(1,...chordCounts.values());
+    const line=font*1.35,chordLimit=Math.max(line+12,Math.floor(height*.32));
+    const chordRows=Math.max(1,Math.floor((chordLimit-12)/line));
+    const chordColumns=Math.min(Math.max(1,Math.floor((width-16)/labelWidth)),Math.ceil(maxChords/chordRows));
+    const chordHeight=Math.min(chordLimit,Math.max(36,Math.ceil(maxChords/chordColumns)*line+font*.8));
+    const rulerHeight=timeRuler.getBoundingClientRect().height||26;
+    const noteSpace=Math.max(36,height-rulerHeight-chordHeight-26),minNoteH=Math.max(32,font*1.5+10),minNoteW=Math.max(56,font*4.2);
+    const maxCols=Math.max(2,Math.floor((width-16)/(minNoteW+4)));
+    const rowsFit=Math.max(1,Math.floor((noteSpace+4)/(minNoteH+4)));
+    practiceNoteColumns=Math.min(maxCols,Math.max(2,Math.ceil(maxNotes/rowsFit)));
+    const rows=Math.ceil(maxNotes/practiceNoteColumns);
+    const cardHeight=Math.max(minNoteH,Math.min(54,Math.floor((noteSpace-4*(rows-1))/rows)));
+    const requiredWidth=Math.max(118,practiceNoteColumns*(minNoteW+4)+12,chordColumns*labelWidth+16);
+    const wholeCells=Math.max(1,Math.floor((width-2)/requiredWidth));
+    practiceCellWidth=(width-2)/wholeCells;
+    document.documentElement.style.setProperty('--practice-note-columns',practiceNoteColumns);
+    document.documentElement.style.setProperty('--practice-note-height',cardHeight+'px');
+    document.documentElement.style.setProperty('--practice-chord-columns',chordColumns);
+    document.documentElement.style.setProperty('--practice-chord-limit',chordLimit+'px');
+    document.documentElement.style.setProperty('--time-row-height',rulerHeight+'px');
+    chordRuler.dataset.columns=String(chordColumns);
+  }
+  let practiceResizeFrame=0,lastPracticeSize='';
+  function resizePracticeWorkspace(){
+    cancelAnimationFrame(practiceResizeFrame);
+    practiceResizeFrame=requestAnimationFrame(()=>{
+      const viewport=window.visualViewport;
+      // A keyboard may shrink the visual viewport while editing; keep the editor usable.
+      const height=viewport?.height||window.innerHeight;
+      document.documentElement.style.setProperty('--device-view-height',Math.floor(height)+'px');
+      const key=[innerWidth,Math.floor(height),$('playerControls').offsetHeight,document.documentElement.dataset.fontPx,practiceVisualMode].join(':');
+      if(key===lastPracticeSize)return;lastPracticeSize=key;
+      rebuildSimpleTimeline._sig='';waveCacheDirty=true;
+      if(buffer){if(practiceVisualMode==='bass')renderBassFretboard();drawAll();scrollTimelineToTime(currentTime());}
+      if(inlineNoteEditor)keepPracticeItemVisible(inlineNoteEditor.form);
+    });
+  }
+  const practiceSizeObserver=new ResizeObserver(resizePracticeWorkspace);
+  practiceSizeObserver.observe($('playerControls'));
+  practiceSizeObserver.observe($('practiceWorkspace'));
+  window.addEventListener('resize',resizePracticeWorkspace);
+  window.visualViewport?.addEventListener('resize',resizePracticeWorkspace);
+  screen.orientation?.addEventListener('change',resizePracticeWorkspace);
+  resizePracticeWorkspace();
 
   // ---------- Controls ----------
   refreshNoteNumberToggle();refreshStemMixerUI();updatePracticeLayoutState(true);
@@ -17890,8 +17937,9 @@ html body #appRoot#appRoot#appRoot #displaySizeControl#displaySizeControl .top-c
   }
 
   async function masterPlay(){
+    $('practiceWorkspace').scrollIntoView({block:'start',behavior:'instant'});
     const r=parseRangeInputs();
-    if(r && loopEnabled){
+    if(r && loopEnabled && !multiSectionMode && !timeframeLoopMode){
       multiSectionMode=false; sectionQueue=[]; queueIndex=0;
       loopStart=r.a; loopEnd=r.b;
       if(currentTime()<r.a || currentTime()>=r.b) seekTo(r.a);
