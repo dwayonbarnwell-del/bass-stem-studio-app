@@ -1,0 +1,38 @@
+Bass Stem Studio RC155 — automatic song sections
+
+How to use
+1. Import and analyse a song as usual. Song sections are found separately.
+2. Tap the existing Repeat button and choose Current section, Verse, Chorus,
+   Bridge or another section. Playback starts and repeats that section.
+3. Tap Repeat again to stop repeating.
+
+Older saved projects can find sections through Repeat without reanalysing
+bass notes or chords. Save after section detection finishes to keep the
+section map in the .bassstudio file. Saved sections reopen without a new
+request. Device recovery also retains the map and boundary adjustments.
+
+Adjust a section moves a shared start/end boundary by one detected beat;
+neighbouring sections stay connected. Reset adjustments restores detection.
+No timestamp entry, additional transport row or duplicate practice player.
+Existing selected-time-cell and From / To repeat options remain available.
+
+Detection uses the full recording with All-In-One 1.1.0 / harmonix-all.
+Names are estimates. Weak role evidence gets Section 1, Section 2, etc.
+Nearby detected downbeats align repeat boundaries. Filename, song-length
+and fixed 20-second rules no longer assign musical structure to new audio.
+Long uploads use an analysis copy; original playback/project audio is kept.
+If section detection is unavailable, existing repeat selections still work.
+
+Preserved
+- Bass notes, chord analysis and corrections.
+- Restricted practice octaves and automatic eight-fret Bass View paging.
+- Notes View, 14 px editable font, equal cards and subdued colours.
+- RC154 full saved-file replacement and stale-request isolation.
+
+Validation
+- Section detection output coverage, unique names and uncertainty handling.
+- Current-section boundary selection, repeat start/stop and cell coexistence.
+- One-beat adjustments, saved-file export/import and device recovery.
+- Late section responses cannot overwrite a replacement song.
+- Mobile chooser at 360px with 14px and 22px fonts.
+- Existing correction, chord layout and import regression checks.

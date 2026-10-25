@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bass Stem Studio RC154</title>
+<title>Bass Stem Studio RC155</title>
 <script>
 /* RC119: initialise the correct physical-device font before the first paint.
    This deliberately does not rely on viewport width alone, because Chrome's
@@ -11723,6 +11723,21 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .chord-detail-row span{ov
 html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!important}
 
 </style>
+
+<style id="rc155-repeat-sections">
+html body #appRoot#appRoot#appRoot #repeatSectionDialog{width:370px!important;font-size:var(--ui-font-size,14px)!important}
+html body #appRoot#appRoot#appRoot #repeatSectionDialog *{font-size:inherit!important}
+html body #appRoot#appRoot#appRoot #repeatSectionDialog [hidden]{display:none!important}
+html body #appRoot#appRoot#appRoot #repeatSectionDialog button{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;text-align:left!important;margin-top:8px!important;box-shadow:none!important}
+html body #appRoot#appRoot#appRoot #repeatSectionList{display:grid!important;grid-template-columns:minmax(0,1fr)!important;max-height:36dvh!important;overflow:auto!important;margin:6px 0!important}
+html body #appRoot#appRoot#appRoot #repeatCurrentSection{background:#28574e!important;border-color:#658f83!important}
+html body #appRoot#appRoot#appRoot .repeat-section-time{color:#b6c8d3!important;font-variant-numeric:tabular-nums!important;white-space:nowrap!important;font-weight:400!important}
+html body #appRoot#appRoot#appRoot #repeatSectionStatus{color:#b6c8d3!important;font-weight:400!important}
+html body #appRoot#appRoot#appRoot #repeatAdjustments{margin:12px 0!important;padding-top:10px!important;border-top:1px solid #355065!important}
+html body #appRoot#appRoot#appRoot #repeatAdjustments summary{cursor:pointer!important;min-height:32px!important}
+html body #appRoot#appRoot#appRoot .repeat-nudge-row{display:grid!important;grid-template-columns:3em minmax(0,1fr) minmax(0,1fr)!important;align-items:center!important;gap:6px!important}
+html body #appRoot#appRoot#appRoot #repeatSectionDialog button:disabled{opacity:.45!important}
+</style>
 </head>
 <body>
 <div id="sectionCompatibility" style="display:none" aria-hidden="true">
@@ -12004,6 +12019,25 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
         </details>
         <p id="analysisToolsMessage" role="status" hidden></p>
       </details>
+      <dialog id="repeatSectionDialog" class="analysis-edit-dialog" aria-labelledby="repeatSectionTitle">
+        <b id="repeatSectionTitle">Repeat a section</b>
+        <p id="repeatSectionStatus" role="status"></p>
+        <button id="repeatCurrentSection" type="button">Current section</button>
+        <button id="repeatSelection" type="button" hidden>Selected time cells</button>
+        <button id="repeatTypedRange" type="button" hidden>From / To range</button>
+        <div id="repeatSectionList" aria-label="Song sections"></div>
+        <button id="repeatFindSections" type="button">Find sections</button>
+        <details id="repeatAdjustments" hidden>
+          <summary>Adjust a section</summary>
+          <label>Section<select id="adjustSectionSelect"></select></label>
+          <p id="repeatAdjustmentTimes"></p>
+          <p>Move by one beat.</p>
+          <div class="repeat-nudge-row"><span>Start</span><button type="button" data-section-edge="start" data-direction="-1" aria-label="Start one beat earlier">Earlier</button><button type="button" data-section-edge="start" data-direction="1" aria-label="Start one beat later">Later</button></div>
+          <div class="repeat-nudge-row"><span>End</span><button type="button" data-section-edge="end" data-direction="-1" aria-label="End one beat earlier">Earlier</button><button type="button" data-section-edge="end" data-direction="1" aria-label="End one beat later">Later</button></div>
+          <button id="repeatResetAdjustment" type="button">Reset adjustments</button>
+        </details>
+        <button id="closeRepeatSections" type="button">Close</button>
+      </dialog>
       <dialog id="chordDetailsDialog" class="analysis-edit-dialog" aria-labelledby="chordDetailsTitle">
         <b id="chordDetailsTitle">Chord changes</b>
         <div id="chordDetailsList" class="chord-details-list"></div>
@@ -12078,7 +12112,7 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC154';
+  const APP_VERSION='RC155';
   const PROJECT_SCHEMA_VERSION=2;
   // RC125: compact practice-view and string selectors preserve space for P1/P2/P3; all RC124 audio, analysis, repeat, project and practice logic preserved.
 
@@ -12118,6 +12152,7 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
   }
   function replaceSongSession({preservePending=false}={}){
     songSession++;
+    resetSongStructure();
     aiBusy=false;pendingResumeBusy=false;offlineAnalysisRunning=false;
     if(aiAnalyse)aiAnalyse.removeAttribute('aria-busy');
     if(!preservePending)clearPendingRunPodJob();
@@ -12177,18 +12212,8 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
   let analysedBassNotes=[], offlineAnalysisReady=false, offlineAnalysisRunning=false;
   const waveCache=document.createElement('canvas'); let waveCacheDirty=true;
   let prevBassSpec=null, lastSpectralFlux=0;
-  const defaultPsalmSections={
-        'Intro':{start:0,end:107},
-        'Verse 1':{start:107,end:168},
-        'Chorus 1':{start:168,end:207},
-        'Verse 2':{start:207,end:244},
-        'Bridge 1':{start:244,end:284},
-        'Bridge 2':{start:284,end:320},
-        'Chorus 2':{start:320,end:368},
-        'Outro':{start:368,end:410.32}
-      };
-  let loopStart=null, loopEnd=null, loopEnabled=false, selectedSection='Intro',
-      sections=JSON.parse(JSON.stringify(defaultPsalmSections)), baseSections=JSON.parse(JSON.stringify(defaultPsalmSections)), storageKey='',
+  let loopStart=null, loopEnd=null, loopEnabled=false, selectedSection='',
+      sections={}, baseSections={}, storageKey='',
       selectedSections=new Set(), sectionQueue=[], queueIndex=0, multiSectionMode=false,
       selectedTimeframes=new Set(), timeframeQueue=[], timeframeQueueIndex=0, timeframeLoopMode=false;
 
@@ -12244,7 +12269,7 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
     const session=songSession;
     const record={signature:cloudFileSignature(activeAudioFile),savedAt:Date.now(),state:analysisSnapshot('Latest'),
       history:copyAnalysis(analysisHistory),parts:copyAnalysis(analysisParts),bassBase64:bassStemBase64,bassMime:bassStemMime,
-      noBassBase64,noBassMime,rehearsalVersion:currentRehearsalVersion,transpose:transposeSemitones};
+      noBassBase64,noBassMime,rehearsalVersion:currentRehearsalVersion,transpose:transposeSemitones,structure:copyAnalysis(songStructure)};
     recoveryWriteQueue=recoveryWriteQueue.catch(()=>{}).then(()=>recoveryStore('analyses',s=>s.put(record)))
       .then(()=>true).catch(()=>{if(session===songSession)toolsMessage('Device backup unavailable. Use Save to keep your work.');return false;});
     return recoveryWriteQueue;
@@ -12257,6 +12282,7 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
       analysisParts=Array.isArray(saved.parts)?saved.parts:[];renderTimelinePartTabs();
       analysisHistory=(saved.history||[]).slice(-5);transposeSemitones=clamp(Number(saved.transpose)||0,-12,12);
       restoreAnalysisSnapshot(saved.state);
+      if(saved.structure)installSongStructure(saved.structure,{persist:false});
       if(analysisParts.length)await activateAnalysisPart(analysisPartIndexForTime(currentTime()),{seek:false});
       else{if(saved.bassBase64)await loadBassStemFromBase64(saved.bassBase64,saved.bassMime);
         if(session!==songSession||request!==songLoadRequest)return false;
@@ -12700,7 +12726,7 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
           audioBase64
         },
         analysis:{
-          ready:true,
+          ready:true,structure:copyAnalysis(songStructure),
           history:analysisHistory,manualCorrections,keyCorrections,
           keySections:audioKeySections,keyReady:audioKeyReady,baseScale:detectedBaseScale,
           noteCount:savedNotes.length,
@@ -12878,7 +12904,7 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
       renderAnalysisHistory();
       noteDisplayMode=project.analysis.displayMode==='numbers'?'numbers':'notes';refreshNoteNumberToggle();
 
-      baseSections=isPsalmRecording(audioName,buffer.duration)?cloneSections(defaultPsalmSections):buildTimedSections(buffer.duration,20);
+      baseSections={};
       sections=cloneSections(baseSections);
       origVol.value='70';bassVol.value='70';metronomeVol.value='70';tempo.value='100';
       project.settings=project.settings&&typeof project.settings==='object'?project.settings:{};
@@ -12916,6 +12942,7 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
             start:clamp(Number(range.start),0,buffer.duration),end:clamp(Number(range.end),0,buffer.duration)}]));
         }
       }
+      if(project.analysis.structure)installSongStructure(project.analysis.structure,{persist:false});
       storageKey='bassStemSections:'+audioName+'|saved|'+Math.round(buffer.duration*1000);
       selectedSections.clear();selectedTimeframes.clear();multiSectionMode=false;sectionQueue=[];queueIndex=0;
       timeframeQueue=[];timeframeQueueIndex=0;timeframeLoopMode=false;loopEnabled=false;loopStart=null;loopEnd=null;
@@ -13462,22 +13489,11 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
       if('webkitPreservesPitch' in masterAudio)masterAudio.webkitPreservesPitch=true;
       objectName=f.name;
       storageKey='bassStemSections:'+f.name+'|'+f.size+'|'+Math.round(buffer.duration*1000);
-      baseSections=isPsalmRecording(f.name,buffer.duration)?cloneSections(defaultPsalmSections):buildTimedSections(buffer.duration,20);
+      baseSections={};
       sections=cloneSections(baseSections);
       selectedSections.clear();multiSectionMode=false;sectionQueue=[];queueIndex=0;
       selectedTimeframes.clear();timeframeQueue=[];timeframeQueueIndex=0;timeframeLoopMode=false;
       loopEnabled=false;loopStart=null;loopEnd=null;selectedSection=Object.keys(sections)[0]||'Intro';
-      try{
-        const saved=localStorage.getItem(storageKey);
-        if(saved){
-          const parsed=JSON.parse(saved);
-          if(parsed&&Object.keys(parsed).length)sections={...sections,...parsed};
-        }
-      }catch(e){}
-      Object.values(sections).forEach(s=>{
-        if(s.start!=null)s.start=clamp(s.start,0,buffer.duration);
-        if(s.end!=null)s.end=clamp(s.end,0,buffer.duration);
-      });
       renderSectionControls();updateLoopUI();
       pausedAt=0;playing=false;stopSource();notes=[];lastNoteMidi=null;prevBassSpec=null;lastSpectralFlux=0;waveCacheDirty=true;
       renderSourceMeta(f.name,buffer.numberOfChannels,buffer.sampleRate,buffer.duration);
@@ -15750,6 +15766,7 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
       aiBusy=false;aiAnalyse.disabled=!buffer||songImportBusy;
       aiAnalyse.removeAttribute('aria-busy');
       updatePracticeLayoutState(true);
+      if(offlineAnalysisReady&&!songStructure)ensureSongStructure();
     }
   }
 
@@ -15809,11 +15826,16 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
       pendingResumeBusy=false;aiBusy=false;
       if(aiAnalyse){aiAnalyse.disabled=!buffer||songImportBusy;aiAnalyse.removeAttribute('aria-busy');}
       updatePracticeLayoutState(true);
+      if(offlineAnalysisReady&&!songStructure)ensureSongStructure();
     }
   }
 
   function checkSavedAnalysisSoon(delay=250){
-    setTimeout(()=>{if(document.visibilityState==='visible')resumeSavedRunPodAnalysis();},delay);
+    setTimeout(()=>{if(document.visibilityState==='visible'){
+      resumeSavedRunPodAnalysis();
+      const pending=pendingStructureJob();
+      if(!songStructure&&pending?.id&&activeAudioFile&&pending.signature===cloudFileSignature(activeAudioFile))ensureSongStructure();
+    }},delay);
   }
 
   async function buildOfflineBassTrack(buffer){
@@ -17022,6 +17044,205 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
   };
 
 
+  // RC155: song structure is independent of pitch, fingering and chord analysis.
+  let songStructure=null,structureBusy=false,structureError='',structurePromise=null;
+  const STRUCTURE_PENDING_KEY='bassStemStructureJobV1';
+  function normaliseSongStructure(raw,duration=buffer?.duration){
+    if(!raw||typeof raw!=='object'||!Array.isArray(raw.segments)||!Number.isFinite(duration)||duration<=0)return null;
+    const segments=[];
+    for(const [i,s] of raw.segments.entries()){
+      const start=Number(s?.start),end=Number(s?.end);
+      if(!Number.isFinite(start)||!Number.isFinite(end)||end<=start||start<0||end>duration+.5||start>=duration)return null;
+      if(i&&Math.abs(start-segments[i-1].end)>.1)return null;
+      const name=String(s.name||`Section ${i+1}`).slice(0,60);
+      if(segments.some(p=>p.name===name))return null;
+      segments.push({name,start:Math.max(0,start),end:Math.min(duration,end),
+        label:String(s.label||'section').slice(0,24),uncertain:!!s.uncertain,
+        originalStart:Number.isFinite(Number(s.originalStart))?Number(s.originalStart):start,
+        originalEnd:Number.isFinite(Number(s.originalEnd))?Number(s.originalEnd):Math.min(duration,end)});
+    }
+    if(!segments.length||segments[0].start>.15||duration-segments.at(-1).end>.5)return null;
+    segments[0].start=0;segments.at(-1).end=duration;
+    const times=a=>Array.isArray(a)?[...new Set(a.map(Number).filter(t=>Number.isFinite(t)&&t>=0&&t<duration))].sort((a,b)=>a-b):[];
+    return {version:String(raw.version||'song-structure-v1'),model:String(raw.model||''),
+      segments,beats:times(raw.beats),downbeats:times(raw.downbeats),adjusted:!!raw.adjusted};
+  }
+  function installSongStructure(raw,{persist=true}={}){
+    const next=normaliseSongStructure(raw);if(!next)return false;
+    songStructure=next;structureError='';
+    sections=Object.fromEntries(next.segments.map(s=>[s.name,{start:s.start,end:s.end}]));
+    baseSections=Object.fromEntries(next.segments.map(s=>[s.name,{start:s.originalStart,end:s.originalEnd}]));
+    selectedSection=sections[selectedSection]?selectedSection:Object.keys(sections)[0];
+    renderSectionControls();renderRepeatChooser();
+    if(persist){persistSections();persistAnalysisRecovery();}return true;
+  }
+  function resetSongStructure(){
+    songStructure=null;structureBusy=false;structurePromise=null;structureError='';
+    sections={};baseSections={};selectedSection='';
+    $('repeatSectionDialog')?.close();
+  }
+  function currentSectionName(t=currentTime()){
+    const items=Object.entries(sections).sort((a,b)=>a[1].start-b[1].start);
+    return items.find(([,s],i)=>t>=s.start&&(t<s.end||(i===items.length-1&&t<=s.end+.01)))?.[0]||'';
+  }
+  function pendingStructureJob(){
+    try{return JSON.parse(localStorage.getItem(STRUCTURE_PENDING_KEY)||'null');}catch{return null;}
+  }
+  function storeStructureJob(value){
+    try{if(value)localStorage.setItem(STRUCTURE_PENDING_KEY,JSON.stringify(value));else localStorage.removeItem(STRUCTURE_PENDING_KEY);}catch{}
+  }
+  async function ensureSongStructure({interactive=false}={}){
+    if(songStructure)return true;
+    if(structureBusy)return structurePromise;
+    if(!buffer||!activeAudioFile||songImportBusy)return false;
+    if(aiBusy){structureError='Sections will be found after the bass analysis.';renderRepeatChooser();return false;}
+    const key=interactive?getRunPodKey():storedRunPodKey();
+    if(!key){structureError='Tap Find sections to connect to the analysis service.';renderRepeatChooser();return false;}
+    const session=songSession,file=activeAudioFile,signature=cloudFileSignature(file),audioBuffer=buffer;
+    structureBusy=true;structureError='';renderRepeatChooser();
+    structurePromise=(async()=>{
+      let pending=pendingStructureJob();
+      try{
+        let result;
+        if(!pending?.id||pending.signature!==signature){
+          let upload=file,route='run';
+          if(file.size>RUNPOD_RUN_RAW_SAFE_BYTES){
+            route='runsync';
+            if(file.size>RUNPOD_RUNSYNC_RAW_SAFE_BYTES){
+              const bitrate=chooseAnalysisMp3Bitrate(audioBuffer.duration,RUNPOD_RUNSYNC_RAW_SAFE_BYTES);
+              if(!bitrate)throw new Error('This recording is too long for automatic sections. Existing repeat selections still work.');
+              upload=await encodeAudioBufferForAnalysis(audioBuffer,bitrate,0,null,'',session);
+              assertSongSession(session);
+            }
+          }
+          if(upload.size>RUNPOD_RUNSYNC_RAW_SAFE_BYTES)throw new Error('This recording is too large for automatic sections. Existing repeat selections still work.');
+          const data=await fileToBase64(upload);assertSongSession(session);
+          result=await runPodFetch(`https://api.runpod.ai/v2/${RUNPOD_ENDPOINT}/${route}`,key,{method:'POST',body:JSON.stringify({input:{action:'sections',
+            filename:upload===file?file.name:'sections.mp3',audio_base64:data}})},1,session);
+          assertSongSession(session);
+          if(result.id){pending={id:result.id,signature};storeStructureJob(pending);}
+          if(!result.id&&result.status!=='COMPLETED')throw new Error('The section request was not accepted. Please try again.');
+        }
+        for(let checks=0;checks<360;checks++){
+          assertSongSession(session);
+          if(!result||!['COMPLETED','FAILED','CANCELLED','TIMED_OUT'].includes(result.status)){
+            if(checks||result)await cloudSleep(5000);
+            result=await runPodFetch(`https://api.runpod.ai/v2/${RUNPOD_ENDPOINT}/status/${encodeURIComponent(pending.id)}`,key,{method:'GET'},3,session);
+          }
+          assertSongSession(session);
+          if(['FAILED','CANCELLED','TIMED_OUT'].includes(result.status)){storeStructureJob(null);throw new Error('Sections could not be found. Please try again.');}
+          if(result.status==='COMPLETED'){
+            if(!result.output?.ok||!installSongStructure(result.output.structure)){
+              storeStructureJob(null);throw new Error('No usable sections were returned. Please try again.');
+            }
+            storeStructureJob(null);return true;
+          }
+          result=null;
+        }
+        throw new Error('Sections are still processing. Tap Check sections to resume.');
+      }catch(error){
+        if(session!==songSession||error?.name==='AbortError')return false;
+        if(error?.httpStatus===404)storeStructureJob(null);
+        structureError=error?.httpStatus===401?'The analysis key was rejected. Update it and try again.':
+          error?.httpStatus?'Sections are temporarily unavailable. Please try again.':String(error?.message||'Could not find sections.');
+        return false;
+      }finally{
+        if(session===songSession){structureBusy=false;structurePromise=null;renderRepeatChooser();}
+      }
+    })();
+    return structurePromise;
+  }
+  function renderRepeatChooser(){
+    const dialog=$('repeatSectionDialog');if(!dialog)return;
+    const list=$('repeatSectionList'),choice=$('adjustSectionSelect');
+    const previous=choice.value;list.replaceChildren();choice.replaceChildren();
+    const names=Object.keys(sections).sort((a,b)=>sections[a].start-sections[b].start);
+    for(const name of names){
+      const button=document.createElement('button');button.type='button';button.dataset.repeatSection=name;
+      const label=document.createElement('span');label.textContent=name;
+      const time=document.createElement('span');time.textContent=sectionLabel(sections[name]);time.className='repeat-section-time';
+      button.append(label,time);list.append(button);
+      const option=document.createElement('option');option.value=name;option.textContent=name;choice.append(option);
+    }
+    choice.value=names.includes(previous)?previous:(currentSectionName()||names[0]||'');
+    const current=currentSectionName();
+    $('repeatCurrentSection').disabled=!current;
+    $('repeatCurrentSection').textContent=current?`Current section · ${current}`:'Current section';
+    $('repeatAdjustments').hidden=!names.length;
+    $('repeatResetAdjustment').hidden=!songStructure;
+    $('repeatFindSections').hidden=!!songStructure||structureBusy;
+    $('repeatFindSections').textContent=pendingStructureJob()?.signature===cloudFileSignature(activeAudioFile)?'Check sections':'Find sections';
+    $('repeatSectionStatus').textContent=structureBusy?'Finding song sections… You can keep practising.':structureError||
+      (songStructure?'Tap to repeat. “Section” means an unclear name.':names.length?'Saved ranges. Find sections to detect this song’s structure.':'Find verse, chorus and bridge automatically.');
+    $('repeatSectionStatus').setAttribute('aria-busy',String(structureBusy));
+    $('repeatSelection').hidden=!selectedTimeframes.size;
+    const a=parseUserTime(timeFrom.value),b=parseUserTime(timeTo.value);
+    $('repeatTypedRange').hidden=!(Number.isFinite(a)&&Number.isFinite(b)&&b>a&&buffer&&a<buffer.duration);
+    updateSectionAdjustment();
+  }
+  function openRepeatChooser(){
+    if(!buffer)return;
+    renderRepeatChooser();$('repeatSectionDialog').showModal();
+    if(!songStructure&&!structureBusy&&!structureError)ensureSongStructure({interactive:true});
+  }
+  function repeatChosenSection(name){
+    if(!sections[name])return;
+    activateSection(name,true);$('repeatSectionDialog').close();
+  }
+  function sectionBeatStep(t,direction){
+    const beats=songStructure?.beats?.length?songStructure.beats:detectedBeatTimes;
+    if(beats.length>1){
+      // Use the neighbouring detected beat, including irregular live tempos.
+      if(direction<0){for(let i=beats.length-1;i>=0;i--)if(beats[i]<t-.04)return beats[i];return 0;}
+      const next=beats.find(b=>b>t+.04);return next??buffer.duration;
+    }
+    const bpm=currentTempoBpm();return bpm&&bpm>0?clamp(t+direction*60/bpm,0,buffer.duration):null;
+  }
+  function updateSectionAdjustment(){
+    const s=sections[$('adjustSectionSelect').value];
+    $('repeatAdjustmentTimes').textContent=s?sectionLabel(s):'';
+    document.querySelectorAll('[data-section-edge]').forEach(b=>{
+      const next=s?sectionBeatStep(s[b.dataset.sectionEdge],Number(b.dataset.direction)):null;
+      const index=songStructure?.segments.findIndex(x=>x.name===$('adjustSectionSelect').value);
+      const anchored=songStructure&&(b.dataset.sectionEdge==='start'?index===0:index===songStructure.segments.length-1);
+      b.disabled=!!anchored||next===null||!s||Math.abs(next-s[b.dataset.sectionEdge])<.02||
+        (b.dataset.sectionEdge==='start'?next>=s.end-.1:next<=s.start+.1);
+    });
+  }
+  function nudgeSectionBoundary(edge,direction){
+    const name=$('adjustSectionSelect').value,s=sections[name];if(!s)return;
+    const next=sectionBeatStep(s[edge],direction);if(next===null||next<0||next>buffer.duration)return;
+    if(edge==='start'?next>=s.end-.1:next<=s.start+.1)return;
+    // A shared boundary moves both neighbouring sections, leaving no gaps.
+    if(songStructure){
+      const i=songStructure.segments.findIndex(x=>x.name===name),segment=songStructure.segments[i];
+      if(!segment)return;
+      const adjacent=songStructure.segments[i+(edge==='start'?-1:1)];
+      if(!adjacent)return; // Song start/end stay anchored to the audio.
+      if(edge==='start'?next<=adjacent.start+.1:next>=adjacent.end-.1)return;
+      segment[edge]=next;adjacent[edge==='start'?'end':'start']=next;
+      sections[adjacent.name]={start:adjacent.start,end:adjacent.end};songStructure.adjusted=true;
+    }
+    s[edge]=next;
+    if(loopEnabled&&selectedSections.size===1){const active=sections[[...selectedSections][0]];if(active){loopStart=active.start;loopEnd=active.end;updateLoopUI();}}
+    persistSections();persistAnalysisRecovery();renderRepeatChooser();$('adjustSectionSelect').value=name;updateSectionAdjustment();
+  }
+  $('repeatCurrentSection').onclick=()=>repeatChosenSection(currentSectionName());
+  $('repeatSectionList').onclick=e=>{const button=e.target.closest('[data-repeat-section]');if(button)repeatChosenSection(button.dataset.repeatSection);};
+  $('repeatFindSections').onclick=()=>ensureSongStructure({interactive:true});
+  $('closeRepeatSections').onclick=()=>$('repeatSectionDialog').close();
+  $('adjustSectionSelect').onchange=updateSectionAdjustment;
+  document.querySelectorAll('[data-section-edge]').forEach(b=>b.onclick=()=>nudgeSectionBoundary(b.dataset.sectionEdge,Number(b.dataset.direction)));
+  $('repeatSelection').onclick=()=>{activateSelectedTimeframes({seekIfNeeded:true});if(!playing)play();$('repeatSectionDialog').close();};
+  $('repeatTypedRange').onclick=()=>{playTimeRange.onclick();$('repeatSectionDialog').close();};
+  $('repeatResetAdjustment').onclick=()=>{
+    if(!songStructure)return;
+    const reset=copyAnalysis(songStructure);reset.adjusted=false;
+    reset.segments.forEach(s=>{s.start=s.originalStart;s.end=s.originalEnd;});
+    installSongStructure(reset);
+    if(loopEnabled&&selectedSections.size===1){const s=sections[[...selectedSections][0]];if(s){loopStart=s.start;loopEnd=s.end;updateLoopUI();}}
+  };
+
   // ---------- Premium A/B + Named Section Looping ----------
   const setLoopStart=$('setLoopStart'), setLoopEnd=$('setLoopEnd'), loopToggle=$('loopToggle'),
         clearLoop=$('clearLoop'), loopA=$('loopA'), loopB=$('loopB'),
@@ -17038,22 +17259,13 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
     const repeatActive=!!(loopEnabled||multiSectionMode||timeframeLoopMode);
     loopToggle.classList.toggle('loop-on',repeatActive);
     loopToggle.setAttribute('aria-pressed',repeatActive?'true':'false');
+    loopToggle.setAttribute('aria-label',repeatActive?'Stop repeating':'Repeat a section');
+    loopToggle.title=repeatActive?'Stop repeating':'Repeat a section';
   }
   function cloneSections(obj){return JSON.parse(JSON.stringify(obj));}
-  function buildTimedSections(duration,seconds=20){
-    const out={}; let i=1;
-    for(let start=0;start<duration-.01;start+=seconds){
-      out[`Part ${i++}`]={start,end:Math.min(start+seconds,duration)};
-    }
-    return out;
-  }
-  function isPsalmRecording(name,duration){
-    return /psalm[^a-z0-9]*23|i[^a-z0-9]*am[^a-z0-9]*not[^a-z0-9]*alone/i.test(name||'') || (duration>405 && duration<415);
-  }
   function renderSectionControls(){
     const names=Object.keys(sections);
-    if(!names.length)return;
-    if(!sections[selectedSection]) selectedSection=names[0];
+    if(!sections[selectedSection]) selectedSection=names[0]||'';
     sectionGrid.replaceChildren();
     sectionSelect.replaceChildren();
     for(const name of names){
@@ -17095,6 +17307,7 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
     selectSection(name);
     selectedSections.clear(); selectedSections.add(name); refreshSectionUI();
     multiSectionMode=false; sectionQueue=[]; queueIndex=0;
+    timeframeLoopMode=false;timeframeQueue=[];timeframeQueueIndex=0;selectedTimeframes.clear();refreshTimeframeSelectionUI();
     loopStart=s.start; loopEnd=s.end; loopEnabled=true; updateLoopUI();
     seekTo(loopStart);
     if(autoplay && !playing) play();
@@ -17231,27 +17444,12 @@ html body #appRoot#appRoot#appRoot #chordDetailsDialog .tentative{color:#d6c2ff!
   setLoopStart.onclick=()=>{if(!buffer)return;selectedTimeframes.clear();timeframeLoopMode=false;timeframeQueue=[];timeframeQueueIndex=0;refreshTimeframeSelectionUI();selectedSections.clear();refreshSectionUI();multiSectionMode=false;sectionQueue=[];loopStart=currentTime();if(loopEnd!==null&&loopEnd<=loopStart)loopEnd=null;updateLoopUI()};
   setLoopEnd.onclick=()=>{if(!buffer)return;const t=currentTime();if(loopStart===null||t<=loopStart){status.className='status warn';status.textContent='Set A first, then move forward and set B.';return}loopEnd=t;updateLoopUI()};
   loopToggle.onclick=()=>{
-    if(timeframeLoopMode){
-      timeframeLoopMode=false;
-      updateLoopUI();
-      refreshTimeframeSelectionUI();
-      return;
+    if(loopEnabled||multiSectionMode||timeframeLoopMode){
+      loopEnabled=false;multiSectionMode=false;timeframeLoopMode=false;
+      sectionQueue=[];queueIndex=0;timeframeQueue=[];timeframeQueueIndex=0;
+      updateLoopUI();refreshTimeframeSelectionUI();return;
     }
-    if(selectedTimeframes.size){
-      activateSelectedTimeframes({seekIfNeeded:true});
-      return;
-    }
-    if(loopEnabled){
-      loopEnabled=false; multiSectionMode=false; sectionQueue=[]; queueIndex=0;
-      updateLoopUI(); return;
-    }
-    const r=parseRangeInputs();
-    if(!r) return;
-    loopStart=r.a; loopEnd=r.b; loopEnabled=true;
-    timeframeLoopMode=false; timeframeQueue=[]; timeframeQueueIndex=0;
-    multiSectionMode=false; sectionQueue=[]; queueIndex=0;
-    updateLoopUI();
-    if(buffer) seekTo(loopStart);
+    openRepeatChooser();
   };
   clearLoop.onclick=()=>{
     loopStart=loopEnd=null;
