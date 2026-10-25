@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bass Stem Studio RC160</title>
+<title>Bass Stem Studio RC161</title>
 <script>
 /* RC119: initialise the correct physical-device font before the first paint.
    This deliberately does not rely on viewport width alone, because Chrome's
@@ -11809,6 +11809,14 @@ html body #appRoot#appRoot#appRoot .bass-view-foot{flex:0 0 auto!important;min-h
 }
 </style>
 
+<style id="rc161-all-notes-fit">
+html body #appRoot#appRoot#appRoot #chordRuler{height:var(--practice-chord-height,36px)!important;min-height:var(--practice-chord-height,36px)!important;max-height:var(--practice-chord-height,36px)!important;overflow:visible!important}
+html body #appRoot#appRoot#appRoot .chord-cell{grid-template-columns:repeat(var(--cell-chord-columns,1),minmax(0,1fr))!important;padding:5px 6px!important;gap:0 4px!important;align-content:start!important}
+html body #appRoot#appRoot#appRoot .chord-name{font-size:var(--practice-notation-font,var(--ui-font-size))!important;line-height:1.35!important;min-height:0!important;white-space:nowrap!important;overflow:visible!important;overflow-wrap:normal!important}
+html body #appRoot#appRoot#appRoot .simple-timeline-card .note-sequence{grid-template-columns:repeat(var(--cell-note-columns,1),minmax(0,1fr))!important}
+html body #appRoot#appRoot#appRoot .simple-timeline-card .note-token{font-size:var(--practice-notation-font,var(--ui-font-size))!important;line-height:1.35!important;padding:2px!important;white-space:nowrap!important;overflow:visible!important;text-overflow:clip!important;border-radius:7px!important}
+html body #appRoot#appRoot#appRoot .note-time-cell{padding:6px!important}
+</style>
 </head>
 <body>
 <div id="sectionCompatibility" style="display:none" aria-hidden="true">
@@ -12164,7 +12172,7 @@ html body #appRoot#appRoot#appRoot .bass-view-foot{flex:0 0 auto!important;min-h
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC160';
+  const APP_VERSION='RC161';
   const PROJECT_SCHEMA_VERSION=2;
   // RC125: compact practice-view and string selectors preserve space for P1/P2/P3; all RC124 audio, analysis, repeat, project and practice logic preserved.
 
@@ -12479,7 +12487,7 @@ html body #appRoot#appRoot#appRoot .bass-view-foot{flex:0 0 auto!important;min-h
   }
   let inlineNoteEditor=null;
   function closeInlineNoteEditor(){
-    if(inlineNoteEditor){inlineNoteEditor.form.remove();inlineNoteEditor=null;}
+    if(inlineNoteEditor){inlineNoteEditor.form.remove();inlineNoteEditor=null;noteLane.style.setProperty('height','var(--practice-note-space)','important');timelineScroll.scrollTop=0;}
   }
   function openInlineNoteEditor(token,item){
     if(aiBusy||songImportBusy)return;
@@ -12627,8 +12635,9 @@ html body #appRoot#appRoot#appRoot .bass-view-foot{flex:0 0 auto!important;min-h
     const inner=timelineScroll.querySelector('.timeline-inner');
     if(!inner)return;
     const w=inner.getBoundingClientRect().width;
-    const start=Math.floor(Math.max(0,Number(t)||0)/TIMELINE_CELL_SECONDS)*timelineCellWidth();
-    timelineScroll.scrollLeft=Math.max(0,start);
+    const start=timelineCellLeft(Math.min(practiceCells.length-1,Math.floor(Math.max(0,Number(t)||0)/TIMELINE_CELL_SECONDS)));
+    const pageWidth=Math.max(1,timelineScroll.clientWidth-2);
+    timelineScroll.scrollLeft=Math.floor((Math.max(0,start)+.1)/pageWidth)*pageWidth;
     updateSimpleTimeline(Number(t)||0);
   }
 
@@ -16315,15 +16324,17 @@ html body #appRoot#appRoot#appRoot .bass-view-foot{flex:0 0 auto!important;min-h
     const n=Number(sec)||0;
     return Math.abs(n/TIMELINE_MAJOR_SECONDS-Math.round(n/TIMELINE_MAJOR_SECONDS))<0.001;
   }
-  let practiceCellWidth=0,practiceNoteColumns=2;
-  function timelineCellWidth(){
+  let practiceCellWidth=0,practiceNoteColumns=2,practiceCells=[],practiceLayoutWidth=0;
+  function timelineCellLeft(index){return practiceCells[index]?.left??index*practiceCellWidth;}
+  function timelineCellWidth(index=0){
+    if(practiceCells[index])return practiceCells[index].width;
     if(practiceCellWidth>0)return practiceCellWidth;
     const css=getComputedStyle(document.documentElement).getPropertyValue('--rc50-cell-w').trim();
     const n=parseFloat(css); return Number.isFinite(n)&&n>60?n:118;
   }
   function timelineWidthCss(){
     if(!buffer||!buffer.duration)return Math.max(320,window.innerWidth||360);
-    return Math.max(320,(buffer.duration/TIMELINE_CELL_SECONDS)*timelineCellWidth());
+    return practiceLayoutWidth||Math.max(320,(buffer.duration/TIMELINE_CELL_SECONDS)*timelineCellWidth());
   }
   function updateTimelineGeometry(){
     if(!buffer)return;
@@ -16375,7 +16386,17 @@ html body #appRoot#appRoot#appRoot .bass-view-foot{flex:0 0 auto!important;min-h
   }
   function timelineX(sec,w){
     if(!buffer||!buffer.duration)return 0;
-    return clamp(sec/buffer.duration,0,1)*w;
+    if(!practiceCells.length)return clamp(sec/buffer.duration,0,1)*w;
+    const index=Math.min(practiceCells.length-1,Math.floor(Math.max(0,sec)/TIMELINE_CELL_SECONDS));
+    const cell=practiceCells[index],start=index*TIMELINE_CELL_SECONDS,end=Math.min(buffer.duration,start+TIMELINE_CELL_SECONDS);
+    return (cell.left+clamp((sec-start)/Math.max(.001,end-start),0,1)*cell.width)/timelineWidthCss()*w;
+  }
+  function timelineTimeAtX(x){
+    if(!practiceCells.length)return clamp(x/Math.max(1,timelineWidthCss()),0,1)*(buffer?.duration||0);
+    let low=0,high=practiceCells.length-1;
+    while(low<high){const mid=Math.ceil((low+high)/2);if(practiceCells[mid].left<=x)low=mid;else high=mid-1;}
+    const cell=practiceCells[low],start=low*TIMELINE_CELL_SECONDS,end=Math.min(buffer.duration,start+TIMELINE_CELL_SECONDS);
+    return start+clamp((x-cell.left)/cell.width,0,1)*(end-start);
   }
   function timelineTicks(){
     if(!buffer)return [];
@@ -16611,7 +16632,6 @@ html body #appRoot#appRoot#appRoot .bass-view-foot{flex:0 0 auto!important;min-h
   function rebuildChordRuler(cellCount,cellW,duration){
     if(!chordRuler)return;
     chordRuler.replaceChildren();
-    const fontSize=parseFloat(getComputedStyle(chordRuler).fontSize)||14;
     const buckets=Array.from({length:cellCount},()=>[]);
     (detectedChordChanges||[]).forEach((chord,index)=>{
       if(!reliableChord(chord))return;
@@ -16622,11 +16642,10 @@ html body #appRoot#appRoot#appRoot .bass-view-foot{flex:0 0 auto!important;min-h
         if(end>start)buckets[i].push({chord,index,start,end});
       }
     });
-    let maxLines=1;
     buckets.forEach((events,i)=>{
       const start=i*TIMELINE_CELL_SECONDS,end=Math.min(duration,start+TIMELINE_CELL_SECONDS);
       const d=document.createElement('div');d.className='chord-cell'+(isTimelineMajor(start)?' major':'')+(events.length?'':' empty');
-      d.style.left=(i*cellW)+'px';d.style.width=cellW+'px';d.dataset.start=start;d.dataset.end=end;
+      d.style.left=timelineCellLeft(i)+'px';d.style.width=timelineCellWidth(i)+'px';d.style.setProperty('--cell-chord-columns',practiceCells[i]?.chordColumns||1);d.dataset.start=start;d.dataset.end=end;
       const groups=chordPreviewGroups(events.sort((a,b)=>a.start-b.start||a.end-b.end));
       // Show every successive chord. No change is hidden behind a count or button.
       for(const e of groups){
@@ -16641,12 +16660,8 @@ html body #appRoot#appRoot#appRoot .bass-view-foot{flex:0 0 auto!important;min-h
       if(!groups.length)d.textContent='—';
       d.setAttribute('aria-label',`Chord changes, reading order, ${fmtShort(start)} to ${fmtShort(end)} · ${groups.length?groups.map(e=>chordDisplayLabel(e.chord)).join(', '):'uncertain'}`);
       chordRuler.append(d);
-      // Measure complete labels at the user's chosen text size; never clip roots or extensions.
-      const rows=Math.ceil(d.children.length/Number(chordRuler.dataset.columns||1));
-      const contentHeight=rows*Math.max(fontSize*1.35,...[...d.children].map(e=>Math.max(e.scrollHeight,e.getBoundingClientRect().height)));
-      maxLines=Math.max(maxLines,contentHeight/(fontSize*1.35));
     });
-    chordRuler.style.setProperty('--chord-row-height',Math.max(36,Math.ceil(maxLines*fontSize*1.35+fontSize*.8))+'px');
+    // fitPracticeTimeline sets a bounded header with enough columns for every chord.
     chordRuler.title='Chord changes run in reading order. The highlighted chord is current. Purple ? means uncertain.';
     updateCurrentChord(currentTime());
   }
@@ -16676,7 +16691,7 @@ html body #appRoot#appRoot#appRoot .bass-view-foot{flex:0 0 auto!important;min-h
     const cellCount=Math.max(1,Math.ceil(duration/TIMELINE_CELL_SECONDS));
     const scaleSig=currentScaleContext?`${currentScaleContext.rootPc}:${currentScaleContext.mode}`:'no-scale';
     const chordSig=(detectedChordChanges||[]).map(c=>`${c.rootPc}:${c.quality}:${c.bassPc}:${c.uncertain}:${c.source}:${Number(c.start).toFixed(2)}:${Number(c.end).toFixed(2)}:${c.evidenceVersion||''}:${c.confidence}`).join('|');
-    const sig=[duration.toFixed(3),TIMELINE_CELL_SECONDS,notes.length,notes.map(n=>`${n.midi}:${n.start.toFixed(3)}:${n.end.toFixed(3)}`).join('|'),cellW,noteDisplayMode,numberingConvention,scaleSig,transposeSemitones,chordSig,practiceDisplayRange().centre,timelineScroll.clientHeight,document.documentElement.dataset.fontPx].join('~');
+    const sig=[duration.toFixed(3),TIMELINE_CELL_SECONDS,notes.length,notes.map(n=>`${n.midi}:${n.start.toFixed(3)}:${n.end.toFixed(3)}`).join('|'),cellW,noteDisplayMode,numberingConvention,scaleSig,transposeSemitones,chordSig,practiceCells.map(c=>`${c.width}:${c.noteColumns}:${c.chordColumns}`).join(','),practiceDisplayRange().centre,timelineScroll.clientHeight,document.documentElement.dataset.fontPx].join('~');
     if(rebuildSimpleTimeline._sig===sig||inlineNoteEditor)return;
     rebuildSimpleTimeline._sig=sig;
 
@@ -16685,8 +16700,8 @@ html body #appRoot#appRoot#appRoot .bass-view-foot{flex:0 0 auto!important;min-h
       const s=i*TIMELINE_CELL_SECONDS;
       const d=document.createElement('div');
       d.className='time-mark'+(isTimelineMajor(s)?' major':'');
-      d.style.left=(i*cellW)+'px';
-      d.style.width=cellW+'px';
+      d.style.left=timelineCellLeft(i)+'px';
+      d.style.width=timelineCellWidth(i)+'px';
       d.textContent=fmtShort(s);
       d.dataset.time=s;
       d.setAttribute('role','button');
@@ -16721,23 +16736,14 @@ html body #appRoot#appRoot#appRoot .bass-view-foot{flex:0 0 auto!important;min-h
       return out;
     });
 
-    // Start with a conservative height, then fit the lane to the actual
-    // tallest four-second cell so notes never drop below the border and the
-    // bottom gap stays tight when the song has no extra low-note content.
-    const maxItems=Math.max(1,...displayBuckets.map(b=>b.length));
-    const roughLaneH=Math.max(240,28+maxItems*42);
-    noteLane.style.setProperty('height',roughLaneH+'px','important');
-    if(noteLane.parentElement){
-      noteLane.parentElement.style.setProperty('min-height',(roughLaneH+190)+'px','important');
-    }
-
     noteLane.innerHTML='';
     displayBuckets.forEach((bucket,i)=>{
       const cellStart=i*TIMELINE_CELL_SECONDS,cellEnd=Math.min(duration,cellStart+TIMELINE_CELL_SECONDS);
       const cell=document.createElement('div');
       cell.className='note-time-cell'+(isTimelineMajor(cellStart)?' major':'')+(bucket.length?'':' empty')+(bucket.length===1?' single-note':'');
-      cell.style.left=(i*cellW)+'px';
-      cell.style.width=cellW+'px';
+      cell.style.left=timelineCellLeft(i)+'px';
+      cell.style.width=timelineCellWidth(i)+'px';
+      cell.style.setProperty('--cell-note-columns',practiceCells[i]?.noteColumns||1);
       cell.dataset.start=cellStart;cell.dataset.end=cellEnd;
       cell.title=`${fmtShort(cellStart)}–${fmtShort(cellEnd)} · tap to add/remove repeat`;
       cell.setAttribute('role','button');
@@ -16766,20 +16772,10 @@ html body #appRoot#appRoot#appRoot .bass-view-foot{flex:0 0 auto!important;min-h
       noteLane.appendChild(cell);
     });
 
-    // A major grid line is wider than other lines. Use one measured width for
-    // every card so those borders cannot make isolated/main/fill cards differ.
-    const sequences=[...noteLane.querySelectorAll('.note-sequence')];
-    const widths=sequences.map(el=>el.getBoundingClientRect().width).filter(w=>w>0);
-    if(widths.length){
-      const gap=parseFloat(getComputedStyle(sequences[0]).columnGap)||0;
-      noteLane.style.setProperty('--note-card-width',Math.max(1,(Math.min(...widths)-gap*(practiceNoteColumns-1))/practiceNoteColumns)+'px');
-    }
-    const tallestSequence=Math.max(0,...[...noteLane.querySelectorAll('.note-sequence')].map(el=>el.scrollHeight||0));
-    const fittedLaneH=Math.max(60,tallestSequence+16);
-    noteLane.style.setProperty('height',fittedLaneH+'px','important');
-    if(noteLane.parentElement){
-      noteLane.parentElement.style.setProperty('min-height','100%','important');
-    }
+    noteLane.style.setProperty('height','var(--practice-note-space)','important');
+    noteLane.style.setProperty('--note-card-width','var(--practice-card-width)');
+    if(noteLane.parentElement)noteLane.parentElement.style.setProperty('min-height','100%','important');
+    timelineScroll.scrollTop=0;
   }
 
   function updateCurrentChord(t){
@@ -16828,7 +16824,7 @@ html body #appRoot#appRoot#appRoot .bass-view-foot{flex:0 0 auto!important;min-h
     }
     if(timelinePlayhead&&buffer){
       timelinePlayhead.classList.add('show');
-      timelinePlayhead.style.left=(t/buffer.duration*100)+'%';
+      timelinePlayhead.style.left=timelineX(t,timelineWidthCss())+'px';
     }
   }
 
@@ -16910,8 +16906,8 @@ html body #appRoot#appRoot#appRoot .bass-view-foot{flex:0 0 auto!important;min-h
     if(playing && practiceVisualMode==='timeline' && timelineScroll){
       const inner=timelineScroll.querySelector('.timeline-inner');
       const fullW=inner?inner.getBoundingClientRect().width:2200;
-      const cellStart=Math.floor(t/TIMELINE_CELL_SECONDS)*timelineCellWidth(),vw=timelineScroll.clientWidth;
-      if(cellStart<timelineScroll.scrollLeft||cellStart+timelineCellWidth()>timelineScroll.scrollLeft+vw)timelineScroll.scrollLeft=cellStart;
+      const index=Math.min(practiceCells.length-1,Math.floor(t/TIMELINE_CELL_SECONDS)),cellStart=timelineCellLeft(index),vw=timelineScroll.clientWidth;
+      if(cellStart<timelineScroll.scrollLeft-.5||cellStart+timelineCellWidth(index)>timelineScroll.scrollLeft+vw+.5)scrollTimelineToTime(t);
     }
   }
 
@@ -17576,7 +17572,7 @@ html body #appRoot#appRoot#appRoot .bass-view-foot{flex:0 0 auto!important;min-h
     const r=inner?.getBoundingClientRect();
     if(!r||!r.width)return null;
     const x=clamp(e.clientX-r.left,0,r.width-.001);
-    const seconds=x/r.width*buffer.duration;
+    const seconds=timelineTimeAtX(x/r.width*timelineWidthCss());
     return Math.floor(seconds/TIMELINE_CELL_SECONDS)*TIMELINE_CELL_SECONDS;
   }
 
@@ -17780,44 +17776,71 @@ html body #appRoot#appRoot#appRoot .bass-view-foot{flex:0 0 auto!important;min-h
     else if(r.bottom>v.bottom)chordRuler.scrollTop+=r.bottom-v.bottom;
   }
   function fitPracticeTimeline(){
-    if(!timelineScroll||timelineScroll.hidden||inlineNoteEditor)return;
+    if(!timelineScroll||timelineScroll.hidden||inlineNoteEditor||!buffer)return;
     const height=timelineScroll.clientHeight,width=timelineScroll.clientWidth;
     if(height<1||width<1)return;
-    const font=Number(document.documentElement.dataset.fontPx)||14;
-    const fitKey=[height,width,font,TIMELINE_CELL_SECONDS,transposeSemitones,notes.length,(detectedChordChanges||[]).length].join(':');
+    const requestedFont=Number(document.documentElement.dataset.fontPx)||14;
+    const fitKey=[height,width,buffer.duration,requestedFont,TIMELINE_CELL_SECONDS,transposeSemitones,noteDisplayMode,numberingConvention,notes.length,(detectedChordChanges||[]).length,currentScaleContext?.rootPc,currentScaleContext?.mode].join(':');
     if(fitPracticeTimeline.key===fitKey&&fitPracticeTimeline.notes===notes&&fitPracticeTimeline.chords===detectedChordChanges)return;
     fitPracticeTimeline.key=fitKey;fitPracticeTimeline.notes=notes;fitPracticeTimeline.chords=detectedChordChanges;
-    const counts=new Map();notes.forEach(n=>{const i=Math.floor(n.start/TIMELINE_CELL_SECONDS);counts.set(i,(counts.get(i)||0)+1);});
-    const chordCounts=new Map();let labelWidth=60;
-    (detectedChordChanges||[]).filter(reliableChord).forEach(c=>{
-      labelWidth=Math.max(labelWidth,chordDisplayLabel(c).length*font*.68+12);
-      for(let i=Math.max(0,Math.floor(c.start/TIMELINE_CELL_SECONDS));i<Math.ceil(c.end/TIMELINE_CELL_SECONDS);i++)chordCounts.set(i,(chordCounts.get(i)||0)+1);
+    const count=Math.max(1,Math.ceil(buffer.duration/TIMELINE_CELL_SECONDS));
+    const counts=Array(count).fill(0),buckets=Array.from({length:count},()=>[]);
+    notes.forEach(n=>{const i=clamp(Math.floor(n.start/TIMELINE_CELL_SECONDS),0,count-1);counts[i]++;});
+    (detectedChordChanges||[]).forEach((chord,index)=>{
+      if(!reliableChord(chord))return;
+      for(let i=Math.max(0,Math.floor(chord.start/TIMELINE_CELL_SECONDS));i<Math.min(count,Math.ceil(chord.end/TIMELINE_CELL_SECONDS));i++){
+        buckets[i].push({chord,index,start:Math.max(chord.start,i*TIMELINE_CELL_SECONDS),end:Math.min(chord.end,(i+1)*TIMELINE_CELL_SECONDS)});
+      }
     });
-    const maxNotes=Math.max(1,...counts.values()),maxChords=Math.max(1,...chordCounts.values());
-    const line=font*1.35,chordLimit=Math.max(line+12,Math.floor(height*.32));
-    const chordRows=Math.max(1,Math.floor((chordLimit-12)/line));
-    let chordColumns=Math.min(Math.max(1,Math.floor((width-16)/labelWidth)),Math.ceil(maxChords/chordRows));
-    const chordHeight=Math.min(chordLimit,Math.max(36,Math.ceil(maxChords/chordColumns)*line+font*.8));
-    const rulerHeight=timeRuler.getBoundingClientRect().height||26;
-    const noteSpace=Math.max(36,height-rulerHeight-chordHeight-26),minNoteH=Math.max(32,font*1.5+10),minNoteW=Math.max(56,font*4.2);
-    const maxCols=Math.max(2,Math.floor((width-16)/(minNoteW+4)));
-    const rowsFit=Math.max(1,Math.floor((noteSpace+4)/(minNoteH+4)));
-    practiceNoteColumns=Math.min(maxCols,Math.max(2,Math.ceil(maxNotes/rowsFit)));
-    const rows=Math.ceil(maxNotes/practiceNoteColumns);
-    const cardHeight=Math.max(minNoteH,Math.min(54,Math.floor((noteSpace-4*(rows-1))/rows)));
-    const requiredWidth=Math.max(118,practiceNoteColumns*(minNoteW+4)+12,chordColumns*labelWidth+16);
-    const wholeCells=Math.max(1,Math.floor((width-2)/requiredWidth));
-    // RC160: show twice as many time columns at the same font size.
-    practiceCellWidth=(width-2)/(wholeCells*2);
-    // Reflow into fewer columns so note/chord names retain their readable width.
-    practiceNoteColumns=Math.max(1,Math.floor(practiceNoteColumns/2));
-    chordColumns=Math.max(1,Math.floor(chordColumns/2));
-    document.documentElement.style.setProperty('--practice-note-columns',practiceNoteColumns);
-    document.documentElement.style.setProperty('--practice-note-height',cardHeight+'px');
-    document.documentElement.style.setProperty('--practice-chord-columns',chordColumns);
-    document.documentElement.style.setProperty('--practice-chord-limit',chordLimit+'px');
-    document.documentElement.style.setProperty('--time-row-height',rulerHeight+'px');
-    chordRuler.dataset.columns=String(chordColumns);
+    const groups=buckets.map(b=>chordPreviewGroups(b.sort((a,b)=>a.start-b.start||a.end-b.end)));
+    const noteLabels=notes.map(n=>`(${displayNoteLabel(n.midi,n.scaleNumber)})`);
+    const measure=document.createElement('canvas').getContext('2d');
+    const family=getComputedStyle(noteLane).fontFamily;
+    const rulerHeight=timeRuler.getBoundingClientRect().height||26,pageWidth=width-2,gap=4;
+    const maxNotes=Math.max(1,...counts),maxChords=Math.max(1,...groups.map(g=>g.length));
+    let font=requestedFont,metrics;
+    // The selected size is retained whenever it fits. Exceptionally dense or
+    // very large-text views scale the notation only, instead of hiding events.
+    for(;font>=1;font--){
+      measure.font=`900 ${font}px ${family}`;
+      const noteWidth=Math.ceil(Math.max(36,...noteLabels.map(label=>measure.measureText(label).width)))+10;
+      const labelWidths=groups.map(g=>Math.ceil(Math.max(20,...g.map(e=>measure.measureText(chordDisplayLabel(e.chord)).width)))+6);
+      const line=Math.ceil(font*1.35),minCardHeight=Math.ceil(font*1.35)+8;
+      const chordRows=Math.max(1,Math.min(3,maxChords),...groups.map((g,i)=>Math.ceil(g.length/Math.max(1,Math.floor((pageWidth-16+gap)/(labelWidths[i]+gap))))));
+      const chordHeight=chordRows*line+10;
+      const noteSpace=Math.floor(height-rulerHeight-chordHeight-24);
+      const maxNoteColumns=Math.max(1,Math.floor((pageWidth-16+gap)/(noteWidth+gap)));
+      const maxRows=Math.ceil(maxNotes/maxNoteColumns);
+      const fits=noteSpace>=maxRows*minCardHeight+(maxRows-1)*gap;
+      metrics={noteWidth,labelWidths,line,chordRows,chordHeight,noteSpace,maxNoteColumns,minCardHeight,maxRows};
+      if(fits||font===1)break;
+    }
+    const {noteWidth,labelWidths,line,chordRows,chordHeight,noteSpace,maxNoteColumns,minCardHeight,maxRows}=metrics;
+    const cardHeight=Math.max(minCardHeight,Math.min(36,Math.floor((noteSpace-gap*(maxRows-1))/maxRows)));
+    const rowsFit=Math.max(1,Math.floor((noteSpace+gap)/(cardHeight+gap)));
+    const slots=Math.max(1,Math.floor(pageWidth/Math.max(78,noteWidth+16))),unit=pageWidth/slots;
+    let used=0;
+    practiceCells=counts.map((n,i)=>{
+      const noteColumns=Math.max(1,Math.ceil(n/rowsFit));
+      const chordColumns=Math.max(1,Math.ceil(groups[i].length/chordRows));
+      const required=Math.max(unit,noteColumns*(noteWidth+gap)-gap+16,chordColumns*(labelWidths[i]+gap)-gap+16);
+      const units=Math.min(slots,Math.max(1,Math.ceil(required/unit-.00001)));
+      const remaining=slots-used%slots;
+      if(units>remaining)used+=remaining;
+      const cell={left:used*unit,width:units*unit,noteColumns,chordColumns};used+=units;return cell;
+    });
+    practiceLayoutWidth=Math.ceil(used/slots)*pageWidth;
+    waveCacheDirty=true;
+    practiceCellWidth=unit;practiceNoteColumns=1;
+    const root=document.documentElement;
+    root.style.setProperty('--practice-note-height',cardHeight+'px');
+    root.style.setProperty('--practice-card-width',noteWidth+'px');
+    root.style.setProperty('--practice-notation-font',font+'px');
+    root.style.setProperty('--practice-note-space',Math.max(0,noteSpace+12)+'px');
+    root.style.setProperty('--practice-chord-height',chordHeight+'px');
+    root.style.setProperty('--time-row-height',rulerHeight+'px');
+    chordRuler.style.setProperty('--chord-row-height',chordHeight+'px');
+    timelineScroll.scrollTop=0;chordRuler.scrollTop=0;
   }
   let practiceResizeFrame=0,lastPracticeSize='';
   function resizePracticeWorkspace(){
@@ -17881,7 +17904,7 @@ html body #appRoot#appRoot#appRoot .bass-view-foot{flex:0 0 auto!important;min-h
   seek.oninput=()=>{ if(buffer) seekTo(Number(seek.value)/1000*buffer.duration) };
   wave.addEventListener('pointerdown',e=>{
     if(!buffer)return;
-    const r=wave.getBoundingClientRect();seekTo(clamp((e.clientX-r.left)/r.width,0,1)*buffer.duration);
+    const r=wave.getBoundingClientRect();seekTo(timelineTimeAtX(clamp((e.clientX-r.left)/r.width,0,1)*timelineWidthCss()));
   });
   clearNotes.onclick=()=>{notes=[];lastNoteMidi=null;noteStart=0;candidateMidi=null;candidateSince=0;pitchHistory=[];lastAcceptedMidi=null;drawAll()};
 

@@ -1,0 +1,25 @@
+Bass Stem Studio RC161: complete bars visible
+
+- Compact, equal-size note cards, including single-note bars.
+- Counts every note/chord before laying out the practice view.
+- Uses extra columns in crowded bars, widening only those bars as needed.
+- Packs whole bars into screen-width pages and follows the playing bar.
+- Compact chord header with every change visible; no +more or clipping.
+- Fits the available viewport in portrait and landscape. Normal passages keep
+  the selected 14px notation. Very dense/large-text views can scale notation
+  down instead of hiding events. Control font preferences are preserved.
+- Timestamp, chord, note, selection and playhead geometry use the same layout.
+- Preserves note data, restricted practice octaves, inline edits and repeats.
+- No backend or paid analysis changes.
+
+Checks
+- All 24 notes and 8 chords simultaneously visible at 360x640, 390x844,
+  740x360 and 844x390, without vertical timeline overflow.
+- Screenshot-style passages with 7, 3, 10 and 2 notes per bar remain fully
+  visible at 14px, even with 12 chord changes in a later bar.
+- All chord labels, equal card sizes and ruler alignment checked at
+  11px, 14px and 22px on 360px, 412px and 800px widths.
+- Editable repeat queues, exact-time selection of widened bars, clearing,
+  inline edit/undo, replacement import, device rotation during playback,
+  and six-string Bass View checks passed.
+- Checks use synthetic fixtures; this is a display fix, not an accuracy claim.

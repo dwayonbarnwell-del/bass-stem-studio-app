@@ -1,8 +1,8 @@
-Bass Stem Studio RC160
+Bass Stem Studio RC161
 
 Upload index.html, sw.js, manifest.webmanifest and icons/ to the frontend root.
 The existing RC155 song-structure backend remains compatible. No backend
-change is required for RC160.
+change is required for RC161.
 
 Repeat
 Importing audio or an older project starts section detection in the background
@@ -27,12 +27,15 @@ The app follows the device's orientation. No rotation button or orientation lock
 is used. On phones, enable the device's Auto rotate setting if needed.
 Font, strings, speed, BPM and interval now sit above Source & Stem.
 The practice workspace fits the available viewport, including browser bars.
-Landscape keeps playback controls beside the timeline. Time columns are 50% narrower than RC159, showing twice as many across the
-view. Notes reflow into fewer columns to preserve the chosen font size. Equal note cards and extra columns fit dense passages without
-changing note data. Notes/chords follow automatically when a very large chosen
-interval or text size needs more space. Six bass strings and eight frets stay
-within the practice area. Notes read left to right, then down, as do chords
-when a dense passage needs more than one column.
+Landscape keeps playback controls beside the timeline. Ordinary time bars stay
+narrow; a crowded bar widens only as needed for extra note/chord columns.
+The layout fits all notes and chords in each bar at the same time. Compact
+note cards have the same size, including single notes. Whole bars move into
+view automatically during playback. No vertical scrolling is required to read
+a bar. In unusually dense intervals or at a very large text setting, notation
+can scale down to fit; the control font setting is preserved. Six bass strings
+and eight frets stay within the practice area. Notes and chords read left to
+right, then down when a bar needs more than one column.
 
 Saved projects
 Import replaces the open song. Old imports and analysis responses cannot
