@@ -1,0 +1,34 @@
+Bass Stem Studio RC158: simpler practice controls
+
+Changes
+- The two existing time cards show the part currently being repeated.
+- Click either time to edit it. Use minutes:seconds or type 120 for 1:20.
+  Editing pauses playback. Press Play when ready. Other selected parts remain
+  queued; each part's edited range is retained for this repeat set.
+- X clears all repeat ranges, selected parts and selected time cells.
+- Removed Adjust a section, Correct detected key and Earlier results panels.
+- Tap a bass note to edit it directly inside its timeline bar. Save or Cancel.
+  Undo remains available. Original note timing and practice-octave rules remain.
+- Chord corrections are accessible by tapping the chord. No edit mode needed.
+- New songs start with 1-second cells. An explicit interval saved inside an
+  existing project is respected.
+- Portrait/Landscape button requests real screen rotation where supported.
+  Some mobile browsers require full screen. Unsupported browsers show a short
+  instruction to turn the phone instead. Physical-device rotation remains a
+  device/browser capability; it cannot be guaranteed on every device.
+- Landscape uses controls on the left and the practice view on the right.
+  Notes and chords stay in the timeline; dense passages scroll to the active
+  note. Timestamp and chord headers stay visible. Eight-fret paging remains.
+
+Validation
+- Editable single/multiple section ranges; invalid input; X clears all repeats.
+- Inline note edit, validation, Undo and import replacement isolation.
+- 1-second default; full active bars; portrait 360/412px and landscape
+  740/844px checks; equal note cards and visible controls at default font.
+- Dense 24-note passage retained, with vertical follow to the current note.
+- Unsupported rotation fallback tested; actual phone hardware not available.
+- Existing automatic section imports, saved map reuse and multi-part playback.
+- Project import/recovery, note/chord corrections and transposition regression.
+- Chord layout checks at 11px, 14px and 22px across three viewport widths.
+
+No backend deployment or paid analysis tests were needed for this update.

@@ -72,7 +72,7 @@ const fixture=`window.__sections={
  assert.equal(await page.locator('[data-repeat-section="Verse 1"]').getAttribute('aria-pressed'),'true');
  await page.locator('#repeatChosenSections').click();await page.waitForFunction(()=>__sections.state().playing);
  state=await page.evaluate(()=>__sections.state());assert.equal(state.multi,true);
- assert.equal(await page.locator('#timeFrom').inputValue(),'');assert.equal(await page.locator('#timeTo').inputValue(),'');
+ assert.equal(await page.locator('#timeFrom').inputValue(),'0:00');assert.equal(await page.locator('#timeTo').inputValue(),'0:20');
  assert.deepEqual(state.queue.map(s=>s.name),['Verse 1','Section 1']);assert.equal(state.start,0);
  await page.evaluate(()=>__sections.at(19.99));await page.waitForFunction(()=>__sections.state().start===40);
  state=await page.evaluate(()=>__sections.state());assert.equal(state.end,60);assert.equal(state.index,1);
@@ -87,19 +87,16 @@ const fixture=`window.__sections={
  await page.locator('#closeRepeatSections').click();assert.equal((await page.evaluate(()=>__sections.state())).multi,false);
  await page.locator('#loopToggle').click();await page.locator('#repeatCurrentSection').click();
  await page.locator('#loopToggle').click();await page.locator('#pauseBtn').click();await page.locator('#loopToggle').click();
- await page.locator('#repeatAdjustments summary').click();await page.locator('#adjustSectionSelect').selectOption('Chorus 1');
- await page.getByRole('button',{name:'Start one beat earlier',exact:true}).click();
- state=await page.evaluate(()=>__sections.state());assert.equal(state.sections['Chorus 1'].start,19.5);assert.equal(state.sections['Verse 1'].end,19.5);
- assert.equal(state.structure.adjusted,true);
- // Save/load and device recovery retain detected sections and shared-edge adjustments.
+ assert.equal(await page.locator('#repeatAdjustments').count(),0);
+ // Save/load and device recovery retain detected sections and saved boundaries.
  await page.evaluate(()=>{project.analysis.structure=__sections.state().structure;});
  await page.locator('#closeRepeatSections').click();
- await page.evaluate(()=>__sections.import(project));state=await page.evaluate(()=>__sections.state());assert.equal(state.sections['Chorus 1'].start,19.5);
+ await page.evaluate(()=>__sections.import(project));state=await page.evaluate(()=>__sections.state());assert.equal(state.sections['Chorus 1'].start,20);
  await page.evaluate(async()=>{await __sections.persist();__sections.reset();await __sections.restore();});
- state=await page.evaluate(()=>__sections.state());assert.equal(state.sections['Chorus 1'].start,19.5);
+ state=await page.evaluate(()=>__sections.state());assert.equal(state.sections['Chorus 1'].start,20);
  page.once('dialog',d=>d.accept('Sections test'));
  const downloaded=page.waitForEvent('download');await page.evaluate(()=>__sections.save());const download=await downloaded;
- const saved=JSON.parse(fs.readFileSync(await download.path(),'utf8'));assert.equal(saved.analysis.structure.segments[1].start,19.5);
+ const saved=JSON.parse(fs.readFileSync(await download.path(),'utf8'));assert.equal(saved.analysis.structure.segments[1].start,20);
  // Mobile dialog remains within the viewport and readable at the editable large font.
  await page.locator('#loopToggle').click();
  for(const size of [14,22]){

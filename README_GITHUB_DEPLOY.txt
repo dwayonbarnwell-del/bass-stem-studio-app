@@ -1,57 +1,44 @@
-Bass Stem Studio RC157
+Bass Stem Studio RC158
 
 Upload index.html, sw.js, manifest.webmanifest and icons/ to the frontend root.
-Requires the RC155 backend with song-structure-v1-allinone enabled.
-Deploy and verify the backend before publishing this frontend.
+The existing RC155 song-structure backend remains compatible. No backend
+change is required for RC158.
 
-The existing Scale card transposes audio and notes. Corrections contains
-key-label fixes, note/chord edits, selected-passage reanalysis and history.
-Choose time cells or an existing repeat range before reanalysing a passage.
-Close Corrections or tap Done editing to return to normal repeat selection.
+Repeat
+Importing audio or an older project starts section detection in the background
+using the saved analysis connection. Saved/cached sections are reused.
+Tap Repeat, choose parts, then Repeat selected. Parts play in song order.
+The two time cards show the current part. Edit them directly to adjust that
+repeat range. Editing pauses playback; press Play when ready. X clears the
+whole repeat set. Repeat again stops repeating and keeps the selected parts.
 
-Import replaces the open song with the saved audio, notes, chords and settings.
-The new song is shown before optional backing audio loads. Old imports,
-recovery reads and analysis responses cannot overwrite the replacement.
-A damaged original audio file leaves the current song intact with an error.
-Missing optional backing audio is reported without blocking the new song.
+Editing
+Tap a bass note inside its bar, enter the note and octave (e.g. C#2), then Save.
+The editor uses the original pitch before transposition. Note timing and the
+restricted practice range are preserved. Cancel closes the editor. Undo is
+available in the editor and under Source & Stem. Tap a chord to correct it.
+The existing Scale card transposes audio and displayed notes/chords.
+Select neighbouring time cells to reanalyse a passage.
 
-All chord changes appear under their timestamp, in order from top to bottom.
-The current chord is highlighted during playback. Purple ? means uncertain.
-Tap a chord only if you want exact times or need to edit it. No names are
-hidden behind a count. The display does not delete or alter analysis.
+Screen
+14px remains the editable font default. New songs use 1-second time cells.
+An explicit interval in a saved project is preserved on import.
+Portrait/Landscape uses the browser's screen rotation when available, with
+full screen if required. Otherwise the app asks you to turn the phone.
+The landscape layout keeps controls beside the active practice view. Dense
+notes can scroll vertically and follow the active note. No transcription
+content is discarded to make the screen fit.
 
-The editable 14 px default, eight-fret paging and restricted practice-octave
-display are unchanged. See RELEASE_RC157.txt for changes and verification.
+Saved projects
+Import replaces the open song. Old imports and analysis responses cannot
+overwrite the replacement. Invalid original audio leaves the current song
+intact; missing optional backing audio does not block a valid import.
 
-Regression checks (requires Node.js, Playwright and a Chromium installation):
-Serve this folder on http://127.0.0.1:8151, then run:
+Validation (Node.js, Playwright, Chromium)
+  node tests/practice_controls.cjs
+  node tests/song_sections.cjs
+  node tests/project_import.cjs
   node tests/analysis_tools.cjs
   node tests/corrections_layout.cjs
-  node tests/project_import.cjs
 PLAYWRIGHT_MODULE and CHROMIUM_PATH can point to existing installations.
-These checks use local fixtures and block external analysis requests.
-
-Importing audio or an older saved song starts section detection in the
-background using the saved analysis connection. Saved/cached sections are
-reused without a new job. Playback stays available during detection.
-
-Tap Repeat, select one or more parts, then tap Repeat selected. Selected
-parts play in song order, skipping gaps, and repeat as a sequence. Tap Repeat
-again to stop repeating. Repeat current is a shortcut for the current part.
-Close dismisses the chooser without changing playback. Selection buttons
-stay visible while choosing, and the action row remains on screen.
-Use Adjust a section for one-beat boundary changes; no time entry is needed.
-Save after sections finish to include them in the saved project.
-
-Additional offline fixture check:
-  node tests/song_sections.cjs
-
-RC156 clarifies section detection while it runs. The chooser shows the
-current stage, elapsed time and a Keep practising button. Unavailable
-Current section controls stay hidden. When detection finishes outside the
-chooser, the existing Repeat card says Sections ready until opened.
-Interrupted status checks can resume the same saved job with Check progress.
-
-Section jobs and the latest completed result also match the audio content,
-so reimporting the same older saved project can reuse its section analysis
-even though the browser gives the imported audio a new file timestamp.
+The tests use local fixtures and block external paid analysis requests.

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bass Stem Studio RC157</title>
+<title>Bass Stem Studio RC158</title>
 <script>
 /* RC119: initialise the correct physical-device font before the first paint.
    This deliberately does not rely on viewport width alone, because Chrome's
@@ -11733,9 +11733,6 @@ html body #appRoot#appRoot#appRoot #repeatSectionList{display:grid!important;gri
 html body #appRoot#appRoot#appRoot #repeatCurrentSection{background:#28574e!important;border-color:#658f83!important}
 html body #appRoot#appRoot#appRoot .repeat-section-time{color:#b6c8d3!important;font-variant-numeric:tabular-nums!important;white-space:nowrap!important;font-weight:400!important}
 html body #appRoot#appRoot#appRoot #repeatSectionStatus{color:#b6c8d3!important;font-weight:400!important}
-html body #appRoot#appRoot#appRoot #repeatAdjustments{margin:12px 0!important;padding-top:10px!important;border-top:1px solid #355065!important}
-html body #appRoot#appRoot#appRoot #repeatAdjustments summary{cursor:pointer!important;min-height:32px!important}
-html body #appRoot#appRoot#appRoot .repeat-nudge-row{display:grid!important;grid-template-columns:3em minmax(0,1fr) minmax(0,1fr)!important;align-items:center!important;gap:6px!important}
 html body #appRoot#appRoot#appRoot #repeatSectionDialog button:disabled{opacity:.45!important}
 html body #appRoot#appRoot#appRoot #repeatProgress{width:100%!important;height:6px!important;accent-color:#77b5a4!important}
 html body #appRoot#appRoot#appRoot #repeatSectionHint{color:#b6c8d3!important;font-weight:400!important;line-height:1.4!important}
@@ -11748,6 +11745,59 @@ html body #appRoot#appRoot#appRoot .repeat-actions{display:grid!important;grid-t
 html body #appRoot#appRoot#appRoot .repeat-actions.single-action{grid-template-columns:minmax(0,1fr)!important}
 html body #appRoot#appRoot#appRoot #repeatSectionList button[aria-pressed="true"],html body #appRoot#appRoot#appRoot #repeatChosenSections{background:#28574e!important;border-color:#83b4a4!important}
 </style>
+<style id="rc158-practice-layout">
+/* RC158: direct editing and a responsive practice workspace. */
+html body #appRoot#appRoot#appRoot #playerControls{position:sticky!important;top:0!important;z-index:30!important;background:#091321!important;padding-bottom:6px!important;min-width:0!important}
+html body #appRoot#appRoot#appRoot .player-title-row{display:flex!important;align-items:center!important;justify-content:space-between!important;width:100%!important;gap:8px!important}
+html body #appRoot#appRoot#appRoot #orientationToggle{position:static!important;width:auto!important;min-width:90px!important;min-height:36px!important;height:auto!important;padding:6px 10px!important;border:1px solid #526a85!important;border-radius:9px!important;background:#263444!important;color:#edf2f7!important;line-height:1.2!important;white-space:normal!important;box-shadow:none!important}
+html body #appRoot#appRoot#appRoot #orientationMessage{color:#c4d6e1!important;margin:6px 0!important;line-height:1.4!important}
+html body #appRoot#appRoot#appRoot #orientationMessage[hidden]{display:none!important}
+html body #appRoot#appRoot#appRoot .analysis-tools{padding:0!important;background:none!important;border:0!important}
+html body #appRoot#appRoot#appRoot .note-token{cursor:pointer!important}
+html body #appRoot#appRoot#appRoot .note-token:focus-visible{outline:2px solid #b8e0ed!important;outline-offset:-2px!important}
+html body #appRoot#appRoot#appRoot .note-inline-editor{position:absolute!important;left:4px!important;width:calc(100% - 8px)!important;z-index:12!important;display:grid!important;grid-template-columns:1fr 1fr!important;gap:6px!important;padding:8px!important;box-sizing:border-box!important;background:#183244!important;border:1px solid #9ac7d7!important;border-radius:8px!important;box-shadow:0 5px 18px #0008!important;color:#edf5f8!important}
+html body #appRoot#appRoot#appRoot .note-inline-editor label,html body #appRoot#appRoot#appRoot .note-inline-editor small,html body #appRoot#appRoot#appRoot .note-inline-editor [role="alert"]{grid-column:1/-1!important;white-space:normal!important;line-height:1.3!important}
+html body #appRoot#appRoot#appRoot .note-inline-editor label{display:grid!important;gap:4px!important}
+html body #appRoot#appRoot#appRoot .note-inline-editor input,html body #appRoot#appRoot#appRoot .note-inline-editor button{position:static!important;display:block!important;width:100%!important;min-width:0!important;min-height:36px!important;height:auto!important;margin:0!important;padding:6px!important;border:1px solid #658a9c!important;border-radius:6px!important;background:#244752!important;color:#fff!important;box-sizing:border-box!important;font-size:var(--ui-font-size,14px)!important;line-height:1.3!important}
+html body #appRoot#appRoot#appRoot .note-inline-editor small{color:#bbd0dc!important}
+html body #appRoot#appRoot#appRoot .note-inline-editor [role="alert"]{color:#ffc6b8!important}
+html body #appRoot#appRoot#appRoot .note-inline-editor [role="alert"]:empty{display:none!important}
+html body #appRoot#appRoot#appRoot #timelineScroll{overflow-x:auto!important;overflow-y:auto!important;max-height:max(180px,calc(100dvh - var(--player-controls-height,270px) - 100px))!important;overscroll-behavior:contain!important;scroll-padding-top:calc(var(--time-row-height,28px) + var(--chord-row-height,36px))!important}
+html body #appRoot#appRoot#appRoot #timeRuler{position:sticky!important;top:0!important;z-index:15!important;background:#0a1826!important}
+html body #appRoot#appRoot#appRoot #chordRuler{position:sticky!important;top:var(--time-row-height,28px)!important;z-index:14!important;background:#102034!important}
+html body #appRoot#appRoot#appRoot .simple-timeline-card{min-height:0!important}
+@media (orientation:landscape) and (max-height:700px) {
+ html body #appRoot#appRoot#appRoot{padding:8px!important;margin:0 auto!important;max-width:none!important;width:100%!important;--rc120-control-h:max(38px,calc(var(--ui-font-size)*2.6));--rc120-gap:6px;--rc120-tight-gap:5px}
+ html body #appRoot#appRoot#appRoot > .top{display:grid!important;grid-template-columns:minmax(290px,37%) minmax(0,1fr)!important;align-items:start!important;gap:8px!important;padding:0!important;margin:0!important}
+ html body #appRoot#appRoot#appRoot #playerControls{grid-column:1!important;grid-row:1!important;top:8px!important;max-height:calc(100dvh - 16px)!important;overflow:auto!important;overscroll-behavior:contain!important;padding:0!important}
+ html body #appRoot#appRoot#appRoot .brand{margin:0!important;padding:0!important;gap:5px!important}
+ html body #appRoot#appRoot#appRoot .brand h1{margin:0!important;line-height:1.3!important}
+ html body #appRoot#appRoot#appRoot .premium-transport{padding:5px 0!important;margin:0!important;gap:6px!important}
+ html body #appRoot#appRoot#appRoot .premium-transport .transport-row{margin:0!important;padding:0!important}
+ html body #appRoot#appRoot#appRoot .progress-row-premium{min-height:38px!important;height:auto!important;gap:6px!important}
+ html body #appRoot#appRoot#appRoot .simple-timeline-card{grid-column:2!important;grid-row:1!important;position:sticky!important;top:8px!important;height:calc(100dvh - 16px)!important;max-height:calc(100dvh - 16px)!important;margin:0!important;display:flex!important;flex-direction:column!important;overflow:hidden!important}
+ html body #appRoot#appRoot#appRoot .simple-timeline-head{padding:6px!important;margin:0!important;flex:0 0 auto!important;min-height:0!important}
+ html body #appRoot#appRoot#appRoot #practiceViewCard,html body #appRoot#appRoot#appRoot .timeline-part-btn{height:var(--rc120-control-h)!important;min-height:var(--rc120-control-h)!important;max-height:var(--rc120-control-h)!important}
+ html body #appRoot#appRoot#appRoot #timelineScroll{flex:1 1 auto!important;min-height:0!important;height:auto!important;max-height:none!important}
+ html body #appRoot#appRoot#appRoot .source-below{grid-column:1/-1!important;grid-row:2!important;margin-top:8px!important}
+ html body #appRoot#appRoot#appRoot .legend{grid-column:1/-1!important}
+ html body #appRoot#appRoot#appRoot #bassViewPanel{flex:1 1 auto!important;min-height:0!important;overflow:auto!important;padding:6px!important}
+ html body #appRoot#appRoot#appRoot .bass-time-strip{margin:0 0 6px!important;min-height:34px!important;height:34px!important}
+ html body #appRoot#appRoot#appRoot .bass-neck-shell{margin:0!important;min-height:0!important}
+ html body #appRoot#appRoot#appRoot #bassFretboard{min-height:0!important;height:auto!important;padding-top:0!important;padding-bottom:0!important}
+ html body #appRoot#appRoot#appRoot #bassFretboard .bass-fret-numbers{height:26px!important;min-height:26px!important}
+ html body #appRoot#appRoot#appRoot #bassFretboard .bass-string-row{height:max(25px,calc((100dvh - 170px) / 6))!important;min-height:25px!important;max-height:none!important}
+ html body #appRoot#appRoot#appRoot .bass-view-foot{margin-top:4px!important;min-height:0!important;padding:0!important}
+}
+
+</style>
+<style>
+html body #appRoot#appRoot#appRoot #displaySizeControl#displaySizeControl #fontSizeInput#fontSizeInput{appearance:textfield!important;-moz-appearance:textfield!important;padding:0!important;min-width:0!important;text-align:center!important}
+html body #appRoot#appRoot#appRoot #fontSizeInput::-webkit-inner-spin-button,html body #appRoot#appRoot#appRoot #fontSizeInput::-webkit-outer-spin-button{-webkit-appearance:none!important;margin:0!important}
+html body #appRoot#appRoot#appRoot #displaySizeControl#displaySizeControl #bassStringSelector{padding-left:0!important;padding-right:0!important}
+html body #appRoot#appRoot#appRoot #displaySizeControl#displaySizeControl .top-card-label{width:100%!important;text-align:center!important;letter-spacing:0!important}
+</style>
+<style>html body #appRoot#appRoot#appRoot .note-inline-editor button{grid-column:1/-1!important}html body #appRoot#appRoot#appRoot .note-inline-editor button[hidden]{display:none!important}</style>
 </head>
 <body>
 <div id="sectionCompatibility" style="display:none" aria-hidden="true">
@@ -11760,10 +11810,11 @@ html body #appRoot#appRoot#appRoot #repeatSectionList button[aria-pressed="true"
 <audio id="noBassAudio" preload="auto" playsinline style="display:none"></audio>
 <div class="app" id="appRoot">
   <div class="top">
+  <div id="playerControls">
     <div class="brand">
-      <div>
+      <div class="player-title-row">
         <h1>Bass Stem Studio</h1>
-        <div class="tag"></div>
+        <button id="orientationToggle" type="button" aria-label="Switch to landscape">Landscape</button>
       </div>
 
       <div class="display-size-control" id="displaySizeControl" role="group" aria-label="Display and playback settings">
@@ -11790,8 +11841,8 @@ html body #appRoot#appRoot#appRoot #repeatSectionList button[aria-pressed="true"
         </div>
       <div class="timeline-breakdown-control" id="timelineBreakdownControl" title="Choose how many seconds each Notes View and Bass View timeline cell represents">
         <select class="timeline-breakdown-select" id="timelineSplitSelect" aria-label="Timeline breakdown interval">
-          <option value="1">1s</option>
-          <option value="2" selected>2s</option>
+          <option value="1" selected>1s</option>
+          <option value="2">2s</option>
           <option value="3">3s</option>
           <option value="4">4s</option>
           <option value="5">5s</option>
@@ -11895,6 +11946,8 @@ html body #appRoot#appRoot#appRoot #repeatSectionList button[aria-pressed="true"
 </div>
 
 
+  <p id="orientationMessage" role="status" hidden></p>
+  </div>
   <section class="simple-timeline-card">
     <div class="simple-timeline-head">
       <div class="practice-view-head" style="flex-wrap:nowrap!important">
@@ -12001,35 +12054,13 @@ html body #appRoot#appRoot#appRoot #repeatSectionList button[aria-pressed="true"
         </div>
       </div>
 
-      <details id="analysisTools" class="analysis-tools">
-        <summary>Corrections</summary>
-        <p id="analysisToolsHint">Import and analyse a song first.</p>
+      <div id="analysisTools" class="analysis-tools">
         <div class="tools-grid">
-          <button id="editAnalysisToggle" type="button" aria-pressed="false" disabled>Edit notes / chords</button>
-          <button id="undoAnalysisEdit" type="button" disabled>Undo correction</button>
-          <button id="analyseSelection" class="tools-wide" type="button" disabled>Reanalyse selection</button>
+          <button id="undoAnalysisEdit" type="button" disabled>Undo edit</button>
+          <button id="analyseSelection" type="button" disabled>Reanalyse selection</button>
         </div>
-        <details id="keyCorrectionTools" class="tools-section">
-          <summary>Correct detected key</summary>
-          <p>Changes the key label only. Use Scale above to transpose.</p>
-          <div class="tools-grid">
-            <label>Key<select id="correctKeyRoot" aria-label="Correct key root"></select></label>
-            <label>Mode<select id="correctKeyMode"><option value="major">Major</option><option value="minor">Minor</option></select></label>
-            <label>Apply to<select id="correctKeyScope"><option value="section">This section</option><option value="selection">Selection</option><option value="song">Whole song</option></select></label>
-            <button id="correctKeyApply" type="button" disabled>Set key</button>
-            <button id="useDetectedKey" class="tools-wide" type="button" disabled>Reset key corrections</button>
-          </div>
-          <p id="keyCorrectionRange"></p>
-        </details>
-        <details id="analysisHistoryTools" class="tools-section" hidden>
-          <summary>Earlier results</summary>
-          <div class="tools-grid">
-            <label class="tools-wide">Version<select id="analysisHistorySelect" aria-label="Earlier analysis versions"></select></label>
-            <button id="restoreAnalysisVersion" class="tools-wide" type="button" disabled>Restore results</button>
-          </div>
-        </details>
         <p id="analysisToolsMessage" role="status" hidden></p>
-      </details>
+      </div>
       <dialog id="repeatSectionDialog" class="analysis-edit-dialog" aria-labelledby="repeatSectionTitle">
         <b id="repeatSectionTitle">Repeat sections</b>
         <div class="repeat-body">
@@ -12041,15 +12072,6 @@ html body #appRoot#appRoot#appRoot #repeatSectionList button[aria-pressed="true"
         <button id="repeatTypedRange" type="button" hidden>From / To range</button>
         <div id="repeatSectionList" aria-label="Song sections"></div>
         <button id="repeatFindSections" type="button">Find sections</button>
-        <details id="repeatAdjustments" hidden>
-          <summary>Adjust a section</summary>
-          <label>Section<select id="adjustSectionSelect"></select></label>
-          <p id="repeatAdjustmentTimes"></p>
-          <p>Move by one beat.</p>
-          <div class="repeat-nudge-row"><span>Start</span><button type="button" data-section-edge="start" data-direction="-1" aria-label="Start one beat earlier">Earlier</button><button type="button" data-section-edge="start" data-direction="1" aria-label="Start one beat later">Later</button></div>
-          <div class="repeat-nudge-row"><span>End</span><button type="button" data-section-edge="end" data-direction="-1" aria-label="End one beat earlier">Earlier</button><button type="button" data-section-edge="end" data-direction="1" aria-label="End one beat later">Later</button></div>
-          <button id="repeatResetAdjustment" type="button">Reset adjustments</button>
-        </details>
         </div>
         <div id="repeatActions" class="repeat-actions single-action">
           <button id="repeatChosenSections" type="button" hidden disabled>Repeat selected</button>
@@ -12130,7 +12152,7 @@ html body #appRoot#appRoot#appRoot #repeatSectionList button[aria-pressed="true"
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC157';
+  const APP_VERSION='RC158';
   const PROJECT_SCHEMA_VERSION=2;
   // RC125: compact practice-view and string selectors preserve space for P1/P2/P3; all RC124 audio, analysis, repeat, project and practice logic preserved.
 
@@ -12184,7 +12206,7 @@ html body #appRoot#appRoot#appRoot #repeatSectionList button[aria-pressed="true"
     lastNoteMidi=null;noteStart=0;pausedAt=0;prevBassSpec=null;lastSpectralFlux=0;
     selectedSections.clear();selectedTimeframes.clear();sectionQueue=[];queueIndex=0;multiSectionMode=false;
     timeframeQueue=[];timeframeQueueIndex=0;timeframeLoopMode=false;loopEnabled=false;loopStart=null;loopEnd=null;
-    editingEvent=null;resetSongContext();
+    closeInlineNoteEditor();editingEvent=null;resetSongContext();
   }
   function cancelStemLoad(audio){pendingStemLoads.get(audio)?.();}
   function prepareStemMedia(audio,url){
@@ -12250,14 +12272,7 @@ html body #appRoot#appRoot#appRoot #repeatSectionList button[aria-pressed="true"
     if(!notes.length&&!detectedChordChanges.length)return;
     analysisHistory.push(analysisSnapshot(label));analysisHistory=analysisHistory.slice(-5);renderAnalysisHistory();
   }
-  function renderAnalysisHistory(){
-    const select=$('analysisHistorySelect');select.replaceChildren();
-    analysisHistory.forEach((item,index)=>{const opt=document.createElement('option');opt.value=index;
-      opt.textContent=`${item.label} · ${new Date(item.createdAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`;select.append(opt);});
-    if(analysisHistory.length)select.value=String(analysisHistory.length-1);
-    $('analysisHistoryTools').hidden=!analysisHistory.length;
-    updateAnalysisToolsState();
-  }
+  function renderAnalysisHistory(){updateAnalysisToolsState();}
   function refreshEditedAnalysis(){
     analysedBassNotes=notes.map(n=>({...n}));offlineAnalysisReady=notes.length>0;
     bassPositionPlanCache=null;practiceRegisterCache=null;rebuildSimpleTimeline._sig='';
@@ -12437,74 +12452,81 @@ html body #appRoot#appRoot#appRoot #repeatSectionList button[aria-pressed="true"
       start:Math.floor(t/TIMELINE_CELL_SECONDS)*TIMELINE_CELL_SECONDS,
       end:Math.min(buffer.duration,(Math.floor(t/TIMELINE_CELL_SECONDS)+1)*TIMELINE_CELL_SECONDS)};
   }
-  function setAnalysisEditMode(on){
-    analysisEditMode=!!on;
-    $('appRoot').classList.toggle('analysis-editing',analysisEditMode);
-    $('editAnalysisToggle').setAttribute('aria-pressed',String(analysisEditMode));
-    $('editAnalysisToggle').textContent=analysisEditMode?'Done editing':'Edit notes / chords';
-    updateAnalysisToolsState();
-  }
+  function setAnalysisEditMode(on){analysisEditMode=!!on;updateAnalysisToolsState();}
   function updateAnalysisToolsState(){
-    const loaded=!!buffer,ready=loaded&&(notes.length>0||detectedChordChanges.length>0),busy=aiBusy||songImportBusy;
-    let range=null,selectionHint='Select time cells to reanalyse a passage.';
-    if(loaded)try{range=selectedAnalysisRange();}catch(error){if(selectedTimeframes.size)selectionHint='Select neighbouring time cells for one passage.';}
-    let keyRange=null;try{keyRange=keyCorrectionRange($('correctKeyScope').value);}catch{}
-    const signature=JSON.stringify([loaded,ready,busy,offlineAnalysisReady,notes.length,analysisHistory.length,keyCorrections.length,analysisEditMode,range?.start,range?.end,keyRange?.start,keyRange?.end,selectionHint]);
-    if(updateAnalysisToolsState.signature===signature)return;
-    updateAnalysisToolsState.signature=signature;
-    $('editAnalysisToggle').disabled=!ready||busy;
+    const busy=aiBusy||songImportBusy;
+    let range=null;if(buffer)try{range=selectedAnalysisRange();}catch{}
     $('undoAnalysisEdit').disabled=!analysisHistory.length||busy;
-    $('restoreAnalysisVersion').disabled=!analysisHistory.length||busy;
-    $('analysisHistorySelect').disabled=busy;
-    $('analyseSelection').disabled=!offlineAnalysisReady||!notes.length||!range||busy||analysisEditMode;
+    $('analyseSelection').disabled=!offlineAnalysisReady||!notes.length||!range||busy;
     $('analyseSelection').textContent=range?`Reanalyse ${fmtShort(range.start)} to ${fmtShort(range.end)}`:'Reanalyse selection';
-    $('useDetectedKey').disabled=!keyCorrections.length||busy;
-    for(const id of ['correctKeyRoot','correctKeyMode','correctKeyScope'])$(id).disabled=!loaded||busy;
-    const selectedOption=$('correctKeyScope').querySelector('[value="selection"]');if(selectedOption)selectedOption.disabled=!range;
-    $('correctKeyApply').disabled=!keyRange||busy;
-    $('keyCorrectionRange').textContent=keyRange?`${fmtShort(keyRange.start)} to ${fmtShort(keyRange.end)}`:'Select a passage first.';
-    $('analysisToolsHint').hidden=ready&&!busy&&!analysisEditMode&&!!range;
-    $('analysisToolsHint').textContent=busy?'Analysis in progress.':!loaded?'Import and analyse a song first.':!ready?'Analyse this song to make corrections.':analysisEditMode?'Tap a note or chord. Tap Done editing when finished.':range?`Selected: ${fmtShort(range.start)} to ${fmtShort(range.end)}.`:selectionHint;
+  }
+  function undoLastAnalysisEdit(){
+    if(aiBusy)return;closeInlineNoteEditor();
+    const previous=analysisHistory.pop();
+    if(previous){restoreAnalysisSnapshot(previous);persistAnalysisRecovery();toolsMessage('Edit undone.');}
+  }
+  let inlineNoteEditor=null;
+  function closeInlineNoteEditor(){
+    if(inlineNoteEditor){inlineNoteEditor.form.remove();inlineNoteEditor=null;}
+  }
+  function openInlineNoteEditor(token,item){
+    if(aiBusy||songImportBusy)return;
+    closeInlineNoteEditor();if(playing)pause();
+    const cell=token.closest('.note-time-cell'),form=document.createElement('form');
+    form.className='note-inline-editor';form.setAttribute('aria-label','Edit bass note');
+    const label=document.createElement('label');label.textContent='Note';
+    const input=document.createElement('input');input.value=midiName(item.midi);input.setAttribute('aria-label','Correct bass note');
+    input.autocomplete='off';input.spellcheck=false;input.maxLength=5;label.append(input);
+    const hint=document.createElement('small');hint.textContent=transposeSemitones?'Before transpose':'e.g. C#2';
+    const save=document.createElement('button');save.type='submit';save.textContent='Save';
+    const cancel=document.createElement('button');cancel.type='button';cancel.textContent='Cancel';cancel.onclick=closeInlineNoteEditor;
+    const undo=document.createElement('button');undo.type='button';undo.textContent='Undo';undo.disabled=!analysisHistory.length;undo.hidden=!analysisHistory.length;undo.onclick=undoLastAnalysisEdit;
+    const error=document.createElement('span');error.setAttribute('role','alert');
+    form.append(label,hint,save,cancel,undo,error);
+    form.addEventListener('click',e=>e.stopPropagation());form.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Escape')closeInlineNoteEditor();});
+    const original=copyAnalysis(item),session=songSession;
+    form.onsubmit=e=>{
+      e.preventDefault();if(session!==songSession||aiBusy)return;
+      const midi=parseNotePitch(input.value);
+      if(midi===null){error.textContent='Use a note and octave, e.g. C#2.';input.focus();return;}
+      if(midi===original.midi){closeInlineNoteEditor();return;}
+      rememberAnalysis('Before note edit');
+      const value={...original,midi,manual:true,source:'User correction',onsetSupported:true};
+      manualCorrections.push({kind:'note',original,value});closeInlineNoteEditor();
+      replayManualCorrections();refreshEditedAnalysis();persistAnalysisRecovery();
+    };
+    cell.append(form);form.style.top=Math.max(4,token.offsetTop)+'px';
+    inlineNoteEditor={form,original};
+    input.focus({preventScroll:true});input.select();
+    const bottom=form.offsetTop+form.offsetHeight+12;
+    if(bottom>noteLane.clientHeight)noteLane.style.setProperty('height',bottom+'px','important');
+    requestAnimationFrame(()=>keepPracticeItemVisible(form));
   }
   function initAnalysisTools(){
-    $('analysisTools').querySelector('summary').addEventListener('click',()=>{
-      if($('analysisTools').open){setAnalysisEditMode(false);toolsMessage('');}
-    });
-    $('analysisTools').addEventListener('toggle',()=>{
-      if(!$('analysisTools').open){setAnalysisEditMode(false);toolsMessage('');}
-      updateAnalysisToolsState();
-    });
-    $('keyCorrectionTools').querySelector('summary').addEventListener('click',()=>{
-      if(!$('keyCorrectionTools').open){
-        if(detectedScaleContext){$('correctKeyRoot').value=String(detectedScaleContext.rootPc);$('correctKeyMode').value=detectedScaleContext.mode==='minor'?'minor':'major';}
-        updateAnalysisToolsState();
-      }
-    });
-    $('correctKeyScope').onchange=updateAnalysisToolsState;
-    for(const id of ['correctKeyRoot','editChordRoot','editChordBass']){
+    for(const id of ['editChordRoot','editChordBass']){
       const select=$(id);if(id==='editChordBass'){const o=document.createElement('option');o.value='';o.textContent='No slash bass';select.append(o);}
       for(const root of SCALE_ROOTS){const o=document.createElement('option');o.value=root.pc;o.textContent=root.n;select.append(o);}
     }
     for(const [quality,label] of Object.entries(CHORD_QUALITY_LABELS)){const o=document.createElement('option');o.value=quality;o.textContent=label;$('editChordQuality').append(o);}
-    $('correctKeyApply').onclick=()=>{if(aiBusy)return;try{correctSongKey(Number($('correctKeyRoot').value),$('correctKeyMode').value,$('correctKeyScope').value);}catch(error){toolsMessage(error.message);}};
-    $('useDetectedKey').onclick=()=>{if(aiBusy)return;rememberAnalysis('Before key reset');keyCorrections=[];refreshEditedAnalysis();persistAnalysisRecovery();toolsMessage('Detected key restored.');};
-    $('editAnalysisToggle').onclick=()=>{if(!aiBusy)setAnalysisEditMode(!analysisEditMode);};
-    $('undoAnalysisEdit').onclick=()=>{if(aiBusy)return;const s=analysisHistory.pop();if(s){restoreAnalysisSnapshot(s);persistAnalysisRecovery();toolsMessage('Previous notes and chords restored.');}};
-    $('restoreAnalysisVersion').onclick=()=>{if(aiBusy)return;const s=analysisHistory[Number($('analysisHistorySelect').value)];if(s){rememberAnalysis('Before restore');restoreAnalysisSnapshot(s);persistAnalysisRecovery();toolsMessage('Notes and chords restored.');}};
+    $('undoAnalysisEdit').onclick=undoLastAnalysisEdit;
     $('analyseSelection').onclick=analyseSelectedRange;
     $('analysisEditForm').onsubmit=e=>{e.preventDefault();try{commitAnalysisEdit();}catch(error){$('editEventError').textContent=error.message;}};
     $('deleteAnalysisEvent').onclick=()=>{try{commitAnalysisEdit(true);}catch(error){$('editEventError').textContent=error.message;}};
     $('closeAnalysisEdit').onclick=()=>$('analysisEditDialog').close();
     $('closeChordDetails').onclick=()=>$('chordDetailsDialog').close();
-    for(const [element,kind,selector] of [[noteLane,'note','.note-token'],[chordRuler,'chord','.chord-name']]){
-      element?.addEventListener('click',event=>{if(!analysisEditMode)return;
-        const token=event.target.closest(selector);if(!token)return;
-        event.preventDefault();event.stopImmediatePropagation();
-        if(kind==='chord'&&Number(token.dataset.memberCount)>1){openChordDetails(Number(token.closest('.chord-cell').dataset.start));return;}
-        const source=kind==='note'?notes:detectedChordChanges;
-        const index=Number(token.dataset.eventIndex),item=source[index];if(item)openAnalysisEditor(kind,item);
-      },true);
-    }
+    for(const action of ['click','keydown'])noteLane?.addEventListener(action,event=>{
+      if(event.target.closest('.note-inline-editor'))return;
+      if(action==='keydown'&&!['Enter',' '].includes(event.key))return;
+      const token=event.target.closest('.note-token');if(!token)return;
+      event.preventDefault();event.stopImmediatePropagation();
+      const item=notes[Number(token.dataset.eventIndex)];if(item)openInlineNoteEditor(token,item);
+    },true);
+    chordRuler?.addEventListener('click',event=>{
+      const token=event.target.closest('.chord-name');if(!token)return;
+      event.preventDefault();event.stopImmediatePropagation();
+      if(Number(token.dataset.memberCount)>1){openChordDetails(Number(token.closest('.chord-cell').dataset.start));return;}
+      const item=detectedChordChanges[Number(token.dataset.eventIndex)];if(item)openAnalysisEditor('chord',item);
+    },true);
     renderAnalysisHistory();
   }
 
@@ -12786,7 +12808,7 @@ html body #appRoot#appRoot#appRoot #repeatSectionList button[aria-pressed="true"
           bassVolume:Number.isFinite(Number(bassVol?.value))?Number(bassVol.value):70,
           metronomeVolume:Number.isFinite(Number(metronomeVol?.value))?Number(metronomeVol.value):70,
           speed:Number.isFinite(Number(tempo?.value))?Number(tempo.value):100,
-          timelineCellSeconds:Number(TIMELINE_CELL_SECONDS)||2,
+          timelineCellSeconds:Number(TIMELINE_CELL_SECONDS)||1,
           practiceView:['timeline','bass'].includes(String(practiceVisualMode))?String(practiceVisualMode):'timeline',
           bassStringCount:[4,5,6].includes(Number(bassViewStringCount))?Number(bassViewStringCount):5,
           transposeSemitones,
@@ -12927,6 +12949,7 @@ html body #appRoot#appRoot#appRoot #repeatSectionList button[aria-pressed="true"
       sections=cloneSections(baseSections);
       origVol.value='70';bassVol.value='70';metronomeVol.value='70';tempo.value='100';
       project.settings=project.settings&&typeof project.settings==='object'?project.settings:{};
+      setTimelineCellSeconds(1,{clearSelection:false,rebuild:false});
       if(project.settings){
         if(Number.isFinite(Number(project.settings.mainVolume)))origVol.value=String(Math.max(0,Math.min(100,Number(project.settings.mainVolume))));
         if(Number.isFinite(Number(project.settings.bassVolume)))bassVol.value=String(Math.max(0,Math.min(100,Number(project.settings.bassVolume))));
@@ -12935,7 +12958,7 @@ html body #appRoot#appRoot#appRoot #repeatSectionList button[aria-pressed="true"
         if(Number.isFinite(Number(project.settings.speed)))tempo.value=String(normalisePracticeSpeed(project.settings.speed));
         const savedTimelineCellSeconds=Number(project.settings.timelineCellSeconds);
         setTimelineCellSeconds(
-          TIMELINE_CELL_OPTIONS.includes(savedTimelineCellSeconds)?savedTimelineCellSeconds:2,
+          TIMELINE_CELL_OPTIONS.includes(savedTimelineCellSeconds)?savedTimelineCellSeconds:1,
           {clearSelection:false,rebuild:false}
         );
         origVolText.textContent=origVol.value+'%';bassVolText.textContent=bassVol.value+'%';metronomeVolText.textContent=metronomeVol.value+'%';applyTempo();
@@ -16273,7 +16296,7 @@ html body #appRoot#appRoot#appRoot #repeatSectionList button[aria-pressed="true"
   // ---------- RC113 shared adjustable master timeline ----------
   // One geometry source controls ruler, waveform, Notes View, Bass View and repeat cells.
   const TIMELINE_CELL_OPTIONS = [1,2,3,4,5,10,15,20,25,30];
-  let TIMELINE_CELL_SECONDS = 2; // Requested default.
+  let TIMELINE_CELL_SECONDS = 1; // Requested default.
   const TIMELINE_MAJOR_SECONDS = 20;
   function isTimelineMajor(sec){
     const n=Number(sec)||0;
@@ -16560,14 +16583,14 @@ html body #appRoot#appRoot#appRoot #repeatSectionList button[aria-pressed="true"
     for(const e of chordEventsInRange(start,end)){
       const row=document.createElement('div');row.className='chord-detail-row';
       const time=document.createElement('span');time.textContent=`${fmtShort(e.start)} to ${fmtShort(e.end)}`;
-      const label=document.createElement(analysisEditMode?'button':'span');
+      const label=document.createElement('button');
       label.className='chord-detail-name'+(e.chord.uncertain?' tentative':'');label.textContent=chordDisplayLabel(e.chord);
-      if(analysisEditMode){label.type='button';label.setAttribute('aria-label',`Correct ${label.textContent} at ${fmtShort(e.start)}`);
+      {label.type='button';label.setAttribute('aria-label',`Correct ${label.textContent} at ${fmtShort(e.start)}`);
         label.onclick=()=>{$('chordDetailsDialog').close();openAnalysisEditor('chord',detectedChordChanges[e.index]);};}
       row.append(time,label);list.append(row);
     }
     if(!list.childElementCount)list.textContent='No clear chord detected.';
-    $('chordDetailsHint').textContent=analysisEditMode?'Tap a chord to correct it. Purple ? means uncertain.':'Purple ? means uncertain.';
+    $('chordDetailsHint').textContent='Tap a chord to correct it. Purple ? means uncertain.';
     $('chordDetailsDialog').showModal();
   }
   function rebuildChordRuler(cellCount,cellW,duration){
@@ -16637,7 +16660,7 @@ html body #appRoot#appRoot#appRoot #repeatSectionList button[aria-pressed="true"
     const scaleSig=currentScaleContext?`${currentScaleContext.rootPc}:${currentScaleContext.mode}`:'no-scale';
     const chordSig=(detectedChordChanges||[]).map(c=>`${c.rootPc}:${c.quality}:${c.bassPc}:${c.uncertain}:${c.source}:${Number(c.start).toFixed(2)}:${Number(c.end).toFixed(2)}:${c.evidenceVersion||''}:${c.confidence}`).join('|');
     const sig=[duration.toFixed(3),TIMELINE_CELL_SECONDS,notes.length,notes.map(n=>`${n.midi}:${n.start.toFixed(3)}:${n.end.toFixed(3)}`).join('|'),cellW,noteDisplayMode,numberingConvention,scaleSig,transposeSemitones,chordSig,practiceDisplayRange().centre].join('~');
-    if(rebuildSimpleTimeline._sig===sig)return;
+    if(rebuildSimpleTimeline._sig===sig||inlineNoteEditor)return;
     rebuildSimpleTimeline._sig=sig;
 
     timeRuler.innerHTML='';
@@ -16711,6 +16734,8 @@ html body #appRoot#appRoot#appRoot #repeatSectionList button[aria-pressed="true"
         const name=midiName(practiceDisplayMidi(n.midi));
         const shown=displayNoteLabel(n.midi,n.scaleNumber);
         const token=document.createElement('span');
+        token.setAttribute('role','button');token.tabIndex=0;
+        token.setAttribute('aria-label',`Edit ${midiName(n.midi)} at ${fmtShort(n.start)}`);
         token.className='note-token'+(n.isFill?' fill':isLowConfidenceNote(n)?' uncertain':'');
         token.dataset.start=n.start;token.dataset.end=n.end;token.dataset.eventIndex=notes.findIndex(x=>x.start===n.start&&x.midi===n.midi);
         token.textContent=n.isFill?`(${shown})`:shown;
@@ -16780,7 +16805,7 @@ html body #appRoot#appRoot#appRoot #repeatSectionList button[aria-pressed="true"
         // Bass is monophonic, but if two candidates overlap at a transition,
         // prefer the one whose attack is closest to the current time.
         matches.sort((a,b)=>Number(b.dataset.start)-Number(a.dataset.start));
-        if(matches[0])matches[0].classList.add('active');
+        if(matches[0]){matches[0].classList.add('active');if(playing&&!inlineNoteEditor)keepPracticeItemVisible(matches[0]);}
       }
     }
     if(timelinePlayhead&&buffer){
@@ -16800,6 +16825,7 @@ html body #appRoot#appRoot#appRoot #repeatSectionList button[aria-pressed="true"
   });
 
   noteLane?.addEventListener('click',e=>{
+    if(e.target.closest('.note-inline-editor,.note-token'))return;
     const cell=e.target.closest('.note-time-cell');
     if(!cell||!buffer)return;
     e.preventDefault();
@@ -16816,6 +16842,7 @@ html body #appRoot#appRoot#appRoot #repeatSectionList button[aria-pressed="true"
 
   noteLane?.addEventListener('keydown',e=>{
     if(e.key!=='Enter' && e.key!==' ')return;
+    if(e.target.closest('.note-inline-editor,.note-token'))return;
     const cell=e.target.closest('.note-time-cell');
     if(!cell||!buffer)return;
     e.preventDefault();
@@ -16865,9 +16892,8 @@ html body #appRoot#appRoot#appRoot #repeatSectionList button[aria-pressed="true"
     if(playing && practiceVisualMode==='timeline' && timelineScroll){
       const inner=timelineScroll.querySelector('.timeline-inner');
       const fullW=inner?inner.getBoundingClientRect().width:2200;
-      const x=timelineX(t,fullW),vw=timelineScroll.clientWidth;
-      const target=Math.max(0,x-vw*.32);
-      if(x<timelineScroll.scrollLeft+vw*.18 || x>timelineScroll.scrollLeft+vw*.78) timelineScroll.scrollLeft=target;
+      const cellStart=Math.floor(t/TIMELINE_CELL_SECONDS)*timelineCellWidth(),vw=timelineScroll.clientWidth;
+      if(cellStart<timelineScroll.scrollLeft||cellStart+timelineCellWidth()>timelineScroll.scrollLeft+vw)timelineScroll.scrollLeft=cellStart;
     }
   }
 
@@ -17074,7 +17100,8 @@ html body #appRoot#appRoot#appRoot #repeatSectionList button[aria-pressed="true"
   // RC155: song structure is independent of pitch, fingering and chord analysis.
   let songStructure=null,structureBusy=false,structureError='',structurePromise=null;
   let structureStage='',structureStartedAt=0,structureTimer=null,structureRequestController=null,structureReadyNotice=false,structureAudioId='';
-  let repeatSectionDraft=new Set();
+  let repeatSectionDraft=new Set(),repeatRangeOverrides=new Map();
+  function repeatRangeFor(name){return repeatRangeOverrides.get(name)||sections[name];}
   const STRUCTURE_PENDING_KEY='bassStemStructureJobV1';
   const STRUCTURE_CACHE_KEY='bassStemLastStructureV1';
   function normaliseSongStructure(raw,duration=buffer?.duration){
@@ -17110,7 +17137,7 @@ html body #appRoot#appRoot#appRoot #repeatSectionList button[aria-pressed="true"
     structureRequestController?.abort();structureRequestController=null;
     clearInterval(structureTimer);structureTimer=null;structureStage='';structureStartedAt=0;structureReadyNotice=false;structureAudioId='';
     songStructure=null;structureBusy=false;structurePromise=null;structureError='';
-    repeatSectionDraft.clear();
+    repeatSectionDraft.clear();repeatRangeOverrides.clear();
     sections={};baseSections={};selectedSection='';
     $('repeatSectionDialog')?.close();
     renderStructureReadiness();
@@ -17281,23 +17308,18 @@ html body #appRoot#appRoot#appRoot #repeatSectionList button[aria-pressed="true"
   function renderRepeatChooser(){
     const dialog=$('repeatSectionDialog');if(!dialog)return;
     $('repeatSectionTitle').textContent=structureBusy?'Preparing sections':'Repeat sections';
-    const list=$('repeatSectionList'),choice=$('adjustSectionSelect');
-    const previous=choice.value;list.replaceChildren();choice.replaceChildren();
+    const list=$('repeatSectionList');list.replaceChildren();
     const names=Object.keys(sections).sort((a,b)=>sections[a].start-sections[b].start);
     for(const name of names){
       const button=document.createElement('button');button.type='button';button.dataset.repeatSection=name;
       const label=document.createElement('span');label.textContent=name;label.className='repeat-section-name';
-      const time=document.createElement('span');time.textContent=sectionLabel(sections[name]);time.className='repeat-section-time';
+      const time=document.createElement('span');time.textContent=sectionLabel(repeatRangeFor(name));time.className='repeat-section-time';
       button.append(label,time);list.append(button);
-      const option=document.createElement('option');option.value=name;option.textContent=name;choice.append(option);
     }
-    choice.value=names.includes(previous)?previous:(currentSectionName()||names[0]||'');
     const current=currentSectionName();
     $('repeatCurrentSection').hidden=!current;
     $('repeatCurrentSection').disabled=!current;
     $('repeatCurrentSection').textContent=current?`Repeat current · ${current}`:'Repeat current';
-    $('repeatAdjustments').hidden=!names.length;
-    $('repeatResetAdjustment').hidden=!songStructure;
     $('repeatFindSections').hidden=!!songStructure||structureBusy;
     $('repeatFindSections').textContent=matchesStructureJob(pendingStructureJob())?'Check progress':'Find sections';
     $('repeatSectionStatus').textContent=structureBusy?(structureStage||'Finding song sections…'):structureError||
@@ -17313,7 +17335,6 @@ html body #appRoot#appRoot#appRoot #repeatSectionList button[aria-pressed="true"
     $('repeatSelection').hidden=!selectedTimeframes.size;
     const a=parseUserTime(timeFrom.value),b=parseUserTime(timeTo.value);
     $('repeatTypedRange').hidden=!(Number.isFinite(a)&&Number.isFinite(b)&&b>a&&buffer&&a<buffer.duration);
-    updateSectionAdjustment();
     refreshRepeatSectionSelection();
   }
   function openRepeatChooser(){
@@ -17327,60 +17348,13 @@ html body #appRoot#appRoot#appRoot #repeatSectionList button[aria-pressed="true"
     if(!sections[name])return;
     activateSection(name,true);$('repeatSectionDialog').close();
   }
-  function sectionBeatStep(t,direction){
-    const beats=songStructure?.beats?.length?songStructure.beats:detectedBeatTimes;
-    if(beats.length>1){
-      // Use the neighbouring detected beat, including irregular live tempos.
-      if(direction<0){for(let i=beats.length-1;i>=0;i--)if(beats[i]<t-.04)return beats[i];return 0;}
-      const next=beats.find(b=>b>t+.04);return next??buffer.duration;
-    }
-    const bpm=currentTempoBpm();return bpm&&bpm>0?clamp(t+direction*60/bpm,0,buffer.duration):null;
-  }
-  function updateSectionAdjustment(){
-    const s=sections[$('adjustSectionSelect').value];
-    $('repeatAdjustmentTimes').textContent=s?sectionLabel(s):'';
-    document.querySelectorAll('[data-section-edge]').forEach(b=>{
-      const next=s?sectionBeatStep(s[b.dataset.sectionEdge],Number(b.dataset.direction)):null;
-      const index=songStructure?.segments.findIndex(x=>x.name===$('adjustSectionSelect').value);
-      const anchored=songStructure&&(b.dataset.sectionEdge==='start'?index===0:index===songStructure.segments.length-1);
-      b.disabled=!!anchored||next===null||!s||Math.abs(next-s[b.dataset.sectionEdge])<.02||
-        (b.dataset.sectionEdge==='start'?next>=s.end-.1:next<=s.start+.1);
-    });
-  }
-  function nudgeSectionBoundary(edge,direction){
-    const name=$('adjustSectionSelect').value,s=sections[name];if(!s)return;
-    const next=sectionBeatStep(s[edge],direction);if(next===null||next<0||next>buffer.duration)return;
-    if(edge==='start'?next>=s.end-.1:next<=s.start+.1)return;
-    // A shared boundary moves both neighbouring sections, leaving no gaps.
-    if(songStructure){
-      const i=songStructure.segments.findIndex(x=>x.name===name),segment=songStructure.segments[i];
-      if(!segment)return;
-      const adjacent=songStructure.segments[i+(edge==='start'?-1:1)];
-      if(!adjacent)return; // Song start/end stay anchored to the audio.
-      if(edge==='start'?next<=adjacent.start+.1:next>=adjacent.end-.1)return;
-      segment[edge]=next;adjacent[edge==='start'?'end':'start']=next;
-      sections[adjacent.name]={start:adjacent.start,end:adjacent.end};songStructure.adjusted=true;
-    }
-    s[edge]=next;
-    if(loopEnabled&&selectedSections.size===1){const active=sections[[...selectedSections][0]];if(active){loopStart=active.start;loopEnd=active.end;updateLoopUI();}}
-    persistSections();persistAnalysisRecovery();cacheSongStructure();renderRepeatChooser();$('adjustSectionSelect').value=name;updateSectionAdjustment();
-  }
   $('repeatCurrentSection').onclick=()=>repeatChosenSection(currentSectionName());
   $('repeatSectionList').onclick=e=>{const button=e.target.closest('[data-repeat-section]');if(button)toggleRepeatSection(button.dataset.repeatSection);};
   $('repeatChosenSections').onclick=repeatChosenSections;
   $('repeatFindSections').onclick=()=>ensureSongStructure({interactive:true});
   $('closeRepeatSections').onclick=()=>$('repeatSectionDialog').close();
-  $('adjustSectionSelect').onchange=updateSectionAdjustment;
-  document.querySelectorAll('[data-section-edge]').forEach(b=>b.onclick=()=>nudgeSectionBoundary(b.dataset.sectionEdge,Number(b.dataset.direction)));
   $('repeatSelection').onclick=()=>{activateSelectedTimeframes({seekIfNeeded:true});if(!playing)play();$('repeatSectionDialog').close();};
   $('repeatTypedRange').onclick=()=>{playTimeRange.onclick();$('repeatSectionDialog').close();};
-  $('repeatResetAdjustment').onclick=()=>{
-    if(!songStructure)return;
-    const reset=copyAnalysis(songStructure);reset.adjusted=false;
-    reset.segments.forEach(s=>{s.start=s.originalStart;s.end=s.originalEnd;});
-    installSongStructure(reset);
-    if(loopEnabled&&selectedSections.size===1){const s=sections[[...selectedSections][0]];if(s){loopStart=s.start;loopEnd=s.end;updateLoopUI();}}
-  };
 
   // ---------- Premium A/B + Named Section Looping ----------
   const setLoopStart=$('setLoopStart'), setLoopEnd=$('setLoopEnd'), loopToggle=$('loopToggle'),
@@ -17393,6 +17367,12 @@ html body #appRoot#appRoot#appRoot #repeatSectionList button[aria-pressed="true"
 
   function updateLoopUI(){
     updateAnalysisToolsState();
+    if(document.activeElement!==timeFrom&&document.activeElement!==timeTo){
+      timeFrom.value=loopStart===null?'':fmtShort(loopStart);
+      timeTo.value=loopEnd===null?'':fmtShort(loopEnd);
+    }
+    const part=multiSectionMode?sectionQueue[queueIndex]?.name:selectedSections.size===1?[...selectedSections][0]:'';
+    timeFrom.title=part?`${part}: repeat start`:'Repeat start';timeTo.title=part?`${part}: repeat end`:'Repeat end';
     loopA.textContent=loopStart===null?'—':fmt(loopStart);
     loopB.textContent=loopEnd===null?'—':fmt(loopEnd);
     const repeatActive=!!(loopEnabled||multiSectionMode||timeframeLoopMode);
@@ -17438,7 +17418,7 @@ html body #appRoot#appRoot#appRoot #repeatSectionList button[aria-pressed="true"
     selectedSection=name; refreshSectionUI();
   }
   function activateSection(name,autoplay=true){
-    const s=sections[name];
+    const s=repeatRangeFor(name);
     if(!s || s.start==null || s.end==null || s.end<=s.start){
       status.className='status warn';
       status.textContent=`${name} is not set yet. Use Set Start and Set End.`;
@@ -17547,7 +17527,7 @@ html body #appRoot#appRoot#appRoot #repeatSectionList button[aria-pressed="true"
     const next=timeframeQueue[timeframeQueueIndex];
     loopStart=next.start;
     loopEnd=next.end;
-    seekTo(loopStart);
+    updateLoopUI();seekTo(loopStart);
     return true;
   }
 
@@ -17597,8 +17577,8 @@ html body #appRoot#appRoot#appRoot #repeatSectionList button[aria-pressed="true"
     loopEnabled=false;
     multiSectionMode=false;sectionQueue=[];queueIndex=0;
     timeframeLoopMode=false;timeframeQueue=[];timeframeQueueIndex=0;selectedTimeframes.clear();
-    selectedSections.clear();repeatSectionDraft.clear();refreshSectionUI();
-    timeFrom.value='';timeTo.value='';
+    selectedSections.clear();repeatSectionDraft.clear();repeatRangeOverrides.clear();refreshSectionUI();
+    timeFrom.value='';timeTo.value='';timeTo.setCustomValidity('');
     updateLoopUI();
     refreshTimeframeSelectionUI();
   }
@@ -17689,28 +17669,35 @@ html body #appRoot#appRoot#appRoot #repeatSectionList button[aria-pressed="true"
     return compactDigitsToSeconds(v);
   }
 
+  function applyEditedRepeatRange(){
+    if(!buffer)return false;
+    const r=parseRangeInputs();
+    if(!r){timeTo.setCustomValidity('Enter an end after the start, within the song.');timeTo.reportValidity();return false;}
+    timeTo.setCustomValidity('');
+    if(multiSectionMode&&sectionQueue[queueIndex]){
+      const part=sectionQueue[queueIndex];part.start=r.a;part.end=r.b;
+      repeatRangeOverrides.set(part.name,{start:r.a,end:r.b});
+    }else{
+      if(selectedSections.size===1)repeatRangeOverrides.set([...selectedSections][0],{start:r.a,end:r.b});
+      timeframeLoopMode=false;timeframeQueue=[];timeframeQueueIndex=0;selectedTimeframes.clear();
+      loopEnabled=true;refreshTimeframeSelectionUI();
+    }
+    loopStart=r.a;loopEnd=r.b;updateLoopUI();
+    if(currentTime()<r.a||currentTime()>=r.b)seekTo(r.a);
+    return true;
+  }
   function bindMaskedTimeEntry(el){
-    if(!el)return;
-    el.addEventListener('input',()=>{
-      const digits=String(el.value||'').replace(/\D/g,'').slice(0,6);
-      if(!digits){el.value='';return;}
-      el.value=formatCompactTimeDigits(digits);
-      try{el.setSelectionRange(el.value.length,el.value.length)}catch(e){}
-    });
-    el.addEventListener('focus',()=>{
-      // Select an EXISTING value immediately. Do not schedule a delayed select:
-      // on mobile that can race the first typed digit (e.g. 26 becoming 0:06).
-      if(el.value){try{el.select()}catch(e){}}
-    });
-    el.addEventListener('blur',()=>{
-      const sec=parseUserTime(el.value);
-      if(Number.isFinite(sec))el.value=fmt(sec);
-    });
+    el.addEventListener('focus',()=>{if(playing)pause();if(el.value)el.select();});
+    el.addEventListener('input',()=>timeTo.setCustomValidity(''));
+    el.addEventListener('change',()=>{applyEditedRepeatRange();});
+    el.addEventListener('blur',()=>{const sec=parseUserTime(el.value);if(Number.isFinite(sec))el.value=fmtShort(sec);});
+    el.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();if(applyEditedRepeatRange())el.blur();}});
   }
 
   playTimeRange.onclick=()=>{
     const r=parseRangeInputs(); if(!r) return;
     selectedTimeframes.clear();timeframeLoopMode=false;timeframeQueue=[];timeframeQueueIndex=0;refreshTimeframeSelectionUI();
+    selectedSections.clear();multiSectionMode=false;sectionQueue=[];queueIndex=0;refreshSectionUI();
     loopStart=r.a; loopEnd=r.b; loopEnabled=true; updateLoopUI(); seekTo(r.a); masterPlay();
   };
 
@@ -17719,7 +17706,7 @@ html body #appRoot#appRoot#appRoot #repeatSectionList button[aria-pressed="true"
       status.className='status warn';status.textContent='Select one or more sections first.';return;
     }
     sectionQueue=[...selectedSections]
-      .map(name=>({name,...sections[name]}))
+      .map(name=>({name,...repeatRangeFor(name)}))
       .filter(s=>s.start!=null&&s.end!=null&&s.end>s.start)
       .sort((a,b)=>a.start-b.start);
     if(!sectionQueue.length)return;
@@ -17758,6 +17745,51 @@ html body #appRoot#appRoot#appRoot #repeatSectionList button[aria-pressed="true"
   bindMaskedTimeEntry(timeFrom);
   bindMaskedTimeEntry(timeTo);
 
+
+  // The browser handles real screen rotation. Unsupported devices keep a usable
+  // responsive layout and receive a short, honest instruction to turn the phone.
+  let rotationBusy=false,rotationOwnedFullscreen=false,orientationHintTarget='';
+  function refreshOrientationUI(){
+    const landscape=window.matchMedia('(orientation: landscape)').matches;
+    $('orientationToggle').textContent=landscape?'Portrait':'Landscape';
+    $('orientationToggle').setAttribute('aria-label',landscape?'Switch to portrait':'Switch to landscape');
+    if(orientationHintTarget===(landscape?'landscape':'portrait')){$('orientationMessage').hidden=true;orientationHintTarget='';}
+    const controls=$('playerControls');
+    document.documentElement.style.setProperty('--player-controls-height',controls.getBoundingClientRect().height+'px');
+    if(timeRuler)document.documentElement.style.setProperty('--time-row-height',timeRuler.getBoundingClientRect().height+'px');
+  }
+  async function toggleOrientation(){
+    if(rotationBusy)return;rotationBusy=true;
+    const desired=window.matchMedia('(orientation: landscape)').matches?'portrait':'landscape';
+    const message=$('orientationMessage');message.hidden=true;
+    try{
+      if(typeof screen.orientation?.lock!=='function')throw new Error('unsupported');
+      if(!document.fullscreenElement&&document.documentElement.requestFullscreen){
+        await document.documentElement.requestFullscreen();rotationOwnedFullscreen=true;
+      }
+      await screen.orientation.lock(desired);
+    }catch{
+      if(rotationOwnedFullscreen&&document.fullscreenElement){try{await document.exitFullscreen();}catch{}rotationOwnedFullscreen=false;}
+      orientationHintTarget=desired;message.textContent=`Turn your phone to ${desired}. This browser cannot rotate it using a button.`;message.hidden=false;
+    }finally{rotationBusy=false;refreshOrientationUI();requestAnimationFrame(()=>{if(buffer){drawAll();scrollTimelineToTime(currentTime());}});}
+  }
+  function keepPracticeItemVisible(item){
+    if(!timelineScroll||!item||!item.isConnected)return;
+    const viewport=timelineScroll.getBoundingClientRect(),rect=item.getBoundingClientRect();
+    const sticky=(timeRuler?.getBoundingClientRect().height||0)+(chordRuler?.getBoundingClientRect().height||0);
+    const top=viewport.top+sticky+6,bottom=viewport.bottom-8;
+    if(rect.top<top)timelineScroll.scrollTop-=top-rect.top;
+    else if(rect.bottom>bottom)timelineScroll.scrollTop+=rect.height>bottom-top?rect.top-top:rect.bottom-bottom;
+  }
+  $('orientationToggle').onclick=toggleOrientation;
+  const layoutObserver=new ResizeObserver(()=>refreshOrientationUI());
+  layoutObserver.observe($('playerControls'));if(timeRuler)layoutObserver.observe(timeRuler);
+  screen.orientation?.addEventListener('change',()=>{
+    $('orientationMessage').hidden=true;refreshOrientationUI();
+    requestAnimationFrame(()=>{if(buffer){drawAll();scrollTimelineToTime(currentTime());}});
+  });
+  document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement){try{screen.orientation?.unlock();}catch{}rotationOwnedFullscreen=false;}refreshOrientationUI();});
+  refreshOrientationUI();
 
   // ---------- Controls ----------
   refreshNoteNumberToggle();refreshStemMixerUI();updatePracticeLayoutState(true);
