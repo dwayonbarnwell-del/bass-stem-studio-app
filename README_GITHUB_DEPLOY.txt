@@ -1,4 +1,4 @@
-Bass Stem Studio RC156
+Bass Stem Studio RC157
 
 Upload index.html, sw.js, manifest.webmanifest and icons/ to the frontend root.
 Requires the RC155 backend with song-structure-v1-allinone enabled.
@@ -21,7 +21,7 @@ Tap a chord only if you want exact times or need to edit it. No names are
 hidden behind a count. The display does not delete or alter analysis.
 
 The editable 14 px default, eight-fret paging and restricted practice-octave
-display are unchanged. See RELEASE_RC156.txt for changes and verification.
+display are unchanged. See RELEASE_RC157.txt for changes and verification.
 
 Regression checks (requires Node.js, Playwright and a Chromium installation):
 Serve this folder on http://127.0.0.1:8151, then run:
@@ -31,12 +31,17 @@ Serve this folder on http://127.0.0.1:8151, then run:
 PLAYWRIGHT_MODULE and CHROMIUM_PATH can point to existing installations.
 These checks use local fixtures and block external analysis requests.
 
-Tap Repeat to choose Current section, Verse, Chorus, Bridge or a numbered
-section. Tapping a name starts playback and repeats it; tap Repeat again
-to stop repeating. Analysis finds sections separately from bass and chords.
-For older saved songs, Repeat finds sections once without bass reanalysis.
+Importing audio or an older saved song starts section detection in the
+background using the saved analysis connection. Saved/cached sections are
+reused without a new job. Playback stays available during detection.
+
+Tap Repeat, select one or more parts, then tap Repeat selected. Selected
+parts play in song order, skipping gaps, and repeat as a sequence. Tap Repeat
+again to stop repeating. Repeat current is a shortcut for the current part.
+Close dismisses the chooser without changing playback. Selection buttons
+stay visible while choosing, and the action row remains on screen.
 Use Adjust a section for one-beat boundary changes; no time entry is needed.
-Save the project after sections finish to include them in the saved file.
+Save after sections finish to include them in the saved project.
 
 Additional offline fixture check:
   node tests/song_sections.cjs

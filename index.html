@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bass Stem Studio RC156</title>
+<title>Bass Stem Studio RC157</title>
 <script>
 /* RC119: initialise the correct physical-device font before the first paint.
    This deliberately does not rely on viewport width alone, because Chrome's
@@ -11742,6 +11742,11 @@ html body #appRoot#appRoot#appRoot #repeatSectionHint{color:#b6c8d3!important;fo
 html body #appRoot#appRoot#appRoot #repeatElapsed{display:block!important;margin-top:8px!important;color:#b6c8d3!important;font-variant-numeric:tabular-nums!important}
 html body #appRoot#appRoot#appRoot #loopToggle [hidden]{display:none!important}
 html body #appRoot#appRoot#appRoot #repeatReadyLabel{white-space:normal!important;line-height:1.15!important;font-size:var(--ui-font-size,14px)!important}
+html body #appRoot#appRoot#appRoot #repeatSectionDialog[open]{display:flex!important;flex-direction:column!important;overflow:hidden!important}
+html body #appRoot#appRoot#appRoot .repeat-body{min-height:0!important;overflow:auto!important}
+html body #appRoot#appRoot#appRoot .repeat-actions{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:8px!important;flex-shrink:0!important;padding-top:8px!important}
+html body #appRoot#appRoot#appRoot .repeat-actions.single-action{grid-template-columns:minmax(0,1fr)!important}
+html body #appRoot#appRoot#appRoot #repeatSectionList button[aria-pressed="true"],html body #appRoot#appRoot#appRoot #repeatChosenSections{background:#28574e!important;border-color:#83b4a4!important}
 </style>
 </head>
 <body>
@@ -12026,7 +12031,8 @@ html body #appRoot#appRoot#appRoot #repeatReadyLabel{white-space:normal!importan
         <p id="analysisToolsMessage" role="status" hidden></p>
       </details>
       <dialog id="repeatSectionDialog" class="analysis-edit-dialog" aria-labelledby="repeatSectionTitle">
-        <b id="repeatSectionTitle">Repeat a section</b>
+        <b id="repeatSectionTitle">Repeat sections</b>
+        <div class="repeat-body">
         <p id="repeatSectionStatus" role="status"></p>
         <div id="repeatProgressState" hidden><progress id="repeatProgress" aria-label="Finding song sections"></progress><span id="repeatElapsed"></span></div>
         <p id="repeatSectionHint" hidden></p>
@@ -12044,7 +12050,11 @@ html body #appRoot#appRoot#appRoot #repeatReadyLabel{white-space:normal!importan
           <div class="repeat-nudge-row"><span>End</span><button type="button" data-section-edge="end" data-direction="-1" aria-label="End one beat earlier">Earlier</button><button type="button" data-section-edge="end" data-direction="1" aria-label="End one beat later">Later</button></div>
           <button id="repeatResetAdjustment" type="button">Reset adjustments</button>
         </details>
-        <button id="closeRepeatSections" type="button">Close</button>
+        </div>
+        <div id="repeatActions" class="repeat-actions single-action">
+          <button id="repeatChosenSections" type="button" hidden disabled>Repeat selected</button>
+          <button id="closeRepeatSections" type="button">Close</button>
+        </div>
       </dialog>
       <dialog id="chordDetailsDialog" class="analysis-edit-dialog" aria-labelledby="chordDetailsTitle">
         <b id="chordDetailsTitle">Chord changes</b>
@@ -12120,7 +12130,7 @@ html body #appRoot#appRoot#appRoot #repeatReadyLabel{white-space:normal!importan
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC156';
+  const APP_VERSION='RC157';
   const PROJECT_SCHEMA_VERSION=2;
   // RC125: compact practice-view and string selectors preserve space for P1/P2/P3; all RC124 audio, analysis, repeat, project and practice logic preserved.
 
@@ -12805,6 +12815,7 @@ html body #appRoot#appRoot#appRoot #repeatReadyLabel{white-space:normal!importan
   async function importBassStudioProject(file){
     if(!file)return false;
     const request=++songLoadRequest;
+    let importSucceeded=false;
     setSongImportBusy(true);
     try{
       aiStatus('Opening saved Bass Studio project…',8);
@@ -13010,6 +13021,7 @@ html body #appRoot#appRoot#appRoot #repeatReadyLabel{white-space:normal!importan
       await cacheAudioForRecovery(activeAudioFile);
       if(request!==songLoadRequest)return false;
       await persistAnalysisRecovery();
+      importSucceeded=true;
       return true;
     }catch(err){
       if(request!==songLoadRequest)return false;
@@ -13024,6 +13036,7 @@ html body #appRoot#appRoot#appRoot #repeatReadyLabel{white-space:normal!importan
       if(request===songLoadRequest){
         if(projectFileInput)projectFileInput.value='';
         setSongImportBusy(false);updatePracticeLayoutState(true);
+        if(importSucceeded)startImportedSongSections();
       }
     }
   }
@@ -13457,6 +13470,7 @@ html body #appRoot#appRoot#appRoot #repeatReadyLabel{white-space:normal!importan
     if(!f)return false;
     const request=recoveryRestore?songLoadRequest:++songLoadRequest;
     const session=songSession;
+    let importSucceeded=false;
     if(!recoveryRestore)setSongImportBusy(true);
 
     // RC131: validate and decode the candidate file before changing the current
@@ -13516,13 +13530,17 @@ html body #appRoot#appRoot#appRoot #repeatReadyLabel{white-space:normal!importan
       if(request!==songLoadRequest)return false;
       await restoreDeviceAnalysis();
       if(request!==songLoadRequest)return false;
+      importSucceeded=true;
       return true;
     }catch(err){
       if(request!==songLoadRequest)return false;
       console.error(err);
       status.className='status warn';status.textContent='Could not decode this audio file. Try MP3 or WAV.';
       return false;
-    }finally{if(!recoveryRestore&&request===songLoadRequest)setSongImportBusy(false);}
+    }finally{if(request===songLoadRequest){
+      if(!recoveryRestore)setSongImportBusy(false);
+      if(importSucceeded)startImportedSongSections();
+    }}
   }
 
   importBtn.onclick=()=>{fileInput.value='';fileInput.click();};
@@ -13533,13 +13551,17 @@ html body #appRoot#appRoot#appRoot #repeatReadyLabel{white-space:normal!importan
 
 
   masterAudio.addEventListener('ended',()=>{
+    playing=false;cancelAnimationFrame(raf);
     stopBassStemPlayback(true);
     if(timeframeLoopMode && timeframeQueue.length){
       timeframeQueueIndex=0;
       loopStart=timeframeQueue[0].start;loopEnd=timeframeQueue[0].end;
       seekTo(loopStart);play();return;
     }
-    if((loopEnabled||multiSectionMode) && loopStart!==null){
+    if(multiSectionMode && sectionQueue.length){
+      advanceSelectedSection();play();return;
+    }
+    if(loopEnabled && loopStart!==null){
       seekTo(loopStart); play(); return;
     }
     playing=false; updateButtons(); seek.value=0; drawAll();
@@ -16861,10 +16883,7 @@ html body #appRoot#appRoot#appRoot #repeatReadyLabel{white-space:normal!importan
           if(advanceSelectedTimeframe()) t=loopStart;
         }
       } else if(multiSectionMode && sectionQueue.length && loopEnd!==null && t>=loopEnd-.025){
-        queueIndex=(queueIndex+1)%sectionQueue.length;
-        const next=sectionQueue[queueIndex];
-        loopStart=next.start; loopEnd=next.end;
-        seekTo(loopStart); t=loopStart;
+        advanceSelectedSection();t=loopStart;
       } else if(loopEnabled && loopStart!==null && loopEnd!==null && loopEnd>loopStart && t>=loopEnd-.025){
         seekTo(loopStart); t=loopStart;
       }
@@ -17055,6 +17074,7 @@ html body #appRoot#appRoot#appRoot #repeatReadyLabel{white-space:normal!importan
   // RC155: song structure is independent of pitch, fingering and chord analysis.
   let songStructure=null,structureBusy=false,structureError='',structurePromise=null;
   let structureStage='',structureStartedAt=0,structureTimer=null,structureRequestController=null,structureReadyNotice=false,structureAudioId='';
+  let repeatSectionDraft=new Set();
   const STRUCTURE_PENDING_KEY='bassStemStructureJobV1';
   const STRUCTURE_CACHE_KEY='bassStemLastStructureV1';
   function normaliseSongStructure(raw,duration=buffer?.duration){
@@ -17090,6 +17110,7 @@ html body #appRoot#appRoot#appRoot #repeatReadyLabel{white-space:normal!importan
     structureRequestController?.abort();structureRequestController=null;
     clearInterval(structureTimer);structureTimer=null;structureStage='';structureStartedAt=0;structureReadyNotice=false;structureAudioId='';
     songStructure=null;structureBusy=false;structurePromise=null;structureError='';
+    repeatSectionDraft.clear();
     sections={};baseSections={};selectedSection='';
     $('repeatSectionDialog')?.close();
     renderStructureReadiness();
@@ -17118,9 +17139,12 @@ html body #appRoot#appRoot#appRoot #repeatReadyLabel{white-space:normal!importan
   }
   function renderStructureReadiness(){
     const button=$('loopToggle'),label=$('repeatReadyLabel');if(!button||!label)return;
-    const ready=structureReadyNotice&&!loopEnabled&&!multiSectionMode&&!timeframeLoopMode;
-    label.hidden=!ready;button.querySelector('svg').toggleAttribute('hidden',ready);
+    const available=!loopEnabled&&!multiSectionMode&&!timeframeLoopMode;
+    const ready=structureReadyNotice&&available,waiting=structureBusy&&available;
+    label.textContent=waiting?'Finding sections':'Sections ready';
+    label.hidden=!ready&&!waiting;button.querySelector('svg').toggleAttribute('hidden',ready||waiting);
     if(ready){button.setAttribute('aria-label','Sections ready. Choose a section to repeat');button.title='Sections ready. Tap to choose';}
+    else if(waiting){button.setAttribute('aria-label','Finding song sections. View progress');button.title='Finding song sections';}
   }
   function renderStructureProgress(){
     if(!structureBusy)return;
@@ -17145,22 +17169,23 @@ html body #appRoot#appRoot#appRoot #repeatReadyLabel{white-space:normal!importan
     if(structureBusy)return structurePromise;
     if(!buffer||!activeAudioFile||songImportBusy)return false;
     if(aiBusy){structureError='Sections will be found after the bass analysis.';renderRepeatChooser();return false;}
-    const key=interactive?getRunPodKey():storedRunPodKey();
-    if(!key){structureError='Tap Find sections to connect to the analysis service.';renderRepeatChooser();return false;}
     const session=songSession,file=activeAudioFile,signature=cloudFileSignature(file),audioBuffer=buffer;
     structureBusy=true;structureError='';structureStage='Preparing song sections…';
     structureStartedAt=Date.now();clearInterval(structureTimer);structureTimer=setInterval(renderStructureProgress,1000);
-    renderRepeatChooser();
+    renderRepeatChooser();updateLoopUI();
     structurePromise=(async()=>{
       let pending=pendingStructureJob();
       try{
         const audioId=await structureAudioIdentity(file);assertSongSession(session);structureAudioId=audioId;
+        if(songStructure)return true;
         // Import creates a new File timestamp. Match actual audio so reopening
         // the same saved song resumes its job rather than paying for a new one.
         let cached;try{cached=JSON.parse(localStorage.getItem(STRUCTURE_CACHE_KEY)||'null');}catch{}
         if(audioId&&cached?.audioId===audioId&&installSongStructure(cached.structure)){
           structureReadyNotice=!$('repeatSectionDialog').open;updateLoopUI();return true;
         }
+        const key=interactive?getRunPodKey():storedRunPodKey();
+        if(!key){structureError='Connect once with Find sections. Future imports will find sections automatically.';return false;}
         let result;
         if(matchesStructureJob(pending)){
           structureStartedAt=pending.startedAt||structureStartedAt;setStructureStage('Checking song sections…');
@@ -17217,20 +17242,51 @@ html body #appRoot#appRoot#appRoot #repeatReadyLabel{white-space:normal!importan
           error?.httpStatus?'Sections are temporarily unavailable. Please try again.':String(error?.message||'Could not find sections.');
         return false;
       }finally{
-        if(session===songSession){clearInterval(structureTimer);structureTimer=null;structureBusy=false;structurePromise=null;renderRepeatChooser();}
+        if(session===songSession){clearInterval(structureTimer);structureTimer=null;structureBusy=false;structurePromise=null;renderRepeatChooser();updateLoopUI();}
       }
     })();
     return structurePromise;
   }
+  function startImportedSongSections(){
+    if(!buffer||!activeAudioFile||songImportBusy)return;
+    if(songStructure){structureReadyNotice=true;updateLoopUI();return;}
+    // Background work starts on a successful import, without opening Repeat,
+    // blocking playback, asking for credentials or submitting duplicate jobs.
+    void ensureSongStructure();
+  }
+  function refreshRepeatSectionSelection(){
+    for(const name of [...repeatSectionDraft])if(!sections[name])repeatSectionDraft.delete(name);
+    $('repeatSectionList').querySelectorAll('[data-repeat-section]').forEach(button=>{
+      const name=button.dataset.repeatSection,on=repeatSectionDraft.has(name);
+      button.setAttribute('aria-pressed',String(on));
+      button.querySelector('.repeat-section-name').textContent=(on?'✓ ':'')+name;
+    });
+    const count=repeatSectionDraft.size,hasSections=Object.keys(sections).length>0;
+    $('repeatChosenSections').hidden=!hasSections;
+    $('repeatChosenSections').disabled=!count;
+    $('repeatChosenSections').textContent=count?`Repeat ${count} ${count===1?'part':'parts'}`:'Repeat selected';
+    $('repeatActions').classList.toggle('single-action',!hasSections);
+  }
+  function toggleRepeatSection(name){
+    if(!sections[name])return;
+    if(repeatSectionDraft.has(name))repeatSectionDraft.delete(name);else repeatSectionDraft.add(name);
+    // Keep list nodes and scroll position stable while choosing distant parts.
+    refreshRepeatSectionSelection();
+  }
+  function repeatChosenSections(){
+    const chosen=[...repeatSectionDraft].filter(name=>sections[name]);if(!chosen.length)return;
+    selectedSections.clear();chosen.forEach(name=>selectedSections.add(name));
+    refreshSectionUI();startSelectedSections();$('repeatSectionDialog').close();
+  }
   function renderRepeatChooser(){
     const dialog=$('repeatSectionDialog');if(!dialog)return;
-    $('repeatSectionTitle').textContent=structureBusy?'Preparing sections':'Repeat a section';
+    $('repeatSectionTitle').textContent=structureBusy?'Preparing sections':'Repeat sections';
     const list=$('repeatSectionList'),choice=$('adjustSectionSelect');
     const previous=choice.value;list.replaceChildren();choice.replaceChildren();
     const names=Object.keys(sections).sort((a,b)=>sections[a].start-sections[b].start);
     for(const name of names){
       const button=document.createElement('button');button.type='button';button.dataset.repeatSection=name;
-      const label=document.createElement('span');label.textContent=name;
+      const label=document.createElement('span');label.textContent=name;label.className='repeat-section-name';
       const time=document.createElement('span');time.textContent=sectionLabel(sections[name]);time.className='repeat-section-time';
       button.append(label,time);list.append(button);
       const option=document.createElement('option');option.value=name;option.textContent=name;choice.append(option);
@@ -17239,29 +17295,31 @@ html body #appRoot#appRoot#appRoot #repeatReadyLabel{white-space:normal!importan
     const current=currentSectionName();
     $('repeatCurrentSection').hidden=!current;
     $('repeatCurrentSection').disabled=!current;
-    $('repeatCurrentSection').textContent=current?`Current section · ${current}`:'Current section';
+    $('repeatCurrentSection').textContent=current?`Repeat current · ${current}`:'Repeat current';
     $('repeatAdjustments').hidden=!names.length;
     $('repeatResetAdjustment').hidden=!songStructure;
     $('repeatFindSections').hidden=!!songStructure||structureBusy;
     $('repeatFindSections').textContent=matchesStructureJob(pendingStructureJob())?'Check progress':'Find sections';
     $('repeatSectionStatus').textContent=structureBusy?(structureStage||'Finding song sections…'):structureError||
-      (songStructure?'Tap a name to play and repeat it.':names.length?'Saved ranges. Find sections to detect this song’s structure.':'Find verse, chorus and bridge automatically.');
+      (names.length?'Choose parts, then tap Repeat selected.':'Find verse, chorus and bridge automatically.');
     $('repeatSectionStatus').setAttribute('aria-busy',String(structureBusy));
     $('repeatProgressState').hidden=!structureBusy;
-    $('repeatSectionHint').hidden=!structureBusy&&!songStructure;
+    $('repeatSectionHint').hidden=!structureBusy&&!names.length;
     $('repeatSectionHint').textContent=structureBusy?
       'This can take a few minutes. Choices appear here when ready. You can close this and keep practising.':
-      '“Section” means the name is uncertain.';
+      'Plays in song order, then repeats.';
     $('closeRepeatSections').textContent=structureBusy?'Keep practising':'Close';
     renderStructureProgress();
     $('repeatSelection').hidden=!selectedTimeframes.size;
     const a=parseUserTime(timeFrom.value),b=parseUserTime(timeTo.value);
     $('repeatTypedRange').hidden=!(Number.isFinite(a)&&Number.isFinite(b)&&b>a&&buffer&&a<buffer.duration);
     updateSectionAdjustment();
+    refreshRepeatSectionSelection();
   }
   function openRepeatChooser(){
     if(!buffer)return;
     structureReadyNotice=false;updateLoopUI();
+    repeatSectionDraft=new Set([...selectedSections].filter(name=>sections[name]));
     renderRepeatChooser();$('repeatSectionDialog').showModal();
     if(!songStructure&&!structureBusy&&!structureError)ensureSongStructure({interactive:true});
   }
@@ -17308,7 +17366,8 @@ html body #appRoot#appRoot#appRoot #repeatReadyLabel{white-space:normal!importan
     persistSections();persistAnalysisRecovery();cacheSongStructure();renderRepeatChooser();$('adjustSectionSelect').value=name;updateSectionAdjustment();
   }
   $('repeatCurrentSection').onclick=()=>repeatChosenSection(currentSectionName());
-  $('repeatSectionList').onclick=e=>{const button=e.target.closest('[data-repeat-section]');if(button)repeatChosenSection(button.dataset.repeatSection);};
+  $('repeatSectionList').onclick=e=>{const button=e.target.closest('[data-repeat-section]');if(button)toggleRepeatSection(button.dataset.repeatSection);};
+  $('repeatChosenSections').onclick=repeatChosenSections;
   $('repeatFindSections').onclick=()=>ensureSongStructure({interactive:true});
   $('closeRepeatSections').onclick=()=>$('repeatSectionDialog').close();
   $('adjustSectionSelect').onchange=updateSectionAdjustment;
@@ -17389,6 +17448,7 @@ html body #appRoot#appRoot#appRoot #repeatReadyLabel{white-space:normal!importan
     selectedSections.clear(); selectedSections.add(name); refreshSectionUI();
     multiSectionMode=false; sectionQueue=[]; queueIndex=0;
     timeframeLoopMode=false;timeframeQueue=[];timeframeQueueIndex=0;selectedTimeframes.clear();refreshTimeframeSelectionUI();
+    timeFrom.value='';timeTo.value='';
     loopStart=s.start; loopEnd=s.end; loopEnabled=true; updateLoopUI();
     seekTo(loopStart);
     if(autoplay && !playing) play();
@@ -17537,6 +17597,7 @@ html body #appRoot#appRoot#appRoot #repeatReadyLabel{white-space:normal!importan
     loopEnabled=false;
     multiSectionMode=false;sectionQueue=[];queueIndex=0;
     timeframeLoopMode=false;timeframeQueue=[];timeframeQueueIndex=0;selectedTimeframes.clear();
+    selectedSections.clear();repeatSectionDraft.clear();refreshSectionUI();
     timeFrom.value='';timeTo.value='';
     updateLoopUI();
     refreshTimeframeSelectionUI();
@@ -17662,6 +17723,9 @@ html body #appRoot#appRoot#appRoot #repeatReadyLabel{white-space:normal!importan
       .filter(s=>s.start!=null&&s.end!=null&&s.end>s.start)
       .sort((a,b)=>a.start-b.start);
     if(!sectionQueue.length)return;
+    timeframeLoopMode=false;timeframeQueue=[];timeframeQueueIndex=0;selectedTimeframes.clear();refreshTimeframeSelectionUI();
+    timeFrom.value='';timeTo.value='';
+    queueIndex=0;selectedSection=sectionQueue[0].name;refreshSectionUI();
     if(sectionQueue.length===1){
       const s=sectionQueue[0];
       multiSectionMode=false;loopEnabled=true;loopStart=s.start;loopEnd=s.end;
@@ -17674,6 +17738,13 @@ html body #appRoot#appRoot#appRoot #repeatReadyLabel{white-space:normal!importan
     status.textContent=sectionQueue.length===1
       ? `Repeating ${sectionQueue[0].name}.`
       : 'Repeating selected sections: '+sectionQueue.map(s=>s.name).join(' → ')+'.';
+  }
+  function advanceSelectedSection(){
+    if(!multiSectionMode||!sectionQueue.length)return false;
+    queueIndex=(queueIndex+1)%sectionQueue.length;
+    const next=sectionQueue[queueIndex];
+    selectedSection=next.name;loopStart=next.start;loopEnd=next.end;
+    updateLoopUI();refreshSectionUI();seekTo(loopStart);return true;
   }
   playSelected.onclick=startSelectedSections;
 

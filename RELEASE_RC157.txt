@@ -1,0 +1,27 @@
+Bass Stem Studio RC157: multiple sections and automatic import analysis
+
+How to use
+1. Import audio or a saved project. Section detection starts in the background.
+2. Tap Repeat and select the parts you want. Selected parts show a tick.
+3. Tap Repeat selected. They play in song order and repeat as a sequence.
+4. Tap Repeat again to stop repeating. Tap a selected part to remove it
+   while choosing. Repeat current remains a one-tap shortcut.
+
+Saved and cached section maps open without another analysis request.
+A saved analysis-service connection is needed for new detection. The live
+app and ChatGPT's HTML preview keep separate connection/browser storage.
+Missing credentials do not produce an unsolicited prompt during import.
+
+Verification
+- Multiple selection, deselection and stable list scrolling.
+- Song order, skipped unselected parts, end-of-song wrapping and stop.
+- Mobile dialog with visible action buttons at 14px and 22px.
+- Both raw-audio and saved-project imports start detection without Repeat.
+- Saved/cache reuse, including cached results without credentials.
+- Request reuse, stale-song isolation, timeout and error recovery.
+- Invalid imports preserve the current song and do not submit section jobs.
+- Existing project replacement and missing-stem checks pass.
+
+Bass/chord models, practice octave, eight-fret paging and main layout remain
+unchanged. No backend deployment or paid test analysis is needed for this UI
+and import-trigger change. The RC155 backend remains compatible.
