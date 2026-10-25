@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bass Stem Studio RC155</title>
+<title>Bass Stem Studio RC156</title>
 <script>
 /* RC119: initialise the correct physical-device font before the first paint.
    This deliberately does not rely on viewport width alone, because Chrome's
@@ -11737,6 +11737,11 @@ html body #appRoot#appRoot#appRoot #repeatAdjustments{margin:12px 0!important;pa
 html body #appRoot#appRoot#appRoot #repeatAdjustments summary{cursor:pointer!important;min-height:32px!important}
 html body #appRoot#appRoot#appRoot .repeat-nudge-row{display:grid!important;grid-template-columns:3em minmax(0,1fr) minmax(0,1fr)!important;align-items:center!important;gap:6px!important}
 html body #appRoot#appRoot#appRoot #repeatSectionDialog button:disabled{opacity:.45!important}
+html body #appRoot#appRoot#appRoot #repeatProgress{width:100%!important;height:6px!important;accent-color:#77b5a4!important}
+html body #appRoot#appRoot#appRoot #repeatSectionHint{color:#b6c8d3!important;font-weight:400!important;line-height:1.4!important}
+html body #appRoot#appRoot#appRoot #repeatElapsed{display:block!important;margin-top:8px!important;color:#b6c8d3!important;font-variant-numeric:tabular-nums!important}
+html body #appRoot#appRoot#appRoot #loopToggle [hidden]{display:none!important}
+html body #appRoot#appRoot#appRoot #repeatReadyLabel{white-space:normal!important;line-height:1.15!important;font-size:var(--ui-font-size,14px)!important}
 </style>
 </head>
 <body>
@@ -11856,6 +11861,7 @@ html body #appRoot#appRoot#appRoot #repeatSectionDialog button:disabled{opacity:
         <path d="M15 24c4-9 12-14 22-14 7 0 13 3 18 8"/><path d="M47 9l9 9-12 3"/>
         <path d="M49 40c-4 9-12 14-22 14-7 0-13-3-18-8"/><path d="M17 55l-9-9 12-3"/>
       </svg>
+      <span id="repeatReadyLabel" hidden>Sections<br>ready</span>
     </button>
     <div class="range-group">
       <div class="range-entry">
@@ -12022,6 +12028,8 @@ html body #appRoot#appRoot#appRoot #repeatSectionDialog button:disabled{opacity:
       <dialog id="repeatSectionDialog" class="analysis-edit-dialog" aria-labelledby="repeatSectionTitle">
         <b id="repeatSectionTitle">Repeat a section</b>
         <p id="repeatSectionStatus" role="status"></p>
+        <div id="repeatProgressState" hidden><progress id="repeatProgress" aria-label="Finding song sections"></progress><span id="repeatElapsed"></span></div>
+        <p id="repeatSectionHint" hidden></p>
         <button id="repeatCurrentSection" type="button">Current section</button>
         <button id="repeatSelection" type="button" hidden>Selected time cells</button>
         <button id="repeatTypedRange" type="button" hidden>From / To range</button>
@@ -12112,7 +12120,7 @@ html body #appRoot#appRoot#appRoot #repeatSectionDialog button:disabled{opacity:
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC155';
+  const APP_VERSION='RC156';
   const PROJECT_SCHEMA_VERSION=2;
   // RC125: compact practice-view and string selectors preserve space for P1/P2/P3; all RC124 audio, analysis, repeat, project and practice logic preserved.
 
@@ -17046,7 +17054,9 @@ html body #appRoot#appRoot#appRoot #repeatSectionDialog button:disabled{opacity:
 
   // RC155: song structure is independent of pitch, fingering and chord analysis.
   let songStructure=null,structureBusy=false,structureError='',structurePromise=null;
+  let structureStage='',structureStartedAt=0,structureTimer=null,structureRequestController=null,structureReadyNotice=false,structureAudioId='';
   const STRUCTURE_PENDING_KEY='bassStemStructureJobV1';
+  const STRUCTURE_CACHE_KEY='bassStemLastStructureV1';
   function normaliseSongStructure(raw,duration=buffer?.duration){
     if(!raw||typeof raw!=='object'||!Array.isArray(raw.segments)||!Number.isFinite(duration)||duration<=0)return null;
     const segments=[];
@@ -17074,12 +17084,15 @@ html body #appRoot#appRoot#appRoot #repeatSectionDialog button:disabled{opacity:
     baseSections=Object.fromEntries(next.segments.map(s=>[s.name,{start:s.originalStart,end:s.originalEnd}]));
     selectedSection=sections[selectedSection]?selectedSection:Object.keys(sections)[0];
     renderSectionControls();renderRepeatChooser();
-    if(persist){persistSections();persistAnalysisRecovery();}return true;
+    if(persist){persistSections();persistAnalysisRecovery();cacheSongStructure();}return true;
   }
   function resetSongStructure(){
+    structureRequestController?.abort();structureRequestController=null;
+    clearInterval(structureTimer);structureTimer=null;structureStage='';structureStartedAt=0;structureReadyNotice=false;structureAudioId='';
     songStructure=null;structureBusy=false;structurePromise=null;structureError='';
     sections={};baseSections={};selectedSection='';
     $('repeatSectionDialog')?.close();
+    renderStructureReadiness();
   }
   function currentSectionName(t=currentTime()){
     const items=Object.entries(sections).sort((a,b)=>a[1].start-b[1].start);
@@ -17091,6 +17104,42 @@ html body #appRoot#appRoot#appRoot #repeatSectionDialog button:disabled{opacity:
   function storeStructureJob(value){
     try{if(value)localStorage.setItem(STRUCTURE_PENDING_KEY,JSON.stringify(value));else localStorage.removeItem(STRUCTURE_PENDING_KEY);}catch{}
   }
+  function matchesStructureJob(pending){
+    return !!pending?.id&&((structureAudioId&&pending.audioId===structureAudioId)||pending.signature===cloudFileSignature(activeAudioFile));
+  }
+  function cacheSongStructure(){
+    if(!structureAudioId||!songStructure)return;
+    try{localStorage.setItem(STRUCTURE_CACHE_KEY,JSON.stringify({audioId:structureAudioId,structure:songStructure}));}catch{}
+  }
+  async function structureAudioIdentity(file){
+    if(!globalThis.crypto?.subtle)return '';
+    const bytes=await file.arrayBuffer(),digest=await crypto.subtle.digest('SHA-256',bytes);
+    return Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
+  }
+  function renderStructureReadiness(){
+    const button=$('loopToggle'),label=$('repeatReadyLabel');if(!button||!label)return;
+    const ready=structureReadyNotice&&!loopEnabled&&!multiSectionMode&&!timeframeLoopMode;
+    label.hidden=!ready;button.querySelector('svg').toggleAttribute('hidden',ready);
+    if(ready){button.setAttribute('aria-label','Sections ready. Choose a section to repeat');button.title='Sections ready. Tap to choose';}
+  }
+  function renderStructureProgress(){
+    if(!structureBusy)return;
+    $('repeatSectionStatus').textContent=structureStage||'Finding song sections…';
+    $('repeatElapsed').textContent=`Time waiting: ${fmt(Math.max(0,(Date.now()-structureStartedAt)/1000))}`;
+  }
+  function setStructureStage(text){structureStage=text;renderStructureProgress();}
+  // Bound network waits so a lost mobile connection cannot leave the chooser
+  // showing "Finding" forever. GET recovery uses the saved job; never resend POST.
+  async function fetchStructureRequest(url,key,options,session){
+    const controller=new AbortController();structureRequestController=controller;
+    let timedOut=false;
+    const timer=setTimeout(()=>{timedOut=true;controller.abort();},options.method==='POST'?180000:30000);
+    try{return await runPodFetch(url,key,{...options,signal:controller.signal},1,session);}
+    catch(error){
+      if(timedOut){const timeout=new Error('Connection interrupted. Tap Check progress to continue.');timeout.sectionTimeout=true;throw timeout;}
+      throw error;
+    }finally{clearTimeout(timer);if(structureRequestController===controller)structureRequestController=null;}
+  }
   async function ensureSongStructure({interactive=false}={}){
     if(songStructure)return true;
     if(structureBusy)return structurePromise;
@@ -17099,35 +17148,50 @@ html body #appRoot#appRoot#appRoot #repeatSectionDialog button:disabled{opacity:
     const key=interactive?getRunPodKey():storedRunPodKey();
     if(!key){structureError='Tap Find sections to connect to the analysis service.';renderRepeatChooser();return false;}
     const session=songSession,file=activeAudioFile,signature=cloudFileSignature(file),audioBuffer=buffer;
-    structureBusy=true;structureError='';renderRepeatChooser();
+    structureBusy=true;structureError='';structureStage='Preparing song sections…';
+    structureStartedAt=Date.now();clearInterval(structureTimer);structureTimer=setInterval(renderStructureProgress,1000);
+    renderRepeatChooser();
     structurePromise=(async()=>{
       let pending=pendingStructureJob();
       try{
+        const audioId=await structureAudioIdentity(file);assertSongSession(session);structureAudioId=audioId;
+        // Import creates a new File timestamp. Match actual audio so reopening
+        // the same saved song resumes its job rather than paying for a new one.
+        let cached;try{cached=JSON.parse(localStorage.getItem(STRUCTURE_CACHE_KEY)||'null');}catch{}
+        if(audioId&&cached?.audioId===audioId&&installSongStructure(cached.structure)){
+          structureReadyNotice=!$('repeatSectionDialog').open;updateLoopUI();return true;
+        }
         let result;
-        if(!pending?.id||pending.signature!==signature){
+        if(matchesStructureJob(pending)){
+          structureStartedAt=pending.startedAt||structureStartedAt;setStructureStage('Checking song sections…');
+        }
+        if(!matchesStructureJob(pending)){
           let upload=file,route='run';
           if(file.size>RUNPOD_RUN_RAW_SAFE_BYTES){
             route='runsync';
             if(file.size>RUNPOD_RUNSYNC_RAW_SAFE_BYTES){
               const bitrate=chooseAnalysisMp3Bitrate(audioBuffer.duration,RUNPOD_RUNSYNC_RAW_SAFE_BYTES);
               if(!bitrate)throw new Error('This recording is too long for automatic sections. Existing repeat selections still work.');
+              setStructureStage('Preparing audio…');
               upload=await encodeAudioBufferForAnalysis(audioBuffer,bitrate,0,null,'',session);
               assertSongSession(session);
             }
           }
           if(upload.size>RUNPOD_RUNSYNC_RAW_SAFE_BYTES)throw new Error('This recording is too large for automatic sections. Existing repeat selections still work.');
           const data=await fileToBase64(upload);assertSongSession(session);
-          result=await runPodFetch(`https://api.runpod.ai/v2/${RUNPOD_ENDPOINT}/${route}`,key,{method:'POST',body:JSON.stringify({input:{action:'sections',
-            filename:upload===file?file.name:'sections.mp3',audio_base64:data}})},1,session);
+          setStructureStage('Sending audio for section analysis…');
+          result=await fetchStructureRequest(`https://api.runpod.ai/v2/${RUNPOD_ENDPOINT}/${route}`,key,{method:'POST',body:JSON.stringify({input:{action:'sections',
+            filename:upload===file?file.name:'sections.mp3',audio_base64:data}})},session);
           assertSongSession(session);
-          if(result.id){pending={id:result.id,signature};storeStructureJob(pending);}
+          if(result.id){pending={id:result.id,signature,audioId,startedAt:structureStartedAt};storeStructureJob(pending);}
           if(!result.id&&result.status!=='COMPLETED')throw new Error('The section request was not accepted. Please try again.');
+          if(result.status!=='COMPLETED')setStructureStage(result.status==='IN_QUEUE'?'Waiting for the analysis service…':'Finding song sections…');
         }
         for(let checks=0;checks<360;checks++){
           assertSongSession(session);
           if(!result||!['COMPLETED','FAILED','CANCELLED','TIMED_OUT'].includes(result.status)){
             if(checks||result)await cloudSleep(5000);
-            result=await runPodFetch(`https://api.runpod.ai/v2/${RUNPOD_ENDPOINT}/status/${encodeURIComponent(pending.id)}`,key,{method:'GET'},3,session);
+            result=await fetchStructureRequest(`https://api.runpod.ai/v2/${RUNPOD_ENDPOINT}/status/${encodeURIComponent(pending.id)}`,key,{method:'GET'},session);
           }
           assertSongSession(session);
           if(['FAILED','CANCELLED','TIMED_OUT'].includes(result.status)){storeStructureJob(null);throw new Error('Sections could not be found. Please try again.');}
@@ -17135,25 +17199,32 @@ html body #appRoot#appRoot#appRoot #repeatSectionDialog button:disabled{opacity:
             if(!result.output?.ok||!installSongStructure(result.output.structure)){
               storeStructureJob(null);throw new Error('No usable sections were returned. Please try again.');
             }
-            storeStructureJob(null);return true;
+            storeStructureJob(null);
+            structureReadyNotice=!$('repeatSectionDialog').open;updateLoopUI();
+            return true;
           }
+          setStructureStage(result.status==='IN_QUEUE'?'Waiting for the analysis service…':'Finding song sections…');
           result=null;
         }
-        throw new Error('Sections are still processing. Tap Check sections to resume.');
+        throw new Error('Sections are still processing. Tap Check progress to continue.');
       }catch(error){
         if(session!==songSession||error?.name==='AbortError')return false;
         if(error?.httpStatus===404)storeStructureJob(null);
+        const resumable=matchesStructureJob(pendingStructureJob());
         structureError=error?.httpStatus===401?'The analysis key was rejected. Update it and try again.':
+          resumable?'Connection interrupted. Tap Check progress to continue.':
+          error?.sectionTimeout?'The connection timed out. Tap Find sections to try again.':
           error?.httpStatus?'Sections are temporarily unavailable. Please try again.':String(error?.message||'Could not find sections.');
         return false;
       }finally{
-        if(session===songSession){structureBusy=false;structurePromise=null;renderRepeatChooser();}
+        if(session===songSession){clearInterval(structureTimer);structureTimer=null;structureBusy=false;structurePromise=null;renderRepeatChooser();}
       }
     })();
     return structurePromise;
   }
   function renderRepeatChooser(){
     const dialog=$('repeatSectionDialog');if(!dialog)return;
+    $('repeatSectionTitle').textContent=structureBusy?'Preparing sections':'Repeat a section';
     const list=$('repeatSectionList'),choice=$('adjustSectionSelect');
     const previous=choice.value;list.replaceChildren();choice.replaceChildren();
     const names=Object.keys(sections).sort((a,b)=>sections[a].start-sections[b].start);
@@ -17166,15 +17237,23 @@ html body #appRoot#appRoot#appRoot #repeatSectionDialog button:disabled{opacity:
     }
     choice.value=names.includes(previous)?previous:(currentSectionName()||names[0]||'');
     const current=currentSectionName();
+    $('repeatCurrentSection').hidden=!current;
     $('repeatCurrentSection').disabled=!current;
     $('repeatCurrentSection').textContent=current?`Current section · ${current}`:'Current section';
     $('repeatAdjustments').hidden=!names.length;
     $('repeatResetAdjustment').hidden=!songStructure;
     $('repeatFindSections').hidden=!!songStructure||structureBusy;
-    $('repeatFindSections').textContent=pendingStructureJob()?.signature===cloudFileSignature(activeAudioFile)?'Check sections':'Find sections';
-    $('repeatSectionStatus').textContent=structureBusy?'Finding song sections… You can keep practising.':structureError||
-      (songStructure?'Tap to repeat. “Section” means an unclear name.':names.length?'Saved ranges. Find sections to detect this song’s structure.':'Find verse, chorus and bridge automatically.');
+    $('repeatFindSections').textContent=matchesStructureJob(pendingStructureJob())?'Check progress':'Find sections';
+    $('repeatSectionStatus').textContent=structureBusy?(structureStage||'Finding song sections…'):structureError||
+      (songStructure?'Tap a name to play and repeat it.':names.length?'Saved ranges. Find sections to detect this song’s structure.':'Find verse, chorus and bridge automatically.');
     $('repeatSectionStatus').setAttribute('aria-busy',String(structureBusy));
+    $('repeatProgressState').hidden=!structureBusy;
+    $('repeatSectionHint').hidden=!structureBusy&&!songStructure;
+    $('repeatSectionHint').textContent=structureBusy?
+      'This can take a few minutes. Choices appear here when ready. You can close this and keep practising.':
+      '“Section” means the name is uncertain.';
+    $('closeRepeatSections').textContent=structureBusy?'Keep practising':'Close';
+    renderStructureProgress();
     $('repeatSelection').hidden=!selectedTimeframes.size;
     const a=parseUserTime(timeFrom.value),b=parseUserTime(timeTo.value);
     $('repeatTypedRange').hidden=!(Number.isFinite(a)&&Number.isFinite(b)&&b>a&&buffer&&a<buffer.duration);
@@ -17182,6 +17261,7 @@ html body #appRoot#appRoot#appRoot #repeatSectionDialog button:disabled{opacity:
   }
   function openRepeatChooser(){
     if(!buffer)return;
+    structureReadyNotice=false;updateLoopUI();
     renderRepeatChooser();$('repeatSectionDialog').showModal();
     if(!songStructure&&!structureBusy&&!structureError)ensureSongStructure({interactive:true});
   }
@@ -17225,7 +17305,7 @@ html body #appRoot#appRoot#appRoot #repeatSectionDialog button:disabled{opacity:
     }
     s[edge]=next;
     if(loopEnabled&&selectedSections.size===1){const active=sections[[...selectedSections][0]];if(active){loopStart=active.start;loopEnd=active.end;updateLoopUI();}}
-    persistSections();persistAnalysisRecovery();renderRepeatChooser();$('adjustSectionSelect').value=name;updateSectionAdjustment();
+    persistSections();persistAnalysisRecovery();cacheSongStructure();renderRepeatChooser();$('adjustSectionSelect').value=name;updateSectionAdjustment();
   }
   $('repeatCurrentSection').onclick=()=>repeatChosenSection(currentSectionName());
   $('repeatSectionList').onclick=e=>{const button=e.target.closest('[data-repeat-section]');if(button)repeatChosenSection(button.dataset.repeatSection);};
@@ -17261,6 +17341,7 @@ html body #appRoot#appRoot#appRoot #repeatSectionDialog button:disabled{opacity:
     loopToggle.setAttribute('aria-pressed',repeatActive?'true':'false');
     loopToggle.setAttribute('aria-label',repeatActive?'Stop repeating':'Repeat a section');
     loopToggle.title=repeatActive?'Stop repeating':'Repeat a section';
+    renderStructureReadiness();
   }
   function cloneSections(obj){return JSON.parse(JSON.stringify(obj));}
   function renderSectionControls(){

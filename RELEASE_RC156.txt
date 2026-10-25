@@ -1,0 +1,18 @@
+Bass Stem Studio RC156: clear section-analysis progress
+
+The screenshot showed normal waiting as an inactive Current section button.
+That button now stays hidden until it has a playable range. The chooser
+shows the current stage, elapsed waiting time and explains that choices
+appear automatically. Keep practising closes the chooser while detection
+continues. The existing Repeat card shows Sections ready on completion.
+
+Network requests now have finite timeouts. Interrupted status requests keep
+the saved job and offer Check progress, without submitting a duplicate job.
+Changing songs aborts the old section request and clears progress/readiness.
+
+No bass/chord model, musical ranges, saved sections or player layout changed.
+Uses the existing RC155 section-analysis backend.
+
+Section jobs and the latest completed result also match the audio content,
+so reimporting the same older saved project can reuse its section analysis
+even though the browser gives the imported audio a new file timestamp.

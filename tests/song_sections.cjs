@@ -23,6 +23,8 @@ const fixture=`window.__sections={
   notes:notes.map(n=>n.midi),chords:detectedChordChanges};},
  key(){localStorage.setItem(RUNPOD_SAVED_KEY,'fixture-only');},
  reset(){songStructure=null;sections={};structureError='';renderRepeatChooser();},
+ clearSectionJobs(){localStorage.removeItem(STRUCTURE_CACHE_KEY);localStorage.removeItem(STRUCTURE_PENDING_KEY);},
+ timeoutSoon(){const original=window.setTimeout;window.setTimeout=(fn,delay,...args)=>original(fn,delay===30000?10:delay,...args);this.restoreTimer=()=>{window.setTimeout=original;};},
 };\n`;
 (async()=>{
  const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH,headless:true,args:['--no-sandbox','--disable-gpu','--no-zygote']});
@@ -84,6 +86,64 @@ const fixture=`window.__sections={
  await page.route('https://api.runpod.ai/**',route=>route.fulfill({contentType:'application/json',body:JSON.stringify({status:'COMPLETED',output:{ok:true,structure:saved.analysis.structure}})}));
  assert.equal(await page.evaluate(()=>__sections.ensure()),true);state=await page.evaluate(()=>__sections.state());
  assert.equal(state.structure.segments.length,3);assert.deepEqual(state.notes,[36]);assert.deepEqual(state.chords,[]);
+ // The screenshot regression: waiting is not presented as a clickable but
+ // disabled section. Background completion changes the existing Repeat card.
+ await page.evaluate(()=>{__sections.reset();__sections.clearSectionJobs();});
+ await page.unroute('https://api.runpod.ai/**');
+ let postCount=0,getCount=0,releaseStatus,statusStarted;
+ const statusWaiting=new Promise(r=>statusStarted=r),statusGate=new Promise(r=>releaseStatus=r);
+ await page.route('https://api.runpod.ai/**',async route=>{
+  if(route.request().method()==='POST'){postCount++;return route.fulfill({contentType:'application/json',body:JSON.stringify({id:'queued-sections',status:'IN_QUEUE'})});}
+  getCount++;if(getCount===1){statusStarted();await statusGate;return route.abort('failed');}
+  return route.fulfill({contentType:'application/json',body:JSON.stringify({id:'queued-sections',status:'COMPLETED',output:{ok:true,structure:saved.analysis.structure}})});
+ });
+ await page.locator('#loopToggle').click();await statusWaiting;
+ assert.equal(await page.locator('#repeatCurrentSection').isVisible(),false);
+ assert.equal(await page.locator('#repeatProgress').isVisible(),true);
+ assert.match(await page.locator('#repeatSectionHint').innerText(),/Choices appear here when ready/);
+ assert.match(await page.locator('#repeatElapsed').innerText(),/Time waiting:/);
+ assert.equal(await page.locator('#closeRepeatSections').innerText(),'Keep practising');
+ await page.locator('#closeRepeatSections').click();releaseStatus();
+ await page.waitForFunction(()=>!__sections.state().busy);
+ await page.locator('#loopToggle').click();
+ assert.equal(await page.locator('#repeatFindSections').innerText(),'Check progress');
+ assert.match(await page.locator('#repeatSectionStatus').innerText(),/Connection interrupted/);
+ await page.locator('#closeRepeatSections').click();
+ // Reopening the same older saved project changes File.lastModified, but the
+ // audio hash must still recover the existing job, with no second POST.
+ await page.evaluate(()=>__sections.import(project));
+ await page.evaluate(()=>__sections.reset());
+ assert.equal(await page.evaluate(()=>__sections.ensure()),true);
+ assert.equal(postCount,1);assert.equal(getCount,2);
+ assert.equal(await page.locator('#repeatReadyLabel').isVisible(),true);
+ assert.equal(await page.locator('#loopToggle svg').isVisible(),false);
+ await page.locator('#loopToggle').click();
+ assert.equal(await page.locator('[data-repeat-section]').count(),3);
+ assert.equal(await page.locator('#repeatProgress').isVisible(),false);
+ assert.equal(await page.locator('#repeatReadyLabel').isVisible(),false);
+ assert.equal(await page.locator('#loopToggle svg').isVisible(),true);
+ await page.locator('#closeRepeatSections').click();
+ // Completed sections are reused by matching the audio, even for an older
+ // project without a section map. No further service request is made.
+ const countBefore=postCount+getCount;
+ await page.evaluate(async()=>{await __sections.import(project);__sections.reset();await __sections.ensure();});
+ assert.equal(postCount+getCount,countBefore);
+ assert.equal((await page.evaluate(()=>__sections.state())).structure.segments.length,3);
+ // An unresponsive network request ends visibly and retains the job for retry.
+ await page.unroute('https://api.runpod.ai/**');
+ await page.evaluate(()=>{__sections.reset();__sections.clearSectionJobs();__sections.timeoutSoon();});
+ let releaseHung;const hung=new Promise(r=>releaseHung=r);
+ await page.route('https://api.runpod.ai/**',async route=>{
+  if(route.request().method()==='POST')return route.fulfill({contentType:'application/json',body:JSON.stringify({id:'hung-sections',status:'IN_QUEUE'})});
+  await hung;try{await route.abort();}catch{}
+ });
+ assert.equal(await page.evaluate(()=>__sections.ensure()),false);releaseHung();
+ await page.evaluate(()=>__sections.restoreTimer());
+ assert.equal((await page.evaluate(()=>__sections.state())).busy,false);
+ await page.locator('#loopToggle').click();
+ assert.equal(await page.locator('#repeatFindSections').innerText(),'Check progress');
+ assert.equal(await page.locator('#repeatProgress').isVisible(),false);
+ assert.equal(await page.locator('#repeatCurrentSection').isVisible(),false);
  assert.deepEqual(errors,[]);await browser.close();
- console.log('PASS: section chooser, current section, repeat start/stop, cell coexistence, beat adjustments, save/import/recovery, mobile layout, and stale-job isolation.');
+ console.log('PASS: section chooser, repeat, adjustments, save/import, mobile, stale-job isolation, waiting state, connection recovery, content identity, cached results and network timeout.');
 })().catch(e=>{console.error(e);process.exit(1);});
