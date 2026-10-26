@@ -1,8 +1,8 @@
-Bass Stem Studio RC161
+Bass Stem Studio RC162
 
 Upload index.html, sw.js, manifest.webmanifest and icons/ to the frontend root.
 The existing RC155 song-structure backend remains compatible. No backend
-change is required for RC161.
+change is required for RC162.
 
 Repeat
 Importing audio or an older project starts section detection in the background
@@ -27,15 +27,17 @@ The app follows the device's orientation. No rotation button or orientation lock
 is used. On phones, enable the device's Auto rotate setting if needed.
 Font, strings, speed, BPM and interval now sit above Source & Stem.
 The practice workspace fits the available viewport, including browser bars.
-Landscape keeps playback controls beside the timeline. Ordinary time bars stay
-narrow; a crowded bar widens only as needed for extra note/chord columns.
-The layout fits all notes and chords in each bar at the same time. Compact
-note cards have the same size, including single notes. Whole bars move into
-view automatically during playback. No vertical scrolling is required to read
-a bar. In unusually dense intervals or at a very large text setting, notation
-can scale down to fit; the control font setting is preserved. Six bass strings
-and eight frets stay within the practice area. Notes and chords read left to
-right, then down when a bar needs more than one column.
+Landscape keeps playback controls beside the timeline. Every time bar has the
+same width throughout the song, including bars with longer chord names or
+more notes. The layout chooses the narrowest equal-width grid that fits the
+contents at the selected font size. It does not stretch individual bars or
+leave gaps between them. Whole bars move into view during playback.
+Compact note cards retain equal sizes and use additional columns when needed.
+All notes and chords in a bar fit together without vertical timeline scrolling.
+Unusually dense intervals or very large text can scale notation down to fit;
+the control font preference is preserved. Six bass strings and eight frets
+stay within the practice area. Notes and chords read left to right, then down
+when a bar needs more than one column.
 
 Saved projects
 Import replaces the open song. Old imports and analysis responses cannot
@@ -43,6 +45,7 @@ overwrite the replacement. Invalid original audio leaves the current song
 intact; missing optional backing audio does not block a valid import.
 
 Validation (Node.js, Playwright, Chromium)
+  node tests/uniform_bars.cjs
   node tests/practice_controls.cjs
   node tests/song_sections.cjs
   node tests/project_import.cjs

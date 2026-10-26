@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bass-stem-studio-rc161-v1';
+const CACHE_NAME = 'bass-stem-studio-rc162-v1';
 const APP_SHELL = ['./','./index.html','./manifest.webmanifest','./icons/icon-192.png','./icons/icon-512.png'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)));

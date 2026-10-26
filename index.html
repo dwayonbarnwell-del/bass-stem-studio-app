@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bass Stem Studio RC161</title>
+<title>Bass Stem Studio RC162</title>
 <script>
 /* RC119: initialise the correct physical-device font before the first paint.
    This deliberately does not rely on viewport width alone, because Chrome's
@@ -12172,7 +12172,7 @@ html body #appRoot#appRoot#appRoot .note-time-cell{padding:6px!important}
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC161';
+  const APP_VERSION='RC162';
   const PROJECT_SCHEMA_VERSION=2;
   // RC125: compact practice-view and string selectors preserve space for P1/P2/P3; all RC124 audio, analysis, repeat, project and practice logic preserved.
 
@@ -17797,39 +17797,38 @@ html body #appRoot#appRoot#appRoot .note-time-cell{padding:6px!important}
     const measure=document.createElement('canvas').getContext('2d');
     const family=getComputedStyle(noteLane).fontFamily;
     const rulerHeight=timeRuler.getBoundingClientRect().height||26,pageWidth=width-2,gap=4;
-    const maxNotes=Math.max(1,...counts),maxChords=Math.max(1,...groups.map(g=>g.length));
+    const maxNotes=Math.max(1,...counts);
     let font=requestedFont,metrics;
-    // The selected size is retained whenever it fits. Exceptionally dense or
-    // very large-text views scale the notation only, instead of hiding events.
-    for(;font>=1;font--){
+    // One shared bar width for the entire song. Try the narrowest uniform
+    // grid that fits every event at the selected font before scaling notation.
+    // Long chord names may reduce the number of bars across, but never make
+    // an individual bar wider or create a blank gap in the timeline.
+    fit:for(;font>=1;font--){
       measure.font=`900 ${font}px ${family}`;
       const noteWidth=Math.ceil(Math.max(36,...noteLabels.map(label=>measure.measureText(label).width)))+10;
       const labelWidths=groups.map(g=>Math.ceil(Math.max(20,...g.map(e=>measure.measureText(chordDisplayLabel(e.chord)).width)))+6);
-      const line=Math.ceil(font*1.35),minCardHeight=Math.ceil(font*1.35)+8;
-      const chordRows=Math.max(1,Math.min(3,maxChords),...groups.map((g,i)=>Math.ceil(g.length/Math.max(1,Math.floor((pageWidth-16+gap)/(labelWidths[i]+gap))))));
-      const chordHeight=chordRows*line+10;
-      const noteSpace=Math.floor(height-rulerHeight-chordHeight-24);
-      const maxNoteColumns=Math.max(1,Math.floor((pageWidth-16+gap)/(noteWidth+gap)));
-      const maxRows=Math.ceil(maxNotes/maxNoteColumns);
-      const fits=noteSpace>=maxRows*minCardHeight+(maxRows-1)*gap;
-      metrics={noteWidth,labelWidths,line,chordRows,chordHeight,noteSpace,maxNoteColumns,minCardHeight,maxRows};
-      if(fits||font===1)break;
+      const line=Math.ceil(font*1.35),minCardHeight=line+8;
+      const preferredSlots=Math.max(1,Math.floor(pageWidth/Math.max(78,noteWidth+16)));
+      for(let slots=preferredSlots;slots>=1;slots--){
+        const unit=pageWidth/slots,contentWidth=unit-16;
+        const maxNoteColumns=Math.max(1,Math.floor((contentWidth+gap)/(noteWidth+gap)));
+        const chordColumns=groups.map((g,i)=>Math.max(1,Math.min(g.length||1,Math.floor((contentWidth+gap)/(labelWidths[i]+gap)))));
+        const chordRows=Math.max(1,...groups.map((g,i)=>Math.ceil(g.length/chordColumns[i])));
+        const chordHeight=chordRows*line+10;
+        const noteSpace=Math.floor(height-rulerHeight-chordHeight-24);
+        const maxRows=Math.ceil(maxNotes/maxNoteColumns);
+        const fits=noteWidth<=contentWidth&&labelWidths.every(w=>w<=contentWidth)&&noteSpace>=maxRows*minCardHeight+(maxRows-1)*gap;
+        metrics={noteWidth,chordColumns,chordHeight,noteSpace,minCardHeight,maxRows,slots,unit};
+        if(fits||(font===1&&slots===1))break fit;
+      }
     }
-    const {noteWidth,labelWidths,line,chordRows,chordHeight,noteSpace,maxNoteColumns,minCardHeight,maxRows}=metrics;
+    const {noteWidth,chordColumns,chordHeight,noteSpace,minCardHeight,maxRows,slots,unit}=metrics;
     const cardHeight=Math.max(minCardHeight,Math.min(36,Math.floor((noteSpace-gap*(maxRows-1))/maxRows)));
     const rowsFit=Math.max(1,Math.floor((noteSpace+gap)/(cardHeight+gap)));
-    const slots=Math.max(1,Math.floor(pageWidth/Math.max(78,noteWidth+16))),unit=pageWidth/slots;
-    let used=0;
-    practiceCells=counts.map((n,i)=>{
-      const noteColumns=Math.max(1,Math.ceil(n/rowsFit));
-      const chordColumns=Math.max(1,Math.ceil(groups[i].length/chordRows));
-      const required=Math.max(unit,noteColumns*(noteWidth+gap)-gap+16,chordColumns*(labelWidths[i]+gap)-gap+16);
-      const units=Math.min(slots,Math.max(1,Math.ceil(required/unit-.00001)));
-      const remaining=slots-used%slots;
-      if(units>remaining)used+=remaining;
-      const cell={left:used*unit,width:units*unit,noteColumns,chordColumns};used+=units;return cell;
-    });
-    practiceLayoutWidth=Math.ceil(used/slots)*pageWidth;
+    practiceCells=counts.map((n,i)=>({
+      left:i*unit,width:unit,noteColumns:Math.max(1,Math.ceil(n/rowsFit)),chordColumns:chordColumns[i]
+    }));
+    practiceLayoutWidth=Math.ceil(count/slots)*pageWidth;
     waveCacheDirty=true;
     practiceCellWidth=unit;practiceNoteColumns=1;
     const root=document.documentElement;

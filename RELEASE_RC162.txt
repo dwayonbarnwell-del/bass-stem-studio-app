@@ -1,0 +1,20 @@
+Bass Stem Studio RC162: equal time-bar widths
+
+Fix
+- Removed the per-bar widening and page-packing gaps introduced in RC161.
+- Chooses one bar width for the whole song at the current screen/font/interval.
+- Long chord names and dense notes cannot stretch one bar differently.
+- Fits every note and chord using equal note cards and additional columns.
+- Time, chord and note rows remain aligned. Playhead movement stays
+  proportional to time. Automatic following and repeat selection remain.
+
+Validation
+- Recreated the recording's 0:44-0:46 chord labels, including slash chords.
+- The new regression fails on RC161 and passes on RC162.
+- Equal bar widths and no gaps checked at 360x640, 390x844, 740x360, 844x390.
+- Those examples retain 14px and show at least two bars across.
+- Every label/note remains visible; timing and row alignment checked.
+- Existing dense 24-note/8-chord visibility, editable repeat, inline edit/undo,
+  import isolation, device rotation and six-string checks pass.
+- Chord layout checks pass at 11/14/22px on 360/412/800px screens.
+- Local fixtures only; no paid audio analysis or backend changes.
