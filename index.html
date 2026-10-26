@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bass Stem Studio RC162</title>
+<title>Bass Stem Studio RC163</title>
 <script>
 /* RC119: initialise the correct physical-device font before the first paint.
    This deliberately does not rely on viewport width alone, because Chrome's
@@ -11811,11 +11811,16 @@ html body #appRoot#appRoot#appRoot .bass-view-foot{flex:0 0 auto!important;min-h
 
 <style id="rc161-all-notes-fit">
 html body #appRoot#appRoot#appRoot #chordRuler{height:var(--practice-chord-height,36px)!important;min-height:var(--practice-chord-height,36px)!important;max-height:var(--practice-chord-height,36px)!important;overflow:visible!important}
-html body #appRoot#appRoot#appRoot .chord-cell{grid-template-columns:repeat(var(--cell-chord-columns,1),minmax(0,1fr))!important;padding:5px 6px!important;gap:0 4px!important;align-content:start!important}
+html body #appRoot#appRoot#appRoot .chord-cell{grid-template-columns:minmax(0,1fr)!important;padding:5px 6px!important;gap:0 4px!important;align-content:start!important}
 html body #appRoot#appRoot#appRoot .chord-name{font-size:var(--practice-notation-font,var(--ui-font-size))!important;line-height:1.35!important;min-height:0!important;white-space:nowrap!important;overflow:visible!important;overflow-wrap:normal!important}
 html body #appRoot#appRoot#appRoot .simple-timeline-card .note-sequence{grid-template-columns:repeat(var(--cell-note-columns,1),minmax(0,1fr))!important}
 html body #appRoot#appRoot#appRoot .simple-timeline-card .note-token{font-size:var(--practice-notation-font,var(--ui-font-size))!important;line-height:1.35!important;padding:2px!important;white-space:nowrap!important;overflow:visible!important;text-overflow:clip!important;border-radius:7px!important}
 html body #appRoot#appRoot#appRoot .note-time-cell{padding:6px!important}
+</style>
+<style id="rc163-compact-chord-stack">
+html body #appRoot#appRoot#appRoot .chord-cell,
+html body #appRoot#appRoot#appRoot .note-time-cell{overflow:hidden!important}
+html body #appRoot#appRoot#appRoot .note-time-cell:has(.note-inline-editor){overflow:visible!important}
 </style>
 </head>
 <body>
@@ -12172,7 +12177,7 @@ html body #appRoot#appRoot#appRoot .note-time-cell{padding:6px!important}
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC162';
+  const APP_VERSION='RC163';
   const PROJECT_SCHEMA_VERSION=2;
   // RC125: compact practice-view and string selectors preserve space for P1/P2/P3; all RC124 audio, analysis, repeat, project and practice logic preserved.
 
@@ -12636,8 +12641,9 @@ html body #appRoot#appRoot#appRoot .note-time-cell{padding:6px!important}
     if(!inner)return;
     const w=inner.getBoundingClientRect().width;
     const start=timelineCellLeft(Math.min(practiceCells.length-1,Math.floor(Math.max(0,Number(t)||0)/TIMELINE_CELL_SECONDS)));
-    const pageWidth=Math.max(1,timelineScroll.clientWidth-2);
+    const pageWidth=Math.max(1,practiceCellWidth*(fitPracticeTimeline.slots||1));
     timelineScroll.scrollLeft=Math.floor((Math.max(0,start)+.1)/pageWidth)*pageWidth;
+    applyPracticePageFit();
     updateSimpleTimeline(Number(t)||0);
   }
 
@@ -16662,7 +16668,7 @@ html body #appRoot#appRoot#appRoot .note-time-cell{padding:6px!important}
       chordRuler.append(d);
     });
     // fitPracticeTimeline sets a bounded header with enough columns for every chord.
-    chordRuler.title='Chord changes run in reading order. The highlighted chord is current. Purple ? means uncertain.';
+    chordRuler.title='Chord changes run from top to bottom. The highlighted chord is current. Purple ? means uncertain.';
     updateCurrentChord(currentTime());
   }
 
@@ -16907,7 +16913,7 @@ html body #appRoot#appRoot#appRoot .note-time-cell{padding:6px!important}
       const inner=timelineScroll.querySelector('.timeline-inner');
       const fullW=inner?inner.getBoundingClientRect().width:2200;
       const index=Math.min(practiceCells.length-1,Math.floor(t/TIMELINE_CELL_SECONDS)),cellStart=timelineCellLeft(index),vw=timelineScroll.clientWidth;
-      if(cellStart<timelineScroll.scrollLeft-.5||cellStart+timelineCellWidth(index)>timelineScroll.scrollLeft+vw+.5)scrollTimelineToTime(t);
+      if(Math.floor(index/(fitPracticeTimeline.slots||1))!==fitPracticeTimeline.appliedPage||cellStart<timelineScroll.scrollLeft-.5||cellStart+timelineCellWidth(index)>timelineScroll.scrollLeft+vw+.5)scrollTimelineToTime(t);
     }
   }
 
@@ -17781,7 +17787,7 @@ html body #appRoot#appRoot#appRoot .note-time-cell{padding:6px!important}
     if(height<1||width<1)return;
     const requestedFont=Number(document.documentElement.dataset.fontPx)||14;
     const fitKey=[height,width,buffer.duration,requestedFont,TIMELINE_CELL_SECONDS,transposeSemitones,noteDisplayMode,numberingConvention,notes.length,(detectedChordChanges||[]).length,currentScaleContext?.rootPc,currentScaleContext?.mode].join(':');
-    if(fitPracticeTimeline.key===fitKey&&fitPracticeTimeline.notes===notes&&fitPracticeTimeline.chords===detectedChordChanges)return;
+    if(fitPracticeTimeline.key===fitKey&&fitPracticeTimeline.notes===notes&&fitPracticeTimeline.chords===detectedChordChanges){applyPracticePageFit();return;}
     fitPracticeTimeline.key=fitKey;fitPracticeTimeline.notes=notes;fitPracticeTimeline.chords=detectedChordChanges;
     const count=Math.max(1,Math.ceil(buffer.duration/TIMELINE_CELL_SECONDS));
     const counts=Array(count).fill(0),buckets=Array.from({length:count},()=>[]);
@@ -17794,53 +17800,64 @@ html body #appRoot#appRoot#appRoot .note-time-cell{padding:6px!important}
     });
     const groups=buckets.map(b=>chordPreviewGroups(b.sort((a,b)=>a.start-b.start||a.end-b.end)));
     const noteLabels=notes.map(n=>`(${displayNoteLabel(n.midi,n.scaleNumber)})`);
-    const measure=document.createElement('canvas').getContext('2d');
-    const family=getComputedStyle(noteLane).fontFamily;
+    const measure=document.createElement('canvas').getContext('2d'),family=getComputedStyle(noteLane).fontFamily;
     const rulerHeight=timeRuler.getBoundingClientRect().height||26,pageWidth=width-2,gap=4;
-    const maxNotes=Math.max(1,...counts);
-    let font=requestedFont,metrics;
-    // One shared bar width for the entire song. Try the narrowest uniform
-    // grid that fits every event at the selected font before scaling notation.
-    // Long chord names may reduce the number of bars across, but never make
-    // an individual bar wider or create a blank gap in the timeline.
-    fit:for(;font>=1;font--){
-      measure.font=`900 ${font}px ${family}`;
-      const noteWidth=Math.ceil(Math.max(36,...noteLabels.map(label=>measure.measureText(label).width)))+10;
-      const labelWidths=groups.map(g=>Math.ceil(Math.max(20,...g.map(e=>measure.measureText(chordDisplayLabel(e.chord)).width)))+6);
-      const line=Math.ceil(font*1.35),minCardHeight=line+8;
-      const preferredSlots=Math.max(1,Math.floor(pageWidth/Math.max(78,noteWidth+16)));
-      for(let slots=preferredSlots;slots>=1;slots--){
-        const unit=pageWidth/slots,contentWidth=unit-16;
-        const maxNoteColumns=Math.max(1,Math.floor((contentWidth+gap)/(noteWidth+gap)));
-        const chordColumns=groups.map((g,i)=>Math.max(1,Math.min(g.length||1,Math.floor((contentWidth+gap)/(labelWidths[i]+gap)))));
-        const chordRows=Math.max(1,...groups.map((g,i)=>Math.ceil(g.length/chordColumns[i])));
-        const chordHeight=chordRows*line+10;
-        const noteSpace=Math.floor(height-rulerHeight-chordHeight-24);
-        const maxRows=Math.ceil(maxNotes/maxNoteColumns);
-        const fits=noteWidth<=contentWidth&&labelWidths.every(w=>w<=contentWidth)&&noteSpace>=maxRows*minCardHeight+(maxRows-1)*gap;
-        metrics={noteWidth,chordColumns,chordHeight,noteSpace,minCardHeight,maxRows,slots,unit};
-        if(fits||(font===1&&slots===1))break fit;
+    measure.font=`900 ${requestedFont}px ${family}`;
+    const longestChord=Math.max(0,...groups.flatMap(g=>g.map(e=>measure.measureText(chordDisplayLabel(e.chord)).width)));
+    const longestNote=Math.max(24,...noteLabels.map(label=>measure.measureText(label).width));
+    const longestTime=measure.measureText(fmtShort(buffer.duration)).width;
+    // Text width plus a small margin, never stretched to fill the viewport.
+    measure.font=`900 ${Math.min(10,requestedFont)}px ${family}`;
+    const readableNoteWidth=Math.ceil(Math.max(24,...noteLabels.map(label=>measure.measureText(label).width)))+8;
+    const denseNoteMinimum=Math.max(...counts)>6?2*readableNoteWidth+gap+16:0;
+    const unit=Math.min(pageWidth,Math.ceil(Math.max(60,longestChord+20,longestNote+22,longestTime+16,denseNoteMinimum)));
+    const slots=Math.max(1,Math.floor(pageWidth/unit)),pages=[];
+    practiceCells=Array(count);
+    const noteWidthByFont=new Map();
+    for(let start=0;start<count;start+=slots){
+      const end=Math.min(count,start+slots),maxNotes=Math.max(1,...counts.slice(start,end));
+      const chordRows=Math.max(1,...groups.slice(start,end).map(g=>g.length));
+      let font=requestedFont,metrics;
+      for(;font>=1;font--){
+        measure.font=`900 ${font}px ${family}`;
+        if(!noteWidthByFont.has(font))noteWidthByFont.set(font,Math.ceil(Math.max(24,...noteLabels.map(label=>measure.measureText(label).width)))+8);
+        const noteWidth=noteWidthByFont.get(font);
+        const line=Math.ceil(font*1.35),minCardHeight=line+4,chordHeight=chordRows*line+10;
+        const noteSpace=Math.floor(height-rulerHeight-chordHeight-20);
+        const maxColumns=Math.max(1,Math.floor((unit-16+gap)/(noteWidth+gap)));
+        const maxRows=Math.ceil(maxNotes/maxColumns);
+        metrics={font,noteWidth,chordHeight,noteSpace,minCardHeight,maxRows};
+        if(noteSpace>=maxRows*minCardHeight+(maxRows-1)*gap||font===1)break;
       }
+      const {noteWidth,chordHeight,noteSpace,minCardHeight,maxRows}=metrics;
+      const cardHeight=Math.max(minCardHeight,Math.min(36,Math.floor((noteSpace-gap*(maxRows-1))/maxRows)));
+      const rowsFit=Math.max(1,Math.floor((noteSpace+gap)/(cardHeight+gap)));
+      pages.push({...metrics,cardHeight});
+      for(let i=start;i<end;i++)practiceCells[i]={left:i*unit,width:unit,noteColumns:Math.max(1,Math.ceil(counts[i]/rowsFit)),chordColumns:1};
     }
-    const {noteWidth,chordColumns,chordHeight,noteSpace,minCardHeight,maxRows,slots,unit}=metrics;
-    const cardHeight=Math.max(minCardHeight,Math.min(36,Math.floor((noteSpace-gap*(maxRows-1))/maxRows)));
-    const rowsFit=Math.max(1,Math.floor((noteSpace+gap)/(cardHeight+gap)));
-    practiceCells=counts.map((n,i)=>({
-      left:i*unit,width:unit,noteColumns:Math.max(1,Math.ceil(n/rowsFit)),chordColumns:chordColumns[i]
-    }));
-    practiceLayoutWidth=Math.ceil(count/slots)*pageWidth;
-    waveCacheDirty=true;
-    practiceCellWidth=unit;practiceNoteColumns=1;
-    const root=document.documentElement;
+    practiceLayoutWidth=Math.max(pageWidth,(Math.ceil(count/slots)-1)*slots*unit+pageWidth);
+    practiceCellWidth=unit;practiceNoteColumns=1;waveCacheDirty=true;
+    fitPracticeTimeline.pages=pages;fitPracticeTimeline.slots=slots;fitPracticeTimeline.rulerHeight=rulerHeight;
+    fitPracticeTimeline.appliedPage=-1;
+    applyPracticePageFit();
+  }
+  function applyPracticePageFit(){
+    const fit=fitPracticeTimeline;
+    if(!fit.pages?.length||!practiceCellWidth||inlineNoteEditor)return;
+    const page=clamp(Math.floor((timelineScroll.scrollLeft+.5)/(practiceCellWidth*fit.slots)),0,fit.pages.length-1);
+    if(fit.appliedPage===page)return;
+    fit.appliedPage=page;
+    const {font,noteWidth,chordHeight,noteSpace,cardHeight}=fit.pages[page],root=document.documentElement;
     root.style.setProperty('--practice-note-height',cardHeight+'px');
     root.style.setProperty('--practice-card-width',noteWidth+'px');
     root.style.setProperty('--practice-notation-font',font+'px');
     root.style.setProperty('--practice-note-space',Math.max(0,noteSpace+12)+'px');
     root.style.setProperty('--practice-chord-height',chordHeight+'px');
-    root.style.setProperty('--time-row-height',rulerHeight+'px');
+    root.style.setProperty('--time-row-height',fit.rulerHeight+'px');
     chordRuler.style.setProperty('--chord-row-height',chordHeight+'px');
     timelineScroll.scrollTop=0;chordRuler.scrollTop=0;
   }
+  timelineScroll.addEventListener('scroll',applyPracticePageFit,{passive:true});
   let practiceResizeFrame=0,lastPracticeSize='';
   function resizePracticeWorkspace(){
     cancelAnimationFrame(practiceResizeFrame);

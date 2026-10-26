@@ -1,0 +1,22 @@
+Bass Stem Studio RC163: compact bars and stacked chords
+
+- Bar width follows chord text plus a small margin, rather than dividing up
+  the screen width. Bass note/timestamp labels also remain readable.
+- One chord per row, top to bottom. No side-by-side chord layout.
+- Highlights each chord using its existing detected timing.
+- Fits the visible group of bars, so a dense distant passage does not consume
+  space or shrink the notation everywhere else in the song.
+- Compact equal note cards and automatic whole-bar following remain.
+- No changes to detected audio, note pitches, chord analysis or practice range.
+
+Validation
+- New narrow-width regression fails on RC162 and passes on RC163.
+- Tested C7 to CM timing and long slash-chord highlights.
+- Tested 360x640, 390x844, 740x360 and 844x390 layouts.
+- Chords stack vertically; roots/extensions fit within compact equal bars.
+- Tested final-bar following, timestamp alignment and proportional playhead.
+- Dense 24-note/8-chord visibility, direct editing/undo, repeat queues, import
+  replacement, orientation changes and six-string checks passed.
+- Regular example retains 14px; crowded 10-note examples fit at 10-14px.
+- Chord layout checks passed at selected sizes 11px, 14px and 22px.
+- Tests use local fixtures and do not trigger paid analysis.

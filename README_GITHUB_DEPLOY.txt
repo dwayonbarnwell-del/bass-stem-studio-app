@@ -1,8 +1,8 @@
-Bass Stem Studio RC162
+Bass Stem Studio RC163
 
 Upload index.html, sw.js, manifest.webmanifest and icons/ to the frontend root.
 The existing RC155 song-structure backend remains compatible. No backend
-change is required for RC162.
+change is required for RC163.
 
 Repeat
 Importing audio or an older project starts section detection in the background
@@ -27,17 +27,17 @@ The app follows the device's orientation. No rotation button or orientation lock
 is used. On phones, enable the device's Auto rotate setting if needed.
 Font, strings, speed, BPM and interval now sit above Source & Stem.
 The practice workspace fits the available viewport, including browser bars.
-Landscape keeps playback controls beside the timeline. Every time bar has the
-same width throughout the song, including bars with longer chord names or
-more notes. The layout chooses the narrowest equal-width grid that fits the
-contents at the selected font size. It does not stretch individual bars or
-leave gaps between them. Whole bars move into view during playback.
-Compact note cards retain equal sizes and use additional columns when needed.
-All notes and chords in a bar fit together without vertical timeline scrolling.
-Unusually dense intervals or very large text can scale notation down to fit;
-the control font preference is preserved. Six bass strings and eight frets
-stay within the practice area. Notes and chords read left to right, then down
-when a bar needs more than one column.
+Landscape keeps playback controls beside the timeline. Time bars have one
+consistent width based on the longest chord name plus a small margin, with
+room for readable note cards. Bars do not stretch to fill the screen.
+Chords appear one per row, reading from top to bottom. The current chord is
+highlighted at its detected start/end time. Nothing is hidden behind +more.
+The visible group of bars fits its notes and chords within the viewport.
+A crowded passage elsewhere does not reserve empty space or reduce the text
+size on the current page. Very crowded passages can fit notation smaller;
+the chosen control font size is preserved. Note cards remain equal-sized
+within the visible group, including single notes. Whole bars follow playback.
+Six bass strings and eight frets stay within the practice area.
 
 Saved projects
 Import replaces the open song. Old imports and analysis responses cannot
