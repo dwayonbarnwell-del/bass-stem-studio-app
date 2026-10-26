@@ -4,9 +4,9 @@ const html=fs.readFileSync(process.env.BASS_HTML||path.join(__dirname,'../index.
 const marker='  initAnalysisTools();\n  renderBassFretboard();';
 const fixture=`window.__bars={
  async load(){ensureCtx();buffer=ctx.createBuffer(1,60*8000,8000);
- notes=[{start:0,midi:36},{start:29,midi:43},{start:29.25,midi:33},{start:29.5,midi:32},{start:29.75,midi:36},{start:44,midi:43},{start:44.4,midi:36},{start:45,midi:34},{start:46,midi:32},{start:46.5,midi:43},...Array.from({length:7},(_,i)=>({start:49+i/7,midi:36+i}))].map(n=>({...n,end:n.start+.12,confidence:.95,isFill:false}));
+ notes=[{start:59,midi:34},{start:59.5,midi:43},{start:0,midi:36},{start:29,midi:43},{start:29.25,midi:33},{start:29.5,midi:32},{start:29.75,midi:36},{start:44,midi:43},{start:44.4,midi:36},{start:45,midi:34},{start:46,midi:32},{start:46.5,midi:43},...Array.from({length:7},(_,i)=>({start:49+i/7,midi:36+i}))].map(n=>({...n,end:n.start+.12,confidence:.95,isFill:false}));
  const c=(start,end,rootPc,quality,bassPc=null,uncertain=false)=>({start,end,rootPc,quality,bassPc,uncertain,confidence:.95,evidenceVersion:'chord-timeline-v4'});
- detectedChordChanges=[c(0,1.4,0,'7'),c(1.4,2,0,'maj'),c(25,26,5,'maj'),c(26,27,0,'7'),c(29,30,10,'maj7',null,true),c(30,31.5,10,'maj9',0,true),c(31.5,32,0,'7',null,true),c(42,43,0,'min',null,true),c(43,43.5,10,'maj'),c(43.5,44,8,'maj7'),c(44,44.5,8,'maj7',null,true),c(44.5,45,10,'maj'),c(45,45.5,0,'sus4',null,true),c(45.5,46,3,'sus2',10,true),c(46,46.25,3,'sus2',null,true),c(46.25,46.5,1,'sus2',8,true),c(46.5,46.75,1,'sus2',null,true),c(46.75,47,0,'sus2',7,true)];
+ detectedChordChanges=[c(59,59.5,0,'maj'),c(59.5,60,5,'maj'),c(0,1.4,0,'7'),c(1.4,2,0,'maj'),c(25,26,5,'maj'),c(26,27,0,'7'),c(29,30,10,'maj7',null,true),c(30,31.5,10,'maj9',0,true),c(31.5,32,0,'7',null,true),c(42,43,0,'min',null,true),c(43,43.5,10,'maj'),c(43.5,44,8,'maj7'),c(44,44.5,8,'maj7',null,true),c(44.5,45,10,'maj'),c(45,45.5,0,'sus4',null,true),c(45.5,46,3,'sus2',10,true),c(46,46.25,3,'sus2',null,true),c(46.25,46.5,1,'sus2',8,true),c(46.5,46.75,1,'sus2',null,true),c(46.75,47,0,'sus2',7,true)];
  offlineAnalysisReady=true;drawAll();},at(t){seekTo(t);drawAll();scrollTimelineToTime(t);}
 };\n`;
 (async()=>{

@@ -17835,7 +17835,7 @@ html body #appRoot#appRoot#appRoot .note-time-cell:has(.note-inline-editor){over
       pages.push({...metrics,cardHeight});
       for(let i=start;i<end;i++)practiceCells[i]={left:i*unit,width:unit,noteColumns:Math.max(1,Math.ceil(counts[i]/rowsFit)),chordColumns:1};
     }
-    practiceLayoutWidth=Math.max(pageWidth,(Math.ceil(count/slots)-1)*slots*unit+pageWidth);
+    practiceLayoutWidth=Math.max(width,(Math.ceil(count/slots)-1)*slots*unit+width);
     practiceCellWidth=unit;practiceNoteColumns=1;waveCacheDirty=true;
     fitPracticeTimeline.pages=pages;fitPracticeTimeline.slots=slots;fitPracticeTimeline.rulerHeight=rulerHeight;
     fitPracticeTimeline.appliedPage=-1;
