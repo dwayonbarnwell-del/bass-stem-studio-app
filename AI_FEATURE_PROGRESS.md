@@ -8,6 +8,10 @@ Add the full agreed improvements, without duplicating or replacing an existing e
 
 ## Efficient continuation and latest checkpoint
 
+### Publication completed, 1 November 2026
+
+The user explicitly approved publication in the next message. RC183 is now published on main as deb2f52e13a7a20a4277ded066d59b5457c732ee, exact tree 9a4f54986be5881b40720db6d34ec66cd2cf01db. GitHub connected-service publication succeeded after command-line Git lacked credentials. Render automatic deployment dep-dbjlmufb9u1s73brol00 reached live at 15:32:20 UTC. Public index.html returned HTTP 200 and exact Git blob hash b4a120069bfb088b69073d8e1a1c518bbd888e1d (5,300,662 bytes). This supersedes the historical blocked/live-RC180 observations below. Real-device and GPU accuracy checks remain outstanding. Continue from published RC183; do not repeat publication or the passing tests without a reason.
+
 - Start with this record and a bounded Git diff. Do not reload all previous chats or print the complete index.html (5,300,662 bytes at RC183).
 - Search function names first and read only relevant line ranges. Keep command output bounded; retain large intermediate data in files instead of conversation output.
 - Preserve completed checks unless changes or a specific uncertainty justify rerunning them. Continue through automatic context compaction; do not request a new chat merely because a work phase finished.
