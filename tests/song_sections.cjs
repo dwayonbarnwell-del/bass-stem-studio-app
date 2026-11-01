@@ -153,8 +153,8 @@ const fixture=`window.__sections={
  await page.locator('#loopToggle').click();
  assert.equal(await page.locator('[data-repeat-section]').count(),3);
  assert.equal(await page.locator('#repeatProgress').isVisible(),false);
- assert.equal(await page.locator('#repeatReadyLabel').isVisible(),false);
- assert.equal(await page.locator('#loopToggle svg').isVisible(),true);
+ assert.equal(await page.locator('#repeatReadyLabel').isVisible(),true);
+ assert.equal(await page.locator('#loopToggle svg').isVisible(),false);
  await page.locator('#closeRepeatSections').click();
  // Completed sections are reused by matching the audio, even for an older
  // project without a section map. No further service request is made.

@@ -1,0 +1,11 @@
+Bass Stem Studio RC189
+
+Part cards use the same measured width and height as Play and Pause. Each part has a distinct, stable colour; an outline identifies the selected part. Additional parts remain horizontally scrollable.
+
+The main section card is always labelled Sections. Progress remains available inside its panel.
+
+Live audio, Ear training, Review chords and More tools now share one equal four-card row. Each label uses two centred lines. More tools opens the existing tools below this row.
+
+Removed Analysis options, the Mode/Quick/Detailed selector, its explanation, Review interrupted uploads and Forget analysis key. New analyses keep the existing accuracy mode. Existing saved keys and pending jobs remain intact. Explicit retries through Analyse Bass or Find sections retain the existing confirmation for unconfirmed uploads; automatic recovery never unlocks them.
+
+Checks: inline JavaScript parsing; saved-project, ear-training, text/BPM, network retry and scoped recovery checks passed. Browser appearance is checked after publishing. No analysis jobs were submitted.

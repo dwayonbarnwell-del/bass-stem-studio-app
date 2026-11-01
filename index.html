@@ -4,7 +4,7 @@
 <meta name="referrer" content="no-referrer">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bass Stem Studio RC188</title>
+<title>Bass Stem Studio RC189</title>
 <script id="rc186-level">
 /* RC186: shared stereo gain, silence gate and look-ahead sample-peak protection.
    Target -16 dBFS RMS; at most +12 dB gain; ceiling -1 dBFS. This is not a LUFS/true-peak meter. */
@@ -13016,6 +13016,19 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot #playbackTempoDialog input,ht
 #playbackTempoDialog .tempo-editor-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
 #playbackBpmReset{grid-column:1/-1}
 </style>
+<style id="rc189-cards">
+html body #appRoot#appRoot#appRoot#appRoot#appRoot #timelinePartTabs{display:flex!important;flex:1 1 auto!important;width:auto!important;min-width:0!important;max-width:100%!important;overflow-x:auto!important;overflow-y:hidden!important;align-items:center!important;gap:8px!important;padding:2px!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot #timelinePartTabs[hidden]{display:none!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot #timelinePartTabs .timeline-part-btn{box-sizing:border-box!important;flex:0 0 var(--transport-card-width)!important;width:var(--transport-card-width)!important;min-width:var(--transport-card-width)!important;max-width:var(--transport-card-width)!important;height:var(--transport-card-height)!important;min-height:var(--transport-card-height)!important;max-height:var(--transport-card-height)!important;margin:0!important;padding:4px!important;display:flex!important;align-items:center!important;justify-content:center!important;text-align:center!important;background:hsl(var(--part-hue) 42% 24%)!important;border:1px solid hsl(var(--part-hue) 55% 58%)!important;color:#fff!important;border-radius:10px!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot #timelinePartTabs .timeline-part-btn.active{background:hsl(var(--part-hue) 45% 32%)!important;border-color:#eef7ff!important;box-shadow:inset 0 0 0 2px #eef7ff!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot #liveAudioEntry{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px!important;padding:10px!important;grid-auto-rows:1fr!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot #liveAudioEntry>button{box-sizing:border-box!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;text-align:center!important;width:100%!important;min-width:0!important;height:max(56px,calc(var(--ui-font-size,14px)*3.2))!important;min-height:56px!important;margin:0!important;padding:6px 2px!important;gap:0!important;line-height:1.25!important;font-size:clamp(10px,3.1vw,var(--ui-font-size,14px))!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot #liveAudioEntry>button>span{display:block!important;position:static!important;margin:0!important;padding:0!important;text-align:center!important;white-space:nowrap!important;font:inherit!important;line-height:1.25!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot #moreTools[hidden]{display:none!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot #openMoreTools[aria-expanded="true"]{background:#305d70!important;border-color:#a6d6e5!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot #loopToggle #repeatReadyLabel{display:block!important;white-space:nowrap!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot #loopToggle>svg{display:none!important;}
+</style>
 </head>
 <body>
 <div id="sectionCompatibility" style="display:none" aria-hidden="true">
@@ -13098,7 +13111,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot #playbackTempoDialog input,ht
         <path d="M15 24c4-9 12-14 22-14 7 0 13 3 18 8"/><path d="M47 9l9 9-12 3"/>
         <path d="M49 40c-4 9-12 14-22 14-7 0-13-3-18-8"/><path d="M17 55l-9-9 12-3"/>
       </svg>
-      <span id="repeatReadyLabel" hidden>Sections<br>ready</span>
+      <span id="repeatReadyLabel">Sections</span>
     </button>
     <div class="range-group">
       <div class="range-entry">
@@ -13221,7 +13234,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot #playbackTempoDialog input,ht
       </div>
       </div>
 
-<section id="liveAudioEntry" aria-label="Practice controls"><button id="openLiveAudio" type="button">Live audio</button><button id="openEar" type="button">Ear training</button><button id="openReview" type="button">Review chords</button></section><div id="practiceComfort"><label title="Short fades soften loop joins"><input id="smoothLoops" type="checkbox" checked>Smooth loops</label><label><input id="keepAwake" type="checkbox" checked>Keep awake</label><small id="awakeStatus" role="status">Ready for practice.</small></div><details id="moreTools"><summary>More tools</summary><div id="extraTools"><button id="openTrash" type="button">Recently deleted</button><button id="openPatterns" type="button">Scales &amp; arpeggios</button><button id="openLoopShare" type="button">Share loop</button><button id="openLyrics" type="button">Lyrics</button><button id="openIdeas" type="button">Ideas</button><button id="openRhythm" type="button">Rhythm / practice</button><button id="openSoundCheck" type="button">Sound check</button></div></details>
+<section id="liveAudioEntry" aria-label="Practice controls"><button id="openLiveAudio" type="button" aria-label="Live audio"><span>Live</span><span>audio</span></button><button id="openEar" type="button" aria-label="Ear training"><span>Ear</span><span>training</span></button><button id="openReview" type="button" aria-label="Review chords"><span>Review</span><span>chords</span></button><button id="openMoreTools" type="button" aria-label="More tools" aria-expanded="false" aria-controls="moreTools"><span>More</span><span>tools</span></button></section><div id="moreTools" hidden><div id="extraTools"><button id="openTrash" type="button">Recently deleted</button><button id="openPatterns" type="button">Scales &amp; arpeggios</button><button id="openLoopShare" type="button">Share loop</button><button id="openLyrics" type="button">Lyrics</button><button id="openIdeas" type="button">Ideas</button><button id="openRhythm" type="button">Rhythm / practice</button><button id="openSoundCheck" type="button">Sound check</button></div></div><div id="practiceComfort"><label title="Short fades soften loop joins"><input id="smoothLoops" type="checkbox" checked>Smooth loops</label><label><input id="keepAwake" type="checkbox" checked>Keep awake</label><small id="awakeStatus" role="status">Ready for practice.</small></div>
 <dialog id="soundCheckDialog" aria-labelledby="soundCheckTitle"><h2 id="soundCheckTitle">Sound check</h2><p id="checkStatus" role="status">Check the room, then your playing level.</p><div class="check-buttons"><button id="checkQuiet">1. Quiet room</button><button id="checkLevel" disabled>2. Playing level</button></div><div id="checkResults" aria-live="polite"></div><small>Each check takes 3 seconds. No audio is saved. This checks input levels, not every cause of distortion.</small><div class="check-buttons"><button id="checkCancel" disabled>Stop check</button><button id="checkClose">Back</button></div></dialog>
 <dialog id="reviewDialog" aria-labelledby="reviewTitle"><h2 id="reviewTitle">Review chords</h2><p id="reviewCount"></p><h3 id="reviewChord">—</h3><p id="reviewTime"></p><p id="reviewStatus" role="status"></p><div class="review-buttons"><button id="reviewHear">Hear passage</button><button id="reviewStop" disabled>Stop audio</button><button id="reviewEdit">Check / correct</button><button id="reviewPrev">Previous</button><button id="reviewNext">Next</button><button id="reviewClose">Close</button></div><small>Save the correct chord to remove it from this queue. Use Save song to keep your corrections.</small></dialog>
 <dialog id="earDialog" aria-labelledby="earTitle"><h2 id="earTitle">Ear training</h2><p id="earSongName"></p><div class="ear-grid"><label>Skill<select id="earMode"><option value="note">Bass notes</option><option value="interval">Intervals</option><option value="chord">Chord types</option></select></label><label>Passage<select id="earScope"><option value="whole">Whole song</option><option value="loop">Loop / playhead</option></select></label></div><button id="earStart">Start round</button><p id="earStatus" role="status"></p><div class="ear-question"><h3 id="earQuestion">Listen and choose</h3><p id="earDetail"></p><p id="earScore"></p></div><div class="ear-grid"><button id="earReference" disabled>Reference A</button><button id="earReplay" disabled>Replay exercise</button><button id="earSong" disabled>Hear song</button><button id="earStop" disabled>Stop audio</button></div><div id="earAnswers" class="ear-grid" aria-label="Answer choices"></div><p id="earFeedback" aria-live="polite"></p><div class="ear-actions"><button id="earSkip" disabled>Skip</button><button id="earNext" disabled>Next</button><button id="earRetry" disabled>Retry missed</button></div><p id="earHistory"></p><small>Up to 10 questions. Uses the original song key. Exercises play detected notes; Hear song plays the recording. Correct analysis errors before practising.</small><div class="ear-actions"><button id="earClose">Close</button></div></dialog>
@@ -13392,7 +13405,6 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot #playbackTempoDialog input,ht
           </div>
           <button class="btn good" id="aiAnalyse" disabled>Analyse Bass</button>
         </div>
-        <details><summary>Analysis options</summary><label>Mode<select id="analysisQuality"><option value="accuracy">Detailed</option><option value="fast">Quick</option></select></label><p class="small">Quick uses faster separation. Detailed keeps the existing accuracy mode. Both use your paid analysis service. Changing this does not start a job.</p><button class="btn" id="reviewInterruptedUploads" type="button">Review interrupted uploads</button><button class="btn" id="forgetAnalysisKey" type="button">Forget analysis key</button></details>
         <div class="ai-progress"><progress id="aiProgress" max="100" value="0" aria-label="Bass analysis progress"></progress><span id="aiProgressText">Ready for bass analysis</span></div>
         <div class="small ai-note"></div>
       </div>
@@ -13425,7 +13437,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot #playbackTempoDialog input,ht
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC188';
+  const APP_VERSION='RC189';
   const PROJECT_SCHEMA_VERSION=2;
   // RC125: compact practice-view and string selectors preserve space for P1/P2/P3; all RC124 audio, analysis, repeat, project and practice logic preserved.
 
@@ -13852,6 +13864,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot #playbackTempoDialog input,ht
       const b=document.createElement('button');
       b.type='button';
       b.className='timeline-part-btn'+(index===activeAnalysisPartIndex?' active':'');
+      b.style.setProperty('--part-hue',String((210+index*137.508)%360));
       b.textContent=part.label||`P${index+1}`;
       b.title=`${part.label||`P${index+1}`} · ${fmt(part.coreStart)}–${fmt(part.coreEnd)}`;
       b.setAttribute('aria-pressed',index===activeAnalysisPartIndex?'true':'false');
@@ -15772,20 +15785,19 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot #playbackTempoDialog input,ht
     return key;
   }
 
-  function reviewInterruptedUploads(){
-    if(aiBusy||structureBusy||pendingResumeBusy){aiStatus('Wait for the current request to finish before reviewing uploads.',0);return;}
-    const pending=readPendingRunPodJob(),parts=(pending?.parts||[]).filter(p=>(p.submitting&&!p.id)||p.failedStatus);
-    const jobs=storedStructureJobs().filter(j=>j.unconfirmed);
-    if(!parts.length&&!jobs.length){aiStatus('No unconfirmed uploads to review.',0);return;}
-    if(!window.confirm('An upload may already be running or charged. Check your RunPod job history first. Only continue if you have confirmed these uploads did not create jobs, or you accept the cost of sending them again. Allow another submission?'))return;
+  function reviewInterruptedUploads(scope='all'){
+    if(aiBusy||structureBusy||pendingResumeBusy){aiStatus('Wait for the current request to finish before reviewing uploads.',0);return false;}
+    const pending=readPendingRunPodJob(),matches=activeAudioFile&&pending?.signature===cloudFileSignature(activeAudioFile);
+    const parts=scope==='sections'||(scope==='analysis'&&!matches)?[]:(pending?.parts||[]).filter(p=>(p.submitting&&!p.id)||p.failedStatus);
+    const current=pendingStructureJob(),jobs=scope==='analysis'?[]:scope==='sections'?(current?.unconfirmed?[current]:[]):storedStructureJobs().filter(j=>j.unconfirmed);
+    if(!parts.length&&!jobs.length)return true;
+    if(!window.confirm('An upload may already be running or charged. Check your RunPod job history first. Only continue if you have confirmed these uploads did not create jobs, or you accept the cost of sending them again. Allow another submission?'))return false;
     for(const part of parts){delete part.submitting;if(part.failedStatus){delete part.id;delete part.failedStatus;}}
     if(parts.length)savePendingRunPodJob(pending,true);
     for(const job of jobs)storeStructureJob(null,job.id);
     structureError='';renderRepeatChooser();
-    aiStatus('Uploads unlocked. Nothing has been sent. Choose Analyse Bass or Find sections when ready.',0);
+    aiStatus('Ready to retry.',0);return true;
   }
-  $('reviewInterruptedUploads').onclick=reviewInterruptedUploads;
-  $('forgetAnalysisKey').onclick=()=>{forgetRunPodKey();aiStatus('Analysis key removed from this browser. Saved songs are unchanged.',0);};
 
   function forgetRunPodKey(){
     try{localStorage.removeItem(RUNPOD_SAVED_KEY)}catch(e){}
@@ -16916,7 +16928,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot #playbackTempoDialog input,ht
 
   function makePendingPartGroup(file,signature){
     return {
-      version:3,signature,quality:$('analysisQuality')?.value==='fast'?'fast':'accuracy',
+      version:3,signature,quality:'accuracy',
       name:file.name,type:file.type,size:file.size,lastModified:file.lastModified||0,
       submittedAt:Date.now(),segmented:true,
       parts:buildAnalysisPartPlan(file)
@@ -16931,9 +16943,9 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot #playbackTempoDialog input,ht
 
     for(let i=0;i<total;i++){
       const part=pending.parts[i];
-      if(part.failedStatus)throw new Error(`${part.label} did not finish (${part.failedStatus}). Use Analysis options > Review interrupted uploads to retry this part.`);
+      if(part.failedStatus)throw new Error(`${part.label} did not finish (${part.failedStatus}). Tap Analyse Bass to review and retry this part.`);
       if(part.id)continue;
-      if(part.submitting)throw new Error('An upload has no confirmed reply. Use Analysis options > Review interrupted uploads before sending it again.');
+      if(part.submitting)throw new Error('An upload has no confirmed reply. Tap Analyse Bass to review it before retrying.');
 
       aiStatus(`Preparing ${part.label} of ${total} — keep this screen open`,
                Math.max(2,Math.round((i/Math.max(1,total))*12)));
@@ -16969,7 +16981,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot #playbackTempoDialog input,ht
       assertSongSession(session);
       const immediate=String(submitted?.status||'UNKNOWN').toUpperCase();
       if(['FAILED','CANCELLED','TIMED_OUT'].includes(immediate)){part.failedStatus=immediate;delete part.submitting;savePendingRunPodJob(pending);
-        throw new Error(`${part.label} did not finish (${immediate}). Use Analysis options > Review interrupted uploads to retry this part.`);}
+        throw new Error(`${part.label} did not finish (${immediate}). Tap Analyse Bass to review and retry this part.`);}
       if(!submitted?.id)
         throw new Error(`${part.label} did not receive an analysis job number.`);
 
@@ -17009,7 +17021,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot #playbackTempoDialog input,ht
         st=String(current?.status||'UNKNOWN').toUpperCase();
       }
       if(st!=='COMPLETED'){part.failedStatus=st;savePendingRunPodJob(pending);
-        throw new Error(`${part.label} analysis finished with status ${st}. Use Analysis options > Review interrupted uploads to retry this part.`);}
+        throw new Error(`${part.label} analysis finished with status ${st}. Tap Analyse Bass to review and retry this part.`);}
       await recoveryStore('results',s=>s.put({id:part.id,signature:pending.signature,savedAt:Date.now(),data:current})).catch(()=>{if(session===songSession)toolsMessage('Part backup unavailable. Keep the app open until analysis finishes.');});
       assertSongSession(session);
       results.push(current);
@@ -17365,7 +17377,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot #playbackTempoDialog input,ht
         forgetRunPodKey();
         aiStatus('The analysis service API key was rejected. Tap Analyse Bass and paste your current key again.',0);
       }else if(err?.httpStatus===404||/job\s+not\s+found|not\s+found/i.test(String(err?.message||''))){
-        aiStatus('An analysis part has expired. Use Analysis options > Review interrupted uploads. Finished parts are kept.',0);
+        aiStatus('An analysis part has expired. Tap Analyse Bass to review it. Finished parts are kept.',0);
       }else{
         aiStatus('Analysis is still saved. It will check again when you return.',14);
       }
@@ -18823,10 +18835,11 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot #playbackTempoDialog input,ht
     const button=$('loopToggle'),label=$('repeatReadyLabel');if(!button||!label)return;
     const available=!loopEnabled&&!multiSectionMode&&!timeframeLoopMode;
     const ready=structureReadyNotice&&available,waiting=structureBusy&&available;
-    label.textContent=waiting?'Finding sections':'Sections ready';
-    label.hidden=!ready&&!waiting;button.querySelector('svg').toggleAttribute('hidden',ready||waiting);
-    if(ready){button.setAttribute('aria-label','Sections ready. Choose a section to repeat');button.title='Sections ready. Tap to choose';}
-    else if(waiting){button.setAttribute('aria-label','Finding song sections. View progress');button.title='Finding song sections';}
+    label.textContent='Sections';
+    label.hidden=false;button.querySelector('svg').setAttribute('hidden','');
+    button.setAttribute('aria-label',available?'Sections':'Sections. Stop repeating');
+    if(ready){button.setAttribute('aria-label','Sections. Choose a section to repeat');button.title='Sections ready. Tap to choose';}
+    else if(waiting){button.setAttribute('aria-label','Sections. View progress');button.title='Finding song sections';}
   }
   function renderStructureProgress(){
     if(!structureBusy)return;
@@ -18870,7 +18883,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot #playbackTempoDialog input,ht
         const key=interactive?getRunPodKey():storedRunPodKey();
         if(!key){structureError='Connect once with Find sections. Future imports will find sections automatically.';return false;}
         let result;
-        if(pending?.unconfirmed)throw new Error('The section upload has no confirmed reply. Use Analysis options > Review interrupted uploads before sending it again.');
+        if(pending?.unconfirmed)throw new Error('The section upload has no confirmed reply. Tap Find sections to review it before retrying.');
         if(matchesStructureJob(pending)){
           structureStartedAt=pending.startedAt||structureStartedAt;setStructureStage('Checking song sections…');
         }
@@ -18926,7 +18939,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot #playbackTempoDialog input,ht
         if(error?.httpStatus===404)storeStructureJob(null,pending?.id);
         const uncertain=!!pendingStructureJob()?.unconfirmed;
         const resumable=!uncertain&&matchesStructureJob(pendingStructureJob());
-        structureError=uncertain?'The upload has no confirmed reply. Use Analysis options > Review interrupted uploads before sending it again.':error?.httpStatus===401?'The analysis key was rejected. Update it and try again.':
+        structureError=uncertain?'The upload has no confirmed reply. Tap Find sections to review it before retrying.':error?.httpStatus===401?'The analysis key was rejected. Update it and try again.':
           resumable?'Connection interrupted. Tap Check progress to continue.':
           error?.sectionTimeout?'The connection timed out. Tap Find sections to try again.':
           error?.httpStatus?'Sections are temporarily unavailable. Please try again.':String(error?.message||'Could not find sections.');
@@ -19051,7 +19064,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot #playbackTempoDialog input,ht
   $('repeatCurrentSection').onclick=()=>repeatChosenSection(currentSectionName());
   $('repeatSectionList').onclick=e=>{const button=e.target.closest('[data-repeat-section]');if(button)toggleRepeatSection(button.dataset.repeatSection);};
   $('repeatChosenSections').onclick=repeatChosenSections;
-  $('repeatFindSections').onclick=()=>ensureSongStructure({interactive:true});
+  $('repeatFindSections').onclick=()=>{if(reviewInterruptedUploads('sections'))void ensureSongStructure({interactive:true});};
   $('closeRepeatSections').onclick=()=>$('repeatSectionDialog').close();
   $('repeatSelection').onclick=()=>{activateSelectedTimeframes({seekIfNeeded:true});if(!playing)play();$('repeatSectionDialog').close();};
   $('repeatTypedRange').onclick=()=>{playTimeRange.onclick();$('repeatSectionDialog').close();};
@@ -19718,7 +19731,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot #playbackTempoDialog input,ht
     refreshBassPracticeToggle();refreshMetronomeToggle();updateProjectButtons();
   }
 
-  aiAnalyse?.addEventListener('click',analyseBassWithAI);
+  aiAnalyse?.addEventListener('click',()=>{if(reviewInterruptedUploads('analysis'))void analyseBassWithAI();});
   exportAnalysis?.addEventListener('click',exportBassAnalysisCSV);
   document.addEventListener('visibilitychange',()=>{
     if(document.visibilityState==='visible')checkSavedAnalysisSoon(150);
@@ -19870,6 +19883,10 @@ new ResizeObserver(size).observe(play);size();})();
 #editPitch,#patternFret{min-height:44px;width:100%;font:inherit}
 select:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid #78c9ff;outline-offset:3px}
 </style>
+<script id="rc189-tools-toggle">
+(()=>{const button=document.getElementById('openMoreTools'),panel=document.getElementById('moreTools');
+button.addEventListener('click',()=>{const expanded=button.getAttribute('aria-expanded')!=='true';button.setAttribute('aria-expanded',String(expanded));panel.hidden=!expanded;});})();
+</script>
 </body>
 </html>
 

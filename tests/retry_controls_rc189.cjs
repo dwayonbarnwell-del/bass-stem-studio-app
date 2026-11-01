@@ -1,0 +1,15 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict'),path=require('path');
+const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
+const start=html.indexOf('  function reviewInterruptedUploads('),code=html.slice(start,html.indexOf('\n  }',start)+4);
+let pending={signature:'current',parts:[{submitting:true},{id:'done'}]},section={id:'current-section',unconfirmed:true},confirmation=false,asked=0,saved=0,removed=[];
+const c={aiBusy:false,structureBusy:false,pendingResumeBusy:false,activeAudioFile:{},cloudFileSignature:()=> 'current',readPendingRunPodJob:()=>pending,pendingStructureJob:()=>section,storedStructureJobs:()=>[section,{id:'other-section',unconfirmed:true}],window:{confirm:()=>{asked++;return confirmation}},savePendingRunPodJob:()=>saved++,storeStructureJob:(_,id)=>removed.push(id),renderRepeatChooser:()=>{},aiStatus:()=>{},structureError:'',console};
+vm.createContext(c);vm.runInContext(code,c);
+assert.equal(c.reviewInterruptedUploads('analysis'),false);assert.equal(asked,1);assert(pending.parts[0].submitting);assert.equal(saved,0);assert.deepEqual(removed,[]);
+confirmation=true;assert.equal(c.reviewInterruptedUploads('analysis'),true);assert.equal(saved,1);assert(!pending.parts[0].submitting);assert.equal(pending.parts[1].id,'done');assert.deepEqual(removed,[]);
+assert.equal(c.reviewInterruptedUploads('sections'),true);assert.deepEqual(removed,['current-section']);assert.equal(saved,1);
+pending={signature:'another-song',parts:[{submitting:true}]};const before=asked;assert.equal(c.reviewInterruptedUploads('analysis'),true);assert.equal(asked,before);assert(pending.parts[0].submitting);
+c.aiBusy=true;assert.equal(c.reviewInterruptedUploads('analysis'),false);assert.equal(saved,1);
+assert(!/id="(?:analysisQuality|reviewInterruptedUploads|forgetAnalysisKey)"/.test(html));
+assert(!html.includes("$('reviewInterruptedUploads').onclick"));assert(!html.includes("$('forgetAnalysisKey').onclick"));
+assert(html.includes("version:3,signature,quality:'accuracy'"));
+console.log('PASS: explicit retry confirmation; cancelled retries remain protected; completed parts retained; current-song/section isolation; busy requests stay locked; removed controls have no dangling handlers.');
