@@ -1,0 +1,7 @@
+Bass Stem Studio RC185
+
+Five equal display cards. Text size now has one compact preset selector with a custom size option; existing saved sizes and the 1–100 px range remain supported.
+Playback is a single 48 px row (previously 99 px in the checked layout).
+Removed the Go to tool menu, duplicate Live audio Sound check button, duplicate Practice tools Song sheet tab and manual voice-command menu. Sound check remains in More tools; Print sheet remains in Lyrics; spoken commands remain available.
+
+Verification: 144 browser checks passed across widths of 320, 360, 412, 768 and 1280 px and text sizes of 11, 14, 18 and 22 px. Includes equal widths/heights, one-row alignment, no page overflow, custom size Apply/Cancel/range validation, all 14 tool panels and playback choices. Three existing related suites passed; 30 inline scripts parsed. Visual mobile preview inspected. No GPU jobs or backend changes. Physical-device testing was not performed.

@@ -85,3 +85,7 @@ The user explicitly approved publishing RC183 to main on 1 November 2026. Comman
 See AUDIT_RC184.md and RELEASE_NOTES_RC184.txt. RC184 audit fixes were published in one combined Render deployment. The existing RC183 features and outstanding broader AI scope remain unchanged. Use the audit report for evidence and limitations; do not rerun full history or print the 5.3 MB HTML.
 
 Publication verified: main release ea597cc13450c0907651aa33b832649837b06a74; Render deployment dep-dbjm1l95efls73e5cn7g reached live on 1 November 2026 at 15:55:10 UTC. Public index.html, sw.js and AUDIT_RC184.md returned HTTP 200 and exact release blob hashes. The first sw.js read was stale at the CDN; subsequent normal and revalidated reads matched RC184. No second deployment was required. Audit limitations remain as recorded in AUDIT_RC184.md.
+
+## RC185 layout and duplication cleanup
+
+Baseline: verified RC184 main at 600e4a3. See RELEASE_NOTES_RC185.txt. The five display cards now match; text size has one preset/custom control. Playback is one compact row. Removed Go to tool and duplicate sound-check, print-sheet and manual-command entries. All 14 tool panels remain accessible. 144 layout/control checks and three related suites passed. No paid analysis needed. Preserve these choices in future changes; do not re-add shortcut menus for tools already listed as buttons.
