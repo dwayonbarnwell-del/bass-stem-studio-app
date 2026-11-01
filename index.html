@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bass Stem Studio RC181</title>
+<title>Bass Stem Studio RC182</title>
 <script>
 /* RC119: initialise the correct physical-device font before the first paint.
    This deliberately does not rely on viewport width alone, because Chrome's
@@ -12519,7 +12519,7 @@ window.BassMidi=notes=>{
   $('rhythmClose').onclick=()=>{++token;player.pause();recognition?.abort();dialog.close();};dialog.oncancel=e=>{e.preventDefault();$('rhythmClose').click();};
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   $('voiceCommand').disabled=!SR;
-  $('voiceCommand').onclick=()=>{recognition?.abort();api.pause();player.pause();recognition=new SR();recognition.lang='en-GB';recognition.interimResults=false;recognition.maxAlternatives=1;$('commandStatus').textContent='Listening…';recognition.onresult=e=>{$('commandStatus').textContent=api.command(e.results[0][0].transcript);};recognition.onerror=()=>{$('commandStatus').textContent='Voice unavailable. Type a command below.';};recognition.onend=()=>{if($('commandStatus').textContent==='Listening…')$('commandStatus').textContent='No command heard. Try again.';};try{recognition.start();}catch(e){$('commandStatus').textContent='Voice unavailable. Type a command below.';}};
+  $('voiceCommand').onclick=()=>{recognition?.abort();api.pause();player.pause();recognition=new SR();recognition.lang='en-GB';recognition.interimResults=false;recognition.maxAlternatives=1;$('commandStatus').textContent='Listening…';recognition.onresult=e=>{$('commandStatus').textContent=api.command(e.results[0][0].transcript);};recognition.onerror=()=>{$('commandStatus').textContent='Voice unavailable. Choose a command below.';};recognition.onend=()=>{if($('commandStatus').textContent==='Listening…')$('commandStatus').textContent='No command heard. Try again.';};try{recognition.start();}catch(e){$('commandStatus').textContent='Voice unavailable. Choose a command below.';}};
   $('runCommand').onclick=()=>{$('commandStatus').textContent=api.command($('commandText').value);};sync();
  }
  return {init,cancel:()=>cancel()};
@@ -13370,7 +13370,7 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC181';
+  const APP_VERSION='RC182';
   const PROJECT_SCHEMA_VERSION=2;
   // RC125: compact practice-view and string selectors preserve space for P1/P2/P3; all RC124 audio, analysis, repeat, project and practice logic preserved.
 
@@ -18410,8 +18410,8 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
       if(/^(stop|pause)( music| playback)?$/.test(t)){pause();return 'Paused.';}
       if(/^(play|resume)( music| playback)?$/.test(t)){if(!buffer)return 'Import a song first.';play();return 'Playing.';}
       if(/^(repeat|loop)( the)? chorus$/.test(t)){
-        const entries=Object.entries(sections).filter(([name])=>/chorus/i.test(name));
-        if(!entries.length)return 'No labelled chorus found.';
+        const entries=Object.entries(sections).filter(([name,s])=>/chorus/i.test(name)&&Number.isFinite(s.start)&&Number.isFinite(s.end)&&s.start>=0&&s.end>s.start&&s.end<=(buffer?.duration||0));
+        if(!entries.length)return 'Set the chorus start and end first.';
         const found=entries.find(([,s])=>s.end>currentTime())||entries[0],s=found[1];
         selectedTimeframes.clear();selectedSections.clear();multiSectionMode=false;timeframeLoopMode=false;sectionQueue=[];timeframeQueue=[];
         loopStart=s.start;loopEnd=s.end;loopEnabled=true;updateLoopUI();seekTo(s.start);play();return 'Repeating '+found[0]+'.';
@@ -19673,6 +19673,38 @@ if ('serviceWorker' in navigator) {
 })();
 
 </script>
+<script id="ux182">
+(() => {
+ const $=id=>document.getElementById(id);
+ const groups={
+  'Practise':['openStudy','openPatterns','openEar','openRhythm'],
+  'Arrange':['openReview','openIdeas','openLyrics'],
+  'Record and import':['openLiveAudio','openAudioLink'],
+  'Share':['openLoopShare','openTV'],
+  'Settings and recovery':['openSoundCheck','openDelay','openTrash']
+ };
+ const label=document.createElement('label');label.className='ux182-tools';label.textContent='Go to tool';
+ const select=document.createElement('select');select.id='toolPicker';select.setAttribute('aria-label','Go to tool');select.add(new Option('Choose a tool…',''));
+ for(const [name,ids] of Object.entries(groups)){
+  const group=document.createElement('optgroup');group.label=name;
+  for(const id of ids){const target=$(id);if(target)group.append(new Option(target.textContent.trim(),id));}
+  select.append(group);
+ }
+ label.append(select);$('moreTools').before(label);
+ select.onchange=()=>{const target=$(select.value);select.value='';if(target&&!target.disabled)target.click();};
+ // Keep tool availability aligned with the original controls.
+ select.addEventListener('focus',()=>{for(const option of select.options)if(option.value)option.disabled=!!$(option.value)?.disabled;});
+ const name=$('setlistName'),choices=document.createElement('datalist');choices.id='setlistSuggestions';
+ for(const value of ['Sunday rehearsal','Sunday service','Band rehearsal','Personal practice'])choices.append(new Option(value,value));
+ name.setAttribute('list',choices.id);name.after(choices);
+})();
+</script>
+<style>
+.ux182-tools{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:12px 0;font-weight:600}
+.ux182-tools select{flex:1;min-width:190px;min-height:44px;padding:10px;border-radius:8px;background:#132237;color:#fff;border:1px solid #536980}
+#editPitch,#planRepeats,#patternFret,#commandText{min-height:44px;width:100%;font:inherit}
+select:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid #78c9ff;outline-offset:3px}
+</style>
 </body>
 </html>
 
