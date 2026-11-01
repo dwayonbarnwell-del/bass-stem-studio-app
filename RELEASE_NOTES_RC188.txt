@@ -1,0 +1,11 @@
+Bass Stem Studio RC188
+
+Timeline intervals now offer every whole second from 1 to 10. Older saved intervals above 10 open at 10 seconds; song sections and their times are retained.
+
+Restored the Text size card by removing obsolete Compare and Setlist shortcut code that interrupted startup. Presets and custom sizes keep the existing display settings.
+
+The BPM card now opens a playback tempo editor. BPM and Speed use the same pitch-preserving playback rate for the main, bass and backing tracks. Original tempo resets Speed to 100%. Custom speeds are retained in saved projects; the analysed source tempo and beat positions are unchanged. Playback speed is bounded to 25–200%; the editor validates the corresponding BPM range. The card is unavailable until a song tempo is known.
+
+Removed the main Undo edit and Reanalyse selection cards and the Edit undone message. Note editing and its inline Undo remain available. Other analysis notices remain plain status text.
+
+Validation: script parsing, shortcut element references, interval choices, BPM/Speed calculations, all track rates, custom saved-speed restoration, invalid input bounds, saved sections, ear training and automatic audio level checks. Physical-device listening is not included.

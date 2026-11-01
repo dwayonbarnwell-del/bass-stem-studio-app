@@ -4,7 +4,7 @@
 <meta name="referrer" content="no-referrer">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bass Stem Studio RC187</title>
+<title>Bass Stem Studio RC188</title>
 <script id="rc186-level">
 /* RC186: shared stereo gain, silence gate and look-ahead sample-peak protection.
    Target -16 dBFS RMS; at most +12 dB gain; ceiling -1 dBFS. This is not a LUFS/true-peak meter. */
@@ -13005,7 +13005,18 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot .tempo-shortcuts>label{grid-c
 html body #appRoot#appRoot#appRoot#appRoot#appRoot .tempo-shortcuts .tempo-detected{grid-column:2!important;grid-row:1!important;}
 html body #appRoot#appRoot#appRoot#appRoot#appRoot .tempo-shortcuts .tempo-tap{grid-column:2!important;grid-row:2!important;}
 html body #appRoot#appRoot#appRoot#appRoot#appRoot .tempo-shortcuts input,html body #appRoot#appRoot#appRoot#appRoot#appRoot .tempo-shortcuts button{box-sizing:border-box!important;width:100%!important;min-width:0!important;height:52px!important;min-height:52px!important;max-height:52px!important;margin:0!important;padding:6px!important;line-height:1.2!important;white-space:normal!important;font:inherit!important;}
-</style></head>
+</style><style id="rc188-controls">
+html body #appRoot#appRoot#appRoot#appRoot#appRoot #songTempoWrap{cursor:pointer!important;color:#f2f6fa!important;font:inherit!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot #songTempoWrap:disabled{cursor:default!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot #playbackTempoDialog{width:min(360px,calc(100vw - 24px))!important;max-height:calc(100dvh - 24px)!important;box-sizing:border-box!important;margin:auto!important;padding:20px!important;overflow:auto!important;background:#0c1c2b!important;color:#f2f6fa!important;border:1px solid #6c9aa9!important;border-radius:14px!important;}
+#playbackTempoDialog::backdrop{background:#000b}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot #playbackTempoDialog h2{position:static!important;margin:0 0 16px!important;padding:0!important;text-align:center!important;font-size:1.25em!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot #playbackTempoDialog label{display:block!important;margin:0 0 8px!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot #playbackTempoDialog input,html body #appRoot#appRoot#appRoot#appRoot#appRoot #playbackTempoDialog button{box-sizing:border-box!important;width:100%!important;min-width:0!important;min-height:44px!important;height:auto!important;margin:0!important;padding:8px!important;background:#163044!important;color:#fff!important;border:1px solid #6c9aa9!important;border-radius:8px!important;font:inherit!important;}
+#playbackTempoDialog .tempo-editor-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+#playbackBpmReset{grid-column:1/-1}
+</style>
+</head>
 <body>
 <div id="sectionCompatibility" style="display:none" aria-hidden="true">
 <div id="sectionGrid"></div><button id="playSelected"></button><button id="clearSelected"></button><span id="selectedSummary"></span>
@@ -13191,9 +13202,9 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot .tempo-shortcuts input,html b
           </select>
           <b id="tempoText" style="display:none">100%</b><button id="tempoReset" style="display:none"></button>
         </div>
-        <div class="song-context-pill" id="songTempoWrap" title="Detected song tempo">
+        <button type="button" class="song-context-pill" id="songTempoWrap" aria-label="Playback tempo" title="Analyse a song to set playback tempo" disabled>
           <span>BPM</span><strong id="songTempo">—</strong>
-        </div>
+        </button>
       <div class="timeline-breakdown-control" id="timelineBreakdownControl" title="Choose how many seconds each Notes View and Bass View timeline cell represents">
         <select class="timeline-breakdown-select" id="timelineSplitSelect" aria-label="Timeline breakdown interval">
           <option value="1" selected>1s</option>
@@ -13201,11 +13212,11 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot .tempo-shortcuts input,html b
           <option value="3">3s</option>
           <option value="4">4s</option>
           <option value="5">5s</option>
+          <option value="6">6s</option>
+          <option value="7">7s</option>
+          <option value="8">8s</option>
+          <option value="9">9s</option>
           <option value="10">10s</option>
-          <option value="15">15s</option>
-          <option value="20">20s</option>
-          <option value="25">25s</option>
-          <option value="30">30s</option>
         </select>
       </div>
       </div>
@@ -13315,13 +13326,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot .tempo-shortcuts input,html b
         </div>
       </div>
 
-      <div id="analysisTools" class="analysis-tools">
-        <div class="tools-grid">
-          <button id="undoAnalysisEdit" type="button" disabled>Undo edit</button>
-          <button id="analyseSelection" type="button" disabled>Reanalyse selection</button>
-        </div>
-        <p id="analysisToolsMessage" role="status" hidden></p>
-      </div>
+      <p id="analysisToolsMessage" role="status" hidden></p>
       <dialog id="repeatSectionDialog" class="analysis-edit-dialog" aria-labelledby="repeatSectionTitle">
         <b id="repeatSectionTitle">Repeat sections</b>
         <div class="repeat-body">
@@ -13420,7 +13425,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot .tempo-shortcuts input,html b
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC187';
+  const APP_VERSION='RC188';
   const PROJECT_SCHEMA_VERSION=2;
   // RC125: compact practice-view and string selectors preserve space for P1/P2/P3; all RC124 audio, analysis, repeat, project and practice logic preserved.
 
@@ -13555,7 +13560,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot .tempo-shortcuts input,html b
     audioKeySections=copyAnalysis(s.keySections||[]);audioKeyReady=!!s.keyReady;audioKeyBuffer=audioKeyReady?buffer:null;
     detectedTempoBpm=s.tempo;detectedBeatTimes=(s.beats||[]).slice();detectedBeatsPerBar=s.meter||4;
     detectedDownbeatPhase=s.phase||0;beatGridConfidence=s.beatConfidence??null;
-    if(songTempo)songTempo.textContent=detectedTempoBpm?String(Math.round(detectedTempoBpm)):'—';
+    refreshPlaybackTempoCard();
     refreshEditedAnalysis();
   }
   async function recoveryStore(storeName,operation){
@@ -13673,7 +13678,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot .tempo-shortcuts input,html b
     if(kind==='note')notes=notes.filter(n=>!(n.start===original.start&&n.midi===original.midi));
     else detectedChordChanges=splitAroundRange(detectedChordChanges,original.start,original.end);
     replayManualCorrections();refreshEditedAnalysis();persistAnalysisRecovery(true);$('analysisEditDialog').close();editingEvent=null;
-    toolsMessage('Correction saved. Undo is available.');
+    toolsMessage('Correction saved.');
     }finally{analysisDeleteBusy=false;}
   }
   async function applySectionAnalysis(pending,finalDataList,session=songSession){
@@ -13727,17 +13732,11 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot .tempo-shortcuts input,html b
       end:Math.min(buffer.duration,(Math.floor(t/TIMELINE_CELL_SECONDS)+1)*TIMELINE_CELL_SECONDS)};
   }
   function setAnalysisEditMode(on){analysisEditMode=!!on;updateAnalysisToolsState();}
-  function updateAnalysisToolsState(){
-    const busy=aiBusy||songImportBusy;
-    let range=null;if(buffer)try{range=selectedAnalysisRange();}catch{}
-    $('undoAnalysisEdit').disabled=!analysisHistory.length||busy;
-    $('analyseSelection').disabled=!offlineAnalysisReady||!notes.length||!range||busy;
-    $('analyseSelection').textContent=range?`Reanalyse ${fmtShort(range.start)} to ${fmtShort(range.end)}`:'Reanalyse selection';
-  }
+  function updateAnalysisToolsState(){}
   function undoLastAnalysisEdit(){
     if(aiBusy)return;closeInlineNoteEditor();
     const previous=analysisHistory.pop();
-    if(previous){restoreAnalysisSnapshot(previous);persistAnalysisRecovery();toolsMessage('Edit undone.');}
+    if(previous){restoreAnalysisSnapshot(previous);persistAnalysisRecovery();toolsMessage('');}
   }
   let inlineNoteEditor=null;
   function closeInlineNoteEditor(){
@@ -13782,8 +13781,6 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot .tempo-shortcuts input,html b
       for(const root of SCALE_ROOTS){const o=document.createElement('option');o.value=root.pc;o.textContent=root.n;select.append(o);}
     }
     for(const [quality,label] of Object.entries(CHORD_QUALITY_LABELS)){const o=document.createElement('option');o.value=quality;o.textContent=label;$('editChordQuality').append(o);}
-    $('undoAnalysisEdit').onclick=undoLastAnalysisEdit;
-    $('analyseSelection').onclick=analyseSelectedRange;
     $('analysisEditForm').onsubmit=async e=>{e.preventDefault();try{await commitAnalysisEdit();}catch(error){$('editEventError').textContent=error.message;}};
     $('deleteAnalysisEvent').onclick=async()=>{try{await commitAnalysisEdit(true);}catch(error){$('editEventError').textContent=error.message;}};
     $('closeAnalysisEdit').onclick=()=>$('analysisEditDialog').close();
@@ -13992,8 +13989,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot .tempo-shortcuts input,html b
 
   function currentTempoBpm(){
     if(Number.isFinite(detectedTempoBpm) && detectedTempoBpm>0) return detectedTempoBpm;
-    const m=String(songTempo?.textContent||'').match(/([0-9]+(?:\.[0-9]+)?)/);
-    return m?Number(m[1]):null;
+    return null;
   }
 
   let projectSaveBusy=false;
@@ -14362,10 +14358,10 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot .tempo-shortcuts input,html b
         if(Number.isFinite(Number(project.settings.bassVolume)))bassVol.value=String(Math.max(0,Math.min(100,Number(project.settings.bassVolume))));
         if(Number.isFinite(Number(project.settings.metronomeVolume)))metronomeVol.value=String(Math.max(0,Math.min(100,Number(project.settings.metronomeVolume))));
         else metronomeVol.value='70';
-        if(Number.isFinite(Number(project.settings.speed)))tempo.value=String(normalisePracticeSpeed(project.settings.speed));
+        if(Number.isFinite(Number(project.settings.speed)))setPracticeSpeed(project.settings.speed);
         const savedTimelineCellSeconds=Number(project.settings.timelineCellSeconds);
         setTimelineCellSeconds(
-          TIMELINE_CELL_OPTIONS.includes(savedTimelineCellSeconds)?savedTimelineCellSeconds:1,
+          TIMELINE_CELL_OPTIONS.includes(savedTimelineCellSeconds)?savedTimelineCellSeconds:savedTimelineCellSeconds>10?10:1,
           {clearSelection:false,rebuild:false}
         );
         origVolText.textContent=origVol.value+'%';bassVolText.textContent=bassVol.value+'%';metronomeVolText.textContent=metronomeVol.value+'%';applyTempo();
@@ -16755,7 +16751,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot .tempo-shortcuts input,html b
     populateScaleSelect(null);refreshNoteNumberToggle();refreshMetronomeToggle();
     rebuildSimpleTimeline._sig='';
     if(songScale) songScale.textContent='—';
-    if(songTempo) songTempo.textContent='—';
+    refreshPlaybackTempoCard();
     if(songScaleWrap){songScaleWrap.classList.remove('context-ready');songScaleWrap.title='Detected song scale';}
     if(songTempoWrap){songTempoWrap.classList.remove('context-ready');songTempoWrap.title='Detected song tempo';}
     updateAudioParams();
@@ -16803,6 +16799,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot .tempo-shortcuts input,html b
       if(songTempoWrap) songTempoWrap.classList.remove('context-ready');
     }
 
+    refreshPlaybackTempoCard();
     detectedBeatTimes=Array.isArray(out?.beat_times)
       ? out.beat_times.map(Number).filter(v=>Number.isFinite(v)&&v>=0).sort((a,b)=>a-b)
       : [];
@@ -17794,7 +17791,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot .tempo-shortcuts input,html b
 
   // ---------- RC113 shared adjustable master timeline ----------
   // One geometry source controls ruler, waveform, Notes View, Bass View and repeat cells.
-  const TIMELINE_CELL_OPTIONS = [1,2,3,4,5,10,15,20,25,30];
+  const TIMELINE_CELL_OPTIONS = [1,2,3,4,5,6,7,8,9,10];
   let TIMELINE_CELL_SECONDS = 1; // Requested default.
   const TIMELINE_MAJOR_SECONDS = 20;
   function isTimelineMajor(sec){
@@ -19624,16 +19621,25 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot .tempo-shortcuts input,html b
 
 
   function normalisePracticeSpeed(value){
-    const allowed=[100,90,80,70,60];
     const n=Number(value);
-    if(!Number.isFinite(n))return 100;
-    return allowed.reduce((best,v)=>
-      Math.abs(v-n)<Math.abs(best-n)?v:best,100);
+    return Number.isFinite(n)&&n>0?Math.max(25,Math.min(200,Math.round(n*1e6)/1e6)):100;
+  }
+  function setPracticeSpeed(value){
+    const speed=normalisePracticeSpeed(value),key=String(speed);
+    tempo.querySelectorAll('[data-custom-speed]').forEach(option=>option.remove());
+    if(!Array.from(tempo.options).some(option=>option.value===key)){
+      const option=new Option(Number(speed.toFixed(2))+'%',key);option.dataset.customSpeed='true';tempo.add(option);
+    }
+    tempo.value=key;return speed;
+  }
+  function refreshPlaybackTempoCard(){
+    const base=detectedTempoBpm,ready=Number.isFinite(base)&&base>0;
+    if(songTempo)songTempo.textContent=ready?String(Number((base*normalisePracticeSpeed(tempo.value)/100).toFixed(1))):'—';
+    if(songTempoWrap){songTempoWrap.disabled=!ready;songTempoWrap.title=ready?'Change playback tempo · Original '+Number(base.toFixed(1))+' BPM':'Analyse a song to set playback tempo';}
   }
 
   function applyTempo(){
-    const selected=normalisePracticeSpeed(tempo.value);
-    if(String(tempo.value)!==String(selected))tempo.value=String(selected);
+    const selected=setPracticeSpeed(tempo.value);
     const r=selected/100;
     masterAudio.playbackRate=r;
     masterAudio.preservesPitch=true;
@@ -19650,12 +19656,36 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot .tempo-shortcuts input,html b
       if('webkitPreservesPitch' in noBassAudio)noBassAudio.webkitPreservesPitch=true;
       if(playing&&noBassReady)startNoBassPlayback();
     }
-    tempoText.textContent=tempo.value+'%';
+    tempoText.textContent=Number(selected.toFixed(2))+'%';
+    refreshPlaybackTempoCard();
   }
   tempo.onchange=applyTempo;
   tempoReset.onclick=()=>{tempo.value=100;applyTempo()};
   applyTempo();
 
+  // One tempo editor shares the existing playback engine and saved speed setting.
+  const tempoDialog=document.createElement('dialog');tempoDialog.id='playbackTempoDialog';tempoDialog.setAttribute('aria-labelledby','playbackTempoTitle');
+  tempoDialog.innerHTML='<form><h2 id="playbackTempoTitle">Playback tempo</h2><label for="playbackBpmInput">BPM</label><input id="playbackBpmInput" type="number" step="0.1" inputmode="decimal" required><p id="playbackBpmOriginal"></p><div class="tempo-editor-actions"><button type="button" id="playbackBpmReset">Original tempo</button><button type="submit">Apply</button><button type="button" id="playbackBpmCancel">Cancel</button></div></form>';
+  $('appRoot').append(tempoDialog);const bpmInput=$('playbackBpmInput');let bpmSession=-1,bpmBase=null;
+  songTempoWrap.onclick=()=>{
+    if(!Number.isFinite(detectedTempoBpm)||detectedTempoBpm<=0)return;
+    bpmSession=songSession;bpmBase=detectedTempoBpm;bpmInput.setCustomValidity('');
+    bpmInput.min=String(Math.ceil(bpmBase*.25*10)/10);bpmInput.max=String(Math.floor(bpmBase*2*10)/10);
+    bpmInput.value=String(Number((bpmBase*normalisePracticeSpeed(tempo.value)/100).toFixed(1)));
+    $('playbackBpmOriginal').textContent='Original: '+Number(bpmBase.toFixed(1))+' BPM';
+    tempoDialog.showModal();bpmInput.focus();bpmInput.select();
+  };
+  const closeTempo=()=>{tempoDialog.close();songTempoWrap.focus();};
+  const tempoIsCurrent=()=>{if(bpmSession===songSession&&bpmBase===detectedTempoBpm)return true;closeTempo();return false;};
+  bpmInput.oninput=()=>bpmInput.setCustomValidity('');
+  tempoDialog.querySelector('form').onsubmit=event=>{
+    event.preventDefault();if(!tempoIsCurrent()||!bpmInput.reportValidity())return;
+    const target=Number(bpmInput.value);if(!Number.isFinite(target)||target<=0)return;
+    setPracticeSpeed(target/bpmBase*100);applyTempo();closeTempo();
+  };
+  $('playbackBpmReset').onclick=()=>{if(tempoIsCurrent()){setPracticeSpeed(100);applyTempo();closeTempo();}};
+  $('playbackBpmCancel').onclick=closeTempo;
+  tempoDialog.addEventListener('cancel',event=>{event.preventDefault();closeTempo();});
 
   function parseRangeInputs(){
     if(!buffer) return null;
@@ -19781,11 +19811,6 @@ new ResizeObserver(size).observe(play);size();})();
  function button(text,action){const b=document.createElement('button');b.type='button';b.textContent=text;b.onclick=action;return b;}
  function row(anchor){const r=document.createElement('div');r.className='ux181-row';anchor.after(r);return r;}
  function set(id,v){const el=$(id);el.value=String(v);emit(el);}
- // Pick common durations without losing precise custom values.
- for(const [id,values,unit] of [['compareLength',[5,10,20,30,60],'s']]){
-  const input=$(id),r=row(input.closest('label')||input);
-  for(const v of values)r.append(button(`${v} ${unit}`,()=>set(id,v)));
- }
  // RC185: a single text-size card. Keep the original input as the display engine's value.
  const font=$('fontSizeInput'),card=font.parentElement;
  const wrapper=document.createElement('div');wrapper.className='display-size-readout';wrapper.id='fontSizeCard';
@@ -19840,14 +19865,6 @@ new ResizeObserver(size).observe(play);size();})();
  $('patternFret').setAttribute('aria-label','First fret');
 })();
 
-</script>
-<script id="ux182">
-(() => {
- const $=id=>document.getElementById(id);
- const name=$('setlistName'),choices=document.createElement('datalist');choices.id='setlistSuggestions';
- for(const value of ['Sunday rehearsal','Sunday service','Band rehearsal','Personal practice'])choices.append(new Option(value,value));
- name.setAttribute('list',choices.id);name.after(choices);
-})();
 </script>
 <style>
 #editPitch,#patternFret{min-height:44px;width:100%;font:inherit}
