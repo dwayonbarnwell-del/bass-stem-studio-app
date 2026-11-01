@@ -89,3 +89,7 @@ Publication verified: main release ea597cc13450c0907651aa33b832649837b06a74; Ren
 ## RC185 layout and duplication cleanup
 
 Baseline: verified RC184 main at 600e4a3. See RELEASE_NOTES_RC185.txt. The five display cards now match; text size has one preset/custom control. Playback is one compact row. Removed Go to tool and duplicate sound-check, print-sheet and manual-command entries. All 14 tool panels remain accessible. 144 layout/control checks and three related suites passed. No paid analysis needed. Preserve these choices in future changes; do not re-add shortcut menus for tools already listed as buttons.
+
+## RC186 removals and automatic playback levels
+
+User requested removal of TV rehearsal, voice commands, online media and display Audio delay. These are removed from the UI and active code, together with manual Playback loudness. Do not re-add them. Main/Bass mixer output now uses shared automatic gain and look-ahead sample-peak protection; original exports are preserved. Notes View matches Play, and BPM/Use song tempo align. Browser permission prompts cannot be restyled. See RELEASE_NOTES_RC186.txt for checks and audio limitations.

@@ -1,0 +1,8 @@
+Bass Stem Studio RC186
+
+Removed TV rehearsal, voice commands, online media links and manual display audio delay, including their entry cards, dialogs and active handlers. Local audio/video file import remains available.
+Notes View now matches the measured Play/Pause card size. BPM entry and Use song tempo align in Live Audio and recording comparison. Microphone permission is requested by Listen/Record (or an explicit Sound check), never simply by opening Live Audio. The browser owns the permission prompt and its appearance.
+
+Replaced the Playback Normal/+3/+6 dB selector with automatic levelling of the combined Main and Bass playback. A shared stereo gain preserves the mix balance, slowly raises quiet material by up to 12 dB, avoids boosting silence, and applies a 10 ms look-ahead sample-peak limiter with a -1 dBFS ceiling. Uses an AudioWorklet where available and the same processor via ScriptProcessor as a compatibility fallback. This is not certified LUFS/true-peak mastering. It cannot restore already clipped source audio or guarantee distortion-free speakers. Exports retain original audio.
+
+Checks: 83 browser checks across five widths and four text sizes, including rendered offline audio; DSP tests at 44.1/48/96 kHz cover quiet signals, overload transitions, stereo balance, silence and invalid samples. Related save/import, live analysis, study, rhythm, pattern/recovery, coaching, sound review and sharing suites pass. Physical-device audio and the live AudioWorklet path have not been listening-tested. One older Playwright project-import suite cannot launch its unavailable browser; the runnable save/import suite passed. No paid GPU jobs or backend builds.

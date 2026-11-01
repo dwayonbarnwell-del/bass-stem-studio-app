@@ -4,7 +4,47 @@
 <meta name="referrer" content="no-referrer">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bass Stem Studio RC185</title>
+<title>Bass Stem Studio RC186</title>
+<script id="rc186-level">
+/* RC186: shared stereo gain, silence gate and look-ahead sample-peak protection.
+   Target -16 dBFS RMS; at most +12 dB gain; ceiling -1 dBFS. This is not a LUFS/true-peak meter. */
+window.BassAutoLevel=(()=>{
+ class LevelEngine {
+  constructor(rate){this.rate=rate;this.delay=Math.max(1,Math.round(rate*.01));this.size=this.delay+1;this.ring=[new Float32Array(this.size),new Float32Array(this.size)];this.peaks=new Float64Array(this.size+1);this.times=new Float64Array(this.size+1);this.head=0;this.tail=0;this.index=0;this.gain=1;this.limit=1;this.energy=0;this.ceiling=10**(-1/20);this.release=1-Math.exp(-1/(rate*.12));}
+  process(input,output){const count=output[0].length,channels=input.length;let energy=0;
+   for(let i=0;i<count;i++){let sum=0;for(let c=0;c<channels;c++){const x=input[c]?.[i];if(Number.isFinite(x))sum+=x*x;}energy+=sum/Math.max(1,channels);}
+   const rms=Math.sqrt(energy/count);this.energy+=(energy/count-this.energy)*(1-Math.exp(-count/(this.rate*.4)));
+   const target=rms>.00316?Math.max(1,Math.min(4,.15849/Math.sqrt(Math.max(1e-12,this.energy)))):1;
+   const alpha=1-Math.exp(-1/(this.rate*(target<this.gain?.03:2)));
+   const cap=this.peaks.length;
+   for(let i=0;i<count;i++){
+    this.gain+=(target-this.gain)*alpha;let peak=0;const n=this.index++,pos=n%this.size;
+    for(let c=0;c<2;c++){let x=input[Math.min(c,channels-1)]?.[i]||0;if(!Number.isFinite(x))x=0;x*=this.gain;this.ring[c][pos]=x;peak=Math.max(peak,Math.abs(x));}
+    while(this.head!==this.tail&&this.times[this.head]<n-this.delay)this.head=(this.head+1)%cap;
+    while(this.head!==this.tail&&this.peaks[(this.tail-1+cap)%cap]<=peak)this.tail=(this.tail-1+cap)%cap;
+    this.peaks[this.tail]=peak;this.times[this.tail]=n;this.tail=(this.tail+1)%cap;
+    const wanted=Math.min(1,this.ceiling/Math.max(this.peaks[this.head],1e-12));
+    this.limit=wanted<this.limit?wanted:Math.min(wanted,this.limit+(1-this.limit)*this.release);
+    for(let c=0;c<output.length;c++)output[c][i]=this.ring[Math.min(c,1)][(pos+1)%this.size]*this.limit;
+   }
+  }
+ }
+ const graphs=new WeakMap();
+ function attach(ctx,source,destination){if(graphs.has(source))return graphs.get(source);
+  const engine=new LevelEngine(ctx.sampleRate),fallback=ctx.createScriptProcessor(1024,2,2);
+  fallback.onaudioprocess=e=>engine.process([e.inputBuffer.getChannelData(0),e.inputBuffer.getChannelData(1)],[e.outputBuffer.getChannelData(0),e.outputBuffer.getChannelData(1)]);
+  source.connect(fallback);fallback.connect(destination);const state={mode:'compatible',node:fallback,ready:null};graphs.set(source,state);
+  state.ready=(async()=>{if(!ctx.audioWorklet||typeof AudioWorkletNode==='undefined')return state;
+   const code=LevelEngine.toString()+`;class BassLevelProcessor extends AudioWorkletProcessor{constructor(){super();this.engine=new LevelEngine(sampleRate);}process(inputs,outputs){this.engine.process(inputs[0]||[],outputs[0]);return true;}}registerProcessor('bass-auto-level-rc186',BassLevelProcessor);`;
+   const url=URL.createObjectURL(new Blob([code],{type:'text/javascript'}));try{await ctx.audioWorklet.addModule(url);const node=new AudioWorkletNode(ctx,'bass-auto-level-rc186',{numberOfInputs:1,numberOfOutputs:1,outputChannelCount:[2],channelCount:2,channelCountMode:'explicit'});
+    node.onprocessorerror=()=>{try{source.disconnect(node);node.disconnect();source.connect(fallback);fallback.connect(destination);state.node=fallback;state.mode='compatible';}catch{}};
+    source.disconnect(fallback);fallback.disconnect();source.connect(node);node.connect(destination);state.node=node;state.mode='worklet';
+   }catch{state.mode='compatible';}finally{URL.revokeObjectURL(url);}return state;})();return state;
+ }
+ return {LevelEngine,attach};
+})();
+
+</script>
 <script>
 /* RC119: initialise the correct physical-device font before the first paint.
    This deliberately does not rely on viewport width alone, because Chrome's
@@ -12004,15 +12044,7 @@ html body #appRoot#appRoot#appRoot#appRoot #liveReplay[hidden]{display:none!impo
  async function open(file,ctx,options={}){active?.abort();const controller=new AbortController();active=controller;const d=document.getElementById('mediaImportDialog');if(!d.open)d.showModal();try{return await prepare(file,ctx,{...options,signal:controller.signal,progress:text=>{if(active===controller)document.getElementById('mediaImportState').textContent=text;options.progress?.(text);}});}finally{if(active===controller){active=null;d.close();}}}
  return {init,open,prepare,wav,picker,audioExt,videoExt,video,cancel:()=>active?.abort()};
 })();
-</script><script id="rc178-features">window.BassDisplayClock=(()=>{let delay=0,history=[],session=null;const $=id=>document.getElementById(id);
- function set(value){delay=Math.max(0,Math.min(2000,Math.round(Number(value)||0)));try{localStorage.setItem('bassDisplayDelay',String(delay));}catch{}if($('displayDelay')){$('displayDelay').value=delay;$('delayValue').textContent=delay+' ms';}return delay;}
- function sample(t,playing,rate,id,now=performance.now()){if(id!==session){history=[];session=id;}history.push({t,playing,rate,now});while(history.length>2&&history[1].now<now-2500)history.shift();}
- function time(t,playing,rate,id,now=performance.now()){if(!delay||session!==id||!history.length)return t;const target=now-delay;let a=history[0],b;for(const p of history){if(p.now>target){b=p;break;}a=p;}if(target<a.now)return a.t;const elapsed=(target-a.now)/1000;if(b){const expected=a.t+(a.playing?(b.now-a.now)/1000*a.rate:0);if(Math.abs(b.t-expected)<.08){const fraction=(target-a.now)/(b.now-a.now);return Math.max(0,a.t+(b.t-a.t)*fraction);}}return Math.max(0,a.t+(a.playing?Math.min(elapsed,.05)*a.rate:0));}
- function reset(){history=[];session=null;}
- function init(api){try{set(localStorage.getItem('bassDisplayDelay'));}catch{set(0);} $('openDelay').onclick=()=>{$('delayDialog').showModal();};$('displayDelay').oninput=e=>set(e.target.value);$('delayLess').onclick=()=>set(delay-25);$('delayMore').onclick=()=>set(delay+25);$('delayReset').onclick=()=>set(0);$('delayEstimate').onclick=async()=>{try{const n=await api.estimate();if(n===null){$('delayStatus').textContent='No estimate available. Adjust while playing.';return;}set(n);$('delayStatus').textContent='Estimate applied. Fine-tune while listening.';}catch{$('delayStatus').textContent='No estimate available. Adjust while playing.';}};$('delayPlay').onclick=()=>api.toggle();$('delayClose').onclick=()=>$('delayDialog').close();let lastDisplay=-1;setInterval(()=>{const s=api.get();sample(s.time,s.playing,s.rate,s.session);if($('delayDialog').open){$('delayPlay').textContent=s.playing?'Pause':'Play';$('delayPlay').disabled=!s.loaded;$('delayNote').textContent=s.label();}const shown=time(s.time,s.playing,s.rate,s.session);if(delay&&!s.playing&&Math.abs(shown-lastDisplay)>.001)api.refresh();lastDisplay=shown;},25);}
- return {init,set,sample,time,reset};
-})();
-window.BassTrash=(()=>{let pending,api,busy=false;const $=id=>document.getElementById(id);
+</script><script id="rc178-features">window.BassTrash=(()=>{let pending,api,busy=false;const $=id=>document.getElementById(id);
  function db(){return pending ||=new Promise((resolve,reject)=>{const r=indexedDB.open('BassStudioTrash',1);r.onupgradeneeded=()=>r.result.createObjectStore('items',{keyPath:'id'});r.onsuccess=()=>resolve(r.result);r.onerror=()=>{pending=null;reject(r.error);};});}
  async function tx(mode,fn){const d=await db();return new Promise((resolve,reject)=>{const t=d.transaction('items',mode);let result;try{fn(t.objectStore('items'),v=>result=v);}catch(e){try{t.abort();}catch{}reject(e);return;}t.oncomplete=()=>resolve(result);t.onerror=()=>reject(t.error);t.onabort=()=>reject(t.error||Error('Could not save recovery copy.'));});}
  const all=()=>tx('readonly',(s,done)=>{const r=s.getAll();r.onsuccess=()=>done(r.result);});
@@ -12046,12 +12078,6 @@ window.BassPatterns=(()=>{const $=id=>document.getElementById(id),names=['C','C#
  async function prepare(){if(busy)return;invalidate();const s=api.get();if(api.busy()){$('loopShareStatus').textContent='Wait for analysis to finish.';return;}if(s.session!==session){$('loopShareStatus').textContent='Song changed. Reopen Share loop.';return;}const token=revision;busy=true;$('loopSharePrepare').disabled=true;$('loopShareStatus').textContent='Preparing…';try{const r=bounds(s.buffer,Number($('loopShareFrom').value),Number($('loopShareTo').value)),name=($('loopShareName').value.trim()||'Shared loop').replace(/[<>:"/\\|?*\x00-\x1f]/g,'_').slice(0,90),blob=wav(s.buffer,r),format=$('loopShareFormat').value;let file;if(format==='wav')file=new File([blob],name+'.wav',{type:'audio/wav'});else{const p=metadata(s,r,name);p.source.audioBase64=api.base64(await blob.arrayBuffer());file=new File([JSON.stringify(p)],name+'.bassstudio.json',{type:'application/json'});}if(token!==revision)return;if(s.session!==api.get().session){$('loopShareStatus').textContent='Song changed. Reopen Share loop.';return;}ready=file;let can=false;try{can=!!navigator.canShare?.({files:[file]});}catch{}$('loopShareSend').disabled=!can;$('loopShareSave').disabled=false;$('loopShareStatus').textContent='Ready · '+(r.b-r.a).toFixed(2)+'s · '+(file.size/1048576).toFixed(1)+' MB'+(can?'':'. Download, then send the file.');}catch(e){$('loopShareStatus').textContent=e.message||'Could not prepare this loop.';}finally{busy=false;$('loopSharePrepare').disabled=false;}}
  function init(hooks){api=hooks;$('openLoopShare').onclick=open;$('loopSharePrepare').onclick=prepare;for(const id of ['loopShareFrom','loopShareTo','loopShareName','loopShareFormat'])$(id).oninput=()=>{invalidate();$('loopShareStatus').textContent='Prepare the updated passage.';};$('loopShareSave').onclick=()=>{if(!ready)return;const u=URL.createObjectURL(ready),a=document.createElement('a');a.href=u;a.download=ready.name;a.click();setTimeout(()=>URL.revokeObjectURL(u),30000);};$('loopShareSend').onclick=async()=>{if(!ready)return;try{await navigator.share({files:[ready],title:ready.name});$('loopShareStatus').textContent='Shared.';}catch(e){$('loopShareStatus').textContent=e.name==='AbortError'?'Sharing cancelled.':'Could not share. Download the file instead.';}};$('loopShareClose').onclick=()=>$('loopShareDialog').close();$('loopShareDialog').addEventListener('close',invalidate);$('openSharedLoop').onclick=()=>{ $('loopShareDialog').close();api.import();};}
  return {init,bounds,trim,wav,metadata,valid};
-})();
-window.BassTV=(()=>{const $=id=>document.getElementById(id);let api;
- function paint(){if(!$('tvDialog').open)return;const s=api.get();$('tvSong').textContent=s.title||'Import audio to begin';$('tvContext').textContent=[s.key,s.bpm?Math.round(s.bpm)+' BPM':'',s.speed+'%'].filter(Boolean).join(' · ');$('tvChord').textContent=s.chord||'—';$('tvNext').textContent='Next: '+(s.next||'—');$('tvBass').textContent='Bass: '+(s.bass||'—');$('tvPosition').textContent=s.position;$('tvPlay').textContent=s.playing?'Pause':'Play';$('tvPlay').disabled=!s.loaded;$('tvRestart').disabled=!s.loaded;const words=s.words||[];let i=words.findIndex(w=>w.start<=s.time&&w.end>s.time);if(i<0){i=words.findIndex(w=>w.start>s.time);if(i<0)i=Math.max(0,words.length-1);}const page=Math.floor(i/8)*8,host=$('tvWords'),items=words.slice(page,page+8);host.replaceChildren(...items.map(w=>{const span=document.createElement('span');span.textContent=w.text+' ';span.className=w.start<=s.time&&w.end>s.time?'tv-current':'';return span;}));if(!items.length)host.textContent='';}
- function close(){if(document.fullscreenElement===$('tvStage'))void document.exitFullscreen().catch(()=>{});$('tvDialog').close();$('tvDialog').classList.remove('tv-expanded');$('openTV').focus();}
- function init(hooks){api=hooks;$('openTV').onclick=()=>{$('tvDialog').showModal();paint();};$('tvClose').onclick=close;$('tvDialog').addEventListener('cancel',e=>{e.preventDefault();close();});$('tvPlay').onclick=()=>api.toggle();$('tvRestart').onclick=()=>api.restart();$('tvFull').onclick=async()=>{$('tvDialog').classList.add('tv-expanded');$('tvStatus').textContent='';try{if(document.fullscreenElement===$('tvStage'))await document.exitFullscreen();else if($('tvStage').requestFullscreen)await $('tvStage').requestFullscreen();else $('tvStatus').textContent='Expanded view. Browser full screen unavailable.';}catch{$('tvStatus').textContent='Expanded view. Browser full screen unavailable.';}};setInterval(paint,120);}
- return {init,paint};
 })();
 </script><script id="rc176-comfort">window.BassLoopFade=(()=>{let ctx,node,key='',waiting=false,rising=0,timer=0,enabled=true;const $=id=>document.getElementById(id);
  function reset(){clearTimeout(timer);waiting=false;key='';if(!node)return;const t=ctx.currentTime,p=node.gain;p.cancelScheduledValues(t);p.setValueAtTime(p.value,t);p.linearRampToValueAtTime(1,t+.012);rising=t+.012;}
@@ -12382,30 +12408,6 @@ window.BassAwake=(()=>{let api,lock=null,pending=false,blocked=false,wasActive=f
  }
  return {pitch,snapRange,timing,melody};
 })();
-</script><script id="rc172-link">window.BassAudioLink=(()=>{
- const limit=100*1024*1024;
- function parse(value){let u;try{u=new URL(value);}catch{throw Error('Paste a full HTTPS media link.');}if(u.protocol!=='https:'||u.username||u.password)throw Error('Use an HTTPS link without a username or password.');if(/(^|\.)(youtube\.com|youtu\.be|spotify\.com|music\.apple\.com)$/.test(u.hostname))throw Error('Use a direct audio or video file link, not a streaming page.');return u;}
- async function fetchAudio(value,signal,progress=()=>{}){
-  const url=parse(value),r=await fetch(url.href,{signal,mode:'cors',credentials:'omit',referrerPolicy:'no-referrer'});
-  if(!r.ok)throw Error('The media link is unavailable.');const mime=(r.headers.get('content-type')||'').split(';')[0],size=Number(r.headers.get('content-length'));
-  if(/text\/|application\/(json|xml|xhtml)/i.test(mime))throw Error('This link opens a page. Use a direct audio or video file link.');if(size>limit)throw Error('This file is over 100 MB. Download it and use Import.');
-  const chunks=[];let total=0;const reader=r.body?.getReader();if(!reader)throw Error('This browser cannot download the link. Use Import.');
-  try{while(true){const {done,value}=await reader.read();if(done)break;total+=value.length;if(total>limit)throw Error('This file is over 100 MB. Download it and use Import.');chunks.push(value);progress(total,size);}}finally{await reader.cancel().catch(()=>{});}
-  if(!total)throw Error('The media file is empty.');let name;try{name=decodeURIComponent(url.pathname.split('/').pop());}catch{}name=(name||'Online_audio').replace(/[^\w. -]/g,'_').slice(0,120);
-  const disposition=r.headers.get('content-disposition')||'',matched=disposition.match(/filename="?([^";]+)"?/i);if(matched)name=matched[1].replace(/[^\w. -]/g,'_').slice(0,120);return new File(chunks,name,{type:mime||'application/octet-stream'});
- }
- function init({load,isBusy,session}){const $=id=>document.getElementById(id),dialog=$('audioLinkDialog'),state=$('audioLinkStatus');let controller,busy=false,loading=false;
-  function sync(){$('audioLinkLoad').disabled=busy;$('audioLinkURL').disabled=busy;$('audioLinkClose').disabled=loading;$('audioLinkCancel').disabled=!busy||loading;}
-  $('openAudioLink').onclick=()=>{dialog.showModal();};
-  $('audioLinkLoad').onclick=async()=>{if(busy)return;if(isBusy()){state.textContent='Wait for the current import or analysis.';return;}busy=true;controller=new AbortController();const initial=session();sync();const timer=setTimeout(()=>controller.abort(),120000);state.textContent='Downloading media…';
-   try{const file=await fetchAudio($('audioLinkURL').value.trim(),controller.signal,(n,size)=>{state.textContent=size?'Downloading: '+Math.min(100,Math.round(n/size*100))+'%':'Downloading: '+(n/1048576).toFixed(1)+' MB';});if(controller.signal.aborted)throw new DOMException('Cancelled','AbortError');if(session()!==initial||isBusy())throw Error('Song changed. Open the link again.');loading=true;sync();state.textContent='Opening audio…';const ok=await load(file);state.textContent=ok?'Audio loaded. Use Analyse Bass for chords.':'Import did not finish. Check the message below the player.';if(ok)dialog.close();}
-   catch(e){state.textContent=e.name==='AbortError'?'Download cancelled or timed out.':e instanceof TypeError?'This website blocked the download or could not be reached. Download the file and use Import.':e.message;}
-   finally{clearTimeout(timer);busy=false;loading=false;controller=null;sync();}
-  };
-  $('audioLinkCancel').onclick=()=>controller?.abort();$('audioLinkClose').onclick=()=>{controller?.abort();dialog.close();};dialog.oncancel=e=>{e.preventDefault();if(!loading)$('audioLinkClose').click();};sync();
- }
- return {init,parse,fetchAudio};
-})();
 </script><script id="rc172-coach">window.BassCoach=(()=>{
  let stopCurrent=()=>{};
  const worklet=`class CoachCapture extends AudioWorkletProcessor{constructor(){super();this.ring=new Float32Array(4096);this.pos=0;this.count=0;this.hop=0;this.energy=0;this.size=0;this.floor=.001;this.previous=0;this.last=-9;}process(inputs){const x=inputs[0]?.[0];if(x){for(let i=0;i<x.length;i++){const v=x[i];this.ring[this.pos]=v;this.pos=(this.pos+1)%4096;this.count++;this.hop++;this.energy+=v*v;this.size++;if(this.size===256){const rms=Math.sqrt(this.energy/256),t=(currentFrame+i)/sampleRate;if(rms>.012&&rms>this.floor*2.4&&rms>this.previous*1.35&&t-this.last>.16){this.port.postMessage({type:'attack',time:t});this.last=t;}this.floor=this.floor*.94+rms*.06;this.previous=rms;this.size=0;this.energy=0;}}if(this.count>=4096&&this.hop>=2048){this.hop=0;const samples=new Float32Array(4096);samples.set(this.ring.subarray(this.pos));samples.set(this.ring.subarray(0,this.pos),4096-this.pos);this.port.postMessage({type:'pitch',samples},[samples.buffer]);}}return true;}}registerProcessor('bass-practice-coach',CoachCapture);`;
@@ -12624,11 +12626,11 @@ window.BassMidi=notes=>{
 </script><script id="rc171-rhythm">window.BassRhythm=(()=>{
  let cancel=()=>{};
  function init(api){
-  const $=id=>document.getElementById(id),dialog=$('rhythmDialog'),status=$('rhythmStatus'),player=$('rhythmPlayer');let busy=false,token=0,audio=null,wav=null,url='',recognition;
+  const $=id=>document.getElementById(id),dialog=$('rhythmDialog'),status=$('rhythmStatus'),player=$('rhythmPlayer');let busy=false,token=0,audio=null,wav=null,url='';
   const save=(blob,name)=>{const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000);};
   function sync(){$('rhythmExtract').disabled=busy;$('rhythmSnap').disabled=busy;$('rhythmSave').disabled=busy||!audio;$('rhythmWav').disabled=busy||!audio;$('rhythmImport').disabled=busy;$('rhythmCancel').disabled=!busy;}
   function reset(){++token;player.pause();player.removeAttribute('src');player.hidden=true;audio=null;wav=null;if(url)URL.revokeObjectURL(url);url='';sync();}
-  cancel=()=>{reset();recognition?.abort();};
+  cancel=()=>{reset();};
   function setAudio(b){audio=b;const count=b.length,channels=b.numberOfChannels,bytes=new ArrayBuffer(44+count*channels*2),v=new DataView(bytes);const str=(p,s)=>{for(let i=0;i<s.length;i++)v.setUint8(p+i,s.charCodeAt(i));};str(0,'RIFF');v.setUint32(4,bytes.byteLength-8,true);str(8,'WAVE');str(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,channels,true);v.setUint32(24,b.sampleRate,true);v.setUint32(28,b.sampleRate*channels*2,true);v.setUint16(32,channels*2,true);v.setUint16(34,16,true);str(36,'data');v.setUint32(40,bytes.byteLength-44,true);for(let i=0;i<count;i++)for(let c=0;c<channels;c++){const x=Math.max(-1,Math.min(1,b.getChannelData(c)[i]));v.setInt16(44+(i*channels+c)*2,Math.round(x*(x<0?32768:32767)),true);}if(url)URL.revokeObjectURL(url);wav=new Blob([bytes],{type:'audio/wav'});url=URL.createObjectURL(wav);player.src=url;player.loop=true;player.hidden=false;sync();}
   $('openRhythm').onclick=()=>{const s=api.get();$('rhythmFrom').value=s.start.toFixed(2);$('rhythmTo').value=s.end.toFixed(2);dialog.showModal();};
   $('rhythmSnap').onclick=()=>{try{const s=api.get(),r=BassPracticeDSP.snapRange(Number($('rhythmFrom').value),Number($('rhythmTo').value),s.beats||[],s.buffer?.duration||0);$('rhythmFrom').value=r.start.toFixed(3);$('rhythmTo').value=r.end.toFixed(3);api.applyRange(r.start,r.end);status.textContent='Loop aligned to detected beats.';}catch(e){status.textContent=e.message;}};
@@ -12642,10 +12644,7 @@ window.BassMidi=notes=>{
   $('rhythmWav').onclick=()=>{if(wav)save(wav,'Bass_Studio_Rhythm_Loop.wav');};
   $('rhythmImport').onchange=async e=>{const file=e.target.files[0];if(!file)return;if(file.size>30*1024*1024){status.textContent='Choose a loop smaller than 30 MB.';return;}busy=true;sync();const mine=++token;let c;try{c=new AudioContext();const b=await c.decodeAudioData(await file.arrayBuffer());if(b.duration>30)throw Error('Choose a drum loop up to 30 seconds.');if(mine===token){setAudio(b);status.textContent='Imported drum loop.';}}catch(e){status.textContent=e.message;}finally{await c?.close();busy=false;sync();e.target.value='';}};
   player.onplay=()=>api.pause();
-  $('rhythmClose').onclick=()=>{++token;player.pause();recognition?.abort();dialog.close();};dialog.oncancel=e=>{e.preventDefault();$('rhythmClose').click();};
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  $('voiceCommand').disabled=!SR;
-  $('voiceCommand').onclick=()=>{recognition?.abort();api.pause();player.pause();recognition=new SR();recognition.lang='en-GB';recognition.interimResults=false;recognition.maxAlternatives=1;$('commandStatus').textContent='Listening…';recognition.onresult=e=>{$('commandStatus').textContent=api.command(e.results[0][0].transcript);};recognition.onerror=()=>{$('commandStatus').textContent='Voice unavailable. Use the main playback and section controls.';};recognition.onend=()=>{if($('commandStatus').textContent==='Listening…')$('commandStatus').textContent='No command heard. Try again.';};try{recognition.start();}catch(e){$('commandStatus').textContent='Voice unavailable. Use the main playback and section controls.';}};
+  $('rhythmClose').onclick=()=>{++token;player.pause();dialog.close();};dialog.oncancel=e=>{e.preventDefault();$('rhythmClose').click();};
   sync();
  }
  return {init,cancel:()=>cancel()};
@@ -13095,7 +13094,20 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot #textSizeDialog label{display
 html body #appRoot#appRoot#appRoot#appRoot#appRoot #textSizeDialog input,html body #appRoot#appRoot#appRoot#appRoot#appRoot #textSizeDialog button{box-sizing:border-box!important;width:100%!important;min-width:0!important;min-height:44px!important;height:auto!important;margin:0!important;padding:8px!important;background:#163044!important;color:#fff!important;border:1px solid #6c9aa9!important;border-radius:8px!important;font:inherit!important;}
 #textSizeDialog .text-size-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
 </style>
-</head>
+<style id="rc186-layout-style">
+html body #appRoot#appRoot#appRoot#appRoot#appRoot #practiceViewCard{display:flex!important;position:relative!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important;border:1px solid #526b87!important;border-radius:10px!important;background:#102639!important;padding:2px!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot #practiceViewCard #practiceViewSelect{position:absolute!important;inset:0!important;display:block!important;opacity:0!important;width:100%!important;min-width:0!important;max-width:100%!important;height:100%!important;min-height:0!important;max-height:100%!important;margin:0!important;padding:0!important;cursor:pointer!important;z-index:2!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot #practiceViewCard .stacked-select-display{display:flex!important;position:static!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;pointer-events:none!important;font:inherit!important;font-weight:700!important;line-height:1.05!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot #practiceViewCard .stacked-select-display strong,html body #appRoot#appRoot#appRoot#appRoot#appRoot #practiceViewCard .stacked-select-display span{font:inherit!important;line-height:1.05!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot #practiceViewCard:focus-within{outline:2px solid #78c9ff!important;outline-offset:2px!important;}
+
+html body #appRoot#appRoot#appRoot#appRoot#appRoot #practiceViewCard{flex:0 0 var(--transport-card-width)!important;width:var(--transport-card-width)!important;min-width:var(--transport-card-width)!important;max-width:var(--transport-card-width)!important;height:var(--transport-card-height)!important;min-height:var(--transport-card-height)!important;max-height:var(--transport-card-height)!important;margin:0!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot .tempo-shortcuts{grid-column:1/-1!important;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;grid-template-rows:auto auto!important;gap:8px!important;align-items:end!important;min-width:0!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot .tempo-shortcuts>label{grid-column:1!important;grid-row:1!important;margin:0!important;min-width:0!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot .tempo-shortcuts .tempo-detected{grid-column:2!important;grid-row:1!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot .tempo-shortcuts .tempo-tap{grid-column:2!important;grid-row:2!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot .tempo-shortcuts input,html body #appRoot#appRoot#appRoot#appRoot#appRoot .tempo-shortcuts button{box-sizing:border-box!important;width:100%!important;min-width:0!important;height:52px!important;min-height:52px!important;max-height:52px!important;margin:0!important;padding:6px!important;line-height:1.2!important;white-space:normal!important;font:inherit!important;}
+</style></head>
 <body>
 <div id="sectionCompatibility" style="display:none" aria-hidden="true">
 <div id="sectionGrid"></div><button id="playSelected"></button><button id="clearSelected"></button><span id="selectedSummary"></span>
@@ -13300,7 +13312,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot #textSizeDialog input,html bo
       </div>
       </div>
 
-<section id="liveAudioEntry" aria-label="Practice controls"><button id="openLiveAudio" type="button">Live audio</button><button id="openStudy" type="button">Practice tools</button><button id="openReview" type="button">Review chords</button></section><div id="practiceComfort"><label title="Short fades soften loop joins"><input id="smoothLoops" type="checkbox" checked>Smooth loops</label><label><input id="keepAwake" type="checkbox" checked>Keep awake</label><small id="awakeStatus" role="status">Ready for practice.</small></div><details id="moreTools"><summary>More tools</summary><div id="extraTools"><button id="openDelay" type="button">Audio delay</button><button id="openTrash" type="button">Recently deleted</button><button id="openPatterns" type="button">Scales &amp; arpeggios</button><button id="openLoopShare" type="button">Share loop</button><button id="openTV" type="button">TV rehearsal</button><button id="openLyrics" type="button">Lyrics</button><button id="openIdeas" type="button">Ideas</button><button id="openAudioLink" type="button">Audio / video link</button><button id="openRhythm" type="button">Rhythm / practice</button><button id="openSoundCheck" type="button">Sound check</button><label class="sound-control">Playback<select id="safeLoudness" aria-label="Playback loudness"><option value="0">Normal</option><option value="3">Louder +3 dB</option><option value="6">Louder +6 dB</option></select></label></div></details>
+<section id="liveAudioEntry" aria-label="Practice controls"><button id="openLiveAudio" type="button">Live audio</button><button id="openStudy" type="button">Practice tools</button><button id="openReview" type="button">Review chords</button></section><div id="practiceComfort"><label title="Short fades soften loop joins"><input id="smoothLoops" type="checkbox" checked>Smooth loops</label><label><input id="keepAwake" type="checkbox" checked>Keep awake</label><small id="awakeStatus" role="status">Ready for practice.</small></div><details id="moreTools"><summary>More tools</summary><div id="extraTools"><button id="openTrash" type="button">Recently deleted</button><button id="openPatterns" type="button">Scales &amp; arpeggios</button><button id="openLoopShare" type="button">Share loop</button><button id="openLyrics" type="button">Lyrics</button><button id="openIdeas" type="button">Ideas</button><button id="openRhythm" type="button">Rhythm / practice</button><button id="openSoundCheck" type="button">Sound check</button></div></details>
 <dialog id="soundCheckDialog" aria-labelledby="soundCheckTitle"><h2 id="soundCheckTitle">Sound check</h2><p id="checkStatus" role="status">Check the room, then your playing level.</p><div class="check-buttons"><button id="checkQuiet">1. Quiet room</button><button id="checkLevel" disabled>2. Playing level</button></div><div id="checkResults" aria-live="polite"></div><small>Each check takes 3 seconds. No audio is saved. This checks input levels, not every cause of distortion.</small><div class="check-buttons"><button id="checkCancel" disabled>Stop check</button><button id="checkClose">Back</button></div></dialog>
 <dialog id="reviewDialog" aria-labelledby="reviewTitle"><h2 id="reviewTitle">Review chords</h2><p id="reviewCount"></p><h3 id="reviewChord">—</h3><p id="reviewTime"></p><p id="reviewStatus" role="status"></p><div class="review-buttons"><button id="reviewHear">Hear passage</button><button id="reviewStop" disabled>Stop audio</button><button id="reviewEdit">Check / correct</button><button id="reviewPrev">Previous</button><button id="reviewNext">Next</button><button id="reviewClose">Close</button></div><small>Save the correct chord to remove it from this queue. Use Save song to keep your corrections.</small></dialog>
 <dialog id="earDialog" aria-labelledby="earTitle"><h2 id="earTitle">Ear training</h2><p id="earSongName"></p><div class="ear-grid"><label>Skill<select id="earMode"><option value="note">Bass notes</option><option value="interval">Intervals</option><option value="chord">Chord types</option></select></label><label>Passage<select id="earScope"><option value="whole">Whole song</option><option value="loop">Loop / playhead</option></select></label></div><button id="earStart">Start round</button><p id="earStatus" role="status"></p><div class="ear-question"><h3 id="earQuestion">Listen and choose</h3><p id="earDetail"></p><p id="earScore"></p></div><div class="ear-grid"><button id="earReference" disabled>Reference A</button><button id="earReplay" disabled>Replay exercise</button><button id="earSong" disabled>Hear song</button><button id="earStop" disabled>Stop audio</button></div><div id="earAnswers" class="ear-grid" aria-label="Answer choices"></div><p id="earFeedback" aria-live="polite"></p><div class="ear-actions"><button id="earSkip" disabled>Skip</button><button id="earNext" disabled>Next</button><button id="earRetry" disabled>Retry missed</button></div><p id="earHistory"></p><small>Up to 10 questions. Uses the original song key. Exercises play detected notes; Hear song plays the recording. Correct analysis errors before practising.</small><div class="ear-actions"><button id="earClose">Back</button></div></dialog>
@@ -13316,12 +13328,12 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot #textSizeDialog input,html bo
 <div class="study-actions"><button id="studyClose">Close</button></div>
 </dialog>
 <dialog id="loopShareDialog" aria-labelledby="loopShareTitle"><h2 id="loopShareTitle">Share loop</h2><label>Name<input id="loopShareName" maxlength="90"></label><div class="share-grid"><label>From (seconds)<input id="loopShareFrom" type="number" min="0" step="0.001"></label><label>To (seconds)<input id="loopShareTo" type="number" min="0" step="0.001"></label></div><label>Include<select id="loopShareFormat"><option value="pack">Audio + notes + chords</option><option value="wav">Audio only (WAV)</option></select></label><p class="share-help">Original audio, up to 2 minutes. Packs keep available lyrics, speed and key settings. WAV keeps original pitch and speed.</p><p id="loopShareStatus" role="status"></p><div class="share-grid"><button id="loopSharePrepare">Prepare</button><button id="loopShareSend" disabled>Share</button><button id="loopShareSave" disabled>Download</button><button id="openSharedLoop">Import loop</button><button id="loopShareClose">Close</button></div></dialog>
-<dialog id="tvDialog" aria-labelledby="tvTitle"><div id="tvStage"><header><h2 id="tvTitle">TV rehearsal</h2><p id="tvSong"></p><p id="tvContext"></p></header><div id="tvMusic"><div id="tvChord">—</div><p id="tvNext">Next: —</p><p id="tvBass">Bass: —</p><div id="tvWords"></div></div><p id="tvPosition"></p><div class="tv-controls"><button id="tvPlay">Play</button><button id="tvRestart">Restart</button><button id="tvFull">Full screen</button><button id="tvClose">Close</button></div><p id="tvStatus" role="status"></p><details id="tvHelp"><summary>Connect to TV</summary><p>Use the same Wi-Fi network.</p><p><b>Android:</b> Google Home → hold your TV tile → Cast → Cast my screen. Choose this app if offered.</p><p><b>Computer:</b> Chrome menu → Cast, save, and share → Cast. Choose your TV and cast this tab.</p><p>Return here, then select Full screen. Stop mirroring in Google Home or Chrome when finished.</p><p id="tvHint">Your TV must support the chosen casting method. Wireless mirroring may add delay.</p><a href="https://support.google.com/chromecast/answer/6059461?hl=en" target="_blank" rel="noopener noreferrer">Android help</a> · <a href="https://support.google.com/chromecast/answer/3228332?hl=en" target="_blank" rel="noopener noreferrer">Chrome help</a></details></div></dialog>
-<dialog id="delayDialog" class="rc178-dialog" aria-labelledby="delayTitle"><h2 id="delayTitle">Audio delay</h2><p>Match the display to your headphones.</p><output id="delayNote" class="delay-note">—</output><label for="displayDelay">Display delay: <strong id="delayValue">0 ms</strong></label><input id="displayDelay" type="range" min="0" max="2000" step="25" value="0"><div class="r178-grid"><button id="delayLess">−25 ms</button><button id="delayMore">+25 ms</button><button id="delayPlay">Play</button><button id="delayEstimate">Estimate</button><button id="delayReset">Reset</button><button id="delayClose">Close</button></div><p id="delayStatus" role="status">Increase if notes change before you hear them.</p></dialog>
+
+
 <dialog id="trashDialog" class="rc178-dialog" aria-labelledby="trashTitle"><h2 id="trashTitle">Recently deleted</h2><p>Removed in this browser. Keep file backups too.</p><p id="trashStatus" role="status"></p><div id="trashRows"></div><button id="trashClose">Close</button></dialog>
 <dialog id="patternDialog" class="rc178-dialog" aria-labelledby="patternTitle"><h2 id="patternTitle">Scales &amp; arpeggios</h2><label for="patternChord">Song chord</label><select id="patternChord"></select><div class="r178-grid"><label>Root<select id="patternRoot"></select></label><label>Chord<select id="patternQuality"></select></label><label>Bass<select id="patternStrings"><option value="4">4 strings</option><option value="5">5 strings</option><option value="6">6 strings</option></select></label><label>First fret<select id="patternFret"><option value="0">Open position</option><option value="1">Fret 1</option><option value="2">Fret 2</option><option value="3" selected>Fret 3</option><option value="4">Fret 4</option><option value="5">Fret 5</option><option value="6">Fret 6</option><option value="7">Fret 7</option><option value="8">Fret 8</option><option value="9">Fret 9</option><option value="10">Fret 10</option><option value="11">Fret 11</option><option value="12">Fret 12</option><option value="13">Fret 13</option><option value="14">Fret 14</option><option value="15">Fret 15</option><option value="16">Fret 16</option><option value="17">Fret 17</option><option value="18">Fret 18</option><option value="19">Fret 19</option><option value="20">Fret 20</option></select></label></div><label for="patternType">Pattern</label><select id="patternType"><option value="arpeggio">Arpeggio</option><option value="scale">Scale</option></select><label id="patternScaleRow" hidden>Scale<select id="patternScale"></select></label><div id="patternTab" tabindex="0" aria-label="Bass tablature, read left to right"></div><p id="patternStatus" role="status"></p><div class="r178-grid"><button id="patternRefresh">Current chord</button><button id="patternClose">Close</button></div></dialog>
-<dialog id="mediaImportDialog" class="rc178-dialog" aria-labelledby="mediaImportTitle"><h2 id="mediaImportTitle">Import media</h2><p id="mediaImportState" role="status">Opening audio…</p><p>Video imports use the audio track.</p><button id="mediaImportCancel" type="button">Cancel</button></dialog><dialog id="audioLinkDialog" aria-labelledby="audioLinkTitle"><h2 id="audioLinkTitle">Online media</h2><label>Audio or video link<input id="audioLinkURL" type="url" placeholder="https://example.com/song.mp3" autocomplete="off" spellcheck="false"></label><p id="audioLinkStatus" role="status">Paste a direct audio or video download link.</p><small>The website must allow access. Video imports keep the audio. Streaming pages are not supported.</small><div class="link-buttons"><button id="audioLinkLoad" type="button">Load media</button><button id="audioLinkCancel" type="button">Cancel</button><button id="audioLinkClose" type="button">Close</button></div></dialog>
-<dialog id="rhythmDialog" aria-labelledby="rhythmTitle"><h2 id="rhythmTitle">Rhythm / practice</h2><p id="rhythmStatus" role="status">Extract drums from a short song loop.</p><div class="rhythm-options"><label>From (seconds)<input id="rhythmFrom" type="number" min="0" step="0.01"></label><label>To (seconds)<input id="rhythmTo" type="number" min="0" step="0.01"></label></div><div class="rhythm-buttons"><button id="rhythmSnap">Align to beats</button><button id="rhythmExtract">Extract drums</button><button id="rhythmCancel">Cancel</button><button id="rhythmSave">Save MP3</button><button id="rhythmWav">Save WAV</button></div><audio id="rhythmPlayer" controls loop hidden></audio><small>Up to 30 seconds. First use downloads the model. Some instrument bleed may remain. WAV is best for seamless loops.</small><p><label>Or import a drum loop<input id="rhythmImport" type="file" accept="audio/*"></label></p><h3>Voice commands</h3><button id="voiceCommand">Speak command</button><small>Your browser may send speech to its recognition service.</small><p id="commandStatus" role="status">Play · Pause · Repeat the chorus</p><button id="rhythmClose">Close</button></dialog>
+<dialog id="mediaImportDialog" class="rc178-dialog" aria-labelledby="mediaImportTitle"><h2 id="mediaImportTitle">Import media</h2><p id="mediaImportState" role="status">Opening audio…</p><p>Video imports use the audio track.</p><button id="mediaImportCancel" type="button">Cancel</button></dialog>
+<dialog id="rhythmDialog" aria-labelledby="rhythmTitle"><h2 id="rhythmTitle">Rhythm / practice</h2><p id="rhythmStatus" role="status">Extract drums from a short song loop.</p><div class="rhythm-options"><label>From (seconds)<input id="rhythmFrom" type="number" min="0" step="0.01"></label><label>To (seconds)<input id="rhythmTo" type="number" min="0" step="0.01"></label></div><div class="rhythm-buttons"><button id="rhythmSnap">Align to beats</button><button id="rhythmExtract">Extract drums</button><button id="rhythmCancel">Cancel</button><button id="rhythmSave">Save MP3</button><button id="rhythmWav">Save WAV</button></div><audio id="rhythmPlayer" controls loop hidden></audio><small>Up to 30 seconds. First use downloads the model. Some instrument bleed may remain. WAV is best for seamless loops.</small><p><label>Or import a drum loop<input id="rhythmImport" type="file" accept="audio/*"></label></p><button id="rhythmClose">Close</button></dialog>
 <dialog id="ideasDialog" aria-labelledby="ideasTitle">
  <h2 id="ideasTitle">Musical ideas</h2>
  <p id="ideasStatus" role="status">Import and analyse a song.</p>
@@ -13595,7 +13607,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot #textSizeDialog input,html bo
     });
   }
   let origGain, bassGain, analyser, masterGain, mainDryGain, mainPracticeGain, practiceBassCutFilter, pitchDryGain, pitchWetGain, pitchBus, pitchShift, sourceBus, bassCancelGain, mainSourceGain, noBassSourceGain, bassStemSourceGain, bassPitchDryGain, bassPitchWetGain, bassPitchBus, bassPitchShift;
-  let outputBoost, outputGuard, outputHeadroom, loopFadeGain;
+  let loopFadeGain;
   let hpFilter, lpFilter, boostFilter, compressor, splitter, merger, centreGainL, centreGainR;
   let notes=[], raf=0, objectName='', lastNoteMidi=null, noteStart=0, lastDetectedAt=0;
   let numberingConvention='key';
@@ -14857,11 +14869,10 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot #textSizeDialog input,html bo
     centreGainL.connect(hpFilter);
     centreGainR.connect(hpFilter);
     hpFilter.connect(lpFilter).connect(boostFilter).connect(compressor).connect(analyser);
-    outputBoost=ctx.createGain();outputGuard=ctx.createDynamicsCompressor();outputHeadroom=ctx.createGain();
-    outputGuard.threshold.value=-6;outputGuard.knee.value=6;outputGuard.ratio.value=20;outputGuard.attack.value=.003;outputGuard.release.value=.15;outputHeadroom.gain.value=.89;
-    outputBoost.gain.value=Math.pow(10,Number(document.getElementById('safeLoudness').value)/20);
     loopFadeGain=ctx.createGain();window.BassLoopFade.attach(ctx,loopFadeGain);
-    masterGain.connect(loopFadeGain).connect(outputBoost).connect(outputGuard).connect(outputHeadroom).connect(ctx.destination);
+    masterGain.connect(loopFadeGain);
+    window.BassAutoLevel.attach(ctx,loopFadeGain,ctx.destination);
+
 
     graphReady=true;
     updateAudioParams();
@@ -18597,19 +18608,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot #textSizeDialog input,html bo
     encode:async(b,a=0,z=null)=>encodeAudioBufferForAnalysis(b,192,a,z),
     extract:(from,to,progress,cancelled)=>separatePracticeStem(from,to,progress,cancelled,0),
     applyRange:(a,b)=>{selectedTimeframes.clear();selectedSections.clear();multiSectionMode=false;timeframeLoopMode=false;sectionQueue=[];timeframeQueue=[];loopStart=a;loopEnd=b;loopEnabled=true;refreshTimeframeSelectionUI();refreshSectionUI();updateLoopUI();},
-    command:text=>{
-      const t=text.toLowerCase().replace(/[.!?]/g,'').trim();
-      if(/^(stop|pause)( music| playback)?$/.test(t)){pause();return 'Paused.';}
-      if(/^(play|resume)( music| playback)?$/.test(t)){if(!buffer)return 'Import a song first.';play();return 'Playing.';}
-      if(/^(repeat|loop)( the)? chorus$/.test(t)){
-        const entries=Object.entries(sections).filter(([name,s])=>/chorus/i.test(name)&&Number.isFinite(s.start)&&Number.isFinite(s.end)&&s.start>=0&&s.end>s.start&&s.end<=(buffer?.duration||0));
-        if(!entries.length)return 'Set the chorus start and end first.';
-        const found=entries.find(([,s])=>s.end>currentTime())||entries[0],s=found[1];
-        selectedTimeframes.clear();selectedSections.clear();multiSectionMode=false;timeframeLoopMode=false;sectionQueue=[];timeframeQueue=[];
-        loopStart=s.start;loopEnd=s.end;loopEnabled=true;updateLoopUI();seekTo(s.start);play();return 'Repeating '+found[0]+'.';
-      }
-      return 'Try: play, pause, repeat the chorus.';
-    }
+
   });
 
   function studySong(){const t=currentTime(),start=loopEnabled&&loopStart!==null?loopStart:t,end=loopEnabled&&loopEnd!==null?loopEnd:Math.min(buffer?.duration||0,t+8);return {playhead:t,loaded:!!buffer,id:(activeAudioFile?.name||objectName||'empty')+':'+(activeAudioFile?.size||0)+':'+(buffer?.duration||0),session:songSession,title:loadedProjectName||objectName||'Song',key:currentScaleContext?.scaleText||'',root:currentScaleContext?.rootPc??null,mode:currentScaleContext?.mode||'',bpm:currentTempoBpm(),duration:buffer?.duration||0,notes,transpose:transposeSemitones,beats:detectedBeatTimes,meter:detectedBeatsPerBar,start,end,speed:Number(tempo.value),strings:bassViewStringCount,chords:detectedChordChanges.filter(reliableChord).map(c=>({...c,label:chordDisplayLabel(c)})),sections:Object.entries(sections).map(([name,s])=>({name,...s}))};}
@@ -18622,10 +18621,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot #textSizeDialog input,html bo
   });
 
   window.BassLoopShare.init({busy:()=>songImportBusy||aiBusy||projectSaveBusy,base64:arrayBufferToBase64,import:()=>chooseImportFile('project'),get:()=>({buffer,session:songSession,title:loadedProjectName||objectName||'Song',start:loopStart??currentTime(),end:loopEnd??Math.min(buffer?.duration||0,currentTime()+8),notes:notes.map(n=>({...n})),chords:detectedChordChanges.map(c=>({...c})),lyrics:window.BassLyrics.exportData(),beats:detectedBeatTimes.slice(),meter:detectedBeatsPerBar,phase:detectedDownbeatPhase,bpm:currentTempoBpm(),scale:detectedScaleContext?.scaleText||'',speed:Number(tempo.value),transpose:transposeSemitones,view:practiceVisualMode,displayMode:noteDisplayMode,numberingConvention})});
-  window.BassTV.init({toggle:()=>{if(playing)pause();else if(buffer)void play();},restart:()=>{if(buffer)seekTo(loopEnabled?loopStart??0:0);},get:()=>{const t=displayTime(),c=detectedChordChanges.find(c=>c.start<=t&&c.end>t),next=detectedChordChanges.find(c=>c.start>t+.001&&(!loopEnabled||c.start<loopEnd))||(loopEnabled?detectedChordChanges.find(c=>c.start<=loopStart&&c.end>loopStart):null),n=notes.filter(n=>n.start<=t&&n.end>t).map(n=>midiName(practiceDisplayMidi(n.midi)));return {loaded:!!buffer,title:loadedProjectName||objectName||'',key:currentScaleContext?.scaleText||'',bpm:currentTempoBpm(),speed:Number(tempo.value),time:t,playing,chord:c?chordDisplayLabel(c):'',next:next?chordDisplayLabel(next):'',bass:[...new Set(n)].join(' · '),words:window.BassLyrics.exportData(),position:fmt(t)+' / '+fmt(buffer?.duration||0)};}});
-
-  function displayTime(){return Math.min(buffer?.duration||0,Math.max(0,window.BassDisplayClock.time(currentTime(),playing,Number(tempo.value)/100,songSession)));}
-  window.BassDisplayClock.init({get:()=>({time:currentTime(),playing,rate:Number(tempo.value)/100,session:songSession,loaded:!!buffer,label:()=>{const t=displayTime(),c=detectedChordChanges.find(c=>c.start<=t&&c.end>t);return c?chordDisplayLabel(c):notes.filter(n=>n.start<=t&&n.end>t).map(n=>midiName(practiceDisplayMidi(n.midi))).join(' · ')||'—';}}),toggle:()=>{if(playing)pause();else if(buffer)void play();},refresh:drawAll,estimate:async()=>{ensureCtx();await ctx.resume();return Number.isFinite(ctx.outputLatency)&&ctx.outputLatency>0?Math.round(((ctx.baseLatency||0)+ctx.outputLatency)*1000):null;}});
+  function displayTime(){return currentTime();}
   const trashIdentityCache=new WeakMap();
   async function trashIdentity(){const file=activeAudioFile;if(!file)throw Error('Open the original song first.');if(!trashIdentityCache.has(file))trashIdentityCache.set(file,(async()=>{const hash=await structureAudioIdentity(file);if(hash)return hash;const bytes=new Uint8Array(await file.arrayBuffer());let a=2166136261,b=5381;for(const n of bytes){a=Math.imul(a^n,16777619);b=Math.imul(b,33)^n;}return bytes.length+':'+(a>>>0)+':'+(b>>>0);})());return trashIdentityCache.get(file);}
   async function archiveAnalysis(){const session=songSession,state=analysisSnapshot('Before deletion'),title=loadedProjectName||objectName||'Song',identity=await trashIdentity();assertSongSession(session);await BassTrash.add('analysis',title+' · analysis',{identity,state});assertSongSession(session);}
@@ -18638,7 +18634,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot #textSizeDialog input,html bo
   window.BassSoundCheck.init({pause:()=>{pause();document.getElementById('liveReplay').pause();},busy:()=>!document.getElementById('liveStop').disabled});
   window.BassChordReview.init({get:()=>({buffer,session:songSession,busy:aiBusy||songImportBusy,rows:detectedChordChanges.filter(c=>Number.isFinite(c.start)&&Number.isFinite(c.end)&&c.end>c.start&&!c.manual&&(c.uncertain||!reliableChord(c))).map(c=>({item:c,start:c.start,end:c.end,label:chordDisplayLabel(c)}))}),pause,edit:item=>openAnalysisEditor('chord',item)});
   window.BassEar.init({get:()=>({buffer,session:songSession,title:loadedProjectName||objectName||'',duration:buffer?.duration||0,notes,chords:detectedChordChanges.filter(reliableChord),start:loopEnabled&&loopStart!==null?loopStart:currentTime(),end:loopEnabled&&loopEnd!==null?loopEnd:Math.min(buffer?.duration||0,currentTime()+8)}),pause,prepare:()=>{window.BassTools?.stopPlan();pause();},busy:()=>songImportBusy||aiBusy||document.getElementById('openLiveAudio').textContent!=='Live audio'});
-  window.BassAudioLink.init({load:file=>loadAudioFile(file),isBusy:()=>aiBusy||songImportBusy,session:()=>songSession});
+
   window.BassLiveAudio.init({exportMP3:async blob=>{const c=new AudioContext({sampleRate:44100});try{return await encodeAudioBufferForAnalysis(await c.decodeAudioData(await blob.arrayBuffer()),192);}finally{await c.close();}},loadRecording:file=>loadAudioFile(file),pausePlayer:pause,isBusy:()=>aiBusy||songImportBusy});
   window.BassIdeas.init({pause,vocal:(a,b,p,c)=>separatePracticeStem(a,b,p,c,3),get:scope=>{
     const t=currentTime(),section=sections[currentSectionName(t)];
@@ -18646,7 +18642,6 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot #textSizeDialog input,html bo
     const end=Math.min(buffer?.duration||0,start+30,scope==='section'&&section?section.end:Infinity);
     return {loaded:!!buffer,session:songSession,transpose:transposeSemitones,start,end,chords:detectedChordChanges.filter(reliableChord).map(c=>({...c,rootPc:((c.rootPc+transposeSemitones)%12+12)%12,bassPc:c.bassPc==null?null:((c.bassPc+transposeSemitones)%12+12)%12}))};
   }});
-  document.getElementById('safeLoudness').onchange=e=>{if(outputBoost)outputBoost.gain.setTargetAtTime(Math.pow(10,Number(e.target.value)/20),ctx.currentTime,.05);};
   window.BassLyrics.init({get:()=>({buffer,session:songSession,time:displayTime(),live:document.getElementById('openLiveAudio').textContent!=='Live audio',chords:detectedChordChanges.filter(reliableChord).map(c=>({...c,label:chordDisplayLabel(c)}))}),pause,play,seek:seekTo,changed:updateProjectButtons});
   setPracticeVisualMode('timeline');
   rebuildNoteSidebar();
@@ -19888,6 +19883,12 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
+
+<script id="rc186-layout">
+(()=>{const play=document.getElementById('playBtn'),root=document.getElementById('appRoot');
+const size=()=>{const r=play.getBoundingClientRect();if(r.width&&r.height){root.style.setProperty('--transport-card-width',r.width+'px');root.style.setProperty('--transport-card-height',r.height+'px');}};
+new ResizeObserver(size).observe(play);size();})();
+</script>
 <script id="ux181">
 /* RC181: explicit shortcuts; no automatic changes to the musician's work. */
 (() => {
@@ -19921,11 +19922,11 @@ if ('serviceWorker' in navigator) {
  font.addEventListener('change',syncFontChoice);syncFontChoice();
  // Tap tempo and use the current song's detected tempo, with validation.
  for(const id of ['coachBpm','compareBpm']){
-  const input=$(id),r=row(input.closest('label')||input);let taps=[];
+  const input=$(id),label=input.closest('label'),r=document.createElement('div');r.className='tempo-shortcuts';label.before(r);r.append(label);let taps=[];
   const detected=button('Use song tempo',()=>{const bpm=song()?.bpm;if(Number.isFinite(bpm)&&bpm>=40&&bpm<=240)set(id,Math.round(bpm));});
   const tap=button('Tap tempo',()=>{const now=performance.now();if(taps.length&&now-taps[taps.length-1]>2000)taps=[];taps.push(now);taps=taps.slice(-6);if(taps.length>=2){const bpm=Math.round(60000*(taps.length-1)/(taps[taps.length-1]-taps[0]));if(bpm>=40&&bpm<=240){set(id,bpm);tap.textContent=`Tap: ${bpm} BPM`;}}});
   const sync=()=>{const bpm=song()?.bpm;detected.disabled=!(Number.isFinite(bpm)&&bpm>=40&&bpm<=240);};
-  input.closest('dialog')?.addEventListener('toggle',sync);sync();r.append(detected,tap);
+  input.closest('dialog')?.addEventListener('toggle',sync);sync();detected.className='tempo-detected';tap.className='tempo-tap';r.append(detected,tap);
  }
  // Use the selected passage or named sections in both loop tools.
  for(const [dialogId,from,to,max] of [['rhythmDialog','rhythmFrom','rhythmTo',30],['loopShareDialog','loopShareFrom','loopShareTo',120]]){

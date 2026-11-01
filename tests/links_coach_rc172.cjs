@@ -1,13 +1,12 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert'),path=require('path');
 const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8'),ctx={window:{},Blob,File,URL,Float32Array,Float64Array,setTimeout};vm.createContext(ctx);
-for(const id of ['rc172-dsp','rc172-link','rc170-ideas'])vm.runInContext(html.match(new RegExp('<script id="'+id+'">([\\s\\S]*?)</script>'))[1],ctx);
+for(const id of ['rc172-dsp','rc170-ideas'])vm.runInContext(html.match(new RegExp('<script id="'+id+'">([\\s\\S]*?)</script>'))[1],ctx);
 const dsp=ctx.window.BassPracticeDSP;
 for(const sr of [22050,44100,48000])for(const hz of [41.2034,65.4064,110,220,440,880])for(const cents of [-20,0,20]){const actual=hz*2**(cents/1200),x=new Float32Array(Math.round(sr*.19));for(let i=0;i<x.length;i++)x[i]=.2*Math.sin(2*Math.PI*actual*i/sr)+.07*Math.sin(4*Math.PI*actual*i/sr);const p=dsp.pitch(x,sr);assert(p,'pitch exists '+sr+' '+hz);assert(Math.abs(1200*Math.log2(p.hz/actual))<5,'frequency accurate '+sr+' '+hz);}
 assert.equal(dsp.pitch(new Float32Array(4096),22050),null);const clipped=new Float32Array(4096).fill(1);assert.equal(dsp.pitch(clipped,22050),null);
 assert.deepEqual(JSON.parse(JSON.stringify(dsp.snapRange(.91,2.12,[0,.5,1,1.5,2,2.5,3],3))),{start:1,end:2});assert.throws(()=>dsp.snapRange(0,1,[],5));assert.equal(Math.round(dsp.timing(2.53,2,120).ms),30);assert.equal(dsp.timing(1,2,120),null);assert.equal(Math.round(dsp.timing(2.53,2,120,.03).ms),0);
-const link=ctx.window.BassAudioLink;assert.equal(link.parse('https://example.org/song.mp3').hostname,'example.org');for(const u of ['javascript:alert(1)','http://example.com/a.mp3','https://user:pass@example.com/a.mp3','https://youtube.com/watch?v=1'])assert.throws(()=>link.parse(u));
 const ideas=ctx.window.BassIdeas,cs=[{rootPc:0,quality:'maj',start:0,end:2}];assert.equal(ideas.generate(cs,'jazz',false)[0].chord.quality,'maj7');assert.equal(ideas.generate(cs,'jazz',false,[{start:0,end:2,midi:72}])[0].chord.quality,'maj7');assert.equal(ideas.generate(cs,'jazz',false,[{start:0,end:2,midi:70}])[0].chord.quality,'maj');assert.equal(cs[0].quality,'maj');
-console.log('PASS: 54 tuning cases across three sample rates; silence/clipping; beat snapping; timing/delay; unsafe and streaming-page URLs; melody clash rejection; original preservation.');
+console.log('PASS: 54 tuning cases across three sample rates; silence/clipping; beat snapping; timing/delay; melody clash rejection; original preservation.');
 const coach=html.match(/<script id="rc172-coach">([\s\S]*?)<\/script>/)[1],worklet=coach.match(/const worklet=`([\s\S]*?)`;/)[1];
 const messages=[],wc={sampleRate:22050,currentFrame:0,Float32Array,AudioWorkletProcessor:class{constructor(){this.port={postMessage:x=>messages.push(x)};}},registerProcessor:(_,C)=>wc.C=C};vm.createContext(wc);vm.runInContext(worklet,wc);const processor=new wc.C();
 for(let frame=0;frame<22050*3;frame+=128){wc.currentFrame=frame;const a=new Float32Array(128);for(let i=0;i<a.length;i++){const t=(frame+i)/22050;if(t%.5<.2)a[i]=.2*Math.sin(2*Math.PI*220*t);}processor.process([[a]]);}
