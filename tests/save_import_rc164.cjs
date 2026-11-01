@@ -14,6 +14,8 @@ const saved=JSON.parse(await downloaded.text());assert.deepEqual(saved.analysis.
 
 const lyricFixture=[{text:'Sing',start:1,end:2,chord:'C'}];c.window.BassLyrics={exportData:()=>lyricFixture};c.notes=[];c.offlineAnalysisReady=false;c.structureBusy=false;downloaded=null;
 await c.saveBassStudioProject();const lyricProject=JSON.parse(await downloaded.text());assert.deepEqual(lyricProject.analysis.lyrics,lyricFixture);assert.deepEqual(lyricProject.analysis.notes,[]);
+c.window.BassLyrics={exportData:()=>[]};downloaded=null;
+await c.saveBassStudioProject();const sectionProject=JSON.parse(await downloaded.text());assert.deepEqual(sectionProject.analysis.structure,c.songStructure);assert.equal(sectionProject.analysis.notes.length,0);
 let picks=[],audio=0,project=0,fallback=0;
 Object.assign(c,{fileInput:{click(){fallback++}},projectFileInput:{click(){fallback++}},loadAudioFile:async()=>audio++,importBassStudioProject:async()=>project++});
 c.window.BassMedia={picker:[{description:'Audio and video',accept:{'audio/*':['.mp3','.m4a','.caf'],'video/*':['.mov','.mp4']}}]};

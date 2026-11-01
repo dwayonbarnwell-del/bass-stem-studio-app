@@ -1,10 +1,10 @@
 window.BassPracticeDSP=(()=>{
  const pc=n=>((n%12)+12)%12,names=['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B'];
- function pitch(input,sampleRate){
+ function pitch(input,sampleRate,minHz=35){
   const stride=Math.max(1,Math.floor(sampleRate/11025)),sr=sampleRate/stride,n=Math.floor(input.length/stride),x=new Float32Array(n);let mean=0,power=0,peak=0;
   for(let i=0;i<n;i++){x[i]=input[i*stride];mean+=x[i];peak=Math.max(peak,Math.abs(x[i]));}mean/=n;
   for(let i=0;i<n;i++){x[i]-=mean;power+=x[i]*x[i];}if(Math.sqrt(power/n)<.004||peak>.99)return null;
-  const min=Math.floor(sr/1100),max=Math.min(Math.ceil(sr/35),Math.floor(n/2)),size=n-max,d=new Float64Array(max+1);let sum=0;d[0]=1;
+  const min=Math.floor(sr/1100),max=Math.min(Math.ceil(sr/minHz),Math.floor(n/2)),size=n-max,d=new Float64Array(max+1);let sum=0;d[0]=1;
   for(let lag=1;lag<=max;lag++){let value=0;for(let i=0;i<size;i++){const v=x[i]-x[i+lag];value+=v*v;}sum+=value;d[lag]=sum?value*lag/sum:1;}
   let tau=0;for(let lag=min;lag<max;lag++)if(d[lag]<.12){while(lag+1<=max&&d[lag+1]<d[lag])lag++;tau=lag;break;}
   if(!tau||d[tau]>.15)return null;

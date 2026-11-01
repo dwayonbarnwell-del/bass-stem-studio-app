@@ -1,0 +1,9 @@
+Bass Stem Studio RC183
+
+Adds per-recording section-job recovery, retained section corrections, editable section names, section/note-phrase search, local recording-to-song feedback and review-based practice suggestions. Adds Quick/Detailed selection using the existing backend modes, with Detailed as default and no automatic job on selection.
+
+Existing controls and save formats retained. New controls sit inside Repeat, Compare and Analysis options.
+
+Checks: targeted Node regression suites and 19 isolated browser checks. Synthetic audio only; live GPU accuracy, real microphones and physical devices remain unverified. See AI_FEATURE_PROGRESS.md for the full agreed scope and remaining work.
+
+Deployment status is recorded in Render.

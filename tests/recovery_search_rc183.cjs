@@ -1,0 +1,34 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
+const html=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8');
+function fn(name){const m=new RegExp('  (?:async )?function '+name+'\\(').exec(html);assert(m,name);return html.slice(m.index,html.indexOf('\n  }',m.index)+4);}
+const c={window:{},console};vm.createContext(c);vm.runInContext(html.match(/<script id="rc173-core">([\s\S]*?)<\/script>/)[1],c);
+const core=c.window.BassStudyCore;
+const index=core.searchIndex({settings:{sections:{'Second chorus':{}}},analysis:{notes:[{midi:43,start:2},{midi:36,start:0},{midi:39,start:1}],structure:{segments:[{name:'Bridge'}]}}});
+const song={title:'Evening song',key:'Eb major',bpm:92,searchIndex:index};
+for(const q of ['bridge','second chorus','evening 92','C Eb G','C2 D#2 G2','C E♭ G'])assert(core.matchesSong(song,q),q);
+for(const q of ['120','C E G','G Eb C','C3 Eb3 G3','chorus 120'])assert(!core.matchesSong(song,q),q);
+assert(core.matchesSong(song,''));assert(!core.matchesSong({title:'Other'},'C D E'));
+const store=new Map();Object.assign(c,{activeAudioFile:{name:'same.wav'},structureAudioId:'audio-a',STRUCTURE_PENDING_KEY:'legacy',STRUCTURE_PENDING_LIST_KEY:'jobs',localStorage:{getItem:k=>store.get(k),setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)},cloudFileSignature:()=> 'same-name-size-date'});
+for(const n of ['storedStructureJobs','pendingStructureJob','storeStructureJob','matchesStructureJob'])vm.runInContext(fn(n),c);
+store.set('legacy',JSON.stringify({id:'a',audioId:'audio-a',signature:'same-name-size-date'}));
+assert.equal(c.pendingStructureJob().id,'a');
+c.storeStructureJob({id:'b',audioId:'audio-b',signature:'same-name-size-date'});
+assert.equal(c.storedStructureJobs().length,2);assert(!store.has('legacy'));
+assert.equal(c.pendingStructureJob().id,'a');c.structureAudioId='audio-b';assert.equal(c.pendingStructureJob().id,'b');
+c.storeStructureJob(null,'a');assert.equal(c.pendingStructureJob().id,'b');assert.equal(c.storedStructureJobs().length,1);
+c.structureAudioId='audio-c';assert.equal(c.pendingStructureJob(),null,'same filename must not reuse different audio');
+c.storeStructureJob(null,'b');assert.equal(c.storedStructureJobs().length,0);
+store.set('jobs','broken JSON');assert.equal(c.pendingStructureJob(),null);
+Object.assign(c,{buffer:{duration:10},sections:{Verse:{start:0,end:5},Chorus:{start:5,end:10}},repeatRangeOverrides:new Map(),selectedSections:new Set(),selectedSection:'Verse',renderSectionControls:()=>{},renderRepeatChooser:()=>{}});
+vm.runInContext(fn('restoreCachedSectionChoices'),c);
+c.restoreCachedSectionChoices({ranges:{Verse:{start:1,end:4},Chorus:{},Fake:{start:0,end:10}},repeatRanges:{Verse:{start:2,end:3},Chorus:{start:-1,end:10}},selected:['Verse','Fake'],selectedSection:'Verse'});
+assert.equal(c.sections.Verse.start,1);assert.equal(Object.keys(c.sections.Chorus).length,0);assert(!c.sections.Fake);assert.equal(c.repeatRangeOverrides.get('Verse').start,2);assert(!c.repeatRangeOverrides.has('Chorus'));assert.equal(c.selectedSections.size,1);
+console.log('PASS: section/text/ordered-note search, enharmonic and octave matching; legacy job migration, multi-song job recovery, exact audio identity and scoped completion; edited/cleared ranges and selections restored safely.');
+// A queued job must keep its selected mode when the dropdown changes.
+Object.assign(c,{$:()=>({value:'fast'}),buildAnalysisPartPlan:()=>[]});
+vm.runInContext(fn('makePendingPartGroup'),c);
+const pending=c.makePendingPartGroup({name:'audio.wav'},'sig');assert.equal(pending.quality,'fast');
+c.$=()=>({value:'accuracy'});assert.equal(pending.quality,'fast');assert.equal(c.makePendingPartGroup({name:'audio.wav'},'sig').quality,'accuracy');
+Object.assign(c,{RUNPOD_ENDPOINT:"test",songSession:1,assertSongSession:()=>{},cacheAudioForRecovery:async()=>{},aiStatus:()=>{},prepareAnalysisPartUpload:async()=>({file:{name:'part.mp3'},bitrate:192}),fileToBase64:async()=>'',savePendingRunPodJob:()=>{},runPodFetch:async(url,key,o)=>{c.sentQuality=JSON.parse(o.body).input.quality;return {id:'job',status:'IN_QUEUE'};}});
+vm.runInContext(fn('submitPendingAnalysisParts'),c);
+(async()=>{for(const [quality,expected] of [['fast','fast'],[undefined,'accuracy'],['bad','accuracy']]){await c.submitPendingAnalysisParts({quality,parts:[{label:'P1'}]},'test',{},1);assert.equal(c.sentQuality,expected);}console.log('PASS: Quick/Detailed mode snapshots and legacy-job request compatibility.');})().catch(e=>{console.error(e);process.exitCode=1;});

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bass Stem Studio RC182</title>
+<title>Bass Stem Studio RC183</title>
 <script>
 /* RC119: initialise the correct physical-device font before the first paint.
    This deliberately does not rely on viewport width alone, because Chrome's
@@ -12163,12 +12163,101 @@ window.BassAwake=(()=>{let api,lock=null,pending=false,blocked=false,wasActive=f
   if(!aligned.length)content='<table><thead><tr><th>Time</th><th>Chord</th></tr></thead><tbody>'+chords.map(c=>'<tr><td>'+esc(c.start.toFixed(2))+' s</td><td>'+esc(c.label)+'</td></tr>').join('')+'</tbody></table>';
   return '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(song.title)+' · Song sheet</title><style>@page{size:A4;margin:16mm}body{font:16px Arial,sans-serif;color:#172331;background:white;max-width:900px;margin:24px auto;padding:16px}h1,h2{text-align:center;padding:10px;line-height:1.3}h1{font-size:26px}h2{font-size:19px;margin:20px 0 6px}.meta{text-align:center;color:#455467}.line{display:flex;flex-wrap:wrap;gap:5px 10px;line-height:1.4;break-inside:avoid;margin:12px 0}.word{display:inline-flex;flex-direction:column;justify-content:flex-end;max-width:100%;overflow-wrap:anywhere}.word strong{min-height:1.4em;font-size:14px;color:#174e73}button{padding:12px 18px;margin:8px;border:1px solid #456;border-radius:8px;background:#e5edf2;font:inherit}table{border-collapse:collapse;width:100%}td,th{padding:8px;border-bottom:1px solid #bbb;text-align:left}footer{font-size:12px;color:#555;margin-top:25px}@media print{.no-print{display:none}body{margin:0;padding:0;font-size:14pt}h2{break-after:avoid}.word strong{font-size:12pt}}</style><body><div class="no-print"><button onclick="window.print()">Print / Save PDF</button></div><h1>'+esc(song.title)+'</h1><p class="meta">'+esc(song.key||'Key not available')+(song.bpm?' · '+Math.round(song.bpm)+' BPM':'')+'</p>'+content+'<footer>Available lyrics and chord timings. Check corrections before sharing.</footer><\/body></html>';
  }
- return {plans,transition,order,cleanPlan,timing,measure,sheet};
+ function searchIndex(project){
+  const analysis=project?.analysis||{},settings=project?.settings||{};
+  const sections=[...Object.keys(settings.sections||{}),...(analysis.structure?.segments||[]).map(s=>s.name)].filter(n=>typeof n==='string');
+  const pitches=(Array.isArray(analysis.notes)?analysis.notes:[]).filter(n=>Number.isInteger(n?.midi)&&Number.isFinite(n.start)).sort((a,b)=>a.start-b.start).map(n=>n.midi);
+  return {version:1,sections:[...new Set(sections)],pitches};
+ }
+ function matchesSong(song,query){
+  const normalise=v=>String(v||'').toLowerCase().replace(/♯/g,'#').replace(/♭/g,'b').trim();
+  const q=normalise(query);if(!q)return true;
+  const text=normalise([song.title,song.key,song.bpm?Math.round(song.bpm):'',...(song.searchIndex?.sections||[])].join(' '));
+  const textMatch=q.split(/\s+/).every(word=>text.includes(word));
+  const tokens=q.split(/[\s,]+/),names={c:0,d:2,e:4,f:5,g:7,a:9,b:11};
+  if(tokens.length<2)return textMatch;
+  const phrase=tokens.map(token=>{const m=/^([a-g])([#b]?)(-?\d)?$/.exec(token);if(!m)return null;const pitch=names[m[1]]+(m[2]==='#'?1:m[2]==='b'?-1:0);return {pc:pc(pitch),midi:m[3]===undefined?null:(Number(m[3])+1)*12+pitch};});
+  if(phrase.some(p=>!p))return textMatch;
+  const notes=song.searchIndex?.pitches||[];
+  for(let i=0;i<=notes.length-phrase.length;i++)if(phrase.every((p,j)=>p.midi===null?pc(notes[i+j])===p.pc:notes[i+j]===p.midi))return true;
+  return false;
+ }
+ return {plans,transition,order,cleanPlan,timing,measure,sheet,searchIndex,matchesSong};
 })();
 </script><script id="rc173-store">window.BassStudyStore=(()=>{let pending;function db(){return pending ||= new Promise((resolve,reject)=>{const r=indexedDB.open('BassStudioStudyV1',1);r.onupgradeneeded=()=>r.result.createObjectStore('items');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});}async function tx(mode,fn){const d=await db();return new Promise((resolve,reject)=>{const t=d.transaction('items',mode);let result;try{fn(t.objectStore('items'),v=>result=v);}catch(e){try{t.abort();}catch{}reject(e);return;}t.oncomplete=()=>resolve(result);t.onerror=()=>reject(t.error);t.onabort=()=>reject(t.error||Error('Storage changed. Reopen this panel.'));});}return {get:key=>tx('readonly',(s,done)=>{const r=s.get(key);r.onsuccess=()=>done(r.result);}),all:()=>tx('readonly',(s,done)=>{const r=s.getAll();r.onsuccess=()=>done(r.result);}),put:(key,value)=>tx('readwrite',s=>s.put(value,key)),remove:key=>tx('readwrite',s=>s.delete(key))};})();
+</script><script id="rc183-feedback">window.BassFeedback=(()=>{
+ function score(reference,played,tolerance=.3){
+  const clean=rows=>rows.filter(n=>Number.isInteger(n.midi)&&Number.isFinite(n.start)&&Number.isFinite(n.end)&&n.end>n.start).slice().sort((a,b)=>a.start-b.start);
+  const a=clean(reference),b=clean(played);if(!a.length||!b.length)throw Error('Not enough clear notes to compare. Use a solo bass recording.');
+  if(a.length>1500||b.length>1500)throw Error('Choose a shorter passage.');
+  const width=b.length+1,trace=new Uint8Array((a.length+1)*width);let prev=Float32Array.from({length:width},(_,j)=>j),next=new Float32Array(width);
+  for(let j=1;j<width;j++)trace[j]=2;
+  for(let i=1;i<=a.length;i++){
+   next[0]=i;trace[i*width]=1;
+   for(let j=1;j<width;j++){
+    const dt=Math.abs(a[i-1].start-b[j-1].start),pair=dt>tolerance?Infinity:prev[j-1]+(a[i-1].midi===b[j-1].midi?0:1)+dt/tolerance*.5;
+    const missed=prev[j]+1,extra=next[j-1]+1;
+    if(pair<=missed&&pair<=extra){next[j]=pair;trace[i*width+j]=0;}else if(missed<=extra){next[j]=missed;trace[i*width+j]=1;}else{next[j]=extra;trace[i*width+j]=2;}
+   }
+   [prev,next]=[next,prev];
+  }
+  const rows=[];let i=a.length,j=b.length;
+  while(i||j){const direction=trace[i*width+j];if(i&&j&&direction===0){const ref=a[--i],got=b[--j];rows.push({kind:ref.midi===got.midi?'matched':'different',start:ref.start,end:ref.end,expected:ref.midi,played:got.midi,ms:Math.round((got.start-ref.start)*1000)});}else if(i&&(!j||direction===1)){const ref=a[--i];rows.push({kind:'not detected',start:ref.start,end:ref.end,expected:ref.midi});}else{const got=b[--j];rows.push({kind:'extra',start:got.start,end:got.end,played:got.midi});}}
+  rows.reverse();const matched=rows.filter(r=>r.kind==='matched'),errors=matched.map(r=>Math.abs(r.ms)).sort((a,b)=>a-b);
+  return {rows,total:a.length,matched:matched.length,different:rows.filter(r=>r.kind==='different').length,missed:rows.filter(r=>r.kind==='not detected').length,extra:rows.filter(r=>r.kind==='extra').length,timing:errors.length?errors[Math.floor(errors.length/2)]:null};
+ }
+ async function transcribe(buffer,start,length,cancelled=()=>false){
+  if(!Number.isFinite(start+length)||start<0||length<1||length>60||start+length>buffer.duration+.05)throw Error('The selected passage must fit inside the recording.');
+  const sr=22050,off=new OfflineAudioContext(1,Math.ceil(length*sr),sr),src=off.createBufferSource();src.buffer=buffer;src.connect(off.destination);src.start(0,start,length);
+  const rendered=await off.startRendering(),x=rendered.getChannelData(0),out=[];let last=null,candidate=null,count=0;
+  for(let i=0;i+4096<=x.length;i+=441){
+   if(cancelled())throw Error('Cancelled.');
+   const p=BassPracticeDSP.pitch(x.subarray(i,i+4096),sr,28),t=i/sr;
+   if(!p||p.midi<23||p.midi>84){candidate=null;count=0;last=null;}
+   else{
+    if(candidate?.midi===p.midi)count++;else{candidate={midi:p.midi,start:t};count=1;}
+    if(count>=3){if(last&&last.midi===p.midi&&t-last.end<.08)last.end=t+.02;else{last={midi:p.midi,start:candidate.start,end:t+.02};out.push(last);}}
+   }
+   if(i%(441*15)===0)await new Promise(r=>setTimeout(r,0));
+  }
+  return out.filter(n=>n.end-n.start>=.06);
+ }
+ function passages(result,start,duration){
+  const ranges=[];
+  for(const row of result.rows.filter(r=>r.kind!=='matched'||Math.abs(r.ms)>100)){
+   const a=Math.max(0,start+row.start-1),b=Math.min(duration,start+row.end+1),last=ranges.at(-1);
+   if(last&&a<=last.end)last.end=Math.max(last.end,b);else ranges.push({name:'Recording review '+(ranges.length+1),start:a,end:b});
+  }
+  return ranges.slice(0,3);
+ }
+ function reviewPlans(history,duration){
+  const groups=[];
+  for(const entry of (Array.isArray(history)?history:[]).slice(-10)){
+   const seen=new Set();
+   for(const range of Array.isArray(entry.passages)?entry.passages:[]){
+    if(!Number.isFinite(range.start+range.end)||range.start<0||range.end<=range.start||range.end>duration)continue;
+    let group=groups.find(g=>Math.min(g.end,range.end)-Math.max(g.start,range.start)>0);
+    if(!group){group={start:range.start,end:range.end,count:0};groups.push(group);}
+    if(!seen.has(group)){group.count++;seen.add(group);}
+   }
+  }
+  return groups.sort((a,b)=>b.count-a.count||a.start-b.start).slice(0,3).sort((a,b)=>a.start-b.start).map((r,i)=>({name:'Recording review '+(i+1),start:r.start,end:r.end}));
+ }
+ return {score,transcribe,passages,reviewPlans};
+})();
 </script><script id="rc173-tools">window.BassTools=(()=>{
  const $=id=>document.getElementById(id),C=()=>window.BassStudyCore,DB=()=>window.BassStudyStore,clock=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0'),uid=()=>crypto.randomUUID?.()||Date.now()+'-'+Math.random().toString(36).slice(2);
  let api,plan=[],planSong='',active=null,lists=[],selected='',busy=false,compareRun=0,takes=[null,null],report=null;
+ const searchIndexes=new WeakMap();
+ async function prepareSearch(list){
+  for(const song of list?.songs||[]){
+   if(song.searchIndex?.version===1||!song.project?.text)continue;
+   let pending=searchIndexes.get(song.project);
+   if(!pending){pending=song.project.text().then(text=>C().searchIndex(JSON.parse(text))).catch(()=>({version:1,sections:[],pitches:[]}));searchIndexes.set(song.project,pending);}
+   song.searchIndex=await pending;
+  }
+  if(currentList()===list)renderLists();
+ }
  const state=t=>$('studyStatus').textContent=t;
  const download=(blob,name)=>{const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000);};
  const button=(label,action)=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.onclick=action;return b;};
@@ -12181,9 +12270,14 @@ window.BassAwake=(()=>{let api,lock=null,pending=false,blocked=false,wasActive=f
  function monitor(){if(!active)return;const s=api.transport(),r=active.ranges[active.part];if(s.session!==active.session||!s.loopEnabled||s.multi||Math.abs(s.start-r.start)>.03||Math.abs(s.end-r.end)>.03||s.speed!==active.speeds[active.stage])stopPlan('Plan stopped: playback changed.',false,false);}
  function currentList(){return lists.find(l=>l.id===selected);}
  function renderLists(){const select=$('setlistSelect');select.replaceChildren();for(const l of lists){const o=document.createElement('option');o.value=l.id;o.textContent=l.title;select.append(o);}select.value=selected;const list=currentList(),area=$('setlistRows');area.replaceChildren();$('setlistEmpty').hidden=!!list?.songs.length;
-  for(const [i,s] of (list?.songs||[]).entries()){const row=document.createElement('article'),title=document.createElement('strong'),meta=document.createElement('p'),actions=document.createElement('div');title.textContent=(i+1)+'. '+s.title;meta.textContent=(s.key||'Unknown key')+' · '+(s.bpm?Math.round(s.bpm)+' BPM':'Unknown tempo')+' · '+clock(s.duration||0);actions.className='study-actions';
+  const query=String($('setlistSearch')?.value||'').trim().toLowerCase();
+  let shown=0;
+  for(const [i,s] of (list?.songs||[]).entries()){if(!C().matchesSong(s,query))continue;shown++;const row=document.createElement('article'),title=document.createElement('strong'),meta=document.createElement('p'),actions=document.createElement('div');title.textContent=(i+1)+'. '+s.title;meta.textContent=(s.key||'Unknown key')+' · '+(s.bpm?Math.round(s.bpm)+' BPM':'Unknown tempo')+' · '+clock(s.duration||0);actions.className='study-actions';
    actions.append(button('Open',()=>task(async()=>{if(api.busy())throw Error('Wait for analysis to finish.');if(!confirm('Open this saved song? Save changes to the current song first.'))return;stopPlan();const ok=await api.openProject(new File([s.project],s.title+'.bassstudio',{type:'application/json'}));if(!ok)throw Error('Could not open this saved song.');$('studyDialog').close();})),button('Up',()=>moveSong(i,-1)),button('Down',()=>moveSong(i,1)),button('Remove',()=>task(async()=>{if(!confirm('Remove this song from the setlist?'))return;await BassTrash.add('setlist-song',s.title,{listId:list.id,listTitle:list.title,song:s,index:i});const copy={...list,songs:list.songs.filter((_,j)=>j!==i)};await saveList(copy);})));actions.children[1].disabled=i===0;actions.children[2].disabled=i===list.songs.length-1;row.append(title,meta,actions);area.append(row);
   }
+  const indexing=(list?.songs||[]).some(s=>s.project?.text&&s.searchIndex?.version!==1);
+  if($('setlistSearchStatus'))$('setlistSearchStatus').textContent=query?(indexing?'Checking saved sections and notes…':`${shown} matching song${shown===1?'':'s'}`):'';
+  if(indexing&&query)void prepareSearch(list);
   for(const id of ['setlistAdd','setlistOrder','setlistSave'])$(id).disabled=busy||!list;}
  async function saveList(list){await DB().put('list:'+list.id,{...list,kind:'setlist'});const index=lists.findIndex(l=>l.id===list.id);if(index<0)lists.push(list);else lists[index]=list;selected=list.id;renderLists();}
  async function moveSong(i,d){return task(async()=>{const list=currentList(),songs=list.songs.slice();if(i+d<0||i+d>=songs.length)return;[songs[i],songs[i+d]]=[songs[i+d],songs[i]];await saveList({...list,songs});});}
@@ -12194,30 +12288,61 @@ window.BassAwake=(()=>{let api,lock=null,pending=false,blocked=false,wasActive=f
  }
  function releaseTakes(){++compareRun;for(let i=0;i<2;i++){$('compareAudio'+i).pause();if(takes[i]?.url)URL.revokeObjectURL(takes[i].url);takes[i]=null;$('compareAudio'+i).removeAttribute('src');$('compareName'+i).textContent='No recording';}report=null;$('compareResult').replaceChildren();}
  async function setTake(i,file){if(!file)return;++compareRun;$('compareGo').disabled=false;$('compareCancel').disabled=true;if(file.size>100*1024*1024){state('Choose a recording below 100 MB.');return;}if(takes[i]?.url)URL.revokeObjectURL(takes[i].url);takes[i]={file,name:file.name||'Latest recording',url:URL.createObjectURL(file)};$('compareName'+i).textContent=takes[i].name;$('compareAudio'+i).src=takes[i].url;report=null;$('compareResult').replaceChildren();$('compareSave').disabled=true;}
- async function compare(){if(!takes.every(Boolean)){state('Choose recordings A and B.');return;}const mine=++compareRun,files=takes.map(t=>t.file),names=takes.map(t=>t.name),starts=[0,1].map(i=>Number($('compareStart'+i).value)),length=Number($('compareLength').value),bpm=Number($('compareBpm').value);if(!starts.every(n=>Number.isFinite(n)&&n>=0)||length<3||length>60||bpm<40||bpm>240){state('Check the times, length and BPM.');return;}api.pause();$('compareGo').disabled=true;$('compareCancel').disabled=false;$('compareSave').disabled=true;let ctx;state('Comparing on this device…');
+ async function compare(){if($('compareMode').value==='song')return compareWithSong();if(!takes.every(Boolean)){state('Choose recordings A and B.');return;}const mine=++compareRun,files=takes.map(t=>t.file),names=takes.map(t=>t.name),starts=[0,1].map(i=>Number($('compareStart'+i).value)),length=Number($('compareLength').value),bpm=Number($('compareBpm').value);if(!starts.every(n=>Number.isFinite(n)&&n>=0)||length<3||length>60||bpm<40||bpm>240){state('Check the times, length and BPM.');return;}api.pause();$('compareGo').disabled=true;$('compareCancel').disabled=false;$('compareSave').disabled=true;let ctx;state('Comparing on this device…');
   try{ctx=new AudioContext();const result=[];for(let i=0;i<2;i++){const b=await ctx.decodeAudioData(await files[i].arrayBuffer());if(mine!==compareRun)return;result.push(await C().measure(b,starts[i],length,bpm,()=>mine!==compareRun));}if(mine!==compareRun)return;report={date:new Date().toISOString(),names,bpm,length,starts,result};renderComparison();state('Comparison ready. Lower values mean closer tuning or steadier timing.');}
   catch(e){if(mine===compareRun)state('Could not compare these files. Use clear solo recordings and check the times.');}
   finally{await ctx?.close();if(mine===compareRun){$('compareGo').disabled=false;$('compareCancel').disabled=true;}}
+ }
+ async function compareWithSong(){
+  const song=api.get(),start=Number($('compareStart0').value),takeStart=Number($('compareStart1').value),length=Number($('compareLength').value);
+  if(api.busy()||!song.loaded||!song.notes.length||!takes[1]){state('Analyse the song and choose your solo recording as B.');return;}
+  if(!Number.isFinite(start+takeStart+length)||start<0||takeStart<0||length<3||length>60||start+length>song.duration+.05){state('Choose 3 to 60 seconds within the song and recording.');return;}
+  const reference=song.notes.filter(n=>n.start>=start&&n.end<=start+length&&(n.manual||Number(n.confidence)>=.65)).map(n=>({midi:n.midi+(song.transpose||0),start:n.start-start,end:n.end-start}));
+  if(!reference.length){state('No reliable reference notes in this passage. Review the song notes first.');return;}
+  const mine=++compareRun,file=takes[1].file;api.pause();report=null;$('compareResult').replaceChildren();$('compareGo').disabled=true;$('compareCancel').disabled=false;$('compareSave').disabled=true;state('Checking the recording on this device…');let context;
+  try{
+   context=new AudioContext();const audio=await context.decodeAudioData(await file.arrayBuffer());
+   const cancelled=()=>mine!==compareRun||song.session!==api.get().session;
+   if(cancelled())return;
+   const played=await BassFeedback.transcribe(audio,takeStart,length,cancelled);if(cancelled())return;
+   const result=BassFeedback.score(reference,played),area=$('compareResult'),summary=document.createElement('p');
+   summary.textContent=`${result.matched}/${result.total} notes matched · ${result.different} different · ${result.missed} not detected · ${result.extra} extra`;
+   const help=document.createElement('p');help.textContent='Estimates for clear solo bass. Check the start positions. Fast runs, repeated notes, slides and background music can reduce accuracy.';
+   const table=document.createElement('table'),head=document.createElement('tr');for(const label of ['Song time','Result','Timing']){const th=document.createElement('th');th.textContent=label;head.append(th);}table.append(head);
+   for(const row of result.rows.slice(0,80)){const tr=document.createElement('tr');for(const text of [clock(start+row.start),row.kind,row.ms==null?'—':Math.abs(row.ms)<50?'Within 50 ms':`${Math.round(Math.abs(row.ms)/10)*10} ms ${row.ms<0?'early':'late'}`]){const td=document.createElement('td');td.textContent=text;tr.append(td);}table.append(tr);}
+   const practise=button('Add review passages to plan',()=>{
+    if(song.session!==api.get().session){state('Reopen the reference song first.');return;}
+    if(active){state('Stop the current plan first.');return;}
+    if(planSong!==song.id)plan=[];planSong=song.id;
+    const additions=BassFeedback.passages(result,start,song.duration).filter(r=>!plan.some(p=>Math.abs(p.start-r.start)<.1&&Math.abs(p.end-r.end)<.1));
+    const available=Math.max(0,12-plan.length);plan.push(...additions.slice(0,available));renderPlan();showPanel('plan');state(additions.length&&available?'Review passages added. Save the plan to keep them.':'No new passages to add.');
+   });
+   area.append(summary,help,table,practise);state('Recording checked against the song’s reference notes.');
+   try{const saved=await DB().get('feedback:'+song.id),history=Array.isArray(saved)?saved.slice(-9):[];history.push({date:new Date().toISOString(),matched:result.matched,total:result.total,passages:BassFeedback.passages(result,start,song.duration)});await DB().put('feedback:'+song.id,history);}catch{}
+  }catch(error){if(mine===compareRun)state(error.message||'Could not compare this recording.');}
+  finally{await context?.close();if(mine===compareRun){$('compareGo').disabled=false;$('compareCancel').disabled=true;}}
  }
  function renderComparison(){const area=$('compareResult');area.replaceChildren();const table=document.createElement('table'),head=document.createElement('tr');for(const t of ['Measure','Take A','Take B']){const th=document.createElement('th');th.textContent=t;head.append(th);}table.append(head);for(const [label,key,unit] of [['Tuning gap','tuning',' cents'],['Timing gap','timing',' ms'],['Attacks','attacks',''],['Clipped audio','clipped','%']]){const tr=document.createElement('tr');const th=document.createElement('th');th.textContent=label;tr.append(th);for(const r of report.result){const td=document.createElement('td');td.textContent=r[key]==null?'Not enough data':(key==='attacks'?r[key]:r[key].toFixed(1))+unit;tr.append(td);}table.append(tr);}area.append(table);const p=document.createElement('p'),[a,b]=report.result;const parts=[];for(const [key,label,unit] of [['tuning','Tuning',' cents'],['timing','Timing',' ms']])if(a[key]!=null&&b[key]!=null){const d=b[key]-a[key];parts.push(label+': '+Math.abs(d).toFixed(1)+unit+' '+(Math.abs(d)<.05?'difference':d<0?'closer in B':'closer in A'));}p.textContent=parts.join(' · ');area.append(p);$('compareSave').disabled=false;}
  function exportSong(){const s=api?.get();return s&&planSong===s.id?{ranges:C().cleanPlan(plan,s.duration),speed:Number($('planSpeed').value),repeats:Number($('planRepeats').value)}:null;}
  function restoreSong(data){if(!api)return;const s=api.get();planSong=s.id;plan=C().cleanPlan(data?.ranges,s.duration);if([60,70,80,90,100].includes(data?.speed))$('planSpeed').value=String(data.speed);if(Number.isInteger(data?.repeats)&&data.repeats>=1&&data.repeats<=8)$('planRepeats').value=String(data.repeats);renderPlan();}
  function printSheet(){const s=api.get(),words=window.BassLyrics.exportData(),chords=s.chords;if(!words.length&&!chords.length){state('Detect lyrics or chords first.');return;}const win=window.open('','_blank');if(!win){state('Allow pop-ups to open the song sheet.');return;}win.opener=null;win.document.open();win.document.write(C().sheet(s,words,chords));win.document.close();}
- function init(hooks){api=hooks;for(const b of document.querySelectorAll('#studyDialog [data-study-tab]'))b.onclick=()=>showPanel(b.dataset.studyTab);
+ function init(hooks){api=hooks;
+  const searchLabel=document.createElement('label');searchLabel.textContent='Find a saved song';const search=document.createElement('input');search.id='setlistSearch';search.type='search';search.placeholder='Title, key, BPM, section or notes';search.setAttribute('aria-label','Find a saved song by title, key, BPM, section or notes such as C D E');search.oninput=renderLists;searchLabel.append(search);const searchStatus=document.createElement('p');searchStatus.id='setlistSearchStatus';searchStatus.setAttribute('role','status');$('setlistRows').before(searchLabel,searchStatus);
+  for(const b of document.querySelectorAll('#studyDialog [data-study-tab]'))b.onclick=()=>showPanel(b.dataset.studyTab);
   $('openStudy').onclick=async()=>{const s=api.get();$('studyDialog').showModal();state('Choose a practice tool.');if(planSong!==s.id){plan=[];planSong=s.id;try{const saved=await DB().get('plan:'+s.id);if(api.get().id===s.id&&saved)restoreSong(saved);}catch{state('Device storage unavailable. Download your work.');}}renderPlan();try{lists=(await DB().all()).filter(x=>x.kind==='setlist');if(!lists.some(l=>l.id===selected))selected=lists[0]?.id||'';renderLists();}catch{state('Setlist storage unavailable.');}renderFingers();};
   $('studyClose').onclick=()=>{$('studyDialog').close();++compareRun;for(let i=0;i<2;i++)$('compareAudio'+i).pause();$('compareGo').disabled=false;$('compareCancel').disabled=true;};$('studyDialog').oncancel=e=>{e.preventDefault();$('studyClose').click();};
-  $('planSuggest').onclick=()=>{if(active){state('Stop the plan before changing passages.');return;}const s=api.get();plan=C().plans(s);planSong=s.id;renderPlan();state(plan.length?'Suggested from note density and jumps.':'Analyse bass notes first.');};
+  $('planSuggest').onclick=async()=>{if(active){state('Stop the plan before changing passages.');return;}const s=api.get();let reviews=[];try{reviews=BassFeedback.reviewPlans(await DB().get('feedback:'+s.id),s.duration);}catch{}if(s.session!==api.get().session||active)return;planSong=s.id;plan=reviews.length?reviews:C().plans(s);renderPlan();state(reviews.length?'Suggested from your recent recording checks.':plan.length?'Suggested from note density and jumps.':'Analyse bass notes first.');};
   $('planAdd').onclick=()=>{if(active){state('Stop the plan first.');return;}const s=api.get();if(!s.loaded){state('Import a song first.');return;}if(planSong!==s.id)plan=[];planSong=s.id;const r={name:'Selected passage',start:s.start,end:s.end};if(r.end<=r.start){state('Set a valid repeat range first.');return;}if(plan.length>=12){state('Use up to 12 passages.');return;}plan.push(r);renderPlan();};
   $('planStart').onclick=begin;$('planStop').onclick=()=>stopPlan();$('planSave').onclick=async()=>{try{await DB().put('plan:'+api.get().id,exportSong());state('Plan saved on this device and included in song saves.');}catch{state('Could not save the plan on this device. Use Save song.');}};
   $('setlistNew').onclick=()=>task(async()=>{const title=$('setlistName').value.trim();if(!title)throw Error('Enter a setlist name.');await saveList({id:uid(),kind:'setlist',title:title.slice(0,80),songs:[]});state('Setlist created.');});$('setlistSelect').onchange=e=>{selected=e.target.value;renderLists();};
-  $('setlistAdd').onclick=()=>task(async()=>{const list=currentList(),s=api.get();if(!list||!s.loaded)throw Error('Open a song and choose a setlist.');if(list.songs.length>=20)throw Error('Use up to 20 songs per setlist.');state('Saving song and analysis…');const project=await api.capture();if(!project)throw Error('Song changed. Try again.');await saveList({...list,songs:[...list.songs,{id:uid(),title:s.title,key:s.key,root:s.root,mode:s.mode,bpm:s.bpm,duration:s.duration,project:new Blob([JSON.stringify(project)],{type:'application/json'})}]});state('Song and analysis saved in this setlist.');});
+  $('setlistAdd').onclick=()=>task(async()=>{const list=currentList(),s=api.get();if(!list||!s.loaded)throw Error('Open a song and choose a setlist.');if(list.songs.length>=20)throw Error('Use up to 20 songs per setlist.');state('Saving song and analysis…');const project=await api.capture();if(!project)throw Error('Song changed. Try again.');await saveList({...list,songs:[...list.songs,{id:uid(),title:s.title,key:s.key,root:s.root,mode:s.mode,bpm:s.bpm,duration:s.duration,searchIndex:C().searchIndex(project),project:new Blob([JSON.stringify(project)],{type:'application/json'})}]});state('Song and analysis saved in this setlist.');});
   $('setlistOrder').onclick=()=>task(async()=>{const l=currentList();if(l)await saveList({...l,songs:C().order(l.songs)});state('Suggested order saved. First song kept.');});
   $('setlistSave').onclick=()=>task(async()=>{const l=currentList();if(!l)return;const size=l.songs.reduce((n,s)=>n+s.project.size,0);if(size>200*1024*1024)throw Error('Setlist is too large for one backup. Save songs separately.');const songs=[];for(const s of l.songs)songs.push({...s,project:JSON.parse(await s.project.text())});download(new Blob([JSON.stringify({format:'Bass Studio Setlist',version:1,title:l.title,songs})],{type:'application/json'}),'Bass_Studio_Setlist.json');state('Setlist backup download started.');});
-  $('setlistImport').onchange=e=>{const f=e.target.files[0];e.target.value='';if(!f)return;void task(async()=>{if(f.size>200*1024*1024)throw Error('Choose a setlist backup below 200 MB.');const data=JSON.parse(await f.text());if(data.format!=='Bass Studio Setlist'||data.version!==1||!Array.isArray(data.songs)||data.songs.length>20)throw Error('Choose a valid setlist backup.');const songs=data.songs.map(s=>{if(s.project?.format!=='Bass Stem Studio Project'||!s.project.source?.audioBase64||!Array.isArray(s.project.analysis?.notes))throw Error('This setlist contains an invalid song.');return {id:uid(),title:String(s.title||'Song').slice(0,120),key:String(s.key||'').slice(0,30),root:Number.isFinite(s.root)?s.root:null,mode:String(s.mode||''),bpm:Number.isFinite(s.bpm)?s.bpm:null,duration:Number(s.duration)||0,project:new Blob([JSON.stringify(s.project)],{type:'application/json'})};});await saveList({id:uid(),kind:'setlist',title:String(data.title||'Imported set').slice(0,80),songs});state('Setlist imported.');});};
+  $('setlistImport').onchange=e=>{const f=e.target.files[0];e.target.value='';if(!f)return;void task(async()=>{if(f.size>200*1024*1024)throw Error('Choose a setlist backup below 200 MB.');const data=JSON.parse(await f.text());if(data.format!=='Bass Studio Setlist'||data.version!==1||!Array.isArray(data.songs)||data.songs.length>20)throw Error('Choose a valid setlist backup.');const songs=data.songs.map(s=>{if(s.project?.format!=='Bass Stem Studio Project'||!s.project.source?.audioBase64||!Array.isArray(s.project.analysis?.notes))throw Error('This setlist contains an invalid song.');return {id:uid(),title:String(s.title||'Song').slice(0,120),key:String(s.key||'').slice(0,30),root:Number.isFinite(s.root)?s.root:null,mode:String(s.mode||''),bpm:Number.isFinite(s.bpm)?s.bpm:null,duration:Number(s.duration)||0,searchIndex:C().searchIndex(s.project),project:new Blob([JSON.stringify(s.project)],{type:'application/json'})};});await saveList({id:uid(),kind:'setlist',title:String(data.title||'Imported set').slice(0,80),songs});state('Setlist imported.');});};
   $('fingerRefresh').onclick=renderFingers;
   for(let i=0;i<2;i++){$('compareFile'+i).onchange=e=>{const f=e.target.files[0];e.target.value='';void setTake(i,f);};$('compareAudio'+i).onplay=()=>{api.pause();$('compareAudio'+(1-i)).pause();};}
   $('compareLatest').onclick=async()=>{try{const r=await window.BassRecovery.restore();if(!r?.blob){state('No saved live recording found.');return;}await setTake(1,new File([r.blob],r.name||'Latest recording',{type:r.blob.type}));}catch{state('Could not read the latest recording.');}};
-  for(const id of ['compareStart0','compareStart1','compareLength','compareBpm'])$(id).onchange=()=>{++compareRun;report=null;$('compareResult').replaceChildren();$('compareSave').disabled=true;$('compareGo').disabled=false;$('compareCancel').disabled=true;};
+  for(const id of ['compareMode','compareStart0','compareStart1','compareLength','compareBpm'])$(id).onchange=()=>{++compareRun;report=null;$('compareResult').replaceChildren();$('compareSave').disabled=true;$('compareGo').disabled=false;$('compareCancel').disabled=true;$('compareHelp').textContent=$('compareMode').value==='song'?'Use a clear solo bass recording in B at the song’s original speed. Start A is the song position; Start B is the matching recording position.':'Use the same solo passage. Play one attack per beat.';};
   $('compareGo').onclick=compare;$('compareCancel').onclick=()=>{++compareRun;$('compareGo').disabled=false;$('compareCancel').disabled=true;state('Comparison cancelled.');};$('compareSave').onclick=()=>{if(!report)return;const q=v=>'"'+String(v).replace(/"/g,'""')+'"',rows=['Date,Take,File,BPM,Start,Seconds,Tuning cents,Timing ms,Attacks,Clipped percent',...report.result.map((r,i)=>[report.date,i?'B':'A',q(report.names[i]),report.bpm,report.starts[i],r.seconds,r.tuning??'',r.timing??'',r.attacks,r.clipped].join(','))];download(new Blob([rows.join('\r\n')],{type:'text/csv'}),'Bass_Studio_Comparison.csv');};
   $('studyPrint').onclick=printSheet;$('lyricsPrint').onclick=printSheet;showPanel('plan');renderPlan();
  }
@@ -12225,11 +12350,11 @@ window.BassAwake=(()=>{let api,lock=null,pending=false,blocked=false,wasActive=f
 })();
 </script><script id="rc172-dsp">window.BassPracticeDSP=(()=>{
  const pc=n=>((n%12)+12)%12,names=['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B'];
- function pitch(input,sampleRate){
+ function pitch(input,sampleRate,minHz=35){
   const stride=Math.max(1,Math.floor(sampleRate/11025)),sr=sampleRate/stride,n=Math.floor(input.length/stride),x=new Float32Array(n);let mean=0,power=0,peak=0;
   for(let i=0;i<n;i++){x[i]=input[i*stride];mean+=x[i];peak=Math.max(peak,Math.abs(x[i]));}mean/=n;
   for(let i=0;i<n;i++){x[i]-=mean;power+=x[i]*x[i];}if(Math.sqrt(power/n)<.004||peak>.99)return null;
-  const min=Math.floor(sr/1100),max=Math.min(Math.ceil(sr/35),Math.floor(n/2)),size=n-max,d=new Float64Array(max+1);let sum=0;d[0]=1;
+  const min=Math.floor(sr/1100),max=Math.min(Math.ceil(sr/minHz),Math.floor(n/2)),size=n-max,d=new Float64Array(max+1);let sum=0;d[0]=1;
   for(let lag=1;lag<=max;lag++){let value=0;for(let i=0;i<size;i++){const v=x[i]-x[i+lag];value+=v*v;}sum+=value;d[lag]=sum?value*lag/sum:1;}
   let tau=0;for(let lag=min;lag<max;lag++)if(d[lag]<.12){while(lag+1<=max&&d[lag+1]<d[lag])lag++;tau=lag;break;}
   if(!tau||d[tau]>.15)return null;
@@ -13167,7 +13292,7 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
 <section data-study-panel="plan"><p>Repeat passages. Build speed gradually.</p><div class="study-actions"><button id="planSuggest">Suggest passages</button><button id="planAdd">Add current loop</button></div><div id="planRows"></div><div class="study-grid"><label>Start speed<select id="planSpeed"><option value="60">60%</option><option value="70" selected>70%</option><option value="80">80%</option><option value="90">90%</option><option value="100">100%</option></select></label><label>Repeats per speed<select id="planRepeats"><option value="1">1 repeat</option><option value="2">2 repeats</option><option value="3" selected>3 repeats</option><option value="4">4 repeats</option><option value="5">5 repeats</option><option value="6">6 repeats</option><option value="7">7 repeats</option><option value="8">8 repeats</option></select></label></div><p id="planProgress" role="status">Each passage builds to 100%.</p><div class="study-actions"><button id="planStart">Start plan</button><button id="planStop" disabled>Stop plan</button><button id="planSave">Save plan</button></div></section>
 <section data-study-panel="setlist" hidden><div class="study-grid"><label>Setlist name<input id="setlistName" maxlength="80" placeholder="Sunday rehearsal"></label><button id="setlistNew">Create setlist</button></div><label>Saved setlists<select id="setlistSelect"></select></label><div class="study-actions"><button id="setlistAdd">Add this song</button><button id="setlistOrder">Suggest order</button><button id="setlistSave">Download backup</button></div><label>Import backup<input id="setlistImport" type="file" accept=".json"></label><p id="setlistEmpty">Add an analysed song.</p><div id="setlistRows"></div><small>Saved on this device. Download a backup. Suggested order balances key and tempo.</small></section>
 <section data-study-panel="fingers" hidden><p id="fingerSummary"></p><button id="fingerRefresh">Refresh from playhead</button><small>One-finger-per-fret suggestions. Choose a comfortable alternative.</small><div id="fingerRows"></div></section>
-<section data-study-panel="compare" hidden><p>Use the same solo passage. Play one attack per beat.</p><div class="study-grid"><div><label>Take A<input id="compareFile0" type="file" accept="audio/*"></label><p id="compareName0">No recording</p><audio id="compareAudio0" controls></audio><label>Start (seconds)<input id="compareStart0" type="number" min="0" step="0.1" value="0"></label></div><div><label>Take B<input id="compareFile1" type="file" accept="audio/*"></label><p id="compareName1">No recording</p><audio id="compareAudio1" controls></audio><label>Start (seconds)<input id="compareStart1" type="number" min="0" step="0.1" value="0"></label></div></div><button id="compareLatest">Use latest recording as B</button><div class="study-grid"><label>Length (seconds)<input id="compareLength" type="number" min="3" max="60" value="10"></label><label>Beat (BPM)<input id="compareBpm" type="number" min="40" max="240" value="80"></label></div><div class="study-actions"><button id="compareGo">Compare takes</button><button id="compareCancel" disabled>Cancel</button><button id="compareSave" disabled>Save report</button></div><div id="compareResult" aria-live="polite"></div><small>Tuning: distance from the nearest note. Timing: steadiness from the first attack. Chords and vibrato can affect results.</small></section>
+<section data-study-panel="compare" hidden><label>Compare<select id="compareMode"><option value="takes">Two recordings</option><option value="song">Recording B against this song</option></select></label><p id="compareHelp">Use the same solo passage. Play one attack per beat.</p><div class="study-grid"><div><label>Take A<input id="compareFile0" type="file" accept="audio/*"></label><p id="compareName0">No recording</p><audio id="compareAudio0" controls></audio><label>Start (seconds)<input id="compareStart0" type="number" min="0" step="0.1" value="0"></label></div><div><label>Take B<input id="compareFile1" type="file" accept="audio/*"></label><p id="compareName1">No recording</p><audio id="compareAudio1" controls></audio><label>Start (seconds)<input id="compareStart1" type="number" min="0" step="0.1" value="0"></label></div></div><button id="compareLatest">Use latest recording as B</button><div class="study-grid"><label>Length (seconds)<input id="compareLength" type="number" min="3" max="60" value="10"></label><label>Beat (BPM)<input id="compareBpm" type="number" min="40" max="240" value="80"></label></div><div class="study-actions"><button id="compareGo">Compare takes</button><button id="compareCancel" disabled>Cancel</button><button id="compareSave" disabled>Save report</button></div><div id="compareResult" aria-live="polite"></div><small>Tuning: distance from the nearest note. Timing: steadiness from the first attack. Chords and vibrato can affect results.</small></section>
 <section data-study-panel="sheet" hidden><p>Print available lyrics with chords above the words.</p><button id="studyPrint">Open song sheet</button><small>Use Print / Save PDF on the next page. Without lyrics, prints the chord timeline.</small></section>
 <div class="study-actions"><button id="studyClose">Close</button></div>
 </dialog>
@@ -13285,6 +13410,12 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
         <p id="repeatSectionStatus" role="status"></p>
         <div id="repeatProgressState" hidden><progress id="repeatProgress" aria-label="Finding song sections"></progress><span id="repeatElapsed"></span></div>
         <p id="repeatSectionHint" hidden></p>
+        <details id="sectionLabelEditor" hidden><summary>Correct a section name</summary>
+          <label>Section<select id="sectionLabelTarget"></select></label>
+          <label>Name<select id="sectionLabelChoice"><option>Intro</option><option>Verse</option><option>Pre-chorus</option><option>Chorus</option><option>Bridge</option><option>Instrumental</option><option>Ending</option><option value="custom">Custom name</option></select></label>
+          <label id="sectionCustomLabel" hidden>Custom name<input id="sectionCustomName" maxlength="60" autocomplete="off"></label>
+          <button id="sectionLabelSave" type="button">Save name</button><p id="sectionLabelStatus" role="status"></p>
+        </details>
         <button id="repeatCurrentSection" type="button">Current section</button>
         <button id="repeatSelection" type="button" hidden>Selected time cells</button>
         <button id="repeatTypedRange" type="button" hidden>From / To range</button>
@@ -13338,6 +13469,7 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
           </div>
           <button class="btn good" id="aiAnalyse" disabled>Analyse Bass</button>
         </div>
+        <details><summary>Analysis options</summary><label>Mode<select id="analysisQuality"><option value="accuracy">Detailed</option><option value="fast">Quick</option></select></label><p class="small">Quick uses faster separation. Detailed keeps the existing accuracy mode. Both use your paid analysis service. Changing this does not start a job.</p></details>
         <div class="ai-progress"><progress id="aiProgress" max="100" value="0" aria-label="Bass analysis progress"></progress><span id="aiProgressText">Ready for bass analysis</span></div>
         <div class="small ai-note"></div>
       </div>
@@ -13370,7 +13502,7 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC182';
+  const APP_VERSION='RC183';
   const PROJECT_SCHEMA_VERSION=2;
   // RC125: compact practice-view and string selectors preserve space for P1/P2/P3; all RC124 audio, analysis, repeat, project and practice logic preserved.
 
@@ -13916,7 +14048,7 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
   }
 
   function updateProjectButtons(){
-    if(saveProjectBtn)saveProjectBtn.disabled=projectSaveBusy||songImportBusy||aiBusy||!(buffer && activeAudioFile && ((offlineAnalysisReady && notes.length) || detectedChordChanges.length || window.BassLyrics?.exportData().length));
+    if(saveProjectBtn)saveProjectBtn.disabled=projectSaveBusy||songImportBusy||aiBusy||!(buffer && activeAudioFile && ((offlineAnalysisReady && notes.length) || detectedChordChanges.length || window.BassLyrics?.exportData().length || songStructure));
   }
 
   function arrayBufferToBase64(ab){
@@ -13948,7 +14080,7 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
   let projectSaveBusy=false;
   async function saveBassStudioProject(){
     if(songImportBusy||aiBusy||projectSaveBusy)return;
-    if(!buffer || !activeAudioFile || (!(offlineAnalysisReady && notes.length) && !detectedChordChanges.length && !window.BassLyrics?.exportData().length)){
+    if(!buffer || !activeAudioFile || (!(offlineAnalysisReady && notes.length) && !detectedChordChanges.length && !window.BassLyrics?.exportData().length && !songStructure)){
       aiStatus('Analyse the song first, then save it.',0);return;
     }
     const defaultBase=safeProjectFilename((loadedProjectName||objectName||activeAudioFile.name||'Bass Studio Song').replace(/\.[^.]+$/,''));
@@ -14076,7 +14208,7 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
 
   async function captureStudyProject(){
     if(songImportBusy||aiBusy||projectSaveBusy)throw Error('Wait for analysis to finish.');
-    if(!buffer||!activeAudioFile||(!(offlineAnalysisReady&&notes.length)&&!detectedChordChanges.length&&!window.BassLyrics?.exportData().length))throw Error('Analyse or transcribe this song first.');
+    if(!buffer||!activeAudioFile||(!(offlineAnalysisReady&&notes.length)&&!detectedChordChanges.length&&!window.BassLyrics?.exportData().length&&!songStructure))throw Error('Analyse or transcribe this song first.');
     const session=songSession,projectName=safeProjectFilename(loadedProjectName||objectName||'Song');
     projectSaveBusy=true;updateProjectButtons();
     try{if(structureBusy&&structurePromise){await structurePromise;if(session!==songSession)return;if(!songStructure)throw Error('Wait for song sections, then try again.');}
@@ -14220,7 +14352,7 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
         manual:!!n.manual,source:n.source||'Saved project'
       })).filter(n=>Number.isFinite(n.midi)&&Number.isFinite(n.start)&&Number.isFinite(n.end)&&n.end>n.start)
         .sort((a,b)=>a.start-b.start);
-      if(!restored.length&&!window.BassLyrics.clean(project.analysis.lyrics).length&&!(project.analysis.chords||[]).some(c=>Number.isFinite(Number(c.rootPc??c.root_pc))&&CHORD_QUALITY_LABELS[c.quality]&&Number(c.end)>Number(c.start))&&!window.BassLoopShare.valid(project))throw new Error('The saved project contains no usable notes, chords or lyrics.');
+      if(!restored.length&&!window.BassLyrics.clean(project.analysis.lyrics).length&&!(project.analysis.chords||[]).some(c=>Number.isFinite(Number(c.rootPc??c.root_pc))&&CHORD_QUALITY_LABELS[c.quality]&&Number(c.end)>Number(c.start))&&!window.BassLoopShare.valid(project)&&!normaliseSongStructure(project.analysis.structure,Number(src.duration)))throw new Error('The saved project contains no usable notes, chords, lyrics or sections.');
 
       let bytes;
       try{
@@ -14246,6 +14378,8 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
       if(project.analysis.notes.length!==restored.length||restored.some(n=>n.start<0||n.end>decodedBuffer.duration+.1||!Number.isInteger(n.midi)))
         throw Error('Saved note timings are outside this song. Your open song is unchanged.');
       for(const n of restored)n.end=Math.min(n.end,decodedBuffer.duration);
+      if(project.analysis.structure&&!normaliseSongStructure(project.analysis.structure,decodedBuffer.duration))
+        throw Error('Saved sections do not match this audio. Your open song is unchanged.');
       // Commit only after the candidate project has passed all destructive
       // validation above.
       replaceSongSession();
@@ -14415,6 +14549,7 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
         selectedSections.clear();selectedSections.add('Shared loop');multiSectionMode=false;timeframeLoopMode=false;
         loopStart=0;loopEnd=buffer.duration;loopEnabled=true;updateLoopUI();
       }
+      if(songStructure)void rememberImportedSections(songSession,activeAudioFile);
       importSucceeded=true;
       return true;
     }catch(err){
@@ -16837,7 +16972,7 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
 
   function makePendingPartGroup(file,signature){
     return {
-      version:3,signature,
+      version:3,signature,quality:$('analysisQuality')?.value==='fast'?'fast':'accuracy',
       name:file.name,type:file.type,size:file.size,lastModified:file.lastModified||0,
       submittedAt:Date.now(),segmented:true,
       parts:buildAnalysisPartPlan(file)
@@ -16872,7 +17007,7 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
             action:'analyse',
             audio_base64:b64,
             filename:upload.file.name,
-            quality:'accuracy',
+            quality:pending.quality==='fast'?'fast':'accuracy',
             return_bass_audio:true
           }})
         },1,session
@@ -18420,7 +18555,7 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
     }
   });
 
-  function studySong(){const t=currentTime(),start=loopEnabled&&loopStart!==null?loopStart:t,end=loopEnabled&&loopEnd!==null?loopEnd:Math.min(buffer?.duration||0,t+8);return {playhead:t,loaded:!!buffer,id:(activeAudioFile?.name||objectName||'empty')+':'+(activeAudioFile?.size||0)+':'+(buffer?.duration||0),session:songSession,title:loadedProjectName||objectName||'Song',key:currentScaleContext?.scaleText||'',root:currentScaleContext?.rootPc??null,mode:currentScaleContext?.mode||'',bpm:currentTempoBpm(),duration:buffer?.duration||0,notes,beats:detectedBeatTimes,meter:detectedBeatsPerBar,start,end,speed:Number(tempo.value),strings:bassViewStringCount,chords:detectedChordChanges.filter(reliableChord).map(c=>({...c,label:chordDisplayLabel(c)})),sections:Object.entries(sections).map(([name,s])=>({name,...s}))};}
+  function studySong(){const t=currentTime(),start=loopEnabled&&loopStart!==null?loopStart:t,end=loopEnabled&&loopEnd!==null?loopEnd:Math.min(buffer?.duration||0,t+8);return {playhead:t,loaded:!!buffer,id:(activeAudioFile?.name||objectName||'empty')+':'+(activeAudioFile?.size||0)+':'+(buffer?.duration||0),session:songSession,title:loadedProjectName||objectName||'Song',key:currentScaleContext?.scaleText||'',root:currentScaleContext?.rootPc??null,mode:currentScaleContext?.mode||'',bpm:currentTempoBpm(),duration:buffer?.duration||0,notes,transpose:transposeSemitones,beats:detectedBeatTimes,meter:detectedBeatsPerBar,start,end,speed:Number(tempo.value),strings:bassViewStringCount,chords:detectedChordChanges.filter(reliableChord).map(c=>({...c,label:chordDisplayLabel(c)})),sections:Object.entries(sections).map(([name,s])=>({name,...s}))};}
   window.BassUXContext=studySong;
   window.BassTools.init({get:studySong,busy:()=>songImportBusy||aiBusy||projectSaveBusy,pause,capture:captureStudyProject,openProject:importBassStudioProject,
     transport:()=>({session:songSession,start:loopStart,end:loopEnd,loopEnabled,multi:multiSectionMode||timeframeLoopMode,speed:Number(tempo.value)}),
@@ -18634,6 +18769,7 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
   let repeatSectionDraft=new Set(),repeatRangeOverrides=new Map();
   function repeatRangeFor(name){return repeatRangeOverrides.get(name)||sections[name];}
   const STRUCTURE_PENDING_KEY='bassStemStructureJobV1';
+  const STRUCTURE_PENDING_LIST_KEY='bassStemStructureJobsV2';
   const STRUCTURE_CACHE_KEY='bassStemLastStructureV1';
   const STRUCTURE_CACHE_LIST_KEY='bassStemStructuresV2';
   function normaliseSongStructure(raw,duration=buffer?.duration){
@@ -18662,7 +18798,7 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
     sections=Object.fromEntries(next.segments.map(s=>[s.name,{start:s.start,end:s.end}]));
     baseSections=Object.fromEntries(next.segments.map(s=>[s.name,{start:s.originalStart,end:s.originalEnd}]));
     selectedSection=sections[selectedSection]?selectedSection:Object.keys(sections)[0];
-    renderSectionControls();renderRepeatChooser();
+    renderSectionControls();renderRepeatChooser();updateProjectButtons();
     if(persist){persistSections();persistAnalysisRecovery();cacheSongStructure();}return true;
   }
   function resetSongStructure(){
@@ -18679,17 +18815,28 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
     return items.find(([,s],i)=>t>=s.start&&(t<s.end||(i===items.length-1&&t<=s.end+.01)))?.[0]||'';
   }
   function pendingStructureJob(){
-    try{return JSON.parse(localStorage.getItem(STRUCTURE_PENDING_KEY)||'null');}catch{return null;}
+    return storedStructureJobs().find(matchesStructureJob)||null;
   }
-  function storeStructureJob(value){
-    try{if(value)localStorage.setItem(STRUCTURE_PENDING_KEY,JSON.stringify(value));else localStorage.removeItem(STRUCTURE_PENDING_KEY);}catch{}
+  function storedStructureJobs(){
+    let jobs=[];
+    try{const data=JSON.parse(localStorage.getItem(STRUCTURE_PENDING_LIST_KEY)||'[]');if(Array.isArray(data))jobs=data.filter(j=>j&&typeof j.id==='string');}catch{}
+    try{const old=JSON.parse(localStorage.getItem(STRUCTURE_PENDING_KEY)||'null');if(old?.id&&!jobs.some(j=>j.id===old.id))jobs.push(old);}catch{}
+    return jobs;
+  }
+  function storeStructureJob(value,completedId=null){
+    const jobs=storedStructureJobs(),id=value?.id||completedId||pendingStructureJob()?.id;
+    const next=jobs.filter(j=>j.id!==id);if(value)next.push(value);
+    try{localStorage.setItem(STRUCTURE_PENDING_LIST_KEY,JSON.stringify(next));localStorage.removeItem(STRUCTURE_PENDING_KEY);}catch{}
   }
   function matchesStructureJob(pending){
-    return !!pending?.id&&((structureAudioId&&pending.audioId===structureAudioId)||pending.signature===cloudFileSignature(activeAudioFile));
+    if(!pending?.id||!activeAudioFile)return false;
+    if(structureAudioId&&pending.audioId)return pending.audioId===structureAudioId;
+    return pending.signature===cloudFileSignature(activeAudioFile);
   }
   function cacheSongStructure(){
     if(!structureAudioId||!songStructure)return;
-    const entry={audioId:structureAudioId,structure:songStructure};
+    const entry={audioId:structureAudioId,structure:songStructure,ranges:copyAnalysis(sections),
+      repeatRanges:Object.fromEntries(repeatRangeOverrides),selected:[...selectedSections],selectedSection};
     try{localStorage.setItem(STRUCTURE_CACHE_KEY,JSON.stringify(entry));}catch{}
     try{
       const previous=JSON.parse(localStorage.getItem(STRUCTURE_CACHE_LIST_KEY)||'[]');
@@ -18705,6 +18852,28 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
       if(found)return found;
     }catch{}
     try{const last=JSON.parse(localStorage.getItem(STRUCTURE_CACHE_KEY)||'null');return last?.audioId===audioId?last:null;}catch{return null;}
+  }
+  function restoreCachedSectionChoices(cached){
+    for(const [name,range] of Object.entries(cached.ranges||{})){
+      if(!Object.hasOwn(sections,name)||!range||typeof range!=='object')continue;
+      const start=Number(range.start),end=Number(range.end);
+      if(range.start==null&&range.end==null)sections[name]={};
+      else if(Number.isFinite(start)&&start>=0&&start<buffer.duration){
+        if(range.end==null)sections[name]={start};
+        else if(Number.isFinite(end)&&end>start&&end<=buffer.duration)sections[name]={start,end};
+      }
+    }
+    repeatRangeOverrides.clear();
+    for(const [name,r] of Object.entries(cached.repeatRanges||{})){
+      if(Object.hasOwn(sections,name)&&Number.isFinite(r?.start)&&Number.isFinite(r?.end)&&r.start>=0&&r.end>r.start&&r.end<=buffer.duration)repeatRangeOverrides.set(name,{start:r.start,end:r.end});
+    }
+    selectedSections.clear();
+    for(const name of Array.isArray(cached.selected)?cached.selected:[])if(Object.hasOwn(sections,name))selectedSections.add(name);
+    if(Object.hasOwn(sections,cached.selectedSection))selectedSection=cached.selectedSection;
+    renderSectionControls();renderRepeatChooser();
+  }
+  async function rememberImportedSections(session,file){
+    try{const identity=await structureAudioIdentity(file);if(session!==songSession||file!==activeAudioFile)return;structureAudioId=identity;cacheSongStructure();}catch{}
   }
   const structureIdentityCache=new WeakMap();
   async function structureAudioIdentity(file){
@@ -18758,11 +18927,13 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
       let pending=pendingStructureJob();
       try{
         const audioId=await structureAudioIdentity(file);assertSongSession(session);structureAudioId=audioId;
+        pending=pendingStructureJob();
         if(songStructure)return true;
         // Import creates a new File timestamp. Match actual audio so reopening
         // the same saved song resumes its job rather than paying for a new one.
         const cached=cachedSongStructure(audioId);
-        if(audioId&&cached?.audioId===audioId&&installSongStructure(cached.structure)){
+        if(audioId&&cached?.audioId===audioId&&installSongStructure(cached.structure,{persist:false})){
+          restoreCachedSectionChoices(cached);
           structureReadyNotice=!$('repeatSectionDialog').open;updateLoopUI();return true;
         }
         const key=interactive?getRunPodKey():storedRunPodKey();
@@ -18791,7 +18962,7 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
           assertSongSession(session);
           if(result.id){pending={id:result.id,signature,audioId,startedAt:structureStartedAt};storeStructureJob(pending);}
           if(!result.id&&result.status!=='COMPLETED')throw new Error('The section request was not accepted. Please try again.');
-          if(result.status!=='COMPLETED')setStructureStage(result.status==='IN_QUEUE'?'Waiting for the analysis service…':'Finding song sections…');
+          if(result.status!=='COMPLETED')setStructureStage(result.status==='IN_QUEUE'?'Waiting for a GPU…':'Finding song sections…');
         }
         for(let checks=0;checks<360;checks++){
           assertSongSession(session);
@@ -18800,22 +18971,22 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
             result=await fetchStructureRequest(`https://api.runpod.ai/v2/${RUNPOD_ENDPOINT}/status/${encodeURIComponent(pending.id)}`,key,{method:'GET'},session);
           }
           assertSongSession(session);
-          if(['FAILED','CANCELLED','TIMED_OUT'].includes(result.status)){storeStructureJob(null);throw new Error('Sections could not be found. Please try again.');}
+          if(['FAILED','CANCELLED','TIMED_OUT'].includes(result.status)){storeStructureJob(null,pending?.id);throw new Error('Sections could not be found. Please try again.');}
           if(result.status==='COMPLETED'){
             if(!result.output?.ok||!installSongStructure(result.output.structure)){
-              storeStructureJob(null);throw new Error('No usable sections were returned. Please try again.');
+              storeStructureJob(null,pending?.id);throw new Error('No usable sections were returned. Please try again.');
             }
-            storeStructureJob(null);
+            storeStructureJob(null,pending?.id);
             structureReadyNotice=!$('repeatSectionDialog').open;updateLoopUI();
             return true;
           }
-          setStructureStage(result.status==='IN_QUEUE'?'Waiting for the analysis service…':'Finding song sections…');
+          setStructureStage(result.status==='IN_QUEUE'?'Waiting for a GPU…':'Finding song sections…');
           result=null;
         }
         throw new Error('Sections are still processing. Tap Check progress to continue.');
       }catch(error){
         if(session!==songSession||error?.name==='AbortError')return false;
-        if(error?.httpStatus===404)storeStructureJob(null);
+        if(error?.httpStatus===404)storeStructureJob(null,pending?.id);
         const resumable=matchesStructureJob(pendingStructureJob());
         structureError=error?.httpStatus===401?'The analysis key was rejected. Update it and try again.':
           resumable?'Connection interrupted. Tap Check progress to continue.':
@@ -18840,7 +19011,8 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
     $('repeatSectionList').querySelectorAll('[data-repeat-section]').forEach(button=>{
       const name=button.dataset.repeatSection,on=repeatSectionDraft.has(name);
       button.setAttribute('aria-pressed',String(on));
-      button.querySelector('.repeat-section-name').textContent=(on?'✓ ':'')+name;
+      const uncertain=songStructure?.segments.find(s=>s.name===name)?.uncertain;
+      button.querySelector('.repeat-section-name').textContent=(on?'✓ ':'')+name+(uncertain?' ?':'');
     });
     const count=repeatSectionDraft.size,hasSections=Object.keys(sections).length>0;
     $('repeatChosenSections').hidden=!hasSections;
@@ -18864,6 +19036,12 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
     $('repeatSectionTitle').textContent=structureBusy?'Preparing sections':'Repeat sections';
     const list=$('repeatSectionList');list.replaceChildren();
     const names=Object.keys(sections).sort((a,b)=>sections[a].start-sections[b].start);
+    const editor=$('sectionLabelEditor'),target=$('sectionLabelTarget');
+    editor.hidden=!songStructure||!names.length;
+    const previous=target.value;target.replaceChildren();
+    for(const name of names){const option=document.createElement('option');option.value=name;option.textContent=name;target.append(option);}
+    if(names.includes(previous))target.value=previous;
+    if(!editor.open)syncSectionLabelEditor();
     for(const name of names){
       const button=document.createElement('button');button.type='button';button.dataset.repeatSection=name;
       const label=document.createElement('span');label.textContent=name;label.className='repeat-section-name';
@@ -18902,6 +19080,36 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
     if(!sections[name])return;
     activateSection(name,true);$('repeatSectionDialog').close();
   }
+  function renameSongSection(oldName,newName,label='section'){
+    newName=String(newName||'').trim().slice(0,60);
+    if(!songStructure||!Object.hasOwn(sections,oldName)||!newName)throw Error('Choose a section and enter a name.');
+    if(newName!==oldName&&Object.hasOwn(sections,newName))throw Error('That name is already used. Add a number, such as Chorus 2.');
+    const rename=values=>Object.fromEntries(Object.entries(values).map(([name,range])=>[name===oldName?newName:name,range]));
+    songStructure={...songStructure,adjusted:true,segments:songStructure.segments.map(s=>s.name===oldName?{...s,name:newName,label,uncertain:false}:s)};
+    sections=rename(sections);baseSections=rename(baseSections);
+    for(const set of [selectedSections,repeatSectionDraft])if(set.delete(oldName))set.add(newName);
+    if(repeatRangeOverrides.has(oldName)){const range=repeatRangeOverrides.get(oldName);repeatRangeOverrides.delete(oldName);repeatRangeOverrides.set(newName,range);}
+    sectionQueue=sectionQueue.map(s=>s.name===oldName?{...s,name:newName}:s);
+    if(selectedSection===oldName)selectedSection=newName;
+    persistSections();persistAnalysisRecovery();renderSectionControls();renderRepeatChooser();updateLoopUI();
+    $('sectionLabelTarget').value=newName;
+    syncSectionLabelEditor();
+    return newName;
+  }
+  function syncSectionLabelEditor(){
+    const name=$('sectionLabelTarget').value,segment=songStructure?.segments.find(s=>s.name===name);
+    const choice=$('sectionLabelChoice'),option=[...choice.options].find(o=>o.value!=='custom'&&o.value.toLowerCase()===segment?.label);
+    choice.value=option?.value||'custom';$('sectionCustomName').value=name;$('sectionCustomLabel').hidden=choice.value!=='custom';
+  }
+  $('sectionLabelTarget').onchange=syncSectionLabelEditor;
+  $('sectionLabelChoice').onchange=()=>{$('sectionCustomLabel').hidden=$('sectionLabelChoice').value!=='custom';};
+  $('sectionLabelSave').onclick=()=>{
+    const choice=$('sectionLabelChoice').value,old=$('sectionLabelTarget').value;
+    let name=choice==='custom'?$('sectionCustomName').value:choice;
+    if(choice!=='custom'&&name!==old&&Object.hasOwn(sections,name)){let n=2;while(Object.hasOwn(sections,`${name} ${n}`)&&`${name} ${n}`!==old)n++;name+=` ${n}`;}
+    try{$('sectionLabelStatus').textContent='Saved '+renameSongSection(old,name,choice==='custom'?'section':choice.toLowerCase())+'.';}
+    catch(error){$('sectionLabelStatus').textContent=error.message;}
+  };
   $('repeatCurrentSection').onclick=()=>repeatChosenSection(currentSectionName());
   $('repeatSectionList').onclick=e=>{const button=e.target.closest('[data-repeat-section]');if(button)toggleRepeatSection(button.dataset.repeatSection);};
   $('repeatChosenSections').onclick=repeatChosenSections;
@@ -18952,6 +19160,7 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
   function persistSections(){
     if(!objectName)return;
     try{if(storageKey)localStorage.setItem(storageKey,JSON.stringify(sections))}catch(e){}
+    cacheSongStructure();
   }
   function sectionLabel(s){
     if(!s || s.start==null || s.end==null) return 'Not set';
@@ -18967,6 +19176,7 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
     if(selectedSummary) selectedSummary.textContent=selectedSections.size ? [...selectedSections].join(' + ') : '';
     sectionSelect.value=selectedSection;
     selectedSectionText.textContent=selectedSection;
+    cacheSongStructure();
   }
   function selectSection(name){
     selectedSection=name; refreshSectionUI();
