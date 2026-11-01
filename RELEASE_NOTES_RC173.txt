@@ -1,0 +1,17 @@
+Bass Stem Studio RC173 — Practice tools
+
+Open Practice tools below the main player.
+
+1. Plans: suggests up to three dense or wide-jump bass passages, or add the current loop. Repeats each passage at increasing speeds up to 100%. Save plans on this device or inside Save song projects. Playback changes stop the plan without overwriting your choice.
+2. Setlists: save up to 20 complete analysed songs per list, including original audio, analysis, lyrics and plans. Reopen songs without re-analysis. Suggest order balances key and tempo while keeping the first song. Download/import a JSON backup; maximum backup 200 MB. Browser storage is not a backup.
+3. Fingering: displays string, fret and suggested finger for up to 80 notes in the next 30 seconds. Uses the existing phrase-position planner for 4/5/6-string standard tuning. Alternative positions do not change the original analysis.
+4. Compare: choose two solo recordings, or use the latest recovered live recording as Take B. Compare 3–60 second excerpts locally. CSV export includes actual analysed duration. Tuning measures distance to the nearest semitone, not correct-note accuracy. Timing measures steadiness against the first attack at your chosen BPM; play one attack per beat. Vibrato, overlapping notes, noise and missing attacks affect results. This is practice feedback, not an assessment of musical quality.
+5. Song sheets: print available lyrics with aligned chords, section names, key and tempo. Without lyrics, prints a chord timeline. Use the browser's Print / Save PDF. Also accessible from Lyrics. Printing requires pop-ups and OS printing support.
+
+Existing online audio links, beat-aligned loops, live tuning/timing, melody-aware chord suggestions, recording recovery, MP3 export, drum extraction and voice commands are retained.
+
+These five tools use existing analysis, signal processing and music-theory rules. No new model training or external AI subscription was added. Suggested passages are based on note density and jumps, not measured weaknesses. Automatic chord, lyric, key and beat estimates still depend on the source audio.
+
+Validation: prior RC164–RC172 regression checks passed. RC173 unit checks passed. Browser checks passed for real playback through song-end loops, speed progression, manual cancellation, audio/project/plan round trip, IndexedDB storage, setlist backup export/import, fingering, synthetic detuning/timing improvements, comparison UI and stale-report clearing. Song-sheet escaping and rendered chord placement checked. 390-pixel phone layout checked.
+
+Replace index.html and sw.js together when updating an existing PWA. This release is provided as files, not deployed to your live phone installation.

@@ -1,0 +1,12 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert');
+const html=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8');
+const source=html.match(/<script id="rc173-core">([\s\S]*?)<\/script>/)[1],context={window:{BassLyrics:{assign:(w)=>w}}};vm.createContext(context);vm.runInContext(source,context);const c=context.window.BassStudyCore;
+assert.equal(c.cleanPlan([{start:-1,end:2},{start:0,end:2},{start:4,end:3},{start:2,end:12}],10).length,1);
+const notes=Array.from({length:32},(_,i)=>({midi:i<16?33:33+i%12,start:i*.5,end:i*.5+.3}));const plans=c.plans({notes,duration:16,beats:Array.from({length:33},(_,i)=>i*.5),meter:4});assert.equal(plans.length,3);assert(plans.every(p=>p.end>p.start&&p.end<=16));assert(plans.some(p=>p.start>=8));
+const songs=[{id:'C',root:0,bpm:100,mode:'major'},{id:'F#',root:6,bpm:150,mode:'major'},{id:'G',root:7,bpm:102,mode:'major'}];assert.equal(c.order(songs)[1].id,'G');assert.equal(songs[1].id,'F#');assert.equal(c.order([]).length,0);
+assert.equal(c.timing([0,.5,1,1.5,2],120),0);assert(c.timing([0,.55,1,1.55,2],120)>20);assert.equal(c.timing([0,.5],120),null);
+const page=c.sheet({title:'<script>x</script>',sections:[]},[{text:'A&B',start:0,end:1,chord:'Am'}],[]);assert(page.includes('&lt;script&gt;'));assert(page.includes('A&amp;B'));assert(page.includes('<strong>Am</strong>'));assert(page.includes('@media print'));assert(!page.includes('<script>x'));
+const fallback=c.sheet({title:'Song'},[],[{start:1.2,label:'Cmaj7'}]);assert(fallback.includes('Cmaj7')&&fallback.includes('1.20'));
+for(const id of ['studyDialog','openStudy','lyricsPrint','compareGo','planStart','setlistImport'])assert(html.includes('id="'+id+'"'));
+assert(html.includes('window.BassTools?.monitor()'));assert(html.includes('window.BassTools?.onLoop(loopStart,loopEnd)'));
+console.log('PASS: passage selection and validation, harmonic setlist order, timing metrics, escaped print sheets, chord timeline and transport integration.');

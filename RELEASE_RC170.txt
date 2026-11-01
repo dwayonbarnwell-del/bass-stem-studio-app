@@ -1,0 +1,19 @@
+Bass Stem Studio RC170
+
+Ideas
+Import and analyse a song, move to the desired part, then choose Ideas. Select Jazz, Gospel, Reggae, Funk, Soul / R&B or Pop. Current section starts at the beginning of the section containing the playhead. Each request uses up to 8 reliable chord changes within 30 seconds. Adjacent matching chords are merged.
+
+Light suggestions add chord colour for Jazz, Gospel and Soul. Bold jazz can substitute a resolving dominant seventh with its tritone substitute. Slash-bass chords are preserved. Bass sketches use genre-specific note patterns; passing notes approach the next suggested bass root by semitone. Notes stay within E1–G3. No melody compatibility guarantee is made.
+
+Chord guide previews the analysed harmony with root/slash bass. Hear idea previews the proposed harmony and bass sketch. Both use synthesised tones, not the original recording or a generated full arrangement. Stop and Close release preview audio. Save ideas downloads a CSV with times, original chords, proposed chords, bass notes and style. It does not edit the song, notes, original recording or saved analysis. Suggestions combine existing AI-detected chords with deterministic music-theory rules; no new generative AI service or new model training was added.
+
+Removed
+The three requested Live Audio messages are absent. Closing Live Audio reports only Stopped. The extra short chord disclaimer below the controls was also removed.
+
+Validation
+Unit checks: chord extensions, ii–V–I, resolving tritone substitutions, slash bass protection, approach notes leading to substituted roots, six genre patterns, playable note ranges, immutable original analysis, range merging and removed messages. Existing script syntax/save/import/lyrics checks passed. Browser checks cover card rendering, preview start/stop/end, CSV export, genre control state, close cleanup and missing-chord handling. Phone-sized layout checked. Real-song musical suitability still needs listening with the melody.
+
+Reference
+https://www.mtosmt.org/issues/mto.17.23.1/mto.17.23.1.mcclimon.php
+
+RC169 lyrics, live recording, automatic notes/harmony and protected playback are retained. No deployment was performed.

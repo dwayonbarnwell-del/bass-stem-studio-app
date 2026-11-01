@@ -1,0 +1,9 @@
+RC180 optional converter: @ffmpeg/core 0.12.10 (single-thread build).
+Official project and source: https://github.com/ffmpegwasm/ffmpeg.wasm
+FFmpeg source project: https://ffmpeg.org/
+Runtime loaded on demand from the pinned npm package via jsDelivr:
+https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd/ffmpeg-core.js
+https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd/ffmpeg-core.wasm
+The converter binary is not bundled in this distribution. Consult the
+upstream project's and its included libraries' licences when redistributing
+or modifying those components.

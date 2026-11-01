@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "@spotify/basic-pitch": "^1.0.1",
+    "@tensorflow/tfjs-backend-wasm": "^3.21.0",
+    "esbuild": "^0.28.2"
+  }
+}

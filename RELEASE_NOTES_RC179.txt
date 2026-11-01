@@ -1,0 +1,110 @@
+BASS STEM STUDIO: PRE-PRODUCTION AUDIT
+1 November 2026
+Baseline: RC178. Corrected build: RC179.
+
+RESULT
+Conditional pass for the tested browser workflows. This is not full production
+sign-off or a guarantee that every device, audio file or AI result will work.
+34 targeted destructive scenarios passed after fixes. Six browser regression
+suites passed, covering 88 further checks. All 15 applicable Node unit suites
+passed. All 26 inline scripts parse.
+
+FIXED FAULTS
+1. Recording storage rollback (high)
+A synchronous storage error after clearing a take could commit the clear.
+Write helpers now abort the transaction if an operation throws. The test
+confirms that a failed replacement retains the previous recording. Starting
+a new recording also archives the previous persisted take before replacement.
+
+2. Invalid imported note timings (medium)
+Negative start times and notes extending far beyond the audio were accepted.
+Imports now validate note ranges before replacing the open song. A small
+100 ms allowance covers decoder rounding; accepted ends are clipped to audio.
+
+3. Chord-only saving (medium)
+Projects with chords but no notes or lyrics could not be saved normally.
+Save, setlist capture and import now support chord-only analysis.
+
+4. Damaged correction/history data (medium)
+Missing correction originals, damaged history notes and invalid key ranges
+were accepted. Nested validation now rejects these before song replacement.
+
+5. Recording depended on AI loading (medium)
+Recording waited for the note model to finish loading. AI now starts in the
+background. The recording test uses an AI loader that never resolves and
+confirms that recording, stopping, persistence and stream release still work.
+
+6. Offline file handling (medium)
+The service worker could return index.html for a missing image or data file,
+and attempted to cache every same-origin GET. Caching is now limited to app
+shell files. Only navigation receives the page fallback. Cache write failures
+are handled. Offline assets return an explicit unavailable response.
+
+DESTRUCTIVE CHECKS: 34 PASSED
+- Saved settings, section boundaries, transpose, speed, strings and plans.
+- Broken JSON, future schema, missing audio, invalid base64, undecodable audio,
+  null notes and damaged chord lists preserve the current song.
+- Invalid note timing is rejected before replacement.
+- Damaged optional structure does not partially replace a failed import.
+- Chord-only saving and reimport.
+- Manual edit export/import round trip.
+- Rapid competing imports retain the last requested song.
+- Failed audio import retains the current song.
+- File-read failure unlocks Save without losing notes.
+- Cleared notes remain deleted after device recovery.
+- Double deletion creates one correction.
+- Deleted corrections survive export/import.
+- Invalid note edits leave analysis unchanged.
+- Recording replacement failure retains the previous take.
+- Download-link failure does not report a successful save.
+- Pattern frets remain within range.
+- Repeated setlist recovery does not duplicate a song.
+- Unknown recovery types remain in recovery storage.
+- Simulated microphone denial restores usable controls.
+- Missing optional stems leave original audio usable.
+- Damaged correction originals, history and key ranges are rejected safely.
+- Actual stereo MP3 and WAV exports decode with expected duration.
+- Saved section adjustments and separate selected-bar loops are retained.
+- Generated audio recorded through MediaRecorder remains playable and saved;
+  its stream stops correctly while the AI loader is unavailable.
+
+REGRESSION COVERAGE
+RC173: 18 checks, practice plans, setlists, fingering, song sheets and comparison.
+RC174: 16 checks, song-based ear training, scoring, retry and playback.
+RC175: 13 checks, chord review, correction/undo and simulated sound checks.
+RC176: 7 checks, loop fades, repeated playback, song-end loops and restored gain.
+RC177: 13 checks, exact stereo loop exports/reimport, TV display and controls.
+RC178: 21 checks, delay, patterns, deletion/recovery and failed-backup protection.
+Unit checks include all 25 chord qualities, 12 roots and 4/5/6-string patterns,
+plus six service-worker cases covering offline navigation and storage failures.
+Phone-sized 390x780 and landscape 780x390 panels were checked. No horizontal
+panel overflow was found; long dialogs scroll. Delay buttons have equal sizes.
+
+TEST CONDITIONS
+Tests used generated audio and isolated browser storage names. External fetch
+requests were blocked in audit fixtures. The pinned MP3 encoder script loaded
+through the existing script loader. No analysis jobs, deployment, paid CI or
+production database changes were made. Microphone permission and AI availability
+were simulated; audio recording and encoding used actual browser APIs.
+The audit-only scripts and mocks are excluded from the released application.
+Six older shell-browser suites were not run because their required browser
+binary is unavailable. This audit used the connected browser instead; it does
+not claim those six legacy suites passed.
+
+OUTSTANDING BEFORE FULL PRODUCTION SIGN-OFF
+- Real Android/iPhone microphone permission, Bluetooth latency and interruption
+  tests, including screen lock, calls, backgrounding and hour-long recordings.
+- Native phone download/share targets, TV casting and wake-lock behaviour.
+- HTTPS PWA install/update/offline lifecycle on actual devices. Service-worker
+  logic was tested with a controlled mock, not a full installed-device lifecycle.
+- Live hosted analysis/separation services, model downloads under poor networks,
+  and account/service errors. No paid analysis service was exercised.
+- Chord/key/lyric accuracy against labelled solo, choir, speech and mixed music.
+  UI and signal-processing tests cannot establish real-world recognition accuracy.
+- Large-file, low-memory and long-running tests across supported browsers.
+
+RELEASE FILES
+Bass_Stem_Studio_RC179_Verified.html
+Bass_Stem_Studio_RC179_GitHub_PWA.zip
+The ZIP includes this report, regression tests and the unchanged prior features.
+No live deployment was made.

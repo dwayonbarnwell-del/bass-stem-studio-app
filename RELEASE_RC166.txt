@@ -1,0 +1,1 @@
+RC166: centred title, headers and timeline timestamps; consistent compact control height; inset transport and practice view controls. RC165 analysis and save/import logic retained. Live microphone chord detection and recording are not included in this layout release.

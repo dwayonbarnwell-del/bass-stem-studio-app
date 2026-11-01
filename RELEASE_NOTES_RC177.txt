@@ -1,0 +1,38 @@
+Bass Stem Studio RC177
+
+Share loop
+More tools > Share loop. The current passage is selected; adjust start/end if needed.
+Prepare Audio + notes + chords, then Share or Download. Send the downloaded
+.bassstudio.json file if the browser does not support file sharing.
+The recipient uses More tools > Share loop > Import loop, or the usual project Import.
+Loop boundaries restore and repetition is enabled. Tap Play to start.
+Packs include only the selected original audio, available notes, chords, lyrics,
+beat timings, speed and transpose settings. Separated stems and mixer effects
+are not included. WAV export preserves the original pitch and speed.
+Selections are limited to 120 seconds and 100 MiB of PCM data.
+Stereo is preserved; exported audio is 16-bit PCM WAV. Source files are unchanged.
+The Share button opens the device share chooser only after the user taps it.
+No files are uploaded to a new server by this feature.
+
+TV rehearsal
+More tools > TV rehearsal. Large current/next chord, bass notes and available
+word-timed lyrics. Play/Pause, Restart and Full screen controls.
+Portrait and landscape layouts. Connect to TV instructions are collapsed.
+Android: use Google Home screen mirroring. Computer: use Chrome Cast tab.
+The TV and device must support the chosen method and use the same Wi-Fi.
+This release does not implement a native Chromecast receiver or start phone
+screen mirroring itself. Google Home/Chrome chooses the destination.
+Wireless mirroring may introduce delay. Close leaves playback unchanged;
+stop mirroring separately in Google Home or Chrome.
+Full screen is requested on supported browsers; an expanded view is used if
+permission is refused. The test browser refused native full screen.
+No physical TV, Android share target or phone casting session was available.
+
+Verification
+Unit checks: stereo sample boundaries, metadata clipping, beat phase, duration
+limits, unchanged source objects, valid shared-loop recognition.
+Browser checks: create pack, export, reimport, restore repeat range, preserve
+stereo, shift notes/chords/lyrics, chord-only import, TV display and transport.
+Portrait 390x780 and landscape 780x390 checked without dialog overflow.
+All 25 inline scripts parse. Relevant RC169 and RC172–177 regressions pass.
+No backend change required. Service worker cache updated to rc177.

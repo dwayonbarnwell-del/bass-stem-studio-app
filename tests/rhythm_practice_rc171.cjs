@@ -1,0 +1,5 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert');
+const html=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8');
+const source=html.match(/<script id="rc171-recovery">([\s\S]*?)<\/script>/)[1];
+const context={window:{},Blob};vm.createContext(context);vm.runInContext(source,context);
+(async()=>{const blob=context.window.BassMidi([{start:0,end:1,midi:60},{start:1,end:2,midi:21},{start:2,end:3,midi:100}]),data=new Uint8Array(await blob.arrayBuffer());assert.equal(Buffer.from(data.slice(0,4)).toString(),'MThd');assert.equal(data[12]*256+data[13],480);assert.equal(data[18]*16777216+data[19]*65536+data[20]*256+data[21],data.length-22);const pitches=[];for(let i=22;i<data.length-2;i++)if(data[i]===144)pitches.push(data[i+1]);assert.deepEqual(pitches,[48,33,64]);assert(html.includes('makeDrumInput(channels[0],channels[1],s)'));assert(html.includes("chunk(chunkIndex++,e.data,takeName)"));console.log('PASS: MIDI timing, track length, octave mapping and bass-range pitch-class preservation; recovery take identity.');})().catch(e=>{console.error(e);process.exit(1)});

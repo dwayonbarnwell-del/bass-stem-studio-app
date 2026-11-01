@@ -1,0 +1,9 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert'),path=require('path');const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8'),code=html.match(/<script id="rc174-ear-core">([\s\S]*?)<\/script>/)[1],ctx={window:{}};vm.createContext(ctx);vm.runInContext(code,ctx);const c=ctx.window.BassEarCore;
+const song={duration:20,start:1,end:4,notes:[{midi:36,start:0,end:.5,confidence:.95},{midi:40,start:1,end:1.5,confidence:.8},{midi:43,start:2,end:2.5,confidence:.95},{midi:55,start:3,end:3.5,confidence:.9},{midi:30,start:4,end:4.5,confidence:.2},{midi:33,start:5,end:5.5,manual:true}],chords:[{start:0,end:2,rootPc:0,quality:'maj'},{start:2,end:3,rootPc:9,quality:'min'},{start:3,end:4,rootPc:0,quality:'maj',uncertain:true},{start:4,end:5,rootPc:0,quality:'nonsense'}]};
+assert.equal(c.pool(song,'note','whole').length,5);assert.equal(c.pool(song,'note','loop').length,3);assert.equal(c.pool(song,'note','whole')[0].answer,'C');
+const intervals=c.pool(song,'interval','whole');assert.equal(intervals[0].answer,'Major 3rd');assert(intervals.some(q=>q.answer==='Octave'));assert(!intervals.some(q=>q.midi[1]-q.midi[0]>12));
+const chords=c.pool(song,'chord','whole');assert.equal(chords.length,2);assert.equal(chords[0].answer,'Major');assert.equal(JSON.stringify(chords[1].midi),'[57,60,64]');
+for(const mode of ['note','interval','chord'])for(const q of c.round(c.pool(song,mode,'whole'))){assert.equal(q.options.length,4);assert.equal(new Set(q.options).size,4);assert.equal(q.options.filter(v=>v===q.answer).length,1);}
+assert.equal(c.round(Array.from({length:40},(_,i)=>({...chords[0],id:String(i)}))).length,10);assert.equal(c.pool({duration:2,notes:[]},'note','whole').length,0);
+assert.equal(c.summary(3,5,1),'3 / 5 correct · 1 skipped');assert(html.includes('window.BassEar?.cancelSession()'));
+console.log('PASS: song-derived notes, intervals, chord voicings, confidence/uncertainty filtering, passage bounds, unique answers and scoring.');

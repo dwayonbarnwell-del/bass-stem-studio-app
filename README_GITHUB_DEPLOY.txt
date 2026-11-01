@@ -1,8 +1,34 @@
-Bass Stem Studio RC163
+Bass Stem Studio RC180
 
 Upload index.html, sw.js, manifest.webmanifest and icons/ to the frontend root.
 The existing RC155 song-structure backend remains compatible. No backend
-change is required for RC163.
+change is required for RC180.
+
+New in RC180
+Audio/video import, on-device conversion and direct media-file links.
+See RELEASE_NOTES_RC180.txt for formats, use and limits.
+
+Previous RC179 update
+Pre-production fault fixes. Read RELEASE_NOTES_RC179.txt for audit scope and
+outstanding device and AI accuracy checks. This is not full production sign-off.
+
+Previous RC178 update
+Bluetooth display delay, deleted-item recovery and chord-based bass scale/arpeggio tabs.
+See RELEASE_NOTES_RC178.txt for use and limits.
+
+Previous RC177 update
+Share exact audio passages with their analysis. TV rehearsal view with casting guidance.
+See RELEASE_NOTES_RC177.txt for use and limits.
+
+Previous RC171 update
+Rhythm loops, WAV/MP3 export, recording recovery, hum-to-MIDI and practice controls.
+See RELEASE_NOTES_RC171.txt for usage, model terms and verification limits.
+
+Previous RC170 update
+Ideas adds genre-based chord/bass sketches, preview and CSV export. See RELEASE_RC170.txt.
+
+Previous RC169 update
+Auto notes/harmony, shorter Live Audio panel, optional timed lyrics and protected playback loudness. See RELEASE_RC169.txt for use and limits. Lyrics downloads its runtime/model on demand; audio stays local to that module.
 
 Repeat
 Importing audio or an older project starts section detection in the background

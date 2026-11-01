@@ -1,0 +1,15 @@
+<dialog id="lyricsDialog" aria-labelledby="lyricsTitle">
+ <h2 id="lyricsTitle">Lyrics &amp; chords</h2>
+ <p id="lyricsStatus" role="status">Import a song first.</p>
+ <div class="lyrics-options">
+  <label>Start (seconds)<input id="lyricsStart" type="number" min="0" step="1" value="0"></label>
+  <label>Length<select id="lyricsRange"><option value="section">30 seconds</option><option value="all">Rest of song</option></select></label>
+  <label>Language<select id="lyricsLanguage"><option value="">Auto</option><option value="english">English</option><option value="french">French</option><option value="spanish">Spanish</option><option value="portuguese">Portuguese</option></select></label>
+ </div>
+ <div class="lyrics-buttons"><button id="lyricsDetect" type="button">Detect</button><button id="lyricsCancel" type="button" disabled>Stop</button><button id="lyricsExport" type="button" disabled>Save words</button></div>
+ <details><summary>Before detecting</summary><p>Downloads an AI model on first use. Audio stays here. Singing and word timings may be wrong. Analyse the song for chords. Save the project to keep words and edits.</p></details>
+ <p class="lyrics-hint">First use needs internet. Tap words to edit.</p>
+ <div id="lyricsWords" aria-label="Words with estimated chords"></div>
+ <fieldset id="lyricsEdit" hidden><legend>Edit word</legend><label>Word<input id="lyricsText" maxlength="120"></label><div class="lyrics-options"><label>Start<input id="lyricsTime" type="number" min="0" step=".01"></label><label>End<input id="lyricsEnd" type="number" min="0" step=".01"></label></div><label>Chord<input id="lyricsChord" maxlength="24" placeholder="Leave blank to remove"></label><button id="lyricsApply" type="button">Apply</button></fieldset>
+ <div class="lyrics-buttons"><button id="lyricsPlay" type="button">Play</button><button id="lyricsPause" type="button">Pause</button><button id="lyricsClose" type="button">Close</button></div>
+</dialog>

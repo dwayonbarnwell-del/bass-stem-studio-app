@@ -1,0 +1,4 @@
+Basic Pitch model and library: Copyright Spotify AB. Apache-2.0. https://github.com/spotify/basic-pitch-ts
+TensorFlow.js and WASM backend: Copyright Google LLC. Apache-2.0. https://github.com/tensorflow/tfjs
+See Spotify_Basic_Pitch_Apache_2.txt for the full Apache licence.
+This release uses pretrained Basic Pitch 1.0.1 and TensorFlow.js 3.21.0. Model weights are unchanged.

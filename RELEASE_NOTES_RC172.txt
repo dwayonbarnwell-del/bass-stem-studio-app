@@ -1,0 +1,26 @@
+Bass Stem Studio RC172 — Audio links, melody checks and practice feedback
+
+Audio link
+Use Audio link, paste a direct HTTPS audio-file URL, then Load audio. It enters the same import and analysis pipeline as a local MP3. Use Analyse Bass to obtain the chord timeline. Existing background section analysis behaviour remains unchanged.
+
+Direct MP3/WAV/other browser-decodable audio files are supported when the host permits cross-origin downloads. YouTube, Spotify and other streaming webpage URLs are not supported. This is not a universal downloader or a proxy. Credentials/cookies are not sent. HTML/text/JSON responses are rejected. Downloads are capped at 100 MB and two minutes, with cancellation and clear failure messages. Larger files can still use the existing local Import route. A failed download does not replace the current song. The existing import decoder validates the candidate before changing the working song.
+
+Beat alignment
+Rhythm / practice → Align to beats snaps both loop boundaries to the analysed song's detected beats and updates the main repeat range. A beat grid must already exist. The resulting extract remains limited to 0.5–30 seconds. It uses detected beat positions, not an assumed fixed BPM. Wrong beat detection can still give a poor loop; edit the range if needed. WAV remains the preferred export for exact-duration loops.
+
+Tuning and timing
+Live audio → Tuning / timing → Listen. Play one clear note to see its name and tuning difference in cents, relative to A4 = 440 Hz. The tuner uses a periodicity estimator, rejects silence/clipping, and is intended for one note at a time, not chords or a mixed band.
+
+Use headphones for timing. Set the practice BPM, then Calibrate. After a four-beat count-in, play eight steady attacks on the beat. The app estimates a delay correction from these attacks. Calibration includes any consistent early/late playing during calibration, so it depends on playing steadily. Manual delay is available from -300 to +300 ms. Early/late feedback is withheld until calibration or manual delay adjustment. Then play one attack per beat. Recent average gap is the mean absolute timing difference for up to 16 detected attacks. It does not grade complex rhythms, musical expression or missed notes. Output-device latency estimates are used where available. Recalibrate when changing headphones, audio device or browser.
+
+Capture uses AudioWorklet when available and a ScriptProcessor compatibility path otherwise. The compatibility path has more delay, making calibration especially important. Tuning computation pauses while its panel is collapsed; the practice beat stops when the panel closes or the microphone stops.
+
+Melody-aware ideas
+Ideas → Check melody separates the vocal stem from the selected part (up to 30 seconds), estimates sustained melody notes, and checks the proposed chord colours/substitutions against those notes. If a proposed change adds a stronger semitone clash than the original, the original chord is retained. Bass suggestions are generated from the checked chords. Detected melody is shifted with the song's transpose setting. This is a melody-aware filter on existing theory-based suggestions, not a newly trained model or a guarantee that every suggestion suits the song. Harmony, vocal bleed, instrumental passages and pitch errors can affect the result. If no clear melody is found, suggestions remain explicitly unchecked. Closing the panel cancels further work. Original audio and analysed chords remain unchanged.
+
+The existing SCNet model's non-commercial limitation also applies to vocal separation. See licenses/SCNet_Tran_Provenance.txt and RC171 notes. No backend deployment is needed for these additions. Existing saved projects and analysis connections are preserved.
+
+Validation
+Passed existing syntax/save/import, section-speed, live DSP, Basic Pitch interpretation, lyrics, Ideas and MIDI regression checks. New tests cover 54 tuning cases at three sample rates; silence/clipping; beat snapping; timing and delay calculations; invalid and streaming-page URLs; melody clash rejection; original preservation; and AudioWorklet message timing.
+
+Browser checks passed a real HTTPS audio download/decode, HTML rejection, melody extraction from a real singing sample, beat-alignment controls, actual separated-vocal melody checking, applying melody evidence to suggestions, live tuning through audio capture, calibration gating, delay adjustment and detecting deliberately late attacks after calibration. Phone-width layout checked at 390 px. Physical microphone/headphone latency and separation quality still vary by device and recording. No professional-quality or universal-accuracy claim is made.

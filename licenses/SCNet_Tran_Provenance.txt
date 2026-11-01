@@ -1,0 +1,4 @@
+SCNet Tran ONNX conversion and model provenance:
+https://huggingface.co/t4t2k1m/yt-precount-scnet-tran-onnx
+
+The model card says to treat this model as non-commercial because of MUSDB18-HQ training-data terms. Architecture/training code are MIT; this does not remove the stated weight/data restrictions. Model is downloaded on demand, not included in this archive. See RELEASE_NOTES_RC171.txt.

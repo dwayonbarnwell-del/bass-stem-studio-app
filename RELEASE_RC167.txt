@@ -1,0 +1,20 @@
+Bass Stem Studio RC167
+
+New Live audio button below the display settings, above Source & Stem.
+Listen: microphone chord estimates without recording.
+Record: microphone audio plus a provisional timed chord log.
+Stop: finishes the recording and switches off the microphone.
+Save audio: downloads the browser's supported format (normally WebM, M4A or Ogg).
+Save chords: downloads the timed provisional chord log as CSV.
+Use recording: loads the recording into the existing song player. The normal analysis workflow may upload it to the configured service; the app asks before this handoff.
+Close: stops listening/recording and keeps the finished recording available while the app remains open.
+
+Requires a microphone-capable browser and a secure hosted page (HTTPS). Permission is requested only after Listen or Record. Live processing stays on the device. No microphone monitoring is routed to speakers.
+
+Live recognition is a basic spectral chord estimator, not the offline analysis model. Supports major/minor, dominant/major/minor seventh, diminished and suspended templates. Ambiguous roots are left unclear. A single bass note cannot establish a full chord. Complex chords, loud/noisy rooms and full-band audio may be unclear or wrong. Live labels and CSV entries are explicitly provisional. Actual phone microphone accuracy and latency have not been measured.
+
+Save recordings before closing/reloading the app. Recordings are held in memory, with an automatic one-hour stop. Mobile operating systems may interrupt background capture; keep the app open while recording.
+
+Validation: syntax and existing save/import/cache checks passed. DSP fixtures passed for 72 chord templates, ambiguous/silent/single-note/noise inputs and harmonic spectra at 44.1/48 kHz. Chrome browser checks used generated C-major audio, actual Web Audio and MediaRecorder: chord detection; duplicate recording protection; audio download and decode; chord CSV; import handoff; permission denial and retry; cancelled pending permission; microphone shutdown on Stop/Close; recording retained on reopen. Portrait and landscape dialog layouts inspected. No actual device microphone or cloud analysis request used in tests.
+
+Not deployed by this release package.

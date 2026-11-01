@@ -1,0 +1,8 @@
+RC165: Earlier section detection and reusable results
+
+Based on RC164.
+Starts section detection once raw audio is decoded, before device backup and stem recovery finish. Starts missing project sections before optional stems load. Bass analysis can run alongside section detection and joins existing work. Saved ranges are not automatically replaced after bass re-analysis.
+Keeps up to 12 exact-audio section results, with the former single-song cache as a fallback. Reuses the audio fingerprint during the session.
+No changes to the section model, backend request action, audio encoding settings, timestamps or detection thresholds. No measured promise of faster server processing.
+
+Validation: Node tests passed for concurrent import/bass detection, duplicate-request prevention, identical submitted audio and returned structure, bounded cache reuse, save waiting and serialisation, and separate import picker handling. Full browser/device tests remain unverified because a browser binary could not be downloaded in this environment.

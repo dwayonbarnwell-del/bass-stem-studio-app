@@ -1,0 +1,19 @@
+Bass Stem Studio RC174 — Ear training using your songs
+
+Open Practice tools > Ear training.
+1. Import and analyse a song, or open a saved analysed project.
+2. Choose Bass notes, Intervals or Chord types.
+3. Use Whole song, or Loop / playhead for the selected repeat range. Without a loop, this uses the next eight seconds.
+4. Start round. Listen and choose one of four answers.
+5. Replay exercise plays generated tones from the detected notes. Hear song plays the original recording at that passage. Reference A provides a known pitch.
+6. Use Next, Skip or Retry missed. Completed scores are saved on this device, with up to 50 rounds retained.
+
+Questions use the original song key, even when the main player is transposed. Note names ignore octave. Intervals range from unison to octave. Chord exercises include major, minor, dominant seventh, major seventh, minor seventh, diminished, augmented, sus2 and sus4. Unsupported and uncertain chords are excluded. Notes must be manually corrected or have confidence of at least 0.65.
+
+Up to ten questions per round. Exercises use existing analysis, not a newly trained AI model. Correct analysis mistakes before practising. Hear song contains the original mix, so other instruments may also be audible. Song audio is not uploaded by ear training. Scores are browser-local and do not sync across devices or transfer inside a saved song project.
+
+The exercise panel hides the main timeline to avoid showing answers. Answer buttons lock after the first choice. Closing the panel, changing the song or hiding the app stops training audio. Starting a round stops the practice plan and main player. Live listening/recording and analysis must finish before starting.
+
+Validation: all prior RC164–RC173 regression checks passed. RC174 tests cover question sources, scope, confidence filtering, chord voicings, unique answer choices and scoring. Browser checks passed for project import, note/interval/chord rounds, skip, retry, one-score-per-answer, saved scores, reference tone, original passage playback, stop/back controls and missing analysis. Phone layout checked at 390 pixels.
+
+The prior features remain available. Replace index.html and sw.js together for an existing PWA. These files do not update your phone installation automatically.

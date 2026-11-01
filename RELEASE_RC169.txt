@@ -1,0 +1,30 @@
+Bass Stem Studio RC169
+
+Changes
+- Auto note/harmony mode is the default. It requires two consecutive supported harmony windows before switching to chords. Manual solo, choir/instruments and speech modes remain. This is not a trained speech-versus-singing classifier.
+- Live panel uses shorter text, extra title padding, consistent buttons and resets its scroll position on opening. AI status clears when stopped. Clipped input suppresses note updates.
+- Optional Lyrics panel uses Xenova/whisper-tiny through Transformers.js 3.8.1, downloaded from Hugging Face/jsDelivr when Detect is selected. No microphone or song audio is uploaded by the lyrics module. Internet access is needed for downloads; offline lyrics operation is not guaranteed.
+- Choose 30 seconds or the rest of the song, starting at a given second. Auto language or selected language. Processing uses overlapping 20-second blocks in a cancellable worker. Silence is skipped.
+- Estimated chord changes from the existing analysed song are placed above overlapping words, or the next word within one second if that chord still applies. Instrumental gaps do not receive invented lyrics. Several changes during one word are shown together. This is not guaranteed exact alignment.
+- Tap a word to seek and correct its text, start/end and chord. Current words highlight during playback. Words can be exported as CSV. Save the song project to retain words and edits. Lyrics-only projects now save/import; older projects still work.
+- Normal/+3/+6 dB playback choices. Final output now passes through a compressor and headroom gain. This reduces loud peaks but is not a guarantee against clipping, speaker distortion or poor source audio. Original imports and microphone recordings are not normalised or rewritten.
+- Service worker only removes old Bass Studio shell caches, preserving other caches.
+
+Validation
+- JavaScript syntax, previous save/import and section checks passed.
+- Actual browser microphone simulation: Auto recognised C; record, stop, audio decode/download, chord CSV, handoff, permission cancellation/denial and close/reopen checks passed.
+- Actual downloaded Whisper model returned 22 word timestamps on the public JFK speech example. End-to-end Lyrics component confirmed chord placement, edits, restore, source changes and cancellation. This is a functionality check, not a singing accuracy score.
+- Actual application import checks passed for lyrics-only, combined notes/lyrics, and legacy notes-only projects.
+- Browser offline rendering: +6 dB roughly doubled quiet test RMS (0.0397 to 0.0793). Loud sine peak fell from 1.7957 without output protection to 0.7927 with protection. Not a true-peak certification or a test of all audio sources.
+- Phone-sized portrait and landscape layouts checked. Actual handset performance, live choir classification, singing transcription accuracy and all languages remain unverified.
+
+Use
+Import a song, open Lyrics and select Detect. Analyse Bass supplies the song chord timeline. For a live recording: Record, Stop, Load audio, then Lyrics. Save words exports a CSV; Save in Source & Stem saves the project. Save audio still exports the browser recording format, not MP3.
+
+Sources
+https://huggingface.co/Xenova/whisper-tiny (model card: Apache-2.0; pretrained ONNX conversion of OpenAI Whisper)
+https://huggingface.co/docs/transformers.js/v3.8.1/en/api/pipelines
+https://developer.mozilla.org/en-US/docs/Web/API/DynamicsCompressorNode
+
+Not included
+No newly trained model, guaranteed exact lyric timing, live lyric streaming, speaker identification, MP3 conversion or deployment. Existing bass analysis service settings and processing remain in place.

@@ -1,0 +1,31 @@
+Bass Stem Studio RC176
+
+Smooth loops
+Enabled by default. Short output fades soften clicks at loop boundaries.
+Works with the existing playback, section repeat and time-cell repeat paths.
+The switch remembers your preference. Audio and pitch remain unchanged in saved source files.
+This reduces boundary clicks; browser media seeking can still cause a small gap.
+
+Keep awake
+Enabled by default. Requests a screen wake lock during playback, live audio,
+ear training, chord review and sound check. Releases it when practice stops
+or the page is hidden. Switch off to allow normal screen dimming.
+Requires a supported browser and secure context (HTTPS or localhost).
+Battery policy or the operating system may release or refuse the lock.
+A short status shows availability; this is not a background-playback feature.
+
+Interface
+Two concise, padded controls below the essential practice buttons.
+Existing More tools grouping, centred headings and button sizing retained.
+
+Validation
+RC169–RC176 regression checks pass; earlier RC164–RC168 checks also passed.
+All 24 inline JavaScript blocks parse.
+Rendered synthetic boundary discontinuity reduced from 1 to below 0.001.
+Browser playback checks pass for repeated short loops and loops through song end.
+Gain restores after seek and pause. Wake-lock lifecycle tested with API mocks.
+Phone-width layout checked: no page overflow, 44px control targets.
+Physical phone screen dimming and device-specific battery policies were not tested.
+
+Deployment
+Replace the frontend files with this package. No backend changes required.

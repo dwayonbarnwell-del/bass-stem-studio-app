@@ -1,0 +1,63 @@
+BASS STEM STUDIO RC180 — AUDIO AND VIDEO IMPORT
+1 November 2026
+
+USE
+Tap the top Import icon for audio or video files.
+For links, open More tools > Audio / video link. Paste a direct HTTPS media
+file URL. Its host must allow browser downloads (CORS). Streaming pages,
+protected media and YouTube/Spotify links are not supported.
+The separate Import beside Save still opens saved Bass Studio projects.
+
+AUDIO
+MP3, WAV/WAVE, M4A, M4B, AAC, AIFF/AIF/AIFC, CAF, FLAC, OGG/OGA,
+Opus and WMA are offered in the file picker.
+
+VIDEO
+MP4, M4V, MOV, WebM, MKV, AVI, MPEG/MPG, 3GP/3G2, OGV and WMV are
+also offered. A file extension alone does not guarantee its internal codec
+is supported. Video imports keep one audio track, not the pictures.
+
+CONVERSION
+The browser decoder is tried first. Other readable formats use the pinned
+single-thread @ffmpeg/core 0.12.10 in a disposable worker on the device.
+This optional converter loads about 32 MB from jsDelivr and needs internet
+access when it is not cached. It does not upload the media for conversion.
+Existing analysis services retain their existing behaviour.
+
+Extracted/converted audio becomes PCM16 WAV for playback, analysis, recovery
+and saved projects. Native decoding keeps its sample rate. Fallback conversion
+uses 44.1 kHz and up to two channels. Surround audio is mixed into stereo so
+centre-channel vocals are retained. Over-range samples are reduced together
+to avoid adding hard clipping. Existing distortion cannot be repaired.
+MP3/M4A and other directly playable stereo audio retain their original bytes.
+
+LIMITS
+Video files and conversion inputs: up to 128 MB. Direct links: up to 100 MB.
+Fallback conversion: at most 20 minutes, also limited to 256 MB of decoded
+floating-point audio (about 12.7 minutes for stereo at 44.1 kHz).
+WAV output is limited to 256 MB. Low-memory phones may need shorter files.
+Conversion has a time limit and Cancel. Cancelling, corrupt files, unavailable
+converter downloads and videos without audio leave the open song intact.
+No backend update, streaming-site integration or live deployment is included.
+
+VERIFICATION
+27 media browser checks passed in Chromium. Actual generated fixtures decoded
+and exposed playable metadata for MP3, WAV, M4A/AAC, AIFF PCM, CAF/ALAC,
+FLAC, OGG/Vorbis, Opus, WMA, MP4/AAC, MOV/AAC, MKV/Opus, AVI/PCM and
+WebM/Opus. AIFF, CAF, WMA and AVI exercised the actual downloaded converter.
+A 5.1 WAV with sound only in the centre channel produced audible stereo.
+Duration, channel count and decoded level were checked. Further checks covered
+video import/project reimport, silent video, corruption, cancellation, size
+limits, extension-free downloads, simulated offline failure, direct video-link
+routing, HTML rejection, PCM overload handling and file picker coverage.
+The link test used a controlled browser Response with real MOV bytes; it does
+not claim compatibility with a particular external hosting provider.
+
+All 34 RC179 destructive browser checks and all 15 applicable Node unit suites
+also passed against RC180. All inline scripts parse. No external paid analysis
+jobs were run. Tests use isolated storage and generated media.
+Physical iPhone/Mac/Safari/Android, large/long files and every possible codec
+combination have not been verified. This is not full production sign-off.
+
+The application and ZIP exclude test instrumentation. Test sources are under
+tests/. Existing practice, recording, recovery and AI features are retained.

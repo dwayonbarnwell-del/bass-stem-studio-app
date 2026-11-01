@@ -1,0 +1,11 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
+const html=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8');const ctx={window:{},console};vm.createContext(ctx);vm.runInContext(html.match(/<script id="rc169-lyrics">([\s\S]*?)<\/script>/)[1],ctx);const l=ctx.window.BassLyrics;
+const words=[{text:'Sing',start:1,end:2},{text:'with',start:2,end:2.5},{text:'me',start:3,end:4}];
+let result=l.assign(words,[{start:1.2,end:2.5,label:'C'},{start:3,end:5,label:'Am'}]);assert.equal(result[0].autoChord,'C');assert.equal(result[2].autoChord,'Am');assert.equal(result[1].autoChord,'');
+result=l.assign(words,[{start:0,end:.5,label:'G'},{start:2.7,end:4,label:'F',uncertain:true}]);assert.equal(result[0].autoChord,'');assert.equal(result[2].autoChord,'F ?');
+result=l.assign([{...words[0],chord:'Dm'}],[{start:1,end:2,label:'C'}]);assert.equal(result[0].chord,'Dm');
+assert.equal(l.clean([{text:'bad',start:NaN,end:2},{text:'bad',start:2,end:1},{text:'ok',start:0,end:1},{text:'bad',start:null,end:1}]).length,1);
+assert.equal(l.clean([{text:'after',start:5,end:6}],4).length,0);
+assert(html.includes('lyrics:window.BassLyrics?.exportData()||[]'));assert(html.includes('window.BassLyrics?.restore(project.analysis.lyrics)'));assert(html.includes('masterGain.connect(loopFadeGain).connect(outputBoost).connect(outputGuard).connect(outputHeadroom).connect(ctx.destination)'));
+assert(!html.includes('masterGain.connect(ctx.destination)'));assert(html.includes('<option value="auto" selected>'));
+console.log('PASS: chord/word overlap, gap handling, manual correction, timestamp validation, project persistence hooks, auto default and output protection routing.');

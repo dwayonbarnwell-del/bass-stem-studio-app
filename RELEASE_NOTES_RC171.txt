@@ -1,0 +1,22 @@
+Bass Stem Studio RC171 — Rhythm and practice
+
+Use Rhythm / practice after importing a song. Set A/B in the main player, or enter start/end seconds. Extract drums isolates a 0.5–30 second stereo drum loop on this device. Play it with the loop audio controls. Save WAV preserves exact sample duration; Save MP3 provides a smaller 192 kbps file. An existing drum loop can also be imported.
+
+The first extraction downloads ONNX Runtime Web 1.22.0 and the existing SCNet Tran 47 MB model. Extraction uses rectangular, normalised STFT / inverse STFT, correct boundary reflection, 50% chunk overlap and overlap fades. Peak gain is reduced only when necessary. It does not restore already clipped input. Separation can leave vocal/instrument bleed; this is not a guarantee of professional isolation. Drums-only output may exclude other rhythmic instruments. Extraction is limited to 30 seconds for phone memory and processing time.
+
+Model provenance and usage: https://huggingface.co/t4t2k1m/yt-precount-scnet-tran-onnx
+The model author says to treat these weights as non-commercial because of training-data terms. For a commercial platform, use an appropriately licensed separation model/service. No new model was trained for this release.
+
+Live Audio now saves recording chunks to IndexedDB once MediaRecorder emits them, normally about once a second. The latest take restores after a reload on the same browser/origin. A new recording replaces the previous recovery take. Storage failure is shown; downloads remain available. Browser clearing/eviction, private browsing, device storage limits and unflushed final chunks can prevent full recovery. Keep a downloaded backup. Cross-tab writes cannot append to a newer take. Delete take removes the browser recovery copy.
+
+Save MP3 actually decodes the recorded audio and encodes MP3 via the existing lamejs 1.2.1 runtime. Save audio retains the browser-native recording format. MP3 encoding needs the runtime download on first use; it is not a file-extension rename. Large recordings can require substantial phone memory.
+
+Hum bassline mode records monophonic pitch estimates from the existing pretrained Basic Pitch model. Save bass MIDI writes notes one octave below the voice, octave-folded into E1–G3. Notes shorter than 80 ms are omitted. Overlapping analysis windows are deduplicated. This is a rough transcription, not precise onset/tuning measurement. Practice scale gives the percentage of detected frames within a selected major/minor scale. It does not assess rhythm, technique, expression or intonation.
+
+Voice commands: Play, Pause, Repeat the chorus. The chorus command needs an existing labelled chorus in the song's sections. Uses the browser's SpeechRecognition when available; its provider may process speech remotely. A typed command fallback is included. Recognition support varies by browser. No continuous background voice activation. Actual spoken recognition was not verified in the cloud browser; command dispatch and pause behaviour were checked.
+
+Suggestions wording: the app uses detected chords plus arrangement rules. This describes the method, not improved chord-detection accuracy. Suggestions remain optional and can clash with a melody. Original audio/chords stay unchanged.
+
+Validation: existing syntax/save/import, live DSP, Basic Pitch interpretation, lyrics and Ideas regression suites passed. Browser checks passed real MP3 encoding/decoding, real SCNet stereo drum extraction, separation cancellation, WAV loop export/decoding, recovery ordering/completion/deletion, rejected stale-tab writes, real MediaRecorder capture and recovery decoding, reload restoration, denied/cancelled mic requests, close cleanup, hummed MIDI export and scale-fit output. Mobile layout checked at 390 px. Separation quality has not been benchmarked against professionally isolated reference stems; no accuracy percentage is claimed.
+
+Future priorities: beat-snapped loop boundaries; stronger licensed separation for full songs; tuning and timing feedback; melody-aware reharmonisation; editable automatic section labels.

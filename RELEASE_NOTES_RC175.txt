@@ -1,0 +1,20 @@
+Bass Stem Studio RC175 — Sound check, chord review and simpler controls
+
+Sound check
+Open Live audio > Sound check, or More tools > Sound check.
+1. Choose Quiet room and stay quiet for three seconds.
+2. Choose Playing level and sing/play normally for three seconds.
+The app checks background RMS level, peak headroom, clipping and signal-to-background difference. It suggests lowering gain, moving the microphone or finding a quieter space when needed. No sound-check audio is saved or uploaded. It does not repair audio or guarantee distortion-free recordings. Microphone access requires HTTPS or localhost.
+
+The check uses practical digital-level thresholds: noise above -45 dBFS RMS, signal below -35 dBFS RMS, peak above -3 dBFS, clipping near 0.98 full scale, or signal-to-noise below 15 dB. These are setup estimates, not calibrated room measurements. Device processing and microphone hardware can affect them. The microphone is released after each check, on cancellation and when the page is hidden.
+
+Chord review
+Open Review chords. The queue lists uncertain or insufficiently supported detected chord events, excluding manually checked events. Hear passage previews up to eight seconds of original audio. Check / correct opens the existing chord editor. Save the correct chord to remove it from the queue. Cancel leaves it pending. Undo remains available. Save song retains corrections in the project file. Missing chord events cannot be reviewed as detected chords.
+
+Simpler practice controls
+Live audio, Practice tools and Review chords stay together. More tools contains Lyrics, Ideas, Audio link, Rhythm / practice, Sound check and playback loudness. The existing transport, note/fretboard views, speed settings and audio mixer remain in place. No existing feature was removed.
+
+Validation
+Existing RC164–RC174 regression checks pass. RC175 tests cover sound assessment thresholds and preserved control IDs. Browser tests use generated microphone input, not a physical microphone. They check quiet/playing measurements, microphone track release, cancellation, chord correction and undo, queue playback and the simplified controls. Mobile layout checked at 390 pixels.
+
+Update index.html and sw.js together for the PWA. These files do not update your phone installation automatically.

@@ -1,0 +1,11 @@
+RC164: Saving and importing
+
+Based on RC163, preserving its layout and analysis features.
+Save waits for an active section job and reports a failure rather than silently saving before that job finishes.
+Saves detected structure, named ranges, repeat range adjustments and selected sections.
+Imports preserve saved boundary edits and reuse existing ranges without an automatic section request. Find sections remains available for older projects containing only generic parts.
+Audio and project imports use separate browser picker IDs. Unsupported browsers use the existing file inputs; their folder behaviour remains controlled by the browser.
+
+For existing files without detected verse/chorus data: import, choose Repeat then Find sections, wait for completion and Save again. Missing historical section labels cannot be recovered from these files alone.
+
+Verification: Node checks passed for script syntax, real save serialisation with a pending section job, retained section metadata/ranges/repeat choices, picker IDs, routing, cancellation and fallback. Full browser regression tests could not run because the browser binary was unavailable and its download failed.

@@ -1,0 +1,10 @@
+<dialog id="ideasDialog" aria-labelledby="ideasTitle">
+ <h2 id="ideasTitle">Musical ideas</h2>
+ <p id="ideasStatus" role="status">Import and analyse a song.</p>
+ <div class="idea-options"><label>Style<select id="ideasStyle"><option value="jazz">Jazz</option><option value="gospel">Gospel</option><option value="reggae">Reggae</option><option value="funk">Funk</option><option value="soul">Soul / R&amp;B</option><option value="pop">Pop</option></select></label><label>Colour<select id="ideasColour"><option value="light">Light</option><option value="bold">Bold jazz</option></select></label><label>Part<select id="ideasScope"><option value="playhead">From playhead</option><option value="section">Current section</option></select></label></div>
+ <p id="ideasTip"></p>
+ <div class="idea-buttons"><button id="ideasOriginal" type="button">Chord guide</button><button id="ideasPreview" type="button">Hear idea</button><button id="ideasStop" type="button" disabled>Stop</button></div>
+ <small>Sketches from analysed chords. Up to 8 changes.</small>
+ <div id="ideasRows"></div>
+ <div class="idea-buttons"><button id="ideasRefresh" type="button">Refresh</button><button id="ideasSave" type="button">Save ideas</button><button id="ideasClose" type="button">Close</button></div>
+</dialog>

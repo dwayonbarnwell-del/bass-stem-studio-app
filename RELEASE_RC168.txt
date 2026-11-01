@@ -1,0 +1,26 @@
+Bass Stem Studio RC168 — AI voice notes and harmonies
+
+Live audio now uses the pretrained Spotify Basic Pitch neural model (1.0.1) with TensorFlow.js/WASM (3.21.0), rather than relying on spectral peaks for live notes. The model weights were NOT trained or fine-tuned in this work. All model/runtime assets are embedded in the HTML. Live voice inference stays on the device; no microphone audio is sent to Spotify.
+
+Input modes:
+• Solo singing: one strongest musical pitch, with no invented chord.
+• Choir / instruments: simultaneous note evidence used to estimate a chord.
+• Speaking (pitch only): approximate musical pitch of voiced speech; no key or chord claim. The model is intended for music, so speech estimates are not validated.
+
+Detected notes, provisional chords and tentative key estimates are shown separately. Key estimates require at least six sufficiently represented pitch classes and three seconds of voiced evidence within a rolling 30-second window. Ambiguous keys show two candidates. Sequential melody notes are not combined to manufacture a chord. CSV export now includes notes and key as well as chord and time.
+
+The model analyses about two seconds of audio at a time in a background worker. It keeps the latest window rather than queuing a growing backlog. The screen shows result age. Results older than four seconds are withheld. This is delayed live analysis, not zero-latency recognition. Actual speed on the user's phone is unmeasured.
+
+Validation:
+1. Original save/import/section-cache tests pass. Original main application logic is unchanged except release number; the RC167 live integration hook is retained.
+2. Real Web Audio / MediaRecorder integration checks pass in Chrome: generated C-major input, recording/replay/export, import handoff, permission denial, cancelled permission, microphone release and retention of recording while the page stays open. The preview exercised the ScriptProcessor fallback because its HTTP origin did not expose AudioWorklet. The preferred AudioWorklet path still needs an HTTPS device test.
+3. Eighty approximately two-second excerpts (first 0–2 and 2–4 seconds) from all 40 Vocadito recordings, involving 29 singer IDs, were run through the actual WASM model. This is a limited diagnostic, NOT an independent choir benchmark or proof of general accuracy; overlap with the pretrained model's development/evaluation data was not ruled out.
+4. Multipitch frame metric on those excerpts: precision 0.680, recall 0.876, F1 0.765. Exact rounded MIDI compared with supplied frame F0, with a 0.30 absolute / 0.40 relative activation gate. Measures output frames, not the final stabilised display or key/chord accuracy. Extra notes remain a real limitation.
+5. Solo mode uses only the strongest activation at >=0.40. Threshold exploration on tracks 1–20: TP 1213, FP 220, FN 374. Diagnostic results on separate tracks 21–40: TP 1130, FP 194, FN 340 (precision 0.853, recall 0.769). Track groups are not guaranteed to contain disjoint singers. No model weights were updated.
+6. Six constructed vocal harmonies used annotated voice segments from different singers, pitch-adjusted and looped with crossfades. C, Am, F and Dm were recognised; G and Em were left unclear. These are controlled mixtures, not recordings of real choirs. No broad choir accuracy claim is justified.
+7. Repeated inference retained 245 model tensors before/after 80 windows. Mean inference was about 103 ms per two-second window in the test browser, excluding capture and startup. Not a phone latency claim.
+8. Logic tests cover simultaneous C/Am, sequential melody rejection, solo mode, silence and insufficient evidence for key.
+
+Data attribution: Rachel Bittner, Katherine Pasalo, Juan José Bosch, Gabriel Meseguer Brocal and David Rubinstein, Vocadito v3, https://doi.org/10.5281/zenodo.5578807, CC BY 4.0. Audio is not included in this release. Mixtures were derived for diagnostic testing only. Spotify Basic Pitch and TensorFlow licences/attribution are in licenses/ and embedded in the HTML.
+
+Existing recording format and storage behaviour are unchanged: Save audio downloads the browser's supported format, not MP3. Save before closing or reloading the app. Lyrics transcription is not part of this release. This package has not been deployed to the live app.

@@ -1,0 +1,48 @@
+Bass Stem Studio RC178
+
+More tools > Audio delay
+Adjust display delay from 0 to 2,000 ms in 25 ms steps. Increase it if the
+notes change before the sound reaches Bluetooth headphones. Estimate uses
+browser output latency when available; fine-tune manually. Reset for wired
+headphones. The setting is remembered in this browser.
+Notes, chords, lyrics and TV rehearsal follow the delayed display clock.
+Playback, analysis timestamps, exports and loop boundaries are unchanged.
+A short clock history handles loops, speed changes and pause tails.
+This adjusts the song player's display, not microphone monitoring latency.
+No physical Bluetooth headset was available for device calibration testing.
+
+More tools > Recently deleted
+Recording deletion, setlist song removal, practice-passage removal, note/chord
+deletion and Clear notes save recovery copies before removing work. A failed
+recovery write blocks deletion. Recordings retain their original audio bytes;
+setlist entries retain their saved song project. Restored recordings appear in
+Live audio. Restore analysis or a practice plan with the original song open.
+Analysis is matched against the source audio bytes. Current analysis/plan is
+also retained before restoration. Existing saved recordings are archived before
+a restored take replaces them. Recording replacement is one atomic transaction.
+Copies remain in this browser until restored or browser data is cleared.
+Recovery starts with this version. It cannot recover earlier deletions, files
+removed from phone Downloads, or cleared browser storage. Keep file backups.
+
+More tools > Scales & arpeggios
+Choose a detected song chord or select root and chord manually. Current chord
+refreshes from the playhead. Choose Arpeggio or Scale, then 4/5/6-string bass
+and starting fret. Read the tab from left to right; top row is the highest
+string. Numbers are frets. Standard tuning and one ascending octave are used.
+25 chord qualities are supported. Scale choices contain the chord tones;
+they are practice options, not a guarantee of suitability against the melody.
+Extended chord tones are folded into one octave. Slash-bass choices do not
+change the root-based practice pattern. Try another fret if no pattern fits.
+
+Verification
+26 inline scripts parse. Unit checks cover display delay at normal/slow speed,
+loop wrap, pause, changed songs and bounds; 224,448 pattern-note checks cover
+12 roots, 25 qualities and 4/5/6 strings. RC164/165 and RC167-177 unit checks pass.
+Browser checks pass for import, pattern selection, delay while playing and
+paused, recovery after each supported removal, original recording bytes,
+wrong-song blocking and simulated backup failure. Delay settings and recovery
+entries survive reload. Portrait 390x780 and landscape 780x390 dialogs have
+no horizontal overflow; long panels scroll vertically.
+Six older shell-browser suites could not launch because their Chromium binary
+is absent; current browser verification used the available connected browser.
+No backend change. Service worker cache updated to rc178.
