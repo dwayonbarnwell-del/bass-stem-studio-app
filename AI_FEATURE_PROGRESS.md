@@ -82,4 +82,6 @@ The user explicitly approved publishing RC183 to main on 1 November 2026. Comman
 
 ## RC184 audit continuation
 
-See AUDIT_RC184.md and RELEASE_NOTES_RC184.txt. Audit fixes are prepared for one combined Render publication. The existing RC183 features and outstanding broader AI scope remain unchanged. Use the audit report for evidence and limitations; do not rerun full history or print the 5.3 MB HTML.
+See AUDIT_RC184.md and RELEASE_NOTES_RC184.txt. RC184 audit fixes were published in one combined Render deployment. The existing RC183 features and outstanding broader AI scope remain unchanged. Use the audit report for evidence and limitations; do not rerun full history or print the 5.3 MB HTML.
+
+Publication verified: main release ea597cc13450c0907651aa33b832649837b06a74; Render deployment dep-dbjm1l95efls73e5cn7g reached live on 1 November 2026 at 15:55:10 UTC. Public index.html, sw.js and AUDIT_RC184.md returned HTTP 200 and exact release blob hashes. The first sw.js read was stale at the CDN; subsequent normal and revalidated reads matched RC184. No second deployment was required. Audit limitations remain as recorded in AUDIT_RC184.md.
