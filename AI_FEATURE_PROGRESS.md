@@ -93,3 +93,7 @@ Baseline: verified RC184 main at 600e4a3. See RELEASE_NOTES_RC185.txt. The five 
 ## RC186 removals and automatic playback levels
 
 User requested removal of TV rehearsal, voice commands, online media and display Audio delay. These are removed from the UI and active code, together with manual Playback loudness. Do not re-add them. Main/Bass mixer output now uses shared automatic gain and look-ahead sample-peak protection; original exports are preserved. Notes View matches Play, and BPM/Use song tempo align. Browser permission prompts cannot be restyled. See RELEASE_NOTES_RC186.txt for checks and audio limitations.
+
+## RC187 direct Ear training
+
+User requested Ear training to replace Practice tools, with the rest of that panel removed. RC187 implements the direct main-screen entry, removes Plan/Setlists/Fingering/Compare UI and active handlers, and returns directly to the main screen on Close/Escape. Shared ear history storage, lyric printing and legacy project data are retained. Do not re-add Practice tools. Baseline RC186 was published as 5eff61fd8e69c36c2d415ddaaa61e1cb2c136a7a; Render deployment dep-dbjngabm8hqs73805ahg reached live on 1 November 2026 at 17:34:39 UTC. See RELEASE_NOTES_RC187.txt for validation.

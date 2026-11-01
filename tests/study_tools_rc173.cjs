@@ -7,6 +7,6 @@ const songs=[{id:'C',root:0,bpm:100,mode:'major'},{id:'F#',root:6,bpm:150,mode:'
 assert.equal(c.timing([0,.5,1,1.5,2],120),0);assert(c.timing([0,.55,1,1.55,2],120)>20);assert.equal(c.timing([0,.5],120),null);
 const page=c.sheet({title:'<script>x</script>',sections:[]},[{text:'A&B',start:0,end:1,chord:'Am'}],[]);assert(page.includes('&lt;script&gt;'));assert(page.includes('A&amp;B'));assert(page.includes('<strong>Am</strong>'));assert(page.includes('@media print'));assert(!page.includes('<script>x'));
 const fallback=c.sheet({title:'Song'},[],[{start:1.2,label:'Cmaj7'}]);assert(fallback.includes('Cmaj7')&&fallback.includes('1.20'));
-for(const id of ['studyDialog','openStudy','lyricsPrint','compareGo','planStart','setlistImport'])assert(html.includes('id="'+id+'"'));
+assert(html.includes('id="lyricsPrint"'));
 assert(html.includes('window.BassTools?.monitor()'));assert(html.includes('window.BassTools?.onLoop(loopStart,loopEnd)'));
-console.log('PASS: passage selection and validation, harmonic setlist order, timing metrics, escaped print sheets, chord timeline and transport integration.');
+console.log('PASS: passage selection and validation, legacy saved-data helpers, escaped print sheets, chord timeline and transport compatibility.');

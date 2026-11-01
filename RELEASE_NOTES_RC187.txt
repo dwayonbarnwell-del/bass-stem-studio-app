@@ -1,0 +1,5 @@
+Bass Stem Studio RC187
+
+Ear training replaces Practice tools on the main screen and opens directly. Removed the Plan, Setlists, Fingering and Compare panel and its active handlers. Close and Escape return to the main screen and stop exercise audio. Existing ear exercises, scores, lyric printing and saved-project compatibility are retained. Existing device records are not deleted.
+
+Validation: all inline scripts parse; existing ear-training and legacy helper checks pass; imported study data survives resaving without enabling retired plans or leaking to a new song. Live UI verification follows deployment. Physical-device listening has not been tested.
