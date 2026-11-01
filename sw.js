@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bass-stem-studio-rc183-v1';
+const CACHE_NAME = 'bass-stem-studio-rc184-v1';
 const APP_SHELL = ['./','./index.html','./manifest.webmanifest','./icons/icon-192.png','./icons/icon-512.png'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)).then(()=>self.skipWaiting()));
@@ -19,6 +19,11 @@ self.addEventListener('fetch', event => {
       const response=await fetch(event.request);
       if(shell&&response.ok&&response.type==='basic'&&cache){
         const copy=response.clone();event.waitUntil(cache.put(event.request,copy).catch(()=>{}));
+      }
+      if(!response.ok&&cache){
+        const saved=await cache.match(event.request).catch(()=>null);
+        if(saved)return saved;
+        if(navigation){const page=await cache.match(new URL('./index.html',self.registration.scope).href).catch(()=>null);if(page)return page;}
       }
       return response;
     }catch{

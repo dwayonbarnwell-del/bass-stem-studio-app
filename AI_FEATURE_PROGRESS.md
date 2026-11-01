@@ -1,6 +1,6 @@
 # Bass Stem Studio implementation record
 
-Updated 1 November 2026. Baseline: local c93941c, following GitHub RC181/RC182 controls. Current work: RC183. This document is a development handover, not a claim that every feature is live.
+Updated 1 November 2026. Baseline: local c93941c, following GitHub RC181/RC182 controls. Current work: RC184 audit fixes. This document is a development handover, not a claim that every feature is live.
 
 ## User requirements
 
@@ -79,3 +79,7 @@ Service: srv-db6eecrbc2fs73brimj0.
 Public app: https://bass-stem-studio-app-z5ja.onrender.com/
 Last verified live baseline in this conversation: RC180, a4b8a3219e87ece8ca33aeacdc02327cbd55e97c.
 The user explicitly approved publishing RC183 to main on 1 November 2026. Command-line Git authentication was unavailable; publication uses the connected GitHub service. Confirm the resulting commit and deployment before assuming this version is live.
+
+## RC184 audit continuation
+
+See AUDIT_RC184.md and RELEASE_NOTES_RC184.txt. Audit fixes are prepared for one combined Render publication. The existing RC183 features and outstanding broader AI scope remain unchanged. Use the audit report for evidence and limitations; do not rerun full history or print the 5.3 MB HTML.

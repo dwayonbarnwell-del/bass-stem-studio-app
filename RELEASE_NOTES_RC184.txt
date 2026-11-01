@@ -1,0 +1,7 @@
+Bass Stem Studio RC184
+
+Audit fixes: persist uncertain uploads before paid submission, protect pending jobs and recovery audio when changing songs, block repeated selected-range requests, retain successful parts when another part fails, add bounded network waits and clearer service errors, and fall back to the cached app on server errors. Existing analysis, save formats and layout preserved.
+
+Analysis options now includes Review interrupted uploads and Forget analysis key.
+
+See AUDIT_RC184.md for measured checks and unverified areas. No paid GPU audit jobs were run. Real-device compatibility and real-song accuracy are not certified.

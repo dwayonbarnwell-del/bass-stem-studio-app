@@ -1,9 +1,10 @@
 <!doctype html>
 <html lang="en">
 <head>
+<meta name="referrer" content="no-referrer">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bass Stem Studio RC183</title>
+<title>Bass Stem Studio RC184</title>
 <script>
 /* RC119: initialise the correct physical-device font before the first paint.
    This deliberately does not rely on viewport width alone, because Chrome's
@@ -13469,7 +13470,7 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
           </div>
           <button class="btn good" id="aiAnalyse" disabled>Analyse Bass</button>
         </div>
-        <details><summary>Analysis options</summary><label>Mode<select id="analysisQuality"><option value="accuracy">Detailed</option><option value="fast">Quick</option></select></label><p class="small">Quick uses faster separation. Detailed keeps the existing accuracy mode. Both use your paid analysis service. Changing this does not start a job.</p></details>
+        <details><summary>Analysis options</summary><label>Mode<select id="analysisQuality"><option value="accuracy">Detailed</option><option value="fast">Quick</option></select></label><p class="small">Quick uses faster separation. Detailed keeps the existing accuracy mode. Both use your paid analysis service. Changing this does not start a job.</p><button class="btn" id="reviewInterruptedUploads" type="button">Review interrupted uploads</button><button class="btn" id="forgetAnalysisKey" type="button">Forget analysis key</button></details>
         <div class="ai-progress"><progress id="aiProgress" max="100" value="0" aria-label="Bass analysis progress"></progress><span id="aiProgressText">Ready for bass analysis</span></div>
         <div class="small ai-note"></div>
       </div>
@@ -13502,7 +13503,7 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC183';
+  const APP_VERSION='RC184';
   const PROJECT_SCHEMA_VERSION=2;
   // RC125: compact practice-view and string selectors preserve space for P1/P2/P3; all RC124 audio, analysis, repeat, project and practice logic preserved.
 
@@ -13545,7 +13546,7 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
     resetSongStructure();
     aiBusy=false;pendingResumeBusy=false;offlineAnalysisRunning=false;
     if(aiAnalyse)aiAnalyse.removeAttribute('aria-busy');
-    if(!preservePending)clearPendingRunPodJob();
+    // Keep outstanding paid jobs when opening another song; only completion clears them.
     preparedAnalysisUploadCache=null;
     masterAudio.pause();stopBassStemPlayback(false);stopNoBassPlayback(false);
     playing=false;cancelAnimationFrame(raf);stopSource();
@@ -13787,6 +13788,7 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
       const range=selectedAnalysisRange(),file=activeAudioFile,signature=cloudFileSignature(file),existing=readPendingRunPodJob();
       if(existing)throw new Error('Finish the saved analysis before starting another.');
       const key=getRunPodKey();if(!key)return;
+      aiBusy=true;aiAnalyse.disabled=true;
       await persistAnalysisRecovery();assertSongSession(session);
       const pending=makePendingPartGroup(file,signature);pending.scope='section';pending.range=range;
       pending.parts=[];for(let start=range.start;start<range.end;start+=ANALYSIS_PART_SECONDS){const end=Math.min(range.end,start+ANALYSIS_PART_SECONDS),index=pending.parts.length;
@@ -15770,8 +15772,10 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
     }catch(e){return null}
   }
 
-  function savePendingRunPodJob(value){
-    try{localStorage.setItem(RUNPOD_PENDING_JOB,JSON.stringify(value))}catch(e){}
+  function savePendingRunPodJob(value,strict=false){
+    try{localStorage.setItem(RUNPOD_PENDING_JOB,JSON.stringify(value))}catch(e){
+      if(strict)throw new Error('Recovery storage is unavailable. No new analysis was sent. Free some device storage and try again.');
+    }
   }
 
   function clearPendingRunPodJob(){
@@ -15802,7 +15806,9 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
       await new Promise((resolve,reject)=>{
         const tx=db.transaction(RUNPOD_RECOVERY_STORE,'readwrite');
         const store=tx.objectStore(RUNPOD_RECOVERY_STORE);
-        store.clear();
+        const pendingSignature=readPendingRunPodJob()?.signature;
+        const keys=store.getAllKeys();
+        keys.onsuccess=()=>{for(const key of keys.result)if(key!==signature&&key!==pendingSignature)store.delete(key);};
         store.put({
           signature,
           name:file.name||'audio.mp3',
@@ -15853,6 +15859,21 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
     if(key){try{localStorage.setItem(RUNPOD_SAVED_KEY,key)}catch(e){}}
     return key;
   }
+
+  function reviewInterruptedUploads(){
+    if(aiBusy||structureBusy||pendingResumeBusy){aiStatus('Wait for the current request to finish before reviewing uploads.',0);return;}
+    const pending=readPendingRunPodJob(),parts=(pending?.parts||[]).filter(p=>(p.submitting&&!p.id)||p.failedStatus);
+    const jobs=storedStructureJobs().filter(j=>j.unconfirmed);
+    if(!parts.length&&!jobs.length){aiStatus('No unconfirmed uploads to review.',0);return;}
+    if(!window.confirm('An upload may already be running or charged. Check your RunPod job history first. Only continue if you have confirmed these uploads did not create jobs, or you accept the cost of sending them again. Allow another submission?'))return;
+    for(const part of parts){delete part.submitting;if(part.failedStatus){delete part.id;delete part.failedStatus;}}
+    if(parts.length)savePendingRunPodJob(pending,true);
+    for(const job of jobs)storeStructureJob(null,job.id);
+    structureError='';renderRepeatChooser();
+    aiStatus('Uploads unlocked. Nothing has been sent. Choose Analyse Bass or Find sections when ready.',0);
+  }
+  $('reviewInterruptedUploads').onclick=reviewInterruptedUploads;
+  $('forgetAnalysisKey').onclick=()=>{forgetRunPodKey();aiStatus('Analysis key removed from this browser. Saved songs are unchanged.',0);};
 
   function forgetRunPodKey(){
     try{localStorage.removeItem(RUNPOD_SAVED_KEY)}catch(e){}
@@ -16027,10 +16048,19 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
 
   async function runPodFetch(url,key,options={},maxAttempts=8,session=songSession){
     let lastErr;
+    // Only status reads may retry. A lost POST reply can hide a paid accepted job.
+    const reading=(options.method||'GET').toUpperCase()==='GET';
+    if(!reading)maxAttempts=1;
     for(let attempt=1;attempt<=maxAttempts;attempt++){
       assertSongSession(session);
+      const controller=new AbortController();
+      const abort=()=>controller.abort();
+      if(options.signal?.aborted)controller.abort();
+      options.signal?.addEventListener('abort',abort,{once:true});
+      let timedOut=false;
+      const timer=setTimeout(()=>{timedOut=true;controller.abort();},reading?30000:180000);
       try{
-        const res=await fetch(url,{...options,headers:{
+        const res=await fetch(url,{...options,signal:controller.signal,headers:{
           'Accept':'application/json',
           'Authorization':'Bearer '+key,
           ...(options.body?{'Content-Type':'application/json'}:{}),
@@ -16038,14 +16068,15 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
         }});
         const text=await res.text();
         assertSongSession(session);
-        let data;try{data=JSON.parse(text)}catch{data={raw:text}}
+        let data;try{data=JSON.parse(text)}catch{throw new Error('The analysis service returned an unreadable reply. Your saved work is unchanged.');}
         if(!res.ok){
-          const err=new Error(`RunPod HTTP ${res.status}: ${JSON.stringify(data).slice(0,900)}`);
+          const err=new Error(`Analysis service request failed (${res.status}). Your saved work is unchanged.`);
           err.httpStatus=res.status;throw err;
         }
         return data;
       }catch(err){
         assertSongSession(session);
+        if(timedOut)err=new Error('The analysis connection timed out. Check progress before starting another job.');
         lastErr=err;
         if(err?.httpStatus===401) throw err;
         const msg=String(err?.message||err);
@@ -16053,7 +16084,7 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
         if(!transient||attempt===maxAttempts) throw err;
         aiStatus('In Progress.....',15);
         await cloudSleep(7000);
-      }
+      }finally{clearTimeout(timer);options.signal?.removeEventListener('abort',abort);}
     }
     throw lastErr;
   }
@@ -16987,7 +17018,9 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
 
     for(let i=0;i<total;i++){
       const part=pending.parts[i];
+      if(part.failedStatus)throw new Error(`${part.label} did not finish (${part.failedStatus}). Use Analysis options > Review interrupted uploads to retry this part.`);
       if(part.id)continue;
+      if(part.submitting)throw new Error('An upload has no confirmed reply. Use Analysis options > Review interrupted uploads before sending it again.');
 
       aiStatus(`Preparing ${part.label} of ${total} — keep this screen open`,
                Math.max(2,Math.round((i/Math.max(1,total))*12)));
@@ -16999,7 +17032,10 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
       const b64=await fileToBase64(upload.file);
       assertSongSession(session);
 
-      const submitted=await runPodFetch(
+      part.submitting=true;
+      savePendingRunPodJob(pending,true);
+      let submitted;
+      try{submitted=await runPodFetch(
         `https://api.runpod.ai/v2/${encodeURIComponent(RUNPOD_ENDPOINT)}/run`,
         key,{
           method:'POST',
@@ -17011,12 +17047,16 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
             return_bass_audio:true
           }})
         },1,session
-      );
-
+      );}catch(error){
+        if([400,401,403,413,422,429].includes(error?.httpStatus)){delete part.submitting;savePendingRunPodJob(pending);}
+        throw error;
+      }
+      // Persist the returned ID before subsequent local processing.
+      if(submitted?.id){part.id=submitted.id;delete part.submitting;savePendingRunPodJob(pending);}
       assertSongSession(session);
       const immediate=String(submitted?.status||'UNKNOWN').toUpperCase();
-      if(['FAILED','CANCELLED','TIMED_OUT'].includes(immediate))
-        throw new Error(`${part.label} was rejected by the analysis service (${immediate}).`);
+      if(['FAILED','CANCELLED','TIMED_OUT'].includes(immediate)){part.failedStatus=immediate;delete part.submitting;savePendingRunPodJob(pending);
+        throw new Error(`${part.label} did not finish (${immediate}). Use Analysis options > Review interrupted uploads to retry this part.`);}
       if(!submitted?.id)
         throw new Error(`${part.label} did not receive an analysis job number.`);
 
@@ -17044,19 +17084,19 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
       const cached=await recoveryStore('results',s=>s.get(part.id)).catch(()=>null);
       assertSongSession(session);
       if(cached?.signature===pending.signature&&cached?.data?.status==='COMPLETED'){results.push(cached.data);continue;}
-      let current=await runPodFetch(
+      let current;try{current=await runPodFetch(
         `https://api.runpod.ai/v2/${encodeURIComponent(RUNPOD_ENDPOINT)}/status/${encodeURIComponent(part.id)}`,
         key,{method:'GET'},8,session
-      );
+      );}catch(error){if(error?.httpStatus===404){part.failedStatus='EXPIRED';savePendingRunPodJob(pending);}throw error;}
       assertSongSession(session);
       let st=String(current?.status||'UNKNOWN').toUpperCase();
       if(!['COMPLETED','FAILED','CANCELLED','TIMED_OUT'].includes(st)){
-        current=await pollRunPodJob(key,part.id,session);
+        try{current=await pollRunPodJob(key,part.id,session);}catch(error){if(error?.httpStatus===404){part.failedStatus='EXPIRED';savePendingRunPodJob(pending);}throw error;}
         assertSongSession(session);
         st=String(current?.status||'UNKNOWN').toUpperCase();
       }
-      if(st!=='COMPLETED')
-        throw new Error(`${part.label} analysis finished with status ${st}.`);
+      if(st!=='COMPLETED'){part.failedStatus=st;savePendingRunPodJob(pending);
+        throw new Error(`${part.label} analysis finished with status ${st}. Use Analysis options > Review interrupted uploads to retry this part.`);}
       await recoveryStore('results',s=>s.put({id:part.id,signature:pending.signature,savedAt:Date.now(),data:current})).catch(()=>{if(session===songSession)toolsMessage('Part backup unavailable. Keep the app open until analysis finishes.');});
       assertSongSession(session);
       results.push(current);
@@ -17412,8 +17452,7 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
         forgetRunPodKey();
         aiStatus('The analysis service API key was rejected. Tap Analyse Bass and paste your current key again.',0);
       }else if(err?.httpStatus===404||/job\s+not\s+found|not\s+found/i.test(String(err?.message||''))){
-        clearPendingRunPodJob();
-        aiStatus('The previous analysis job has expired. Tap Analyse Bass to start it again.',0);
+        aiStatus('An analysis part has expired. Use Analysis options > Review interrupted uploads. Finished parts are kept.',0);
       }else{
         aiStatus('Analysis is still saved. It will check again when you return.',14);
       }
@@ -18823,10 +18862,10 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
     try{const old=JSON.parse(localStorage.getItem(STRUCTURE_PENDING_KEY)||'null');if(old?.id&&!jobs.some(j=>j.id===old.id))jobs.push(old);}catch{}
     return jobs;
   }
-  function storeStructureJob(value,completedId=null){
+  function storeStructureJob(value,completedId=null,strict=false){
     const jobs=storedStructureJobs(),id=value?.id||completedId||pendingStructureJob()?.id;
-    const next=jobs.filter(j=>j.id!==id);if(value)next.push(value);
-    try{localStorage.setItem(STRUCTURE_PENDING_LIST_KEY,JSON.stringify(next));localStorage.removeItem(STRUCTURE_PENDING_KEY);}catch{}
+    const next=jobs.filter(j=>j.id!==id&&j.id!==completedId);if(value)next.push(value);
+    try{localStorage.setItem(STRUCTURE_PENDING_LIST_KEY,JSON.stringify(next));localStorage.removeItem(STRUCTURE_PENDING_KEY);}catch{if(strict)throw new Error('Recovery storage is unavailable. No section job was sent.');}
   }
   function matchesStructureJob(pending){
     if(!pending?.id||!activeAudioFile)return false;
@@ -18939,6 +18978,7 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
         const key=interactive?getRunPodKey():storedRunPodKey();
         if(!key){structureError='Connect once with Find sections. Future imports will find sections automatically.';return false;}
         let result;
+        if(pending?.unconfirmed)throw new Error('The section upload has no confirmed reply. Use Analysis options > Review interrupted uploads before sending it again.');
         if(matchesStructureJob(pending)){
           structureStartedAt=pending.startedAt||structureStartedAt;setStructureStage('Checking song sections…');
         }
@@ -18957,10 +18997,15 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
           if(upload.size>RUNPOD_RUNSYNC_RAW_SAFE_BYTES)throw new Error('This recording is too large for automatic sections. Existing repeat selections still work.');
           const data=await fileToBase64(upload);assertSongSession(session);
           setStructureStage('Sending audio for section analysis…');
-          result=await fetchStructureRequest(`https://api.runpod.ai/v2/${RUNPOD_ENDPOINT}/${route}`,key,{method:'POST',body:JSON.stringify({input:{action:'sections',
-            filename:upload===file?file.name:'sections.mp3',audio_base64:data}})},session);
+          pending={id:'unconfirmed:'+audioId+':'+signature,signature,audioId,startedAt:structureStartedAt,unconfirmed:true};
+          storeStructureJob(pending,null,true);
+          try{result=await fetchStructureRequest(`https://api.runpod.ai/v2/${RUNPOD_ENDPOINT}/${route}`,key,{method:'POST',body:JSON.stringify({input:{action:'sections',
+            filename:upload===file?file.name:'sections.mp3',audio_base64:data}})},session);}catch(error){
+            if([400,401,403,413,422,429].includes(error?.httpStatus))storeStructureJob(null,pending.id);
+            throw error;
+          }
+          if(result.id){const previousId=pending.id;pending={id:result.id,signature,audioId,startedAt:structureStartedAt};storeStructureJob(pending,previousId);}
           assertSongSession(session);
-          if(result.id){pending={id:result.id,signature,audioId,startedAt:structureStartedAt};storeStructureJob(pending);}
           if(!result.id&&result.status!=='COMPLETED')throw new Error('The section request was not accepted. Please try again.');
           if(result.status!=='COMPLETED')setStructureStage(result.status==='IN_QUEUE'?'Waiting for a GPU…':'Finding song sections…');
         }
@@ -18987,8 +19032,9 @@ html body #appRoot #editPitch{min-height:44px!important;background:#173446!impor
       }catch(error){
         if(session!==songSession||error?.name==='AbortError')return false;
         if(error?.httpStatus===404)storeStructureJob(null,pending?.id);
-        const resumable=matchesStructureJob(pendingStructureJob());
-        structureError=error?.httpStatus===401?'The analysis key was rejected. Update it and try again.':
+        const uncertain=!!pendingStructureJob()?.unconfirmed;
+        const resumable=!uncertain&&matchesStructureJob(pendingStructureJob());
+        structureError=uncertain?'The upload has no confirmed reply. Use Analysis options > Review interrupted uploads before sending it again.':error?.httpStatus===401?'The analysis key was rejected. Update it and try again.':
           resumable?'Connection interrupted. Tap Check progress to continue.':
           error?.sectionTimeout?'The connection timed out. Tap Find sections to try again.':
           error?.httpStatus?'Sections are temporarily unavailable. Please try again.':String(error?.message||'Could not find sections.');
