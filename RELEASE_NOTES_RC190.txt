@@ -1,0 +1,5 @@
+Bass Stem Studio RC190
+
+The Text, Strings, Speed, BPM and seconds cards now align with the Sections and Scale row.
+Live audio, Ear training, Review chords and More tools use the same card width, height and gaps as that row. Their labels follow the selected text size (14 px by default), are bold, and stay centred on two lines.
+Removed the Correction saved message and idle Ready for practice message. Corrections still save; wake-lock controls and failure notices remain functional.

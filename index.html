@@ -4,7 +4,7 @@
 <meta name="referrer" content="no-referrer">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bass Stem Studio RC189</title>
+<title>Bass Stem Studio RC190</title>
 <script id="rc186-level">
 /* RC186: shared stereo gain, silence gate and look-ahead sample-peak protection.
    Target -16 dBFS RMS; at most +12 dB gain; ceiling -1 dBFS. This is not a LUFS/true-peak meter. */
@@ -12092,7 +12092,7 @@ window.BassAwake=(()=>{let api,lock=null,pending=false,blocked=false,wasActive=f
  function message(t){$('awakeStatus').textContent=t;}
  async function release(){++generation;const old=lock;lock=null;if(old)try{await old.release();}catch{}}
  async function sync(){if(!api)return;const active=api.active(),wanted=$('keepAwake').checked&&active&&!document.hidden;if(!active&&wasActive)blocked=false;wasActive=active;
- if(!navigator.wakeLock){message('Unavailable in this browser.');return;}if(!wanted){await release();message($('keepAwake').checked?'Ready for practice.':'Off.');return;}if(lock){message('Screen staying awake.');return;}if(pending||blocked)return;pending=true;const mine=generation;
+ if(!navigator.wakeLock){message('Unavailable in this browser.');return;}if(!wanted){await release();message('');return;}if(lock){message('Screen staying awake.');return;}if(pending||blocked)return;pending=true;const mine=generation;
  try{const next=await navigator.wakeLock.request('screen');if(mine!==generation||!$('keepAwake').checked||document.hidden||!api.active()){await next.release();return;}lock=next;message('Screen staying awake.');next.addEventListener('release',()=>{if(lock===next){lock=null;blocked=true;message('Device released screen lock.');}});}catch{blocked=true;message('Not allowed. Check battery or browser settings.');}finally{pending=false;}}
  function init(hooks){api=hooks;try{$('keepAwake').checked=localStorage.getItem('bassKeepAwake')!=='off';}catch{}$('keepAwake').onchange=()=>{blocked=false;try{localStorage.setItem('bassKeepAwake',$('keepAwake').checked?'on':'off');}catch{}void sync();};document.addEventListener('visibilitychange',()=>{blocked=false;void sync();});window.addEventListener('pagehide',()=>void release());setInterval(()=>void sync(),750);void sync();}
  return {init,sync,release};
@@ -13021,13 +13021,22 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot #timelinePartTabs{display:fle
 html body #appRoot#appRoot#appRoot#appRoot#appRoot #timelinePartTabs[hidden]{display:none!important;}
 html body #appRoot#appRoot#appRoot#appRoot#appRoot #timelinePartTabs .timeline-part-btn{box-sizing:border-box!important;flex:0 0 var(--transport-card-width)!important;width:var(--transport-card-width)!important;min-width:var(--transport-card-width)!important;max-width:var(--transport-card-width)!important;height:var(--transport-card-height)!important;min-height:var(--transport-card-height)!important;max-height:var(--transport-card-height)!important;margin:0!important;padding:4px!important;display:flex!important;align-items:center!important;justify-content:center!important;text-align:center!important;background:hsl(var(--part-hue) 42% 24%)!important;border:1px solid hsl(var(--part-hue) 55% 58%)!important;color:#fff!important;border-radius:10px!important;}
 html body #appRoot#appRoot#appRoot#appRoot#appRoot #timelinePartTabs .timeline-part-btn.active{background:hsl(var(--part-hue) 45% 32%)!important;border-color:#eef7ff!important;box-shadow:inset 0 0 0 2px #eef7ff!important;}
-html body #appRoot#appRoot#appRoot#appRoot#appRoot #liveAudioEntry{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px!important;padding:10px!important;grid-auto-rows:1fr!important;}
-html body #appRoot#appRoot#appRoot#appRoot#appRoot #liveAudioEntry>button{box-sizing:border-box!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;text-align:center!important;width:100%!important;min-width:0!important;height:max(56px,calc(var(--ui-font-size,14px)*3.2))!important;min-height:56px!important;margin:0!important;padding:6px 2px!important;gap:0!important;line-height:1.25!important;font-size:clamp(10px,3.1vw,var(--ui-font-size,14px))!important;}
-html body #appRoot#appRoot#appRoot#appRoot#appRoot #liveAudioEntry>button>span{display:block!important;position:static!important;margin:0!important;padding:0!important;text-align:center!important;white-space:nowrap!important;font:inherit!important;line-height:1.25!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot #liveAudioEntry{grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:var(--rc120-tight-gap,6px)!important;padding:0 8px 8px!important;grid-auto-rows:var(--rc120-control-h,44px)!important;box-sizing:border-box!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot #liveAudioEntry>button{box-sizing:border-box!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;text-align:center!important;width:100%!important;min-width:0!important;height:var(--rc120-control-h,44px)!important;min-height:var(--rc120-control-h,44px)!important;max-height:var(--rc120-control-h,44px)!important;margin:0!important;padding:2px!important;gap:0!important;line-height:1.15!important;font-size:var(--ui-font-size,14px)!important;font-weight:800!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot #liveAudioEntry>button>span{display:block!important;position:static!important;margin:0!important;padding:0!important;text-align:center!important;white-space:nowrap!important;font:inherit!important;line-height:1.15!important;}
 html body #appRoot#appRoot#appRoot#appRoot#appRoot #moreTools[hidden]{display:none!important;}
 html body #appRoot#appRoot#appRoot#appRoot#appRoot #openMoreTools[aria-expanded="true"]{background:#305d70!important;border-color:#a6d6e5!important;}
 html body #appRoot#appRoot#appRoot#appRoot#appRoot #loopToggle #repeatReadyLabel{display:block!important;white-space:nowrap!important;}
 html body #appRoot#appRoot#appRoot#appRoot#appRoot #loopToggle>svg{display:none!important;}
+</style>
+<style id="rc190-aligned-controls">
+/* Share the transport row's gutters, five columns, gap and card height. */
+html body #appRoot#appRoot#appRoot#appRoot#appRoot .premium-transport{padding:8px!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot #displaySizeControl{box-sizing:border-box!important;padding:0 8px!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot #fontSizeCard,
+html body #appRoot#appRoot#appRoot#appRoot#appRoot #fontSizeCard label,
+html body #appRoot#appRoot#appRoot#appRoot#appRoot #fontSizePreset{font-size:var(--ui-font-size,14px)!important;font-weight:800!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot #awakeStatus:empty{display:none!important;}
 </style>
 </head>
 <body>
@@ -13234,7 +13243,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot #loopToggle>svg{display:none!
       </div>
       </div>
 
-<section id="liveAudioEntry" aria-label="Practice controls"><button id="openLiveAudio" type="button" aria-label="Live audio"><span>Live</span> <span>audio</span></button><button id="openEar" type="button" aria-label="Ear training"><span>Ear</span> <span>training</span></button><button id="openReview" type="button" aria-label="Review chords"><span>Review</span> <span>chords</span></button><button id="openMoreTools" type="button" aria-label="More tools" aria-expanded="false" aria-controls="moreTools"><span>More</span> <span>tools</span></button></section><div id="moreTools" hidden><div id="extraTools"><button id="openTrash" type="button">Recently deleted</button><button id="openPatterns" type="button">Scales &amp; arpeggios</button><button id="openLoopShare" type="button">Share loop</button><button id="openLyrics" type="button">Lyrics</button><button id="openIdeas" type="button">Ideas</button><button id="openRhythm" type="button">Rhythm / practice</button><button id="openSoundCheck" type="button">Sound check</button></div></div><div id="practiceComfort"><label title="Short fades soften loop joins"><input id="smoothLoops" type="checkbox" checked>Smooth loops</label><label><input id="keepAwake" type="checkbox" checked>Keep awake</label><small id="awakeStatus" role="status">Ready for practice.</small></div>
+<section id="liveAudioEntry" aria-label="Practice controls"><button id="openLiveAudio" type="button" aria-label="Live audio"><span>Live</span> <span>audio</span></button><button id="openEar" type="button" aria-label="Ear training"><span>Ear</span> <span>training</span></button><button id="openReview" type="button" aria-label="Review chords"><span>Review</span> <span>chords</span></button><button id="openMoreTools" type="button" aria-label="More tools" aria-expanded="false" aria-controls="moreTools"><span>More</span> <span>tools</span></button></section><div id="moreTools" hidden><div id="extraTools"><button id="openTrash" type="button">Recently deleted</button><button id="openPatterns" type="button">Scales &amp; arpeggios</button><button id="openLoopShare" type="button">Share loop</button><button id="openLyrics" type="button">Lyrics</button><button id="openIdeas" type="button">Ideas</button><button id="openRhythm" type="button">Rhythm / practice</button><button id="openSoundCheck" type="button">Sound check</button></div></div><div id="practiceComfort"><label title="Short fades soften loop joins"><input id="smoothLoops" type="checkbox" checked>Smooth loops</label><label><input id="keepAwake" type="checkbox" checked>Keep awake</label><small id="awakeStatus" role="status"></small></div>
 <dialog id="soundCheckDialog" aria-labelledby="soundCheckTitle"><h2 id="soundCheckTitle">Sound check</h2><p id="checkStatus" role="status">Check the room, then your playing level.</p><div class="check-buttons"><button id="checkQuiet">1. Quiet room</button><button id="checkLevel" disabled>2. Playing level</button></div><div id="checkResults" aria-live="polite"></div><small>Each check takes 3 seconds. No audio is saved. This checks input levels, not every cause of distortion.</small><div class="check-buttons"><button id="checkCancel" disabled>Stop check</button><button id="checkClose">Back</button></div></dialog>
 <dialog id="reviewDialog" aria-labelledby="reviewTitle"><h2 id="reviewTitle">Review chords</h2><p id="reviewCount"></p><h3 id="reviewChord">—</h3><p id="reviewTime"></p><p id="reviewStatus" role="status"></p><div class="review-buttons"><button id="reviewHear">Hear passage</button><button id="reviewStop" disabled>Stop audio</button><button id="reviewEdit">Check / correct</button><button id="reviewPrev">Previous</button><button id="reviewNext">Next</button><button id="reviewClose">Close</button></div><small>Save the correct chord to remove it from this queue. Use Save song to keep your corrections.</small></dialog>
 <dialog id="earDialog" aria-labelledby="earTitle"><h2 id="earTitle">Ear training</h2><p id="earSongName"></p><div class="ear-grid"><label>Skill<select id="earMode"><option value="note">Bass notes</option><option value="interval">Intervals</option><option value="chord">Chord types</option></select></label><label>Passage<select id="earScope"><option value="whole">Whole song</option><option value="loop">Loop / playhead</option></select></label></div><button id="earStart">Start round</button><p id="earStatus" role="status"></p><div class="ear-question"><h3 id="earQuestion">Listen and choose</h3><p id="earDetail"></p><p id="earScore"></p></div><div class="ear-grid"><button id="earReference" disabled>Reference A</button><button id="earReplay" disabled>Replay exercise</button><button id="earSong" disabled>Hear song</button><button id="earStop" disabled>Stop audio</button></div><div id="earAnswers" class="ear-grid" aria-label="Answer choices"></div><p id="earFeedback" aria-live="polite"></p><div class="ear-actions"><button id="earSkip" disabled>Skip</button><button id="earNext" disabled>Next</button><button id="earRetry" disabled>Retry missed</button></div><p id="earHistory"></p><small>Up to 10 questions. Uses the original song key. Exercises play detected notes; Hear song plays the recording. Correct analysis errors before practising.</small><div class="ear-actions"><button id="earClose">Close</button></div></dialog>
@@ -13437,7 +13446,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot #loopToggle>svg{display:none!
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC189';
+  const APP_VERSION='RC190';
   const PROJECT_SCHEMA_VERSION=2;
   // RC125: compact practice-view and string selectors preserve space for P1/P2/P3; all RC124 audio, analysis, repeat, project and practice logic preserved.
 
@@ -13690,7 +13699,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot #loopToggle>svg{display:none!
     if(kind==='note')notes=notes.filter(n=>!(n.start===original.start&&n.midi===original.midi));
     else detectedChordChanges=splitAroundRange(detectedChordChanges,original.start,original.end);
     replayManualCorrections();refreshEditedAnalysis();persistAnalysisRecovery(true);$('analysisEditDialog').close();editingEvent=null;
-    toolsMessage('Correction saved.');
+    toolsMessage('');
     }finally{analysisDeleteBusy=false;}
   }
   async function applySectionAnalysis(pending,finalDataList,session=songSession){
