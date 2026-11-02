@@ -1,0 +1,12 @@
+Bass Stem Studio RC195 — Local song library
+
+Import is now Library, in the same position and size.
+Choose a default folder on browsers supporting File System Access. The folder handle is remembered on this device; reconnect if access needs renewal.
+Save writes the complete existing .bassstudio project into the selected folder, or into browser-local storage if no folder is selected. Nothing in the library is uploaded.
+Search by title, stored artist, key or BPM; sort by name or saved date. Add multiple existing saved projects, reopen without automatic section analysis, and download backups.
+Folder scanning caches metadata for unchanged files; Refresh picks up external file changes. Only files directly in the selected folder are listed.
+Replacement requires confirmation. Failed writes, denied permissions, invalid files and storage limits are handled without reporting a successful save.
+Browser-local projects remain specific to the browser and site. Download backups before clearing site data. Folder selection is unavailable in some browsers.
+Existing audio import, project schema, layout and analysis controls are preserved. Service-worker version updated.
+
+Validation: all 34 script blocks parse; existing save/import unit checks pass; new library tests cover complete project round-trip, search, duplicate cancellation, quota failure, remembered folder, denied permissions and aborted writes. Browser checks cover batch import, invalid-file rejection, search, full project reopening, save replacement, persistence after reload and 390px phone layout. Native folder picker was not exercised in the HTTP preview; folder operations were verified with simulated file handles.

@@ -4,7 +4,7 @@
 <meta name="referrer" content="no-referrer">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bass Stem Studio RC194</title>
+<title>Bass Stem Studio RC195</title>
 <script id="rc186-level">
 /* RC186: shared stereo gain, silence gate and look-ahead sample-peak protection.
    Target -16 dBFS RMS; at most +12 dB gain; ceiling -1 dBFS. This is not a LUFS/true-peak meter. */
@@ -13405,7 +13405,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRo
         </div>
         <div class="source-project-actions" aria-label="Saved song project controls">
           <button class="btn good" id="saveProjectBtn" type="button" disabled title="Save this analysed song, notes and scale numbers to your device">Save</button>
-          <button class="btn" id="importProjectBtn" type="button" title="Import a previously saved Bass Studio project">Import</button>
+          <button class="btn" id="importProjectBtn" type="button" title="Search and open saved songs on this device">Library</button>
           <input class="fileinput" id="projectFileInput" type="file" accept=".bassstudio,.bssproject,.json,application/json">
         </div>
       </div>
@@ -13538,10 +13538,232 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRo
   </div>
 </div>
 
+<style id="rc195-library-style">
+html body dialog#bassLibraryDialog{box-sizing:border-box!important;width:min(780px,calc(100vw - 24px))!important;max-height:calc(100dvh - 24px)!important;margin:auto!important;padding:24px!important;background:#101f2a!important;color:#edf5fa!important;border:1px solid #365568!important;border-radius:18px!important;box-shadow:0 24px 80px #0008!important;font:15px/1.5 system-ui,sans-serif!important;overflow:auto!important;}
+#bassLibraryDialog::backdrop{background:#02080dbb;backdrop-filter:blur(4px)}
+#bassLibraryDialog *{box-sizing:border-box}
+#bassLibraryDialog .library-heading{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:20px}
+#bassLibraryDialog h2{font-size:23px!important;line-height:1.2!important;margin:0 0 6px!important;color:#fff!important;text-align:left!important}
+#bassLibraryDialog p{margin:0;color:#bdcdd8;overflow-wrap:anywhere}
+#bassLibraryDialog #libraryHint{font-size:13px;margin:12px 0 20px}
+#bassLibraryDialog .library-toolbar{display:flex;flex-wrap:wrap;gap:8px}
+html body #bassLibraryDialog button,html body #bassLibraryDialog a.library-download{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;box-sizing:border-box!important;width:auto!important;min-width:90px!important;min-height:44px!important;height:auto!important;padding:10px 14px!important;margin:0!important;border:1px solid #486578!important;border-radius:10px!important;background:#203544!important;color:#fff!important;font:700 14px/1.3 system-ui,sans-serif!important;text-align:center!important;cursor:pointer}
+#bassLibraryDialog button:disabled{opacity:.5;cursor:wait}
+#bassLibraryDialog .library-filters{display:grid;grid-template-columns:minmax(0,1fr) 170px;gap:12px}
+#bassLibraryDialog label{display:block;font-size:13px;font-weight:650;margin:0 0 6px}
+html body #bassLibraryDialog input,html body #bassLibraryDialog select{box-sizing:border-box!important;width:100%!important;min-width:0!important;min-height:46px!important;height:auto!important;padding:10px 12px!important;border:1px solid #53758b!important;border-radius:10px!important;background:#09151e!important;color:#fff!important;font:16px/1.4 system-ui,sans-serif!important;}
+#bassLibraryDialog .library-summary{display:flex;flex-wrap:wrap;gap:8px 16px;margin:18px 0 12px;font-size:13px;color:#bdcdd8}
+#bassLibraryDialog #libraryStatus{flex:1;min-width:160px}
+#bassLibraryDialog #libraryCount{font-weight:700;color:#a7e8d2}
+#bassLibraryDialog ul{display:grid;gap:10px;padding:0;margin:0;list-style:none}
+#bassLibraryDialog li{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px;border:1px solid #304c5e;border-radius:12px;background:#142936}
+#bassLibraryDialog .library-song-info{min-width:0;flex:1}
+#bassLibraryDialog strong,#bassLibraryDialog .library-song-info span{display:block;overflow-wrap:anywhere}
+#bassLibraryDialog .library-song-info span{font-size:13px;color:#bdcdd8;margin-top:4px}
+#bassLibraryDialog .library-song-actions{display:flex;gap:8px}
+html body #bassLibraryDialog .library-song-actions button:first-child{background:#a7e8d2!important;color:#102b25!important;border-color:#a7e8d2!important;}
+#bassLibraryDialog .library-empty{padding:32px 12px;text-align:center}
+#bassLibraryDialog :focus-visible{outline:2px solid #a7e8d2;outline-offset:3px}
+html body #bassLibraryDialog [hidden]{display:none!important}
+@media(max-width:540px){html body dialog#bassLibraryDialog{padding:16px!important}#bassLibraryDialog .library-filters{grid-template-columns:1fr}#bassLibraryDialog li{flex-direction:column;align-items:stretch;gap:12px}#bassLibraryDialog .library-song-actions{display:grid;grid-template-columns:1fr 1fr}#bassLibraryDialog .library-toolbar{display:grid;grid-template-columns:1fr 1fr}html body #bassLibraryDialog .library-toolbar button{min-width:0!important}#bassLibraryDialog .library-summary{display:block}#bassLibraryDialog #libraryStatus{display:block;margin-top:6px}}
+</style>
+<script id="rc195-library">
+/* RC195: local saved-project library. No audio or index is sent to a server. */
+window.BassLibrary=(()=>{
+  const DB='bass-studio-library-v1',SUPPORTED=/\.(bassstudio|bssproject|json)$/i;
+  let dbPromise,ready,folder=null,index={},rows=[],hooks={},dialog,busy=false,scan=0,downloadURLs=[];
+  const el=id=>document.getElementById(id);
+  const abort=()=>new DOMException('Cancelled','AbortError');
+  const clean=v=>String(v||'').trim();
+  function database(){
+    if(!dbPromise)dbPromise=new Promise((resolve,reject)=>{
+      const r=indexedDB.open(DB,1);
+      r.onupgradeneeded=()=>{r.result.createObjectStore('settings');r.result.createObjectStore('songs',{keyPath:'id'});};
+      r.onsuccess=()=>{r.result.onversionchange=()=>r.result.close();resolve(r.result);};
+      r.onerror=()=>reject(r.error);
+      r.onblocked=()=>reject(Error('Close other Bass Stem tabs, then try again.'));
+    }).catch(e=>{dbPromise=null;throw e;});
+    return dbPromise;
+  }
+  async function store(name,mode,action){
+    const db=await database();
+    return new Promise((resolve,reject)=>{
+      const tx=db.transaction(name,mode),request=action(tx.objectStore(name));
+      tx.oncomplete=()=>resolve(request?.result);
+      tx.onerror=tx.onabort=()=>reject(tx.error||request?.error||Error('Could not save on this device.'));
+    });
+  }
+  const get=(key)=>store('settings','readonly',s=>s.get(key));
+  const put=(key,value)=>store('settings','readwrite',s=>s.put(value,key));
+  function metadata(p,file){
+    if(p?.format!=='Bass Stem Studio Project'||Number(p.schemaVersion??1)!==2||!Array.isArray(p.analysis?.notes)||!p.source?.audioBase64)
+      throw Error('This file is not a supported saved Bass Stem project.');
+    return {title:clean(p.projectName)||file.name.replace(SUPPORTED,''),artist:clean(p.library?.artist),
+      key:clean(p.analysis.scale),bpm:Number(p.analysis.tempoBpm)||null,duration:Number(p.source.duration)||0,
+      filename:file.name,size:file.size,modified:file.lastModified||Date.now(),savedAt:clean(p.savedAt)};
+  }
+  function errorText(e){
+    if(e?.name==='QuotaExceededError')return 'Device storage is full. Choose a folder or free some space, then save again.';
+    if(e?.name==='NotAllowedError'||e?.name==='SecurityError')return 'Folder access is needed. Select Reconnect folder and allow access.';
+    if(e?.name==='NotFoundError')return 'This file or folder has moved. Choose its new location.';
+    if(e instanceof SyntaxError)return 'This saved project is damaged or invalid.';
+    return e?.message||'Could not complete this action. Please try again.';
+  }
+  function status(message){if(el('libraryStatus'))el('libraryStatus').textContent=message;}
+  function paintLocation(){
+    if(!dialog)return;
+    el('libraryLocation').textContent=folder?'Folder: '+folder.name:'Saved on this device';
+    el('libraryHint').textContent=folder?'Projects stay in this folder. Select Refresh after adding files outside the app.':'Download backups before clearing browser data. Choose a folder to keep projects as normal files.';
+    el('libraryDevice').hidden=!folder;
+    el('libraryReconnect').hidden=!folder;
+    el('libraryChoose').hidden=typeof window.showDirectoryPicker!=='function';
+    if(!window.showDirectoryPicker&&!folder)el('libraryHint').textContent='This browser cannot remember a normal folder. Projects stay in this browser; download backups before clearing its data.';
+  }
+  function filterRows(list,query,sort){
+    const words=clean(query).toLocaleLowerCase().split(/\s+/).filter(Boolean);
+    return list.filter(r=>words.every(w=>[r.title,r.artist,r.filename,r.key,r.bpm].join(' ').toLocaleLowerCase().includes(w)))
+      .sort((a,b)=>sort==='name'?a.title.localeCompare(b.title):((Date.parse(b.savedAt)||b.modified)-(Date.parse(a.savedAt)||a.modified))||a.title.localeCompare(b.title));
+  }
+  function render(){
+    if(!dialog)return;paintLocation();
+    const list=el('librarySongs');
+    const oldURLs=downloadURLs;downloadURLs=[];setTimeout(()=>oldURLs.forEach(url=>URL.revokeObjectURL(url)),60000);
+    list.replaceChildren();
+    const shown=filterRows(rows,el('librarySearch').value,el('librarySort').value);
+    el('libraryCount').textContent=shown.length+' '+(shown.length===1?'song':'songs');
+    if(!shown.length){const p=document.createElement('p');p.className='library-empty';p.textContent=rows.length?'No songs match your search.':'No saved songs here yet. Add saved files, or analyse a song and select Save.';list.append(p);}
+    for(const row of shown){
+      const item=document.createElement('li'),info=document.createElement('div'),title=document.createElement('strong'),details=document.createElement('span'),actions=document.createElement('div');
+      title.textContent=row.title;
+      const minutes=Math.floor(row.duration/60),seconds=Math.floor(row.duration%60).toString().padStart(2,'0');
+      details.textContent=[row.artist,row.key&&row.key!=='—'?row.key:'',row.bpm?Math.round(row.bpm)+' BPM':'',row.duration?minutes+':'+seconds:''].filter(Boolean).join(' · ')||row.filename;
+      info.className='library-song-info';info.append(title,details);actions.className='library-song-actions';
+      const open=document.createElement('button');open.type='button';open.textContent='Open';open.setAttribute('aria-label','Open '+row.title);open.disabled=busy;open.onclick=()=>run(()=>openRow(row));actions.append(open);
+      const download=document.createElement('a');download.className='library-download';download.textContent='Download';download.setAttribute('aria-label','Download '+row.title);
+      download.href=URL.createObjectURL(row.file||row.blob);downloadURLs.push(download.href);download.download=row.filename;
+      download.onclick=e=>{if(busy)e.preventDefault();else status('Download requested for '+row.title+'.');};actions.append(download);
+      item.append(info,actions);list.append(item);
+    }
+    for(const id of ['libraryChoose','libraryDevice','libraryReconnect','libraryRefresh','libraryAdd'])el(id).disabled=busy;
+  }
+  async function run(fn){
+    if(busy)return;busy=true;render();
+    try{await fn();}catch(e){if(e?.name!=='AbortError')status(errorText(e));}
+    finally{busy=false;render();}
+  }
+  async function permission(handle,mode,request=false){
+    if(await handle.queryPermission({mode})==='granted')return true;
+    return request&&await handle.requestPermission({mode})==='granted';
+  }
+  async function refresh(){
+    const token=++scan;await ready;rows=[];render();status('Loading saved songs…');
+    if(!folder){
+      rows=await store('songs','readonly',s=>s.getAll());
+    }else{
+      const dir=folder;
+      if(!await permission(dir,'read')){status('Select Reconnect folder to show its songs.');return;}
+      const found=[],next={};let skipped=0;
+      for await(const [name,handle] of dir.entries()){
+        if(token!==scan||dir!==folder)return;
+        if(handle.kind!=='file'||!SUPPORTED.test(name))continue;
+        try{
+          const f=await handle.getFile(),cached=index[name];
+          const meta=cached&&cached.size===f.size&&cached.modified===f.lastModified?cached:metadata(JSON.parse(await f.text()),f);
+          next[name]=meta;found.push({...meta,handle,file:f});
+        }catch{skipped++;}
+      }
+      if(token!==scan||dir!==folder)return;
+      rows=found;index=next;
+      await put('index',index).catch(()=>{});
+      status(skipped?skipped+' unreadable or unsupported '+(skipped===1?'file was':'files were')+' skipped.':'');render();return;
+    }
+    if(token!==scan)return;status('');render();
+  }
+  async function chooseFolder(){
+    // The picker must run directly from the button gesture, before other awaits.
+    const dir=await window.showDirectoryPicker({id:'bass-studio-library',mode:'readwrite'});
+    await ready;
+    await put('folder',dir);await put('index',{});
+    folder=dir;index={};await refresh();
+  }
+  async function useDevice(){await put('folder',null);folder=null;index={};await refresh();}
+  async function reconnect(){if(folder&&!await permission(folder,'readwrite',true))throw Error('Folder access was not granted. Your files are unchanged.');await refresh();}
+  async function prepareSave(name){
+    await ready;
+    const filename=String(name).replace(/[\\/:*?"<>|]+/g,'_').trim().slice(0,100)+'.bassstudio';
+    const dir=folder;
+    if(dir){
+      if(!await permission(dir,'readwrite',true))throw Error('Allow folder access before saving, or choose On this device in Library.');
+      let existing;
+      try{existing=await dir.getFileHandle(filename);}catch(e){if(e.name!=='NotFoundError')throw e;}
+      if(existing&&!await window.BassDialog.confirm('A saved song with this name already exists in this folder.',{title:'Replace saved song',accept:'Replace'}))throw abort();
+      return {dir,filename};
+    }
+    const id=filename.toLocaleLowerCase();
+    if(await store('songs','readonly',s=>s.get(id))&&!await window.BassDialog.confirm('A saved song with this name already exists on this device.',{title:'Replace saved song',accept:'Replace'}))throw abort();
+    return {dir:null,filename,id};
+  }
+  async function save(project,blob,target){
+    const f=new File([blob],target.filename,{type:'application/json',lastModified:Date.now()}),meta=metadata(project,f);
+    if(target.dir){
+      const handle=await target.dir.getFileHandle(target.filename,{create:true});
+      const stream=await handle.createWritable();
+      try{await stream.write(blob);await stream.close();}catch(e){try{await stream.abort();}catch{}throw e;}
+      if(target.dir===folder){index[target.filename]=meta;await put('index',index).catch(()=>{});}
+    }else{
+      await store('songs','readwrite',s=>s.put({...meta,id:target.id,blob}));
+      // This is advisory: some browsers do not grant persistent storage.
+      try{void navigator.storage?.persist?.().catch(()=>{});}catch{}
+    }
+    if(dialog?.open)await refresh().catch(e=>status(errorText(e)));
+    return target.dir?'folder “'+target.dir.name+'”':'this device';
+  }
+  async function rowFile(row){
+    if(row.handle)return row.handle.getFile();
+    const saved=await store('songs','readonly',s=>s.get(row.id));
+    if(!saved?.blob)throw Error('This saved song is no longer available.');
+    return new File([saved.blob],saved.filename,{type:'application/json'});
+  }
+  async function openRow(row){
+    if(hooks.isBusy?.())throw Error('Wait for the current song to finish, then open another.');
+    status('Opening '+row.title+'…');
+    const ok=await hooks.open(await rowFile(row));
+    if(ok){dialog.close();return;}status('The song could not be opened. Check the message on the main screen.');
+  }
+  async function addFiles(files){
+    let added=0,failed=0,cancelled=0;
+    for(const file of files){
+      try{
+        status('Adding '+file.name+'…');
+        const p=JSON.parse(await file.text());metadata(p,file);
+        const target=await prepareSave(clean(p.projectName)||file.name.replace(SUPPORTED,''));
+        await save(p,file,target);added++;
+      }catch(e){if(e?.name==='AbortError')cancelled++;else failed++;}
+    }
+    await refresh();status(added+' added'+(cancelled?' · '+cancelled+' cancelled':'')+(failed?' · '+failed+' could not be added; check the file format, folder access and free space.':'.'));
+  }
+  function build(){
+    if(dialog)return;
+    dialog=document.createElement('dialog');dialog.id='bassLibraryDialog';dialog.className='bass-library';dialog.setAttribute('aria-labelledby','libraryTitle');
+    dialog.innerHTML='<div class="library-heading"><div><h2 id="libraryTitle">Song library</h2><p id="libraryLocation"></p></div><button id="libraryClose" type="button">Close</button></div><div class="library-toolbar"><button id="libraryChoose" type="button">Choose folder</button><button id="libraryReconnect" type="button">Reconnect folder</button><button id="libraryDevice" type="button">On this device</button><button id="libraryAdd" type="button">Add saved files</button><button id="libraryRefresh" type="button">Refresh</button></div><p id="libraryHint"></p><div class="library-filters"><div><label for="librarySearch">Search songs</label><input id="librarySearch" type="search" placeholder="Title, artist, key or BPM" autocomplete="off"></div><div><label for="librarySort">Sort by</label><select id="librarySort"><option value="recent">Recently saved</option><option value="name">Song name</option></select></div></div><div class="library-summary"><span id="libraryCount"></span><span id="libraryStatus" role="status" aria-live="polite"></span></div><ul id="librarySongs"></ul><input id="libraryFiles" type="file" accept=".bassstudio,.bssproject,.json,application/json" multiple hidden>';
+    document.body.append(dialog);
+    el('libraryClose').onclick=()=>dialog.close();
+    dialog.addEventListener('close',()=>document.getElementById('importProjectBtn')?.focus());
+    el('librarySearch').oninput=render;el('librarySort').onchange=render;
+    el('libraryChoose').onclick=()=>run(chooseFolder);el('libraryDevice').onclick=()=>run(useDevice);
+    el('libraryRefresh').onclick=()=>run(refresh);el('libraryReconnect').onclick=()=>run(reconnect);
+    el('libraryAdd').onclick=()=>{el('libraryFiles').value='';el('libraryFiles').click();};
+    el('libraryFiles').onchange=e=>{const files=Array.from(e.target.files||[]);e.target.value='';void run(()=>addFiles(files));};
+  }
+  async function show(){build();if(!dialog.open)dialog.showModal();el('librarySearch').focus();await run(refresh);}
+  function init(options){hooks=options;ready=(async()=>{folder=await get('folder')||null;index=await get('index')||{};})();ready.catch(()=>{});}
+  return {init,show,prepareSave,save,errorText};
+})();
+</script>
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC194';
+  const APP_VERSION='RC195';
   const PROJECT_SCHEMA_VERSION=2;
   // RC125: compact practice-view and string selectors preserve space for P1/P2/P3; all RC124 audio, analysis, repeat, project and practice logic preserved.
 
@@ -13575,7 +13797,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRo
   }
   function setSongImportBusy(value){
     songImportBusy=value;
-    if(importProjectBtn){importProjectBtn.textContent=value?'Opening…':'Import';importProjectBtn.setAttribute('aria-busy',String(value));}
+    if(importProjectBtn){importProjectBtn.textContent=value?'Opening…':'Library';importProjectBtn.setAttribute('aria-busy',String(value));}
     if(aiAnalyse)aiAnalyse.disabled=value||aiBusy||!buffer;
     updateProjectButtons();updateAnalysisToolsState();
   }
@@ -14124,6 +14346,8 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRo
     projectSaveBusy=true;
     try{
       if(saveProjectBtn){saveProjectBtn.disabled=true;saveProjectBtn.textContent='Saving…';}
+      const saveTarget=await window.BassLibrary.prepareSave(projectName);
+      if(session!==songSession)return;
       if(structureBusy&&structurePromise){
         aiStatus('Waiting for song sections before saving…',92);
         await structurePromise;
@@ -14224,15 +14448,12 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRo
         }
       };
       const blob=new Blob([JSON.stringify(project)],{type:'application/json;charset=utf-8'});
-      const url=URL.createObjectURL(blob);
-      const a=document.createElement('a');
-      a.href=url;a.download=projectName+'.bassstudio';
-      document.body.appendChild(a);a.click();a.remove();
-      setTimeout(()=>URL.revokeObjectURL(url),1200);
+      const savedLocation=await window.BassLibrary.save(project,blob,saveTarget);
+      if(session!==songSession)return;
       loadedProjectName=projectName;
-      aiStatus(`Saved “${projectName}” · ${savedNotes.length} notes · ${Object.keys(sections).length} saved sections${songStructure?'':' · automatic sections not yet available'}`,100);
+      aiStatus(`Saved “${projectName}” to ${savedLocation} · ${savedNotes.length} notes · ${Object.keys(sections).length} saved sections${songStructure?'':' · automatic sections not yet available'}`,100);
     }catch(err){
-      if(session===songSession){console.error(err);aiStatus(err?.message||'Could not save this song project. Please try again.',0);}
+      if(session===songSession&&err?.name!=='AbortError'){console.error(err);aiStatus(window.BassLibrary.errorText(err),0);}
     }finally{
       projectSaveBusy=false;
       if(saveProjectBtn){saveProjectBtn.textContent='Save';updateProjectButtons();}
@@ -14341,7 +14562,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRo
     }finally{projectSaveBusy=false;updateProjectButtons();}
   }
 
-  async function importBassStudioProject(file){
+  async function importBassStudioProject(file,{findSections=true}={}){
     if(!file)return false;
     const request=++songLoadRequest;
     let importSucceeded=false;
@@ -14598,7 +14819,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRo
       if(request===songLoadRequest){
         if(projectFileInput)projectFileInput.value='';
         setSongImportBusy(false);updatePracticeLayoutState(true);
-        if(importSucceeded)startImportedSongSections();
+        if(importSucceeded&&findSections)startImportedSongSections();
       }
     }
   }
@@ -19687,7 +19908,8 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRo
 
   // ---------- Controls ----------
   refreshNoteNumberToggle();refreshStemMixerUI();updatePracticeLayoutState(true);
-  importProjectBtn?.addEventListener('click',()=>chooseImportFile('project'));
+  window.BassLibrary.init({open:file=>importBassStudioProject(file,{findSections:false}),isBusy:()=>songImportBusy||aiBusy||projectSaveBusy});
+  importProjectBtn?.addEventListener('click',()=>window.BassLibrary.show());
   projectFileInput?.addEventListener('change',()=>{const file=projectFileInput.files?.[0];projectFileInput.value='';importBassStudioProject(file);});
   saveProjectBtn?.addEventListener('click',saveBassStudioProject);
   noteNumberSelect?.addEventListener('change',()=>{
