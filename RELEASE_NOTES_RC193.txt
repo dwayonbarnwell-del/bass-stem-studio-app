@@ -1,0 +1,3 @@
+Bass Stem Studio RC193
+
+Settings follows More tools. Text size, strings, speed, timeline interval and note numbering moved into Settings using their original controls. BPM replaces note numbering beside Play and Pause. The five tool cards now occupy the cleared row. Includes RC191 analysis and RC192 dialogue improvements.

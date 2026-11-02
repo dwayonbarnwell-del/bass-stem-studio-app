@@ -4,7 +4,7 @@
 <meta name="referrer" content="no-referrer">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bass Stem Studio RC190</title>
+<title>Bass Stem Studio RC193</title>
 <script id="rc186-level">
 /* RC186: shared stereo gain, silence gate and look-ahead sample-peak protection.
    Target -16 dBFS RMS; at most +12 dB gain; ceiling -1 dBFS. This is not a LUFS/true-peak meter. */
@@ -12475,7 +12475,7 @@ $('openIdeas').onclick=()=>{refresh();$('ideasDialog').showModal();$('ideasDialo
   if(s.live){status('Stop Live Audio first.');return;}
   const start=Math.max(0,Number($('lyricsStart').value)||0),whole=$('lyricsRange').value==='all',end=whole?s.buffer.duration:Math.min(s.buffer.duration,start+30);
   if(start>=end){status('Start time is beyond the song.');return;}
-  if(words.some(w=>w.start<end&&w.end>start)&&!confirm('Replace lyrics in this section?'))return;
+  if(words.some(w=>w.start<end&&w.end>start)&&!await BassDialog.confirm('Replace the lyrics in this section?',{title:'Replace lyrics',accept:'Replace'}))return;
   cancel();const token=run;busy=true;selected=-1;$('lyricsEdit').hidden=true;controls();api.pause();status('Loading lyrics AI…');
   workerURL=URL.createObjectURL(new Blob([window.BASS_LYRICS_WORKER],{type:'text/javascript'}));worker=new Worker(workerURL,{type:'module'});
   const language=$('lyricsLanguage').value;
@@ -12740,7 +12740,7 @@ window.BassLiveAudio = (()=>{
     async function record(){
       if(recording()||pending||finishing||importing||recovering||exporting)return;
       if(typeof MediaRecorder==='undefined'){state.textContent='Recording is not supported in this browser. Try Chrome, Edge or Safari.';return;}
-      if(audioBlob&&!downloaded&&!window.confirm('Replace the unsaved recording? Choose Cancel to save it first.'))return;
+      if(audioBlob&&!downloaded&&!await BassDialog.confirm('This take has not been saved. Cancel to save it first.',{title:'Replace recording',accept:'Replace',danger:true}))return;
       if(!await listen())return;
       try{
         const types=['audio/webm;codecs=opus','audio/mp4','audio/ogg;codecs=opus','audio/webm'];
@@ -12804,7 +12804,7 @@ window.BassLiveAudio = (()=>{
     $('livePracticeKey').onchange=()=>{feedbackTotal=feedbackMatch=0;$('liveFeedback').textContent='';};
     $('liveForget').onclick=async()=>{
       if(stream||pending||finishing||importing||recovering||exporting)return;
-      if(!confirm('Move this recording to Recently deleted?'))return;recovering=true;sync();
+      if(!await BassDialog.confirm('You can restore it from Recently deleted.',{title:'Delete recording',accept:'Delete take',danger:true}))return;recovering=true;sync();
       try{const saved=await BassRecovery.restore();if(saved)await BassTrash.add('recording',saved.name,saved);else if(audioBlob)await BassTrash.add('recording',recordName,{name:recordName,blob:audioBlob,mime:audioBlob.type,events,humNotes,complete:true,duration:Number(player.duration)||0});await window.BassRecovery.clear();audioBlob=null;humNotes=[];events=[];player.pause();player.removeAttribute('src');if(audioURL)URL.revokeObjectURL(audioURL);audioURL='';downloaded=true;state.textContent='Saved take deleted.';sync();}catch(e){state.textContent='Could not delete the saved take.';}finally{recovering=false;sync();}
     };
     $('liveSaveChords').onclick=()=>{
@@ -12814,7 +12814,7 @@ window.BassLiveAudio = (()=>{
     $('liveUse').onclick=async()=>{
       if(!audioBlob||stream||importing)return;
       if(isBusy()){state.textContent='Wait for the current import or analysis to finish first.';return;}
-      if(!window.confirm('Load this recording as the current song? Save your current song first. Normal song analysis may upload the recording to your configured analysis service.'))return;
+      if(!await BassDialog.confirm('Save your current song first. Analysing this recording may upload it to your analysis service.',{title:'Load recording',accept:'Load audio'}))return;
       importing=true;sync();state.textContent='Loading recording…';
       try{player.pause();const ok=await loadRecording(new File([audioBlob],recordName+'.'+extension(),{type:audioBlob.type}));
         state.textContent=ok?'Recording loaded. Use Analyse Bass for the full analysis.':'Could not load this recording. You can still save the audio.';
@@ -13037,6 +13037,101 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot #fontSizeCard,
 html body #appRoot#appRoot#appRoot#appRoot#appRoot #fontSizeCard label,
 html body #appRoot#appRoot#appRoot#appRoot#appRoot #fontSizePreset{font-size:var(--ui-font-size,14px)!important;font-weight:800!important;}
 html body #appRoot#appRoot#appRoot#appRoot#appRoot #awakeStatus:empty{display:none!important;}
+</style>
+
+<style id="rc191-dialog-style">
+html body dialog.bass-dialog{box-sizing:border-box!important;width:calc(100% - 32px)!important;max-width:440px!important;max-height:85dvh!important;margin:auto!important;padding:24px!important;border:1px solid #365568!important;border-radius:18px!important;background:#101f2a!important;color:#edf5fa!important;box-shadow:0 24px 80px #0008!important;font:16px/1.5 system-ui,sans-serif!important;text-align:left!important;overflow:auto!important;}
+html body dialog.bass-dialog::backdrop{background:#02080dbb;backdrop-filter:blur(4px)}
+html body dialog.bass-dialog h2{font-size:21px!important;font-weight:750!important;margin:0 0 20px!important;color:#fff!important;text-align:left!important;}
+html body dialog.bass-dialog p{margin:0 0 20px!important;color:#bdcdd8!important;overflow-wrap:anywhere;}
+html body dialog.bass-dialog label{display:block!important;font-size:14px!important;font-weight:650!important;margin:0 0 8px!important;}
+html body dialog.bass-dialog input{box-sizing:border-box!important;width:100%!important;min-width:0!important;min-height:48px!important;padding:12px!important;border:1px solid #53758b!important;border-radius:10px!important;background:#09151e!important;color:#fff!important;font:16px/1.4 system-ui,sans-serif!important;}
+html body dialog.bass-dialog .bass-dialog-actions{display:grid!important;grid-template-columns:1fr 1fr!important;gap:12px!important;margin-top:24px!important;}
+html body dialog.bass-dialog button{box-sizing:border-box!important;width:100%!important;min-width:0!important;min-height:48px!important;height:auto!important;margin:0!important;padding:10px!important;border:1px solid #486578!important;border-radius:10px!important;background:#203544!important;color:#fff!important;font:700 15px/1.4 system-ui,sans-serif!important;text-align:center!important;}
+html body dialog.bass-dialog button[type=submit]{background:#a7e8d2!important;color:#102b25!important;border-color:#a7e8d2!important;}
+html body dialog.bass-dialog :focus-visible{outline:2px solid #a7e8d2!important;outline-offset:3px!important;}
+html body dialog.bass-dialog [hidden]{display:none!important;}
+</style>
+<script id="rc191-dialogs">
+window.BassDialog=(()=>{
+ let active=false;
+ function open({title,message='',label='',value='',accept='Continue',password=false,danger=false}={}){
+  if(active)return Promise.resolve(null);
+  active=true;
+  return new Promise(resolve=>{
+   const previous=document.activeElement,d=document.createElement('dialog');
+   d.className='bass-dialog';if(danger)d.classList.add('bass-dialog-danger');d.setAttribute('aria-labelledby','bassDialogTitle');
+   d.innerHTML='<form><h2 id="bassDialogTitle"></h2><p id="bassDialogMessage"></p><div class="bass-dialog-field"><label for="bassDialogInput"></label><input id="bassDialogInput" autocomplete="off" spellcheck="false"></div><div class="bass-dialog-actions"><button type="button">Cancel</button><button type="submit"></button></div></form>';
+   d.querySelector('h2').textContent=title;
+   const messageEl=d.querySelector('p');messageEl.textContent=message;messageEl.hidden=!message;
+   if(message)d.setAttribute('aria-describedby','bassDialogMessage');
+   d.querySelector('label').textContent=label;d.querySelector('.bass-dialog-field').hidden=!label;
+   const input=d.querySelector('input');input.value=value;input.type=password?'password':'text';input.required=!!label;input.maxLength=password?512:100;
+   d.querySelector('[type=submit]').textContent=accept;
+   let settled=false;
+   function finish(result){if(settled)return;settled=true;d.close();d.remove();active=false;if(previous?.isConnected)previous.focus({preventScroll:true});resolve(result);}
+   d.querySelector('form').onsubmit=e=>{e.preventDefault();if(label&&!input.value.trim()){input.setCustomValidity('Enter '+label.toLowerCase()+'.');input.reportValidity();return;}finish(label?input.value.trim():true);};
+   input.oninput=()=>input.setCustomValidity('');
+   d.querySelector('[type=button]').onclick=()=>finish(null);
+   d.addEventListener('cancel',e=>{e.preventDefault();finish(null);});
+   d.addEventListener('close',()=>finish(null));
+   document.body.append(d);d.showModal();
+   if(label){input.focus();input.select();}else d.querySelector('[type=button]').focus();
+  });
+ }
+ return {open,confirm:(message,options={})=>open({title:'Confirm action',message,...options})};
+})();
+</script>
+
+
+<style id="rc192-panel-style">
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot dialog{box-sizing:border-box!important;width:min(680px,calc(100vw - 24px))!important;max-width:calc(100vw - 24px)!important;max-height:calc(100dvh - 24px)!important;margin:auto!important;padding:24px!important;scroll-padding:24px!important;background:#101f2a!important;color:#edf5fa!important;border:1px solid #365568!important;border-radius:18px!important;box-shadow:0 24px 80px #0008!important;font-family:system-ui,sans-serif!important;font-size:var(--ui-font-size,14px)!important;line-height:1.5!important;overflow:auto!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot dialog::backdrop{background:#02080dbb!important;backdrop-filter:blur(4px);}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot dialog :is(h2,b[id$="Title"]){display:flex!important;align-items:center!important;justify-content:center!important;text-align:center!important;position:static!important;min-height:40px!important;margin:0 0 20px!important;padding:0 8px!important;font-size:21px!important;font-weight:750!important;line-height:1.3!important;color:#fff!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot dialog button{box-sizing:border-box!important;min-width:0!important;min-height:48px!important;max-height:none!important;height:auto!important;padding:10px 8px!important;border-radius:10px!important;font-family:inherit!important;font-size:var(--ui-font-size,14px)!important;font-weight:700!important;line-height:1.35!important;white-space:normal!important;overflow-wrap:anywhere!important;text-align:center!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot dialog button:disabled{opacity:.45!important;cursor:default!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot dialog :is(input:not([type=checkbox]):not([type=range]),select,textarea){box-sizing:border-box!important;min-width:0!important;width:100%!important;max-width:100%!important;min-height:48px!important;padding:10px 12px!important;background:#09151e!important;color:#edf5fa!important;border:1px solid #53758b!important;border-radius:10px!important;font:inherit!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot dialog label{min-width:0!important;line-height:1.4!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot dialog :is(p,small){line-height:1.5!important;overflow-wrap:anywhere!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot dialog p:empty{display:none!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot dialog :is(.live-buttons,.review-buttons,.check-buttons,.lyrics-buttons,.idea-buttons,.rhythm-buttons,.ear-actions,.ear-grid,.share-grid,.r178-grid,.tools-grid,.text-size-actions,.tempo-editor-actions){gap:12px!important;margin:16px 0!important;align-items:stretch!important;grid-auto-rows:minmax(48px,auto)!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot dialog :is(.live-buttons,.review-buttons,.check-buttons,.lyrics-buttons,.idea-buttons,.rhythm-buttons,.ear-actions,.ear-grid,.share-grid,.r178-grid,.tools-grid,.text-size-actions,.tempo-editor-actions)>button{width:100%!important;margin:0!important;align-self:stretch!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot dialog :is(.live-buttons,.lyrics-buttons,.idea-buttons)>button{min-height:60px!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot dialog :is(.lyrics-options,.idea-options,.rhythm-options,.coach-grid){gap:12px!important;margin:16px 0!important;align-items:end!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot dialog :is(details,fieldset){box-sizing:border-box!important;border:1px solid #365568!important;border-radius:12px!important;padding:12px!important;margin:16px 0!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot dialog summary{padding:4px!important;font-weight:700!important;line-height:1.5!important;cursor:pointer;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot dialog :is(audio,progress,meter){max-width:100%!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot dialog :focus-visible{outline:2px solid #a7e8d2!important;outline-offset:3px!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot :is(#textSizeDialog,#playbackTempoDialog,#mediaImportDialog){max-width:440px!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #liveReadout{border:1px solid #365568!important;border-radius:12px!important;background:#142c3b!important;padding:16px!important;margin:16px 0!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #liveHistory:empty{display:none!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #liveForget{background:#492832!important;border-color:#a76375!important;color:#ffe3e9!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #extraTools{gap:12px!important;padding:4px!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #extraTools button{min-height:56px!important;font-weight:700!important;border-radius:10px!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot dialog [hidden]{display:none!important;}
+html body dialog.bass-dialog h2{text-align:center!important;justify-content:center!important;}
+html body dialog.bass-dialog.bass-dialog-danger button[type=submit]{background:#f2a9b7!important;color:#3a1720!important;border-color:#f2a9b7!important;}
+@media(max-width:480px){
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot dialog{padding:18px!important;scroll-padding:18px!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot dialog :is(input:not([type=checkbox]):not([type=range]),select,textarea){font-size:16px!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot dialog :is(.lyrics-options,.idea-options){grid-template-columns:repeat(2,minmax(0,1fr))!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #extraTools{grid-template-columns:repeat(2,minmax(0,1fr))!important;}
+}
+</style>
+
+<style id="rc193-settings-style">
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #settingsDialog #displaySizeControl{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important;padding:0!important;margin:0!important;width:100%!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #settingsDialog #displaySizeControl>:is(div,label){box-sizing:border-box!important;position:static!important;width:100%!important;min-width:0!important;max-width:none!important;height:72px!important;min-height:72px!important;margin:0!important;padding:8px!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;border-radius:10px!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #settingsDialog #displaySizeControl>.display-size-readout:not(#fontSizeCard){display:none!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #settingsDialog #displaySizeControl select{position:static!important;width:100%!important;min-height:32px!important;height:32px!important;padding:2px 8px!important;text-align:center!important;font-weight:700!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #settingsDialog #tempoText{display:none!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #settingsDialog #noteNumberToggle{background:#21434e!important;border:1px solid #638b9a!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #settingsDialog #noteNumberToggle::before,html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #settingsDialog #noteNumberToggle::after{display:none!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #settingsClose{width:100%!important;margin-top:20px!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot .transport-main #songTempoWrap{box-sizing:border-box!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;width:100%!important;min-width:0!important;height:var(--rc120-control-h,44px)!important;min-height:var(--rc120-control-h,44px)!important;margin:0!important;padding:2px!important;font-size:var(--ui-font-size,14px)!important;font-weight:800!important;line-height:1.15!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #liveAudioEntry{padding-top:8px!important;}
+
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #settingsClose{background:#274b60!important;color:#fff!important;border:1px solid #638b9a!important;border-radius:10px!important;}
 </style>
 </head>
 <body>
@@ -13446,7 +13541,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot #awakeStatus:empty{display:no
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC190';
+  const APP_VERSION='RC193';
   const PROJECT_SCHEMA_VERSION=2;
   // RC125: compact practice-view and string selectors preserve space for P1/P2/P3; all RC124 audio, analysis, repeat, project and practice logic preserved.
 
@@ -13730,7 +13825,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot #awakeStatus:empty{display:no
     try{
       const range=selectedAnalysisRange(),file=activeAudioFile,signature=cloudFileSignature(file),existing=readPendingRunPodJob();
       if(existing)throw new Error('Finish the saved analysis before starting another.');
-      const key=getRunPodKey();if(!key)return;
+      const key=await getRunPodKey();if(!key||session!==songSession||songImportBusy||aiBusy)return;
       aiBusy=true;aiAnalyse.disabled=true;
       await persistAnalysisRecovery();assertSongSession(session);
       const pending=makePendingPartGroup(file,signature);pending.scope='section';pending.range=range;
@@ -14021,8 +14116,9 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot #awakeStatus:empty{display:no
       aiStatus('Analyse the song first, then save it.',0);return;
     }
     const defaultBase=safeProjectFilename((loadedProjectName||objectName||activeAudioFile.name||'Bass Studio Song').replace(/\.[^.]+$/,''));
-    const chosen=window.prompt('Name this saved Bass Studio song:',defaultBase);
-    if(chosen===null)return;
+    const namingSession=songSession;
+    const chosen=await BassDialog.open({title:'Save song',label:'Song name',value:defaultBase,accept:'Save song'});
+    if(chosen===null||namingSession!==songSession||songImportBusy||aiBusy||projectSaveBusy)return;
     const projectName=safeProjectFilename(chosen);
     const session=songSession;
     projectSaveBusy=true;
@@ -15782,25 +15878,28 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot #awakeStatus:empty{display:no
     }
   }
 
-  function getRunPodKey(){
+  async function getRunPodKey(){
     let key=storedRunPodKey();
     if(key){
       try{localStorage.setItem(RUNPOD_SAVED_KEY,key)}catch(e){}
       try{sessionStorage.removeItem(RUNPOD_SAVED_KEY)}catch(e){}
       return key;
     }
-    key=(window.prompt('Paste your analysis service API key once. It will be saved on this device/browser so you do not need to enter it for every song.')||'').trim();
+    key=(await BassDialog.open({title:'Connect analysis',message:'Saved on this device for future songs.',label:'API key',accept:'Connect',password:true})||'').trim();
     if(key){try{localStorage.setItem(RUNPOD_SAVED_KEY,key)}catch(e){}}
     return key;
   }
 
-  function reviewInterruptedUploads(scope='all'){
-    if(aiBusy||structureBusy||pendingResumeBusy){aiStatus('Wait for the current request to finish before reviewing uploads.',0);return false;}
+  async function reviewInterruptedUploads(scope='all'){
+    // Bass and sections use independent jobs. A section request must not block bass.
+    if(aiBusy||pendingResumeBusy||(scope!=='analysis'&&structureBusy))return false;
+    const reviewSession=songSession;
     const pending=readPendingRunPodJob(),matches=activeAudioFile&&pending?.signature===cloudFileSignature(activeAudioFile);
     const parts=scope==='sections'||(scope==='analysis'&&!matches)?[]:(pending?.parts||[]).filter(p=>(p.submitting&&!p.id)||p.failedStatus);
     const current=pendingStructureJob(),jobs=scope==='analysis'?[]:scope==='sections'?(current?.unconfirmed?[current]:[]):storedStructureJobs().filter(j=>j.unconfirmed);
     if(!parts.length&&!jobs.length)return true;
-    if(!window.confirm('An upload may already be running or charged. Check your RunPod job history first. Only continue if you have confirmed these uploads did not create jobs, or you accept the cost of sending them again. Allow another submission?'))return false;
+    if(!await BassDialog.confirm('An upload may already be running or charged. Check your RunPod job history before retrying. Only retry if no job was created, or you accept another charge.',{title:'Review upload',accept:'Retry upload'}))return false;
+    if(reviewSession!==songSession||songImportBusy||aiBusy||pendingResumeBusy)return false;
     for(const part of parts){delete part.submitting;if(part.failedStatus){delete part.id;delete part.failedStatus;}}
     if(parts.length)savePendingRunPodJob(pending,true);
     for(const job of jobs)storeStructureJob(null,job.id);
@@ -17290,7 +17389,8 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot #awakeStatus:empty{display:no
     const file=activeAudioFile||fileInput.files?.[0];
     if(!buffer||!file||aiBusy||songImportBusy)return;
     const session=songSession;
-    const key=getRunPodKey();
+    const key=await getRunPodKey();
+    if(session!==songSession||songImportBusy||aiBusy)return;
     if(!key){aiStatus('Analysis cancelled · API key not entered',0);return;}
 
     const forceFreshAnalysis=!!offlineAnalysisReady||(Array.isArray(notes)&&notes.length>0);
@@ -17342,7 +17442,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot #awakeStatus:empty{display:no
   }
 
   async function resumeSavedRunPodAnalysis(){
-    if(pendingResumeBusy||aiBusy||songImportBusy)return false;
+    if(pendingResumeBusy||aiBusy||songImportBusy||analysisStartPending)return false;
     let pending=readPendingRunPodJob();
     if(!pending?.signature||!Array.isArray(pending?.parts)||!pending.parts.length)return restoreLatestSession();
     const key=storedRunPodKey();
@@ -18525,7 +18625,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot #awakeStatus:empty{display:no
   const trashIdentityCache=new WeakMap();
   async function trashIdentity(){const file=activeAudioFile;if(!file)throw Error('Open the original song first.');if(!trashIdentityCache.has(file))trashIdentityCache.set(file,(async()=>{const hash=await structureAudioIdentity(file);if(hash)return hash;const bytes=new Uint8Array(await file.arrayBuffer());let a=2166136261,b=5381;for(const n of bytes){a=Math.imul(a^n,16777619);b=Math.imul(b,33)^n;}return bytes.length+':'+(a>>>0)+':'+(b>>>0);})());return trashIdentityCache.get(file);}
   async function archiveAnalysis(){const session=songSession,state=analysisSnapshot('Before deletion'),title=loadedProjectName||objectName||'Song',identity=await trashIdentity();assertSongSession(session);await BassTrash.add('analysis',title+' · analysis',{identity,state});assertSongSession(session);}
-  window.BassTrash.init({recording:s=>window.BassLiveAudio.restoreSaved(s),restore:async row=>{if(songImportBusy||aiBusy)throw Error('Wait for analysis to finish.');if(row.kind==='analysis'){const session=songSession,identity=await trashIdentity();assertSongSession(session);if(identity!==row.data.identity)throw Error('Open the original song, then restore.');if(!confirm('Restore this analysis? Your current analysis will also be kept in Recently deleted.'))throw Error('Restore cancelled.');await archiveAnalysis();assertSongSession(session);restoreAnalysisSnapshot(row.data.state);await persistAnalysisRecovery(true);}else if(row.kind==='plan'){const s=studySong();if(s.id!==row.data.songId)throw Error('Open the original song, then restore.');window.BassTools.stopPlan();const old=window.BassTools.exportSong();if(old?.ranges?.length)await BassTrash.add('plan',s.title+' · current plan',{songId:s.id,plan:old});if(s.session!==songSession)throw Error('Song changed. Try again.');await BassStudyStore.put('plan:'+s.id,row.data.plan);if(s.session!==songSession)throw Error('Song changed. Plan saved for the original song.');window.BassTools.restoreSong(row.data.plan);}else throw Error('Unknown recovery item.');}});
+  window.BassTrash.init({recording:s=>window.BassLiveAudio.restoreSaved(s),restore:async row=>{if(songImportBusy||aiBusy)throw Error('Wait for analysis to finish.');if(row.kind==='analysis'){const session=songSession,identity=await trashIdentity();assertSongSession(session);if(identity!==row.data.identity)throw Error('Open the original song, then restore.');if(!await BassDialog.confirm('Your current analysis will be kept in Recently deleted.',{title:'Restore analysis',accept:'Restore'}))throw Error('Restore cancelled.');await archiveAnalysis();assertSongSession(session);restoreAnalysisSnapshot(row.data.state);await persistAnalysisRecovery(true);}else if(row.kind==='plan'){const s=studySong();if(s.id!==row.data.songId)throw Error('Open the original song, then restore.');window.BassTools.stopPlan();const old=window.BassTools.exportSong();if(old?.ranges?.length)await BassTrash.add('plan',s.title+' · current plan',{songId:s.id,plan:old});if(s.session!==songSession)throw Error('Song changed. Try again.');await BassStudyStore.put('plan:'+s.id,row.data.plan);if(s.session!==songSession)throw Error('Song changed. Plan saved for the original song.');window.BassTools.restoreSong(row.data.plan);}else throw Error('Unknown recovery item.');}});
   window.BassPatterns.init({labels:CHORD_QUALITY_LABELS,get:()=>({time:displayTime(),strings:bassViewStringCount,chords:detectedChordChanges.filter(c=>Number.isFinite(c.rootPc)&&BassPatterns.tones[c.quality]).map(c=>({start:c.start,end:c.end,root:((c.rootPc+transposeSemitones)%12+12)%12,quality:c.quality,label:chordDisplayLabel(c),time:fmt(c.start)}))})});
 
   window.BassMedia.init();
@@ -18889,7 +18989,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot #awakeStatus:empty{display:no
           restoreCachedSectionChoices(cached);
           structureReadyNotice=!$('repeatSectionDialog').open;updateLoopUI();return true;
         }
-        const key=interactive?getRunPodKey():storedRunPodKey();
+        const key=interactive?await getRunPodKey():storedRunPodKey();assertSongSession(session);
         if(!key){structureError='Connect once with Find sections. Future imports will find sections automatically.';return false;}
         let result;
         if(pending?.unconfirmed)throw new Error('The section upload has no confirmed reply. Tap Find sections to review it before retrying.');
@@ -19073,7 +19173,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot #awakeStatus:empty{display:no
   $('repeatCurrentSection').onclick=()=>repeatChosenSection(currentSectionName());
   $('repeatSectionList').onclick=e=>{const button=e.target.closest('[data-repeat-section]');if(button)toggleRepeatSection(button.dataset.repeatSection);};
   $('repeatChosenSections').onclick=repeatChosenSections;
-  $('repeatFindSections').onclick=()=>{if(reviewInterruptedUploads('sections'))void ensureSongStructure({interactive:true});};
+  $('repeatFindSections').onclick=async()=>{if(await reviewInterruptedUploads('sections'))void ensureSongStructure({interactive:true});};
   $('closeRepeatSections').onclick=()=>$('repeatSectionDialog').close();
   $('repeatSelection').onclick=()=>{activateSelectedTimeframes({seekIfNeeded:true});if(!playing)play();$('repeatSectionDialog').close();};
   $('repeatTypedRange').onclick=()=>{playTimeRange.onclick();$('repeatSectionDialog').close();};
@@ -19740,7 +19840,14 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot #awakeStatus:empty{display:no
     refreshBassPracticeToggle();refreshMetronomeToggle();updateProjectButtons();
   }
 
-  aiAnalyse?.addEventListener('click',()=>{if(reviewInterruptedUploads('analysis'))void analyseBassWithAI();});
+  let analysisStartPending=false;
+  aiAnalyse?.addEventListener('click',async()=>{
+    if(analysisStartPending||aiBusy||pendingResumeBusy||songImportBusy)return;
+    analysisStartPending=true;
+    const session=songSession;
+    try{if(await reviewInterruptedUploads('analysis')&&session===songSession)await analyseBassWithAI();}
+    finally{analysisStartPending=false;}
+  });
   exportAnalysis?.addEventListener('click',exportBassAnalysisCSV);
   document.addEventListener('visibilitychange',()=>{
     if(document.visibilityState==='visible')checkSavedAnalysisSoon(150);
@@ -19895,6 +20002,23 @@ select:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid 
 <script id="rc189-tools-toggle">
 (()=>{const button=document.getElementById('openMoreTools'),panel=document.getElementById('moreTools');
 button.addEventListener('click',()=>{const expanded=button.getAttribute('aria-expanded')!=='true';button.setAttribute('aria-expanded',String(expanded));panel.hidden=!expanded;});})();
+</script>
+<script id="rc193-settings">
+(()=>{
+ const $=id=>document.getElementById(id),row=$('liveAudioEntry'),notes=$('noteNumberToggle'),bpm=$('songTempoWrap'),controls=$('displaySizeControl');
+ notes.replaceWith(bpm);
+ const dialog=document.createElement('dialog');dialog.id='settingsDialog';dialog.setAttribute('aria-labelledby','settingsTitle');
+ dialog.innerHTML='<h2 id="settingsTitle">Settings</h2><button id="settingsClose" type="button">Close</button>';
+ $('appRoot').append(dialog);dialog.insertBefore(controls,$('settingsClose'));controls.append(notes);
+ const layout=()=>{for(const [k,v] of Object.entries({'grid-template-columns':'repeat(2,minmax(0,1fr))','grid-template-rows':'none','gap':'12px','height':'auto','padding':'0'}))controls.style.setProperty(k,v,'important');
+ for(const el of [controls.querySelector('#fontSizeCard'),$('bassStringSelector'),$('speedControl'),$('timelineBreakdownControl'),notes])if(el){for(const [k,v] of Object.entries({'width':'100%','max-width':'none','height':'80px','grid-column':'auto','grid-row':'auto','order':'0'}))el.style.setProperty(k,v,'important');}}
+ for(const el of controls.querySelectorAll('select'))for(const [k,v] of Object.entries({'opacity':'1','visibility':'visible','display':'block','position':'static','color':'#edf5fa','font-size':'16px','text-indent':'0','appearance':'auto','pointer-events':'auto'}))el.style.setProperty(k,v,'important');
+ layout();window.addEventListener('resize',layout);
+
+ const open=document.createElement('button');open.id='openSettings';open.type='button';open.textContent='Settings';open.setAttribute('aria-haspopup','dialog');open.setAttribute('aria-controls','settingsDialog');row.append(open);
+ open.onclick=()=>{layout();dialog.showModal();};
+ const close=()=>{dialog.close();open.focus();};$('settingsClose').onclick=close;dialog.addEventListener('cancel',e=>{e.preventDefault();close();});
+})();
 </script>
 </body>
 </html>

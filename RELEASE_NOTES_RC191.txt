@@ -1,0 +1,4 @@
+Bass Stem Studio RC191
+
+Replaced browser prompts with responsive in-app dialogues for saving, analysis setup, recording and recovery.
+Analyse starts bass analysis on the first click while section analysis runs. Duplicate clicks and background resume cannot start overlapping bass requests. Unconfirmed uploads still require review before resubmission.

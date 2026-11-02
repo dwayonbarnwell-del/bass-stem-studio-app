@@ -1,0 +1,3 @@
+Bass Stem Studio RC192
+
+Consistent panel and dialogue typography, spacing, borders, fields and action buttons across all tools, including Live audio, Ear training, Review chords, Lyrics, Ideas, Rhythm, Share loop, Scales, recovery and editing panels. Destructive confirmations use clear action labels and a distinct colour. All native app prompts have been replaced. Includes the RC191 single-click analysis fix.
