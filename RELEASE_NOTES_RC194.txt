@@ -1,0 +1,5 @@
+Bass Stem Studio RC194
+
+Restored five equal top-row cards by placing BPM in column four, where Notes was before it moved into Settings. The top row now uses the existing five-column layout without an extra implicit column or empty slot.
+
+Updated the offline cache version. Preserved the RC193 Settings arrangement, single-click analysis fix and all existing audio features.
