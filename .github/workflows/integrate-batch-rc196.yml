@@ -24,6 +24,7 @@ jobs:
         run: |
           node tests/library_rc195.cjs
           node tests/save_import_rc164.cjs
+          node tests/batch_rc196.cjs
       - name: Commit integrated page to the feature branch
         run: |
           git config user.name "github-actions[bot]"
