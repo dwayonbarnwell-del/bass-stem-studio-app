@@ -14543,6 +14543,10 @@ window.BassBatch = (() => {
         if(session!==songSession)return;
         if(!songStructure)throw new Error('Sections are not ready. Use Find sections or Check progress, then save again.');
       }
+      if(batchName){
+        if(!songStructure||!Array.isArray(songStructure.segments)||!songStructure.segments.length)throw Error('Song sections are incomplete. This song has not been saved.');
+        if(!detectedChordChanges.length||!(currentTempoBpm()>0))throw Error('Chord or tempo analysis is incomplete. This song has not been saved.');
+      }
       aiStatus('Preparing saved song project…',92);
       const audioAB=await activeAudioFile.arrayBuffer();
       if(session!==songSession)return;
