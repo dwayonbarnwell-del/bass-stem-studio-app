@@ -10,7 +10,7 @@ const data={settings:new Map(),songs:new Map()};let failWrite=false,confirm=true
 const indexedDB={open(){const r={};setImmediate(()=>{r.result={close(){},transaction(name){const tx={error:null};tx.objectStore=()=>({get:key=>request(()=>data[name].get(key)),getAll:()=>request(()=>[...data[name].values()]),put:(v,key)=>request(()=>{if(failWrite)throw new DOMException('Full','QuotaExceededError');data[name].set(key??v.id,v);return key??v.id;})});function request(fn){const q={};setImmediate(()=>{try{q.result=fn();tx.oncomplete?.();}catch(e){tx.error=e;tx.onerror?.();}});return q;}return tx;}};r.onsuccess();});return r;}};
 const ctx={console,File,Blob,DOMException,Date,JSON,Number,String,Map,Set,Array,indexedDB,navigator:{storage:{persist:async()=>true}},window:{BassDialog:{confirm:async()=>confirm}},document:{getElementById:()=>null},setTimeout};
 vm.createContext(ctx);
-vm.runInContext(source.replace('return {init,show,prepareSave,save,errorText};','return {init,show,prepareSave,save,errorText,metadata,filterRows,rowFile};'),ctx);
+vm.runInContext(source.replace('return {init,show,prepareSave,save,hasProject,errorText};','return {init,show,prepareSave,save,hasProject,errorText,metadata,filterRows,rowFile};'),ctx);
 const lib=ctx.window.BassLibrary;
 const p={format:'Bass Stem Studio Project',schemaVersion:2,projectName:'Library check',source:{audioBase64:'AA==',duration:4},analysis:{notes:[{midi:36,start:0,end:1}],scale:'C major',tempoBpm:120,bassAudioBase64:'AA==',structure:{segments:[{name:'Verse',start:0,end:4}]}},settings:{sections:{Verse:{start:0,end:4}}}};
 const blob=new Blob([JSON.stringify(p)]);
