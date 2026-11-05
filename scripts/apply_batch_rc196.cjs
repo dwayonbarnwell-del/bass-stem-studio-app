@@ -54,6 +54,16 @@ if(!code.includes('batchName=null')){
     'batch save failure');
   html=html.slice(0,start)+code+html.slice(end);
 }
+// In batch mode, do not present incomplete sections, chords or tempo as a finished project.
+start=html.indexOf('  async function saveBassStudioProject(');
+end=html.indexOf('\n  async function captureStudyProject(',start);
+code=html.slice(start,end);
+const beforeProject="      aiStatus('Preparing saved song project…',92);";
+const completeCheck="      if(batchName){\n        if(!songStructure||!Array.isArray(songStructure.segments)||!songStructure.segments.length)throw Error('Song sections are incomplete. This song has not been saved.');\n        if(!detectedChordChanges.length||!(currentTempoBpm()>0))throw Error('Chord or tempo analysis is incomplete. This song has not been saved.');\n      }\n";
+if(!code.includes('Song sections are incomplete. This song has not been saved.')){
+  code=swap(code,beforeProject,completeCheck+beforeProject,'batch completeness check');
+  html=html.slice(0,start)+code+html.slice(end);
+}
 start=html.indexOf('  async function analyseBassWithAI(){');
 end=html.indexOf('\n  async function resumeSavedRunPodAnalysis()',start);
 assert(start>=0&&end>start,'Cloud analysis function not found');
