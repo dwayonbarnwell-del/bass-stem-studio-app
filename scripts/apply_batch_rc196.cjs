@@ -1,4 +1,5 @@
 // RC196: Patch the existing single-file release, leaving working analysis code intact.
+// Includes sequential ZIP processing and no direct paid cloud calls from this patch.
 const fs=require('node:fs'), vm=require('node:vm'),assert=require('node:assert/strict');
 const path='index.html';
 let html=fs.readFileSync(path,'utf8');
