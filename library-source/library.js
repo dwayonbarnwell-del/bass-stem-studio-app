@@ -74,7 +74,7 @@ window.BassLibrary=(()=>{
       download.onclick=e=>{if(busy)e.preventDefault();else status('Download requested for '+row.title+'.');};actions.append(download);
       item.append(info,actions);list.append(item);
     }
-    for(const id of ['libraryChoose','libraryDevice','libraryReconnect','libraryRefresh','libraryAdd'])el(id).disabled=busy;
+    for(const id of ['libraryChoose','libraryDevice','libraryReconnect','libraryRefresh','libraryAdd','libraryBatch'])el(id).disabled=busy;
   }
   async function run(fn){
     if(busy)return;busy=true;render();
@@ -118,6 +118,16 @@ window.BassLibrary=(()=>{
   }
   async function useDevice(){await put('folder',null);folder=null;index={};await refresh();}
   async function reconnect(){if(folder&&!await permission(folder,'readwrite',true))throw Error('Folder access was not granted. Your files are unchanged.');await refresh();}
+  async function hasProject(name){
+    await ready;
+    const filename=String(name).replace(/[\\/:*?"<>|]+/g,'_').trim().slice(0,100)+'.bassstudio';
+    if(folder){
+      if(!await permission(folder,'read'))throw Error('Reconnect your library folder before batch processing.');
+      try{await folder.getFileHandle(filename);return true;}
+      catch(e){if(e?.name==='NotFoundError')return false;throw e;}
+    }
+    return !!await store('songs','readonly',s=>s.get(filename.toLocaleLowerCase()));
+  }
   async function prepareSave(name){
     await ready;
     const filename=String(name).replace(/[\\/:*?"<>|]+/g,'_').trim().slice(0,100)+'.bassstudio';
@@ -175,7 +185,7 @@ window.BassLibrary=(()=>{
   function build(){
     if(dialog)return;
     dialog=document.createElement('dialog');dialog.id='bassLibraryDialog';dialog.className='bass-library';dialog.setAttribute('aria-labelledby','libraryTitle');
-    dialog.innerHTML='<div class="library-heading"><div><h2 id="libraryTitle">Song library</h2><p id="libraryLocation"></p></div><button id="libraryClose" type="button">Close</button></div><div class="library-toolbar"><button id="libraryChoose" type="button">Choose folder</button><button id="libraryReconnect" type="button">Reconnect folder</button><button id="libraryDevice" type="button">On this device</button><button id="libraryAdd" type="button">Add saved files</button><button id="libraryRefresh" type="button">Refresh</button></div><p id="libraryHint"></p><div class="library-filters"><div><label for="librarySearch">Search songs</label><input id="librarySearch" type="search" placeholder="Title, artist, key or BPM" autocomplete="off"></div><div><label for="librarySort">Sort by</label><select id="librarySort"><option value="recent">Recently saved</option><option value="name">Song name</option></select></div></div><div class="library-summary"><span id="libraryCount"></span><span id="libraryStatus" role="status" aria-live="polite"></span></div><ul id="librarySongs"></ul><input id="libraryFiles" type="file" accept=".bassstudio,.bssproject,.json,application/json" multiple hidden>';
+    dialog.innerHTML='<div class="library-heading"><div><h2 id="libraryTitle">Song library</h2><p id="libraryLocation"></p></div><button id="libraryClose" type="button">Close</button></div><div class="library-toolbar"><button id="libraryChoose" type="button">Choose folder</button><button id="libraryReconnect" type="button">Reconnect folder</button><button id="libraryDevice" type="button">On this device</button><button id="libraryAdd" type="button">Add saved files</button><button id="libraryBatch" type="button">Batch ZIP</button><button id="libraryRefresh" type="button">Refresh</button></div><p id="libraryHint"></p><div class="library-filters"><div><label for="librarySearch">Search songs</label><input id="librarySearch" type="search" placeholder="Title, artist, key or BPM" autocomplete="off"></div><div><label for="librarySort">Sort by</label><select id="librarySort"><option value="recent">Recently saved</option><option value="name">Song name</option></select></div></div><div class="library-summary"><span id="libraryCount"></span><span id="libraryStatus" role="status" aria-live="polite"></span></div><ul id="librarySongs"></ul><input id="libraryFiles" type="file" accept=".bassstudio,.bssproject,.json,application/json" multiple hidden>';
     document.body.append(dialog);
     el('libraryClose').onclick=()=>dialog.close();
     dialog.addEventListener('close',()=>document.getElementById('importProjectBtn')?.focus());
@@ -183,9 +193,10 @@ window.BassLibrary=(()=>{
     el('libraryChoose').onclick=()=>run(chooseFolder);el('libraryDevice').onclick=()=>run(useDevice);
     el('libraryRefresh').onclick=()=>run(refresh);el('libraryReconnect').onclick=()=>run(reconnect);
     el('libraryAdd').onclick=()=>{el('libraryFiles').value='';el('libraryFiles').click();};
+    el('libraryBatch').onclick=()=>window.BassBatch?.show();
     el('libraryFiles').onchange=e=>{const files=Array.from(e.target.files||[]);e.target.value='';void run(()=>addFiles(files));};
   }
   async function show(){build();if(!dialog.open)dialog.showModal();el('librarySearch').focus();await run(refresh);}
   function init(options){hooks=options;ready=(async()=>{folder=await get('folder')||null;index=await get('index')||{};})();ready.catch(()=>{});}
-  return {init,show,prepareSave,save,errorText};
+  return {init,show,prepareSave,save,hasProject,errorText};
 })();
