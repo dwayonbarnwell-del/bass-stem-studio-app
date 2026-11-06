@@ -74,17 +74,18 @@ window.BassBatch = (() => {
       const line=document.createElement('li'),title=document.createElement('span'),state=document.createElement('strong');
       title.textContent=(index+1)+'. '+item.name;
       state.textContent=(item.status||'Queued')+(Number.isFinite(item.timing?.totalMs)?' · '+formatElapsed(item.timing.totalMs):'');
-      const details=[item.reason, item.timing&&[
+      const reason=String(item.reason||'').replace('RunPod can no longer find this result. Its record is kept; no duplicate upload was sent.',"We couldn't find this song's result. We haven't sent it again.");
+      const details=[reason, item.timing&&[
         Number.isFinite(item.timing.openMs)?'Open '+formatElapsed(item.timing.openMs):'',
         Number.isFinite(item.timing.analyseMs)?'Analyse '+formatElapsed(item.timing.analyseMs):'',
         Number.isFinite(item.timing.saveMs)?'Save '+formatElapsed(item.timing.saveMs):''
       ].filter(Boolean).join(' · ')].filter(Boolean).join(' | ');
       if(details)state.title=details;
       line.append(title,state);
-      if(unfinished(item)&&(item.reason||item.recoveryChecks)){
+      if(unfinished(item)&&reason){
         const detail=document.createElement('small');
         detail.style.cssText='grid-column:1/-1;line-height:1.4;overflow-wrap:anywhere';
-        detail.textContent=[item.reason,item.recoveryChecks?'Result checks: '+item.recoveryChecks:''].filter(Boolean).join(' · ');
+        detail.textContent=reason;
         line.append(detail);
       }
       list.append(line);
