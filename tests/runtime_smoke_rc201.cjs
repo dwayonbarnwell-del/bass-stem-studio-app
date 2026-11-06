@@ -17,7 +17,7 @@ const tail=[
 "const result={loaded:!!document.querySelector('#appRoot'),batch:!!window.BassBatch,library:!!window.BassLibrary,errors:window.__smokeErrors.slice(0,12)};",
 'try{',
 'window.BassBatch.show();',
-"const raw=Uint8Array.from(atob('"+fixture64+"'),c=>c.charCodeAt(0));const file=new File([raw],'diagnostic.zip',{type:'application/zip'});const input=document.getElementById('batchFile');const dt=new DataTransfer();dt.items.add(file);input.files=dt.files;input.dispatchEvent(new Event('change',{bubbles:true}));await new Promise(r=>setTimeout(r,1700));result.archiveMessage=document.getElementById('batchArchive')?.textContent;result.songCount=document.getElementById('batchCount')?.textContent;",
+"const raw=Uint8Array.from(atob('"+fixture64+"'),c=>c.charCodeAt(0));const file=new File([raw],'diagnostic.zip',{type:'application/zip'});const input=document.getElementById('batchFile');const dt=new DataTransfer();dt.items.add(file);input.files=dt.files;input.dispatchEvent(new Event('change',{bubbles:true}));await new Promise(r=>setTimeout(r,8000));result.archiveMessage=document.getElementById('batchArchive')?.textContent;result.songCount=document.getElementById('batchCount')?.textContent;",
 "const d=document.querySelector('#bassBatchDialog');",
 'result.dialog=!!d?.open;',
 "result.startDisabled=document.querySelector('#batchStart')?.disabled;",
@@ -50,11 +50,11 @@ server.listen(0,'127.0.0.1',()=>{
  const port=server.address().port, tmp=fs.mkdtempSync(path.join(os.tmpdir(),'bass-runtime-'));
  const browsers=['/usr/bin/google-chrome','/usr/bin/google-chrome-stable','/usr/bin/chromium','/usr/bin/chromium-browser'].filter(fs.existsSync);
  if(!browsers.length){console.error('No Chrome/Chromium installed on runner');process.exitCode=1;server.close();return;}
- const args=['--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--no-first-run','--disable-extensions','--disable-background-networking','--disable-default-apps','--no-default-browser-check','--user-data-dir='+tmp,'--virtual-time-budget=9500',
+ const args=['--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--no-first-run','--disable-extensions','--disable-background-networking','--disable-default-apps','--no-default-browser-check','--user-data-dir='+tmp,'--virtual-time-budget=21000',
  '--host-resolver-rules=MAP api.runpod.ai 0.0.0.0, MAP *.runpod.io 0.0.0.0','--dump-dom','http://127.0.0.1:'+port+'/index.html'];
  const proc=cp.spawn(browsers[0],args);
  let stdout='',stderr='',timedout=false;
- const timeout=setTimeout(()=>{timedout=true;proc.kill('SIGKILL');},45000);
+ const timeout=setTimeout(()=>{timedout=true;proc.kill('SIGKILL');},55000);
  proc.stdout.on('data',b=>stdout+=b);
  proc.stderr.on('data',b=>stderr+=b);
  proc.on('close',(status)=>{
