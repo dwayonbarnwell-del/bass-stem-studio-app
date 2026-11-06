@@ -1,5 +1,6 @@
 // RC197. Apply only batch, library and read-only RunPod connection changes.
 // Automated checks use mocks only: no live analysis or service billing.
+// Rechecked test-harness value comparisons for isolated JavaScript contexts.
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const path='index.html',old=fs.readFileSync(path,'utf8');
 let html=old;
