@@ -1,0 +1,37 @@
+name: Verify batch recovery RC203
+on:
+  push:
+    branches: [fix/batch-return-rc203]
+    paths: [.github/workflows/batch-rc203.yml, scripts/apply_batch_rc203.cjs, tests/batch_rc203.cjs]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inspect recovery hooks
+        run: |
+          node - <<'JS'
+          const html=require('fs').readFileSync('index.html','utf8');
+          for(const [start,end] of [
+            ['  function batchHeldJobs(', '  window.BassBatch'],
+            ['  async function inspectBatchPending(', '  window.BassBatch'],
+            ['  async function resumeSavedRunPodAnalysis(', '\n  function ']
+          ]){
+            const a=html.indexOf(start);if(a<0){console.log('NOT FOUND',start);continue;}
+            const b=html.indexOf(end,a+start.length);
+            console.log(html.slice(a,b>a&&b-a<18000?b:a+7000));
+          }
+          JS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: batch-rc203-source
+          path: |
+            index.html
+            batch-source/batch.js
+            scripts/apply_batch_rc200.cjs
+            tests/batch_rc*.cjs
+            sw.js
+          retention-days: 1
