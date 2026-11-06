@@ -250,8 +250,8 @@ window.BassBatch = (() => {
     );
     if (!confirmed) return;
     working=true;stopAfterCurrent=false;draw();
-    if(ticker)clearInterval(ticker);
-    ticker=setInterval(updateElapsed,1000);
+    if(ticker && typeof clearInterval==='function')clearInterval(ticker);
+    if(typeof setInterval==='function')ticker=setInterval(updateElapsed,1000);
     let blocked=false;
     // First pass: carry on past ordinary failures and remember them for later.
     for (const item of selectedForRun) {
@@ -289,7 +289,7 @@ window.BassBatch = (() => {
     }
     const saved=entries.filter(i=>i.status==='Saved').length;
     const issues=entries.filter(i=>['Later','Needs review'].includes(i.status)).length;
-    working=false;if(ticker){clearInterval(ticker);ticker=null;}updateElapsed();draw();
+    working=false;if(ticker && typeof clearInterval==='function')clearInterval(ticker);ticker=null;updateElapsed();draw();
     const left=entries.filter(i=>!['Saved','Skipped','Needs review'].includes(i.status)).length;
     if (blocked) tell('Paused to avoid a possible duplicate RunPod charge. '+saved+' saved; '+issues+' need review. Finished songs are safe.');
     else if (stopAfterCurrent) tell('Stopped after the current song. '+saved+' saved; '+issues+' need review.');
