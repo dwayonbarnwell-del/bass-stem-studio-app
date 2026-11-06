@@ -1,0 +1,39 @@
+name: Check and integrate short-batch improvements
+on:
+  push:
+    branches:
+      - feature/rc200-short-zip-batches
+    paths:
+      - scripts/apply_batch_rc200.cjs
+permissions:
+  contents: write
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/rc200-short-zip-batches
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Patch only the ZIP batch script in the existing app
+        run: node scripts/apply_batch_rc200.cjs
+      - name: Run existing and new batch tests without RunPod requests
+        run: |
+          node tests/library_rc195.cjs
+          node tests/save_import_rc164.cjs
+          node tests/batch_rc196.cjs
+          node tests/batch_rc197.cjs
+          node tests/batch_rc198.cjs
+          node tests/batch_rc200.cjs
+      - name: Save validated app page on this feature branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          if ! git diff --cached --quiet; then
+            git commit -m "Integrate 10 to 20 song batch limits and timing"
+            git push origin HEAD:feature/rc200-short-zip-batches
+          fi
