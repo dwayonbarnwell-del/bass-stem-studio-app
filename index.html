@@ -13763,7 +13763,7 @@ window.BassLibrary=(()=>{
     el('libraryChoose').onclick=()=>run(chooseFolder);el('libraryDevice').onclick=()=>run(useDevice);
     el('libraryRefresh').onclick=()=>run(refresh);el('libraryReconnect').onclick=()=>run(reconnect);
     el('libraryAdd').onclick=()=>{el('libraryFiles').value='';el('libraryFiles').click();};
-    el('libraryBatch').onclick=()=>window.BassBatch?.show();
+    el('libraryBatch').onclick=()=>{dialog.close();window.BassBatch?.show();};
     el('libraryFiles').onchange=e=>{const files=Array.from(e.target.files||[]);e.target.value='';void run(()=>addFiles(files));};
   }
   async function show(){build();if(!dialog.open)dialog.showModal();el('librarySearch').focus();await run(refresh);}
@@ -13772,12 +13772,12 @@ window.BassLibrary=(()=>{
 })();
 </script>
 <script id="rc196-batch">
-/* RC196: sequential ZIP-to-library processing. Uses the app's own import, RunPod analysis and project save. */
+/* RC197: resilient sequential ZIP-to-library processing. Uses the app's own import, RunPod analysis and project save. */
 window.BassBatch = (() => {
   const audio = new Set(['mp3','wav','wave','m4a','m4b','aac','aif','aiff','aifc','caf','flac','ogg','oga','opus','wma']);
   const video = new Set(['mp4','m4v','mov','webm','mkv','avi','mpeg','mpg','3gp','3g2','ogv','wmv']);
   const MAX_ZIP = 600 * 1048576, MAX_ENTRY = 200 * 1048576, MAX_TOTAL = 1600 * 1048576, MAX_SONGS = 150;
-  let hooks = {}, dialog, archive, entries = [], working = false, stopAfterCurrent = false, completed = new Set(), storageKey = '';
+  let hooks = {}, dialog, archive, entries = [], working = false, stopAfterCurrent = false, completed = new Set(), storageKey = '', checking = false;
   const $ = id => document.getElementById(id);
   const number = (v, offset, size) => size === 2 ? v.getUint16(offset, true) : v.getUint32(offset, true);
   const ext = name => String(name).split('.').pop().toLowerCase();
@@ -13788,9 +13788,11 @@ window.BassBatch = (() => {
   function tell(message) { if ($('batchStatus')) $('batchStatus').textContent = message; }
   function draw() {
     if (!dialog) return;
-    $('batchCount').textContent = entries.length ? entries.length + ' songs · ' + entries.filter(i => i.status === 'Saved').length + ' saved' : 'Choose a ZIP of audio or video files';
+    $('batchCount').textContent = entries.length ? entries.length + ' songs · ' + entries.filter(i => i.status === 'Saved').length + ' saved · ' + entries.filter(i => ['Later','Needs review'].includes(i.status)).length + ' need attention' : 'Choose a ZIP of audio or video files';
     $('batchStart').disabled = working || !archive || !entries.some(i => i.status !== 'Saved' && i.status !== 'Skipped');
-    $('batchStart').textContent = entries.some(i => i.status === 'Error') ? 'Retry remaining' : 'Start batch';
+    $('batchStart').textContent = entries.some(i => ['Later','Needs review','Error'].includes(i.status)) ? 'Retry remaining' : 'Start batch';
+    $('batchCheck').disabled = working || checking;
+    $('batchCheck').textContent = checking ? 'Checking…' : 'Check RunPod connection';
     $('batchStop').disabled = !working;
     $('batchFile').disabled = working;
     $('batchClose').disabled = working;
@@ -13800,6 +13802,7 @@ window.BassBatch = (() => {
       const title = document.createElement('span'), state = document.createElement('strong');
       title.textContent = (index + 1) + '. ' + item.name;
       state.textContent = rowStatus(item);
+      if (item.reason && ['Later','Needs review','Error','Skipped'].includes(item.status)) state.title = item.reason;
       line.append(title, state); list.append(line);
     });
   }
@@ -13885,48 +13888,96 @@ window.BassBatch = (() => {
       draw(); tell('Ready. Check the list, then start. Songs already in your library will be skipped.');
     } catch(err) { archive=null; entries=[]; draw(); tell(errorMessage(err)); }
   }
+  async function checkConnection() {
+    if (working || checking) return false;
+    checking=true;draw();tell('Checking your RunPod endpoint without starting a paid job…');
+    try {
+      if (!hooks.checkConnection) throw Error('Connection check is unavailable in this version.');
+      const result=await hooks.checkConnection();
+      const workers=result?.workers||{}, jobs=result?.jobs||{};
+      tell('RunPod connected. '+(Number(workers.idle)||0)+' idle worker(s), '+(Number(workers.running)||0)+' running. '+(Number(jobs.inQueue)||0)+' job(s) in queue. No analysis was started.');
+      return true;
+    } catch(err) {
+      tell('Connection check failed: '+errorMessage(err)+'. No analysis was started.');
+      return false;
+    } finally { checking=false;draw(); }
+  }
+  async function attempt(item, {allowNewAnalysis=true,retry=false}={}) {
+    if (await window.BassLibrary.hasProject(item.title)) {
+      item.status='Saved';item.reason='Already saved in your chosen library';return;
+    }
+    if (hooks.hasPending?.()) throw Error('An earlier bass analysis job may still be charged or awaiting a result. Resolve it before processing another song.');
+    item.status=retry?'Reopening':'Opening';draw();tell((retry?'Returning to: ':'Opening: ')+item.name);
+    const file=await getSong(item);
+    if (!await hooks.load(file)) throw Error('This song could not be imported.');
+    const recovered=!!hooks.hasCompletedBass?.();
+    if (!recovered && !allowNewAnalysis) throw Error('No completed bass analysis could be restored. A second paid analysis was NOT started.');
+    if (!recovered) {
+      item.status='Analysing';draw();tell('Analysing '+item.name+' with the existing engine…');
+      const result=await hooks.analyse();
+      if (!result || !result.count || !result.partCount || !result.bassStemReady) {
+        throw Error('Full bass analysis was not confirmed. No incomplete project was saved.');
+      }
+    }
+    item.status='Saving';draw();tell('Checking full analysis and saving: '+item.name);
+    const saved=await hooks.save(item.title);
+    if (!saved?.noteCount) throw Error('The saved project was not confirmed.');
+    item.status='Saved';item.reason='';
+    completed.add(item.name+'|'+item.size+'|'+item.crc);
+    try {localStorage.setItem(storageKey,JSON.stringify([...completed]));}catch {}
+    draw();
+  }
   async function run() {
     if (working || !archive) return;
-    if (hooks.isBusy && hooks.isBusy()) { tell('Finish the current song first.'); return; }
-    if (hooks.hasPending && hooks.hasPending()) { tell('An earlier analysis may still be charged or awaiting a result. Open that song and resolve it before starting a new batch.'); return; }
-    const remaining = entries.filter(i=>i.status!=='Saved'&&i.status!=='Skipped');
-    if (!remaining.length) { tell('All songs are already saved or skipped.'); return; }
-    const approved = await window.BassDialog.confirm(
-      'Analyse up to ' + remaining.length + ' songs using your current RunPod service? Bass and section jobs may incur charges. Only one song runs at a time. Do not close this tab while processing.',
-      {title:'Confirm batch analysis',accept:'Start analyses'}
+    if (hooks.isBusy?.()) {tell('Finish the current song first.');return;}
+    if (hooks.hasPending?.()) {tell('An earlier bass analysis may still be charged or awaiting a result. Resolve it before starting another batch.');return;}
+    const remaining=entries.filter(i=>i.status!=='Saved'&&i.status!=='Skipped');
+    if (!remaining.length) {tell('All songs are already saved or skipped.');return;}
+    const confirmed=await window.BassDialog.confirm(
+      'Process '+remaining.length+' songs with your existing RunPod analysis? Jobs may incur charges. Failed songs will be revisited once without repeating paid bass analysis. Only one song runs at a time. Keep this tab open.',
+      {title:'Confirm batch analysis',accept:'Start batch'}
     );
-    if (!approved) return;
-    working=true; stopAfterCurrent=false; draw();
+    if (!confirmed) return;
+    working=true;stopAfterCurrent=false;draw();
+    let blocked=false;
+    // First pass: carry on past ordinary failures and remember them for later.
     for (const item of entries) {
       if (stopAfterCurrent) break;
       if (item.status==='Saved'||item.status==='Skipped') continue;
-      item.status='Opening'; draw(); tell('Opening: ' + item.name);
-      try {
-        if (await window.BassLibrary.hasProject(item.title)) { item.status='Saved'; continue; }
-        if (hooks.hasPending && hooks.hasPending()) throw Error('An unresolved RunPod job exists. Review it before retrying.');
-        const file = await getSong(item);
-        if (!await hooks.load(file)) throw Error('This song could not be imported.');
-        item.status='Analysing'; draw(); tell('Analysing ' + item.name + ' with the platform’s existing engine…');
-        const result = await hooks.analyse();
-        if (!result || !result.count || !result.partCount || !result.bassStemReady) {
-          throw Error('Complete bass analysis and stems were not confirmed. No incomplete project was saved.');
+      item.reason='';
+      try {await attempt(item,{allowNewAnalysis:true});}
+      catch(err) {
+        item.reason=errorMessage(err);
+        if (hooks.hasPending?.()) {
+          item.status='Needs review';blocked=true;stopAfterCurrent=true;
+          tell('Paused safely: RunPod may still be processing '+item.name+'. Check the saved analysis before retrying to avoid a second charge.');
+        } else {
+          item.status='Later';
+          tell('Set aside '+item.name+'. Continuing with the next song.');
         }
-        item.status='Saving'; draw(); tell('Saving: ' + item.name);
-        const saved = await hooks.save(item.title);
-        if (!saved || !saved.noteCount) throw Error('Project save was not confirmed.');
-        item.status='Saved';
-        completed.add(item.name+'|'+item.size+'|'+item.crc);
-        try { localStorage.setItem(storageKey,JSON.stringify([...completed])); } catch {}
         draw();
-      } catch(err) {
-        item.status='Error'; item.reason=errorMessage(err); draw();
-        tell('Stopped at ' + item.name + ': ' + item.reason + ' Check any pending RunPod jobs before retrying.');
-        stopAfterCurrent=true;
       }
     }
-    const finished=entries.filter(i=>i.status==='Saved').length;
+    // Second pass: reopen each deferred song once, restore its saved analysis
+    // and resume/check its section job. Never submit another paid bass job here.
+    if (!stopAfterCurrent) {
+      const deferred=entries.filter(i=>i.status==='Later');
+      for(const item of deferred) {
+        if(stopAfterCurrent) break;
+        try {await attempt(item,{allowNewAnalysis:false,retry:true});}
+        catch(err) {
+          item.status='Needs review';item.reason=errorMessage(err);
+          if(hooks.hasPending?.()) {blocked=true;stopAfterCurrent=true;}
+          draw();
+        }
+      }
+    }
+    const saved=entries.filter(i=>i.status==='Saved').length;
+    const issues=entries.filter(i=>['Later','Needs review'].includes(i.status)).length;
     working=false;draw();
-    if (!entries.some(i=>i.status==='Error')) tell(stopAfterCurrent?'Stopped after the current song. '+finished+' saved.':'Batch finished. '+finished+' saved in your library.');
+    if (blocked) tell('Paused to avoid a possible duplicate RunPod charge. '+saved+' saved; '+issues+' need review. Finished songs are safe.');
+    else if (stopAfterCurrent) tell('Stopped after the current song. '+saved+' saved; '+issues+' need review.');
+    else tell('Batch complete: '+saved+' saved; '+issues+' need review. All recoverable failures were revisited once, without extra paid bass analysis.');
   }
   function build() {
     if (dialog) return;
@@ -13935,9 +13986,10 @@ window.BassBatch = (() => {
     document.head.appendChild(css);
     dialog = document.createElement('dialog');
     dialog.id='bassBatchDialog';
-    dialog.innerHTML='<h2>Batch ZIP analysis</h2><p>Uses the same bass, chord, section and stem analysis as a single song. Saves only complete projects. Choose a local library folder first for reliable storage.</p><label for="batchFile">Audio or video ZIP</label> <input id="batchFile" type="file" accept=".zip,application/zip"><p id="batchCount" aria-live="polite"></p><ul id="batchSongs"></ul><p id="batchStatus" role="status" aria-live="polite"></p><div><button id="batchStart" type="button">Start batch</button><button id="batchStop" type="button" disabled>Stop after current song</button><button id="batchClose" type="button">Close</button></div>';
+    dialog.innerHTML='<h2>Batch ZIP analysis</h2><p>Uses the existing bass, chord, section and stem analysis. Failed songs are checked again after the rest, without automatically repeating paid bass jobs. Choose a local library folder first.</p><label for="batchFile">Audio or video ZIP</label> <input id="batchFile" type="file" accept=".zip,application/zip"><p id="batchCount" aria-live="polite"></p><ul id="batchSongs"></ul><p id="batchStatus" role="status" aria-live="polite"></p><div><button id="batchCheck" type="button">Check RunPod connection</button><button id="batchStart" type="button">Start batch</button><button id="batchStop" type="button" disabled>Stop after current song</button><button id="batchClose" type="button">Close</button></div>';
     document.body.appendChild(dialog);
     $('batchFile').onchange=e=>{const f=e.target.files&&e.target.files[0];if(f) void choose(f);};
+    $('batchCheck').onclick=()=>void checkConnection();
     $('batchStart').onclick=()=>void run();
     $('batchStop').onclick=()=>{stopAfterCurrent=true;tell('Stopping after the current song is analysed and saved…');};
     $('batchClose').onclick=()=>dialog.close();
@@ -13952,7 +14004,7 @@ window.BassBatch = (() => {
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC195';
+  const APP_VERSION='RC197';
   const PROJECT_SCHEMA_VERSION=2;
   // RC125: compact practice-view and string selectors preserve space for P1/P2/P3; all RC124 audio, analysis, repeat, project and practice logic preserved.
 
@@ -20106,7 +20158,35 @@ window.BassBatch = (() => {
   // ---------- Controls ----------
   refreshNoteNumberToggle();refreshStemMixerUI();updatePracticeLayoutState(true);
   window.BassLibrary.init({open:file=>importBassStudioProject(file,{findSections:false}),isBusy:()=>songImportBusy||aiBusy||projectSaveBusy});
-  window.BassBatch.init({load:file=>loadAudioFile(file),analyse:()=>analyseBassWithAI(),save:name=>saveBassStudioProject({batchName:name}),isBusy:()=>songImportBusy||aiBusy||projectSaveBusy,hasPending:()=>!!readPendingRunPodJob()});
+  // GET /health checks connection without submitting a paid analysis.
+  async function checkBatchRunPodConnection(){
+    const key=await getRunPodKey();
+    if(!key)throw Error('No RunPod API key was entered. Use Connect analysis in the app.');
+    const controller=new AbortController(), timer=setTimeout(()=>controller.abort(),15000);
+    try{
+      const response=await fetch('https://api.runpod.ai/v2/'+RUNPOD_ENDPOINT+'/health',{
+        method:'GET',headers:{'Authorization':'Bearer '+key,'Accept':'application/json'},
+        cache:'no-store',signal:controller.signal
+      });
+      if(response.status===401||response.status===403)throw Error('RunPod rejected the saved API key (HTTP '+response.status+'). Update the API key in the app.');
+      if(!response.ok)throw Error('RunPod returned HTTP '+response.status+'. Check your RunPod endpoint.');
+      const health=await response.json();
+      return {workers:health.workers||{},jobs:health.jobs||{}};
+    }catch(err){
+      if(err?.name==='AbortError')throw Error('RunPod did not respond within 15 seconds. Try checking again.');
+      if(err instanceof TypeError)throw Error('Could not reach RunPod. Check your internet connection or RunPod service status.');
+      throw err;
+    }finally{clearTimeout(timer);}
+  }
+  window.BassBatch.init({
+    load:file=>loadAudioFile(file),
+    analyse:()=>analyseBassWithAI(),
+    save:name=>saveBassStudioProject({batchName:name}),
+    hasCompletedBass:()=>!!(offlineAnalysisReady&&notes.length&&analysisParts.length&&analysisParts.every(p=>!!p.bassBase64)),
+    checkConnection:()=>checkBatchRunPodConnection(),
+    isBusy:()=>songImportBusy||aiBusy||projectSaveBusy,
+    hasPending:()=>!!readPendingRunPodJob()
+  });
   importProjectBtn?.addEventListener('click',()=>window.BassLibrary.show());
   projectFileInput?.addEventListener('change',()=>{const file=projectFileInput.files?.[0];projectFileInput.value='';importBassStudioProject(file);});
   saveProjectBtn?.addEventListener('click',saveBassStudioProject);
