@@ -118,6 +118,19 @@ window.BassLibrary=(()=>{
   }
   async function useDevice(){await put('folder',null);folder=null;index={};await refresh();}
   async function reconnect(){if(folder&&!await permission(folder,'readwrite',true))throw Error('Folder access was not granted. Your files are unchanged.');await refresh();}
+  async function ensureBatchAccess(){
+    await ready;
+    if(folder){
+      try {
+        if(!await permission(folder,'readwrite',true))throw Error('Library folder permission was not granted.');
+        return true;
+      }catch(err){
+        throw Error('Please open Library, select Reconnect folder, allow access and try again. '+(err?.message||''));
+      }
+    }
+    await database();
+    return true;
+  }
   async function hasProject(name){
     await ready;
     const filename=String(name).replace(/[\\/:*?"<>|]+/g,'_').trim().slice(0,100)+'.bassstudio';
@@ -198,5 +211,5 @@ window.BassLibrary=(()=>{
   }
   async function show(){build();if(!dialog.open)dialog.showModal();el('librarySearch').focus();await run(refresh);}
   function init(options){hooks=options;ready=(async()=>{folder=await get('folder')||null;index=await get('index')||{};})();ready.catch(()=>{});}
-  return {init,show,prepareSave,save,hasProject,errorText};
+  return {init,show,prepareSave,save,hasProject,ensureBatchAccess,errorText};
 })();
