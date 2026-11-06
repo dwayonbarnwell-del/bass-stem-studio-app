@@ -13808,7 +13808,7 @@ window.BassLibrary=(()=>{
 })();
 </script>
 <script id="rc196-batch">
-/* RC200: measured 10–20 song ZIP batches. Retains RC198 import, RunPod analysis and save functions without any new server. */
+/* RC203: bounded return passes, original-job recovery and one verified failed-job retry. */
 window.BassBatch = (() => {
   const audio = new Set(['mp3','wav','wave','m4a','m4b','aac','aif','aiff','aifc','caf','flac','ogg','oga','opus','wma']);
   const video = new Set(['mp4','m4v','mov','webm','mkv','avi','mpeg','mpg','3gp','3g2','ogv','wmv']);
@@ -13822,6 +13822,25 @@ window.BassBatch = (() => {
   const projectTitle = name => clean(name).replace(/[\\/:*?"<>|]+/g,'_').replace(/\s+/g,' ').slice(0,95) || 'Untitled song';
   const errorMessage = err => String(err && err.message || err || 'Unknown error');
   const rowStatus = item => item.status || 'Queued';
+  const unfinished = item => !['Saved','Skipped'].includes(item.status);
+  const itemKey = item => item.name+'|'+item.size+'|'+item.crc;
+  const heldFor = item => (hooks.heldJobs?.()||[]).find(job=>matchesHeld(item,job));
+  let retryJournal = new Map();
+  function storeRetryState(item,strict=false){
+    retryJournal.set(itemKey(item),{analysisStarted:!!item.analysisStarted,status:item.status,reason:item.reason||'',lastVisit:item.lastVisit||0});
+    try{
+      const value=JSON.stringify([...retryJournal]);
+      localStorage.setItem(storageKey+'|retry-v1',value);
+      if(strict&&localStorage.getItem(storageKey+'|retry-v1')!==value)throw Error('Storage check failed');
+    }catch(err){if(strict)throw Error('Could not preserve the retry record. No new bass analysis was sent.');}
+  }
+  function finishTiming(item){
+    if(item.startedAt){item.timing={...(item.timing||{}),totalMs:Date.now()-item.startedAt};item.startedAt=null;}
+  }
+  async function pauseBeforeReturn(ms){
+    for(let elapsed=0;elapsed<ms&&!stopAfterCurrent;elapsed+=500)
+      await new Promise(resolve=>setTimeout(resolve,Math.min(500,ms-elapsed)));
+  }
   const formatElapsed = ms => {
     const seconds=Math.max(0,Math.floor((Number(ms)||0)/1000));
     const m=Math.floor(seconds/60),s=String(seconds%60).padStart(2,'0');
@@ -13837,16 +13856,15 @@ window.BassBatch = (() => {
   function draw() {
     if (!dialog) return;
     const selected=entries.filter(i=>i.status==='Saved').length;
-    const actionable=entries.filter(i=>!['Saved','Skipped','Needs review'].includes(i.status)).length;
+    const actionable=entries.filter(unfinished).length;
     const issues=entries.filter(i=>['Later','Needs review'].includes(i.status)).length;
     $('batchFileName').textContent=selectedName || 'No ZIP selected';
     $('batchFileName').title=selectedName;
     $('batchArchive').textContent=archiveMessage;
     $('batchCount').textContent=loadingZip?'Reading selected ZIP…':
       entries.length ? entries.length+' songs · '+(accessWarning?'saved songs not checked':selected+' saved')+' · '+actionable+' to process'+(issues?' · '+issues+' need review':'') : 'No songs loaded';
-    const heldReady=entries.some(item=>item.status==='Needs review'&&(hooks.heldJobs?.()||[]).some(job=>matchesHeld(item,job)));
-    $('batchStart').disabled=working||starting||loadingZip||!archive||(actionable===0&&!heldReady);
-    $('batchStart').textContent=working?'Processing…':starting?'Checking…':actionable===0&&heldReady?'Check saved analysis':hooks.hasPending?.()?'Continue other songs':entries.some(i=>['Later','Error'].includes(i.status))?'Retry remaining':entries.some(i=>i.status==='Saved')?'Continue batch':'Start batch';
+    $('batchStart').disabled=working||starting||loadingZip||!archive||actionable===0;
+    $('batchStart').textContent=starting?'Checking…':working?'Processing…':entries.some(i=>['Later','Needs review','Error'].includes(i.status))?'Retry unfinished':entries.some(i=>i.status==='Saved')?'Continue batch':'Start batch';
     if($('batchLimit'))$('batchLimit').disabled=working||loadingZip;
     $('batchCheck').disabled=working||starting||checking;
     $('batchCheck').textContent=checking?'Checking…':'Check connection';
@@ -13867,7 +13885,14 @@ window.BassBatch = (() => {
         Number.isFinite(item.timing.saveMs)?'Save '+formatElapsed(item.timing.saveMs):''
       ].filter(Boolean).join(' · ')].filter(Boolean).join(' | ');
       if(details)state.title=details;
-      line.append(title,state);list.append(line);
+      line.append(title,state);
+      if(unfinished(item)&&(item.reason||item.recoveryChecks)){
+        const detail=document.createElement('small');
+        detail.style.cssText='grid-column:1/-1;line-height:1.4;overflow-wrap:anywhere';
+        detail.textContent=[item.reason,item.recoveryChecks?'Result checks: '+item.recoveryChecks:''].filter(Boolean).join(' · ');
+        line.append(detail);
+      }
+      list.append(line);
     });
   }
   async function listZip(file) {
@@ -13947,6 +13972,19 @@ window.BassBatch = (() => {
       storageKey='bass-batch-v1|'+[file.name,file.size,file.lastModified].join('|');
       try {completed=new Set(JSON.parse(localStorage.getItem(storageKey)||'[]'));}catch{completed=new Set();}
       archive=file;entries=found;
+      try{
+        const saved=JSON.parse(localStorage.getItem(storageKey+'|retry-v1')||'[]');
+        if(!Array.isArray(saved))throw Error('Invalid retry record');
+        retryJournal=new Map(saved);
+      }catch{throw Error('The saved retry record could not be read. It has been kept to prevent duplicate analysis.');}
+      for(const item of entries){
+        const saved=retryJournal.get(itemKey(item));
+        item.analysisStarted=!!saved?.analysisStarted;item.lastVisit=Number(saved?.lastVisit)||0;
+        if(item.status==='Queued'&&saved){
+          item.status=item.analysisStarted?'Needs review':'Later';
+          item.reason=saved.reason||'Returning to unfinished work';
+        }
+      }
       archiveMessage='ZIP opened. Checking your saved songs…';draw();
       let index=0;
       for(const item of entries){
@@ -14011,6 +14049,7 @@ window.BassBatch = (() => {
     const recovered=!!hooks.hasCompletedBass?.();
     if (!recovered && !allowNewAnalysis) throw Error('No completed bass analysis could be restored. A second paid analysis was NOT started.');
     if (!recovered) {
+      item.analysisStarted=true;try{storeRetryState(item,true);}catch(err){item.analysisStarted=false;storeRetryState(item);throw err;}
       item.status='Analysing';draw();tell('Analysing '+item.name+' with the existing engine…');
       const analysisStart=Date.now();
       const result=await hooks.analyse();
@@ -14026,7 +14065,7 @@ window.BassBatch = (() => {
     if (!saved?.noteCount) throw Error('The saved project was not confirmed.');
     item.timing.totalMs=Date.now()-item.startedAt;
     item.startedAt=null;
-    item.status='Saved';item.reason='';
+    item.status='Saved';item.reason='';item.analysisStarted=true;storeRetryState(item);
     completed.add(item.name+'|'+item.size+'|'+item.crc);
     try {localStorage.setItem(storageKey,JSON.stringify([...completed]));}catch {}
     draw();
@@ -14042,8 +14081,10 @@ window.BassBatch = (() => {
     for(const item of entries){
       if(['Saved','Skipped'].includes(item.status))continue;
       if(held.some(job=>matchesHeld(item,job))){
-        item.status='Needs review';
-        item.reason='Earlier analysis preserved for recovery. This song will not be charged again automatically.';
+        item.analysisStarted=true;
+        if(!item.reason)item.reason='Earlier analysis will be checked automatically. No duplicate upload will be sent.';
+        if(item.status==='Queued')item.status='Needs review';
+        storeRetryState(item);
       }
     }
   }
@@ -14055,7 +14096,7 @@ window.BassBatch = (() => {
       item.status='Saving';item.reason='Saving recovered analysis';draw();
       const saved=await hooks.save(item.title);
       if(!saved?.noteCount)throw Error('Saved project was not confirmed.');
-      item.status='Saved';item.reason='';
+      item.status='Saved';item.reason='';item.waitingForResult=false;item.analysisStarted=true;storeRetryState(item);
       completed.add(item.name+'|'+item.size+'|'+item.crc);
       try{localStorage.setItem(storageKey,JSON.stringify([...completed]));}catch{}
       hooks.removeHeld?.(job.signature);
@@ -14066,170 +14107,145 @@ window.BassBatch = (() => {
       draw();return false;
     }
   }
-  async function recoverHeldRows(){
-    for(const job of hooks.heldJobs?.()||[]){
-      const item=entries.find(row=>matchesHeld(row,job)&&row.status!=='Saved'&&row.status!=='Skipped');
-      if(!item||!job.parts?.every(p=>p.id&&!p.submitting&&!p.failedStatus))continue;
-      if(hooks.hasPending?.())break;
+  function preserveFailure(item,err,returnPass=false){
+    finishTiming(item);item.reason=errorMessage(err);
+    if(hooks.hasPending?.()){
+      const held=hooks.holdPending?.(item.name);
+      if(!held)throw Error('Could not preserve the interrupted job. Batch stopped to prevent duplicate charges.');
+      item.analysisStarted=true;item.status='Needs review';
+    }else item.status=returnPass?'Needs review':'Later';
+    storeRetryState(item);draw();
+  }
+  async function recoverHeldRows(rows,{throttled=false}={}){
+    for(const item of rows){
+      if(stopAfterCurrent||hooks.hasPending?.())break;
+      const job=heldFor(item);
+      if(!unfinished(item)||!job)continue;
+      if(throttled&&item.lastCheckedAt&&Date.now()-item.lastCheckedAt<15000)continue;
+      item.waitingForResult=false;
+      if(!job.parts?.length||!job.parts.every(part=>part.id&&!part.submitting)){
+        item.status='Needs review';
+        item.reason='Upload not confirmed. Its record is kept; a second upload has not been sent.';
+        storeRetryState(item);draw();continue;
+      }
       try{
         if(!hooks.activateHeld?.(job.signature))continue;
-        tell('Checking earlier completed analysis: '+item.name);
-        const checked=await hooks.inspectPending?.();
+        item.status='Checking';item.lastCheckedAt=Date.now();
+        item.recoveryChecks=(item.recoveryChecks||0)+1;draw();
+        tell('Returning to unfinished song: '+item.name);
+        let checked=await hooks.inspectPending?.();
+        if(stopAfterCurrent){item.status='Later';item.reason='Stopped after checking the existing job.';continue;}
+        if(checked?.state==='retryable'&&hooks.retryFailed){
+          item.status='Retrying';draw();
+          tell('Retrying the confirmed failed job once: '+item.name);
+          checked=await hooks.retryFailed();
+        }
         if(checked?.state==='completed'){
-          const yes=await window.BassDialog.confirm(
-            'RunPod confirms an earlier bass job has finished. Retrieve its results and try to save the song? Missing song sections may require additional processing charges.',
-            {title:'Recover saved analysis',accept:'Recover existing result'}
-          );
-          if(yes&&await hooks.resumeVerified?.()){
+          if(await hooks.resumeVerified?.()){
             await saveRecovered(job);
           }else{
-            if(hooks.hasPending?.())hooks.holdPending?.(job.batchEntryName||job.name);
-            item.status='Needs review';
-            item.reason='Earlier results are kept. No additional analysis was started.';
+            item.status='Needs review';item.reason='Existing results could not yet be restored. They have not been replaced by a new upload.';
           }
         }else{
-          if(hooks.hasPending?.())hooks.holdPending?.(job.batchEntryName||job.name);
-          item.status='Needs review';
-          item.reason=checked?.message||'Earlier job is '+(checked?.state||'not yet confirmed')+'. Its record is kept.';
+          item.waitingForResult=['running','check-failed'].includes(checked?.state);
+          item.status=item.waitingForResult?'Later':'Needs review';
+          item.reason=checked?.message||({
+            running:'RunPod is still working. The batch will return to check this job.',
+            'check-failed':'Connection check failed. The saved job will be checked again.',
+            'missing-key':'The RunPod API key needs reconnecting before this result can be checked.',
+            unconfirmed:'The upload is not confirmed. No duplicate upload was sent.',
+            retryable:'This failed job needs an authorised retry.'
+          }[checked?.state]||'The existing job needs attention. Its recovery record is kept.');
         }
       }catch(err){
-        if(hooks.hasPending?.()){
-          try{hooks.holdPending?.(job.batchEntryName||job.name);}catch{}
-        }
         item.status='Needs review';item.reason=errorMessage(err);
+      }finally{
+        // Never leave a held job active while opening a different song.
+        if(hooks.hasPending?.()){
+          const saved=hooks.holdPending?.(job.batchEntryName||job.name);
+          if(!saved)throw Error('Could not preserve the checked job. Batch stopped.');
+        }
+        storeRetryState(item);draw();
       }
-      draw();
     }
   }
   async function run() {
     if(working||starting||!archive)return;
     if(hooks.isBusy?.()){tell('Finish the current song first.');return;}
-    starting=true;draw();
-    try {
-    // Check the actual library before trusting the saved count or starting a new job.
+    starting=true;working=true;stopAfterCurrent=false;draw();
     try{
-      tell('Checking library permission and saved projects…');
-      if(window.BassLibrary.ensureBatchAccess)await window.BassLibrary.ensureBatchAccess();
-      for(const item of entries){
-        if(item.status==='Skipped'||item.status==='Saved')continue;
-        if(await window.BassLibrary.hasProject(item.title)){
-          item.status='Saved';item.reason='';
-          completed.add(item.name+'|'+item.size+'|'+item.crc);
-        }
-      }
-      accessWarning='';
-      archiveMessage='Library connected · '+entries.filter(i=>i.status==='Saved').length+' saved songs recognised.';
-      markHeldRows();draw();
-    }catch(err){
-      accessWarning=errorMessage(err);
-      tell('Batch not started: '+accessWarning+'. Open Library and select Reconnect folder. No analysis was started.');
-      draw();return;
-    }
-    if(hooks.hasPending?.()){
-      tell('Checking the earlier RunPod job without starting a new paid analysis…');
-      let checked={state:'check-failed'};
-      try{checked=await hooks.inspectPending?.()||checked;}catch(err){checked.message=errorMessage(err);}
-      if(checked.state==='completed'){
-        const recover=await window.BassDialog.confirm(
-          'Your earlier bass job is complete. Retrieve the existing results and try to save this song? Missing song sections may require additional processing charges.',
-          {title:'Recover earlier job',accept:'Recover existing result'}
-        );
-        if(recover&&await hooks.resumeVerified?.())await saveRecovered(checked);
-      }
-      if(hooks.hasPending?.()){
-        const accepted=await window.BassDialog.confirm(
-          'An earlier RunPod job is not fully resolved. Keep its details safely on this device and continue with other songs? The earlier job may still be charged. It will not be analysed again automatically until reviewed.',
-          {title:'Unfinished analysis',accept:'Keep for review'}
-        );
-        if(!accepted){tell('Paused. The earlier job is still recorded. No new analysis started.');draw();return;}
-        try{
-          const held=hooks.holdPending?.(checked.batchEntryName||checked.name||'');
-          if(!held)throw Error('The earlier analysis was not saved for review.');
-        }catch(err){tell('Unable to preserve the earlier job: '+errorMessage(err)+'. Batch stopped.');draw();return;}
-      }
-    }
-    markHeldRows();draw();
-    // Read-only recovery of previously saved job IDs. Unknown uploads stay on hold.
-    await recoverHeldRows();
-    markHeldRows();draw();
-    const remaining=entries.filter(i=>!['Saved','Skipped','Needs review'].includes(i.status));
-    if(!remaining.length){
-      const issues=entries.filter(i=>i.status==='Needs review').length;
-      tell(issues?'No new paid analysis started. '+issues+' song(s) kept for review. Check RunPod job history before authorising a fresh upload.':'All songs are already saved or skipped.');
-      return;
-    }
-    const perRun=[10,15,20].includes(Number($('batchLimit')?.value))?Number($('batchLimit').value):10;
-    const selectedForRun=remaining.slice(0,perRun);
-    const confirmed=await window.BassDialog.confirm(
-      'Process '+selectedForRun.length+' of '+remaining.length+' remaining songs using your existing RunPod analysis? Jobs may incur charges. One song runs at a time. Keep this tab open until the small batch finishes.',
-      {title:'Confirm batch analysis',accept:'Start batch'}
-    );
-    if(!confirmed){tell('New analysis cancelled. Saved songs and earlier job records are kept.');return;}
-    working=true;stopAfterCurrent=false;draw();
-    if(ticker&&typeof clearInterval==='function')clearInterval(ticker);
-    if(typeof setInterval==='function')ticker=setInterval(updateElapsed,1000);
-    let blocked=false;
-    for(const item of selectedForRun){
-      if(stopAfterCurrent)break;
-      if(['Saved','Skipped','Needs review'].includes(item.status))continue;
-      item.reason='';
-      try{await attempt(item,{allowNewAnalysis:true});}
-      catch(err){
-        item.reason=errorMessage(err);
-        if(item.startedAt){item.timing={...(item.timing||{}),totalMs:Date.now()-item.startedAt};item.startedAt=null;}
-        if(hooks.hasPending?.()){
-          const approved=await window.BassDialog.confirm(
-            item.name+' stopped while contacting RunPod. Preserve this job for review and continue with other songs? The earlier job may still be charged. This song will not be analysed again automatically.',
-            {title:'Interrupted song',accept:'Keep for review'}
-          );
-          if(approved){
-            try{
-              const held=hooks.holdPending?.(item.name);
-              if(!held)throw Error('No earlier job was preserved.');
-              item.status='Needs review';
-              tell('Kept '+item.name+' for later review. Continuing with the next song.');
-            }catch(holdError){
-              item.status='Needs review';item.reason=errorMessage(holdError);
-              blocked=true;stopAfterCurrent=true;
-              tell('Paused. Could not safely preserve the interrupted job.');
-            }
-          }else{
-            item.status='Needs review';blocked=true;stopAfterCurrent=true;
-            tell('Paused to prevent a possible duplicate charge. The interrupted job remains recorded.');
+      try{
+        tell('Checking library permission and saved projects…');
+        if(window.BassLibrary.ensureBatchAccess)await window.BassLibrary.ensureBatchAccess();
+        for(const item of entries){
+          if(stopAfterCurrent)break;
+          if(!unfinished(item))continue;
+          if(await window.BassLibrary.hasProject(item.title)){
+            item.status='Saved';item.reason='';completed.add(itemKey(item));
           }
-        }else{
-          item.status='Later';
-          tell('Set aside '+item.name+'. Continuing with the next song.');
         }
-        draw();
+        accessWarning='';
+        archiveMessage='Library connected · '+entries.filter(i=>i.status==='Saved').length+' saved songs recognised.';
+        markHeldRows();draw();
+      }catch(err){
+        accessWarning=errorMessage(err);
+        tell('Batch not started: '+accessWarning+'. Reconnect your library folder. No analysis was started.');return;
       }
-    }
-    if(!stopAfterCurrent){
-      const deferred=selectedForRun.filter(i=>i.status==='Later');
-      for(const item of deferred){
+      if(stopAfterCurrent){tell('Stopped. No new analysis started.');return;}
+      const remaining=entries.filter(unfinished);
+      if(!remaining.length){tell('All songs are already saved or skipped.');return;}
+      const perRun=[10,15,20].includes(Number($('batchLimit')?.value))?Number($('batchLimit').value):10;
+      // Rotate previously checked rows so persistent failures cannot block later songs.
+      const selectedForRun=remaining.slice().sort((a,b)=>(a.lastVisit||0)-(b.lastVisit||0)).slice(0,perRun);
+      const confirmed=await window.BassDialog.confirm(
+        'Process '+selectedForRun.length+' of '+remaining.length+' remaining songs using your existing RunPod analysis? The batch will return to unfinished songs automatically and reuse existing results. Each confirmed failed RunPod job can be retried once using the same job ID. Analysis, missing sections and failed-job retries may incur charges. Unknown uploads stay protected. Keep this tab open.',
+        {title:'Confirm batch analysis',accept:'Start batch'}
+      );
+      if(!confirmed||stopAfterCurrent){tell('Batch cancelled. Saved songs and earlier job records are kept.');return;}
+      starting=false;draw();
+      for(const item of selectedForRun){item.lastVisit=Date.now();storeRetryState(item);}
+      if(hooks.hasPending?.()){
+        const held=hooks.holdPending?.('');
+        if(!held)throw Error('The earlier analysis could not be preserved. No new upload started.');
+        markHeldRows();
+      }
+      if(typeof setInterval==='function')ticker=setInterval(updateElapsed,1000);
+      await recoverHeldRows(selectedForRun);
+      for(const item of selectedForRun){
         if(stopAfterCurrent)break;
-        try{await attempt(item,{allowNewAnalysis:false,retry:true});}
-        catch(err){
-          item.status='Needs review';item.reason=errorMessage(err);
-          if(item.startedAt){item.timing={...(item.timing||{}),totalMs:Date.now()-item.startedAt};item.startedAt=null;}
-          if(hooks.hasPending?.()){blocked=true;stopAfterCurrent=true;}
-          draw();
+        if(!unfinished(item)||heldFor(item))continue;
+        try{await attempt(item,{allowNewAnalysis:item.analysisStarted===false,retry:item.status!=='Queued'});}
+        catch(err){preserveFailure(item,err);}
+        // Completed results can expire: collect earlier jobs between songs as well.
+        if(!stopAfterCurrent)await recoverHeldRows(selectedForRun,{throttled:true});
+      }
+      if(!stopAfterCurrent){
+        for(const item of selectedForRun.filter(item=>unfinished(item)&&!heldFor(item))){
+          if(stopAfterCurrent)break;
+          try{await attempt(item,{allowNewAnalysis:item.analysisStarted===false,retry:true});}
+          catch(err){preserveFailure(item,err,true);}
         }
       }
-    }
-    working=false;if(ticker&&typeof clearInterval==='function')clearInterval(ticker);ticker=null;updateElapsed();draw();
-    const saved=entries.filter(i=>i.status==='Saved').length;
-    const issues=entries.filter(i=>i.status==='Needs review').length;
-    const left=entries.filter(i=>!['Saved','Skipped','Needs review'].includes(i.status)).length;
-    if(blocked)tell('Paused to avoid a possible duplicate RunPod charge. '+saved+' saved; '+issues+' need review.');
-    else if(stopAfterCurrent)tell('Stopped after the current song. '+saved+' saved; '+issues+' need review.');
-    else tell('Small batch finished. '+saved+' saved; '+left+' left to process; '+issues+' kept for review. Continue batch for the next songs.');
+      // Bounded return passes. Status checks do not submit new bass jobs.
+      for(let pass=0;pass<3&&!stopAfterCurrent;pass++){
+        if(pass){
+          if(!selectedForRun.some(item=>unfinished(item)&&heldFor(item)&&item.waitingForResult))break;
+          tell('Waiting to recheck unfinished results · return pass '+(pass+1)+' of 3.');
+          await pauseBeforeReturn(pass===1?15000:30000);
+        }
+        if(!stopAfterCurrent)await recoverHeldRows(selectedForRun);
+      }
+      const saved=entries.filter(i=>i.status==='Saved').length;
+      const left=entries.filter(unfinished).length;
+      const waiting=entries.filter(i=>unfinished(i)&&i.waitingForResult).length;
+      const review=entries.filter(i=>i.status==='Needs review').length;
+      tell((stopAfterCurrent?'Stopped after the current song. ':'Batch and return passes finished. ')+saved+' saved; '+left+' left to process'+(waiting?'; '+waiting+' awaiting results':'')+(review?'; '+review+' need attention':'')+(left?'. Use Retry unfinished or Continue batch to return to the remaining songs.':'.'));
     }catch(err){
-      tell('Batch could not proceed: '+errorMessage(err)+'. Saved files and recovery records remain unchanged.');
+      tell('Batch paused: '+errorMessage(err)+'. Saved songs and recovery records are kept.');
     }finally{
-      starting=false;
-      if(working){working=false;if(ticker&&typeof clearInterval==='function')clearInterval(ticker);ticker=null;}
-      draw();
+      starting=false;working=false;
+      if(ticker&&typeof clearInterval==='function')clearInterval(ticker);ticker=null;
+      updateElapsed();draw();
     }
   }
   function build() {
@@ -18230,7 +18246,7 @@ window.BassBatch = (() => {
   }
 
   function checkSavedAnalysisSoon(delay=250){
-    setTimeout(()=>{if(document.visibilityState==='visible'){
+    setTimeout(()=>{if(document.visibilityState==='visible'&&!window.BassBatch?.isRunning()){
       resumeSavedRunPodAnalysis();
       const pending=pendingStructureJob();
       if(!songStructure&&pending?.id&&activeAudioFile&&pending.signature===cloudFileSignature(activeAudioFile))ensureSongStructure();
@@ -20497,36 +20513,65 @@ window.BassBatch = (() => {
     if(ok){
       // The user agreed to restore the full song. Wait for existing section work
       // before trying to save a complete, usable project.
-      if(!songStructure)await ensureSongStructure();
       rememberBatchHeldJob(pending,pending.batchEntryName||pending.name);
+      if(!songStructure)await ensureSongStructure();
     }
     return ok;
   }
+  // RC203: inspect each original ID. Failed and timed-out jobs can be retried once.
   async function inspectBatchPending(){
     const pending=readPendingRunPodJob();
     if(!pending)return {state:'clear'};
     const basic={signature:pending.signature,name:pending.name||'',size:pending.size||0,batchEntryName:pending.batchEntryName||''};
     const parts=pending.parts;
-    if(!Array.isArray(parts)||!parts.length||!parts.every(p=>p.id&&!p.submitting&&!p.failedStatus))
-      return {...basic,state:'unconfirmed'};
-    const key=storedRunPodKey();
-    if(!key)return {...basic,state:'missing-key'};
+    if(!Array.isArray(parts)||!parts.length||!parts.every(p=>p.id&&!p.submitting))return {...basic,state:'unconfirmed'};
+    const key=storedRunPodKey();if(!key)return {...basic,state:'missing-key'};
     const statuses=[];
     try{
       for(const part of parts){
-        const result=await runPodFetch(
-          'https://api.runpod.ai/v2/'+encodeURIComponent(RUNPOD_ENDPOINT)+'/status/'+encodeURIComponent(part.id),
-          key,{method:'GET'},1,songSession
-        );
+        const result=await runPodFetch('https://api.runpod.ai/v2/'+encodeURIComponent(RUNPOD_ENDPOINT)+'/status/'+encodeURIComponent(part.id),key,{method:'GET'},1,songSession);
         statuses.push(String(result?.status||'UNKNOWN').toUpperCase());
       }
-    }catch(err){
-      return {...basic,state:'check-failed',message:String(err?.message||err)};
+      if(readPendingRunPodJob()?.signature!==pending.signature)throw Error('The active recovery job changed.');
+      parts.forEach((part,index)=>{
+        const status=statuses[index];part.lastBatchStatus=status;
+        if(['COMPLETED','IN_QUEUE','IN_PROGRESS','RUNNING'].includes(status)){
+          delete part.failedStatus;delete part.batchRetrySubmitting;
+        }else if(['FAILED','TIMED_OUT'].includes(status))part.failedStatus=status;
+      });
+      savePendingRunPodJob(pending,true);
+      if(batchHeldJobs().some(job=>job.signature===pending.signature))rememberBatchHeldJob(pending,pending.batchEntryName||pending.name);
+    }catch(err){return {...basic,state:err?.httpStatus===404?'needs-review':'check-failed',message:err?.httpStatus===404?'RunPod can no longer find this result. Its record is kept; no duplicate upload was sent.':String(err?.message||err)};}
+    if(statuses.every(status=>status==='COMPLETED'))return {...basic,state:'completed'};
+    if(statuses.some(status=>['IN_QUEUE','IN_PROGRESS','RUNNING'].includes(status)))return {...basic,state:'running'};
+    const failures=parts.filter(part=>['FAILED','TIMED_OUT'].includes(part.lastBatchStatus));
+    if(statuses.every(status=>['COMPLETED','FAILED','TIMED_OUT'].includes(status))&&failures.length&&
+       failures.every(part=>!part.batchRetrySubmitting&&!(Number(part.batchRetryCount)>0)))return {...basic,state:'retryable'};
+    return {...basic,state:'needs-review',message:failures.length?
+      'The automatic failed-job retry has been used or its reply was not confirmed. No second retry was sent.':
+      'RunPod reports '+statuses.join(', ')+'. The job is kept for review; no duplicate upload was sent.'};
+  }
+  async function retryVerifiedBatchJob(){
+    // Recheck immediately before POST. A lost reply never permits another POST.
+    const checked=await inspectBatchPending();
+    if(checked.state!=='retryable')return checked;
+    const pending=readPendingRunPodJob(),key=storedRunPodKey();
+    if(!key||pending?.signature!==checked.signature)return {...checked,state:'needs-review',message:'The recovery job or connection changed. Retry not sent.'};
+    for(const part of pending.parts){
+      if(!['FAILED','TIMED_OUT'].includes(part.lastBatchStatus))continue;
+      if(part.batchRetrySubmitting||Number(part.batchRetryCount)>0)throw Error('This job has already used its automatic retry.');
+      part.batchRetryCount=1;part.batchRetrySubmitting=true;
+      savePendingRunPodJob(pending,true);
+      rememberBatchHeldJob(pending,pending.batchEntryName||pending.name);
+      const result=await runPodFetch('https://api.runpod.ai/v2/'+encodeURIComponent(RUNPOD_ENDPOINT)+'/retry/'+encodeURIComponent(part.id),key,{method:'POST'},1,songSession);
+      if(result?.id!==part.id)throw Error('The retry reply was not confirmed. The original job record is kept.');
+      const status=String(result.status||'UNKNOWN').toUpperCase();
+      if(!['IN_QUEUE','IN_PROGRESS','RUNNING','COMPLETED'].includes(status))throw Error('The retry was not accepted as running or complete. No further automatic retry will be sent.');
+      delete part.batchRetrySubmitting;delete part.failedStatus;part.lastBatchStatus=status;
+      savePendingRunPodJob(pending,true);
+      rememberBatchHeldJob(pending,pending.batchEntryName||pending.name);
     }
-    if(!statuses.every(status=>status==='COMPLETED'))
-      return {...basic,state:statuses.some(st=>['IN_QUEUE','IN_PROGRESS','RUNNING'].includes(st))?'running':'needs-review'};
-    // GET status only. Do not start section work or resume imports before consent.
-    return {...basic,state:'completed'};
+    return {...checked,state:'running',message:'The original failed job was retried once. The batch will return to check its result.'};
   }
   window.BassBatch.init({
     load:file=>loadAudioFile(file),
@@ -20534,9 +20579,10 @@ window.BassBatch = (() => {
     save:name=>saveBassStudioProject({batchName:name}),
     hasCompletedBass:()=>!!(offlineAnalysisReady&&notes.length&&analysisParts.length&&analysisParts.every(p=>!!p.bassBase64)),
     checkConnection:()=>checkBatchRunPodConnection(),
-    isBusy:()=>songImportBusy||aiBusy||projectSaveBusy,
+    isBusy:()=>songImportBusy||aiBusy||projectSaveBusy||pendingResumeBusy||analysisStartPending,
     hasPending:()=>!!readPendingRunPodJob(),
     inspectPending:()=>inspectBatchPending(),
+    retryFailed:()=>retryVerifiedBatchJob(),
     resumeVerified:()=>resumeVerifiedBatchJob(),
     heldJobs:()=>batchHeldJobs(),
     holdPending:name=>holdBatchPendingJob(name),
