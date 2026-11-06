@@ -1,4 +1,4 @@
-/* RC200: short, measured ZIP batches. Retains RC198 import, RunPod analysis and save functions without any new server. */
+/* RC200: measured 10–20 song ZIP batches. Retains RC198 import, RunPod analysis and save functions without any new server. */
 window.BassBatch = (() => {
   const audio = new Set(['mp3','wav','wave','m4a','m4b','aac','aif','aiff','aifc','caf','flac','ogg','oga','opus','wma']);
   const video = new Set(['mp4','m4v','mov','webm','mkv','avi','mpeg','mpg','3gp','3g2','ogv','wmv']);
@@ -242,7 +242,7 @@ window.BassBatch = (() => {
     }
     const remaining=entries.filter(i=>!['Saved','Skipped','Needs review'].includes(i.status));
     if (!remaining.length) {tell(entries.some(i=>i.status==='Needs review')?'No songs left to start. Resolve songs marked Needs review before retrying.':'All songs are already saved or skipped.');return;}
-    const perRun=Math.min(5,Math.max(1,Number($('batchLimit')?.value)||2));
+    const perRun=[10,15,20].includes(Number($('batchLimit')?.value))?Number($('batchLimit').value):10;
     const selectedForRun=remaining.slice(0,perRun);
     const confirmed=await window.BassDialog.confirm(
       'Process '+selectedForRun.length+' of '+remaining.length+' remaining songs using your existing RunPod analysis? Jobs may incur charges. One song runs at a time. This tab must stay open until the small batch finishes.',
@@ -303,12 +303,12 @@ window.BassBatch = (() => {
     dialog=document.createElement('dialog');
     dialog.id='bassBatchDialog';
     dialog.setAttribute('aria-labelledby','batchTitle');
-    dialog.innerHTML="<h2 id=\"batchTitle\">Batch ZIP analysis</h2>\n<p class=\"batch-description\">Process 1 to 5 songs at a time, then continue the same ZIP. Each saved song stays in your library.</p>\n<div class=\"batch-file-card\">\n<label class=\"batch-label\" for=\"batchFile\">Audio or video ZIP</label>\n<div class=\"batch-file-row\"><button id=\"batchPick\" type=\"button\">Choose ZIP</button><span id=\"batchFileName\" class=\"batch-file-name\">No ZIP selected</span></div>\n<input id=\"batchFile\" class=\"batch-file-input\" type=\"file\" accept=\".zip,application/zip,application/x-zip-compressed\">\n<p id=\"batchArchive\" class=\"batch-archive\" role=\"status\" aria-live=\"polite\">Choose a ZIP containing music files.</p>\n</div>\n<div class=\"batch-size\"><label for=\"batchLimit\">Songs per run</label><select id=\"batchLimit\"><option value=\"1\">1</option><option value=\"2\" selected>2</option><option value=\"3\">3</option><option value=\"5\">5</option></select></div>\n<p id=\"batchCount\" class=\"batch-summary\" role=\"status\" aria-live=\"polite\">No songs loaded</p>\n<p id=\"batchTiming\" class=\"batch-feedback\" aria-live=\"polite\"></p>\n<ul id=\"batchSongs\" aria-label=\"Songs in this ZIP\"></ul>\n<p id=\"batchConnection\" class=\"batch-feedback\" role=\"status\" aria-live=\"polite\" hidden></p>\n<p id=\"batchStatus\" class=\"batch-feedback\" role=\"status\" aria-live=\"polite\"></p>\n<div class=\"batch-actions\">\n<button id=\"batchCheck\" type=\"button\">Check connection</button><button id=\"batchStart\" type=\"button\">Start batch</button>\n<button id=\"batchStop\" type=\"button\" disabled>Stop after song</button><button id=\"batchClose\" type=\"button\">Close</button>\n</div>";
+    dialog.innerHTML="<h2 id=\"batchTitle\">Batch ZIP analysis</h2>\n<p class=\"batch-description\">Process 10, 15 or 20 songs at a time, then continue the same ZIP. Each saved song stays in your library.</p>\n<div class=\"batch-file-card\">\n<label class=\"batch-label\" for=\"batchFile\">Audio or video ZIP</label>\n<div class=\"batch-file-row\"><button id=\"batchPick\" type=\"button\">Choose ZIP</button><span id=\"batchFileName\" class=\"batch-file-name\">No ZIP selected</span></div>\n<input id=\"batchFile\" class=\"batch-file-input\" type=\"file\" accept=\".zip,application/zip,application/x-zip-compressed\">\n<p id=\"batchArchive\" class=\"batch-archive\" role=\"status\" aria-live=\"polite\">Choose a ZIP containing music files.</p>\n</div>\n<div class=\"batch-size\"><label for=\"batchLimit\">Songs per run</label><select id=\"batchLimit\"><option value=\"10\" selected>10</option><option value=\"15\">15</option><option value=\"20\">20</option></select></div>\n<p id=\"batchCount\" class=\"batch-summary\" role=\"status\" aria-live=\"polite\">No songs loaded</p>\n<p id=\"batchTiming\" class=\"batch-feedback\" aria-live=\"polite\"></p>\n<ul id=\"batchSongs\" aria-label=\"Songs in this ZIP\"></ul>\n<p id=\"batchConnection\" class=\"batch-feedback\" role=\"status\" aria-live=\"polite\" hidden></p>\n<p id=\"batchStatus\" class=\"batch-feedback\" role=\"status\" aria-live=\"polite\"></p>\n<div class=\"batch-actions\">\n<button id=\"batchCheck\" type=\"button\">Check connection</button><button id=\"batchStart\" type=\"button\">Start batch</button>\n<button id=\"batchStop\" type=\"button\" disabled>Stop after song</button><button id=\"batchClose\" type=\"button\">Close</button>\n</div>";
     document.body.appendChild(dialog);
     $('batchPick').onclick=()=>{$('batchFile').click();};
     $('batchFile').onchange=e=>{const file=e.target.files?.[0];e.target.value='';if(file)void choose(file);};
     $('batchLimit').onchange=e=>{try{localStorage.setItem('bassBatchRunLimit',e.target.value);}catch{}};
-    try{const saved=localStorage.getItem('bassBatchRunLimit');if(['1','2','3','5'].includes(saved))$('batchLimit').value=saved;}catch{}
+    try{const saved=localStorage.getItem('bassBatchRunLimit');if(['10','15','20'].includes(saved))$('batchLimit').value=saved;}catch{}
     $('batchCheck').onclick=()=>void checkConnection();
     $('batchStart').onclick=()=>void run();
     $('batchStop').onclick=()=>{stopAfterCurrent=true;tell('Will stop once the current song is saved or checked.');};
