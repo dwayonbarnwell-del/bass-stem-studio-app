@@ -29,7 +29,7 @@ function get(id){
   if(!dom.has(id))dom.set(id,{value:id==='batchLimit'?'10':'',textContent:'',title:'',disabled:false,hidden:false,replaceChildren(){},append(){}});
   return dom.get(id);
 }
-const ctx={File,Blob,Response,DecompressionStream,TextDecoder,DataView,Uint8Array,Set,Map,Number,String,Date,JSON,Error,
+const ctx={File,Blob,Response,DecompressionStream,TextDecoder,DataView,Uint8Array,Set,Map,Number,String,Date,JSON,Error,setTimeout,
   document:{getElementById:get,createElement:()=>({append(){}})},
   localStorage:{getItem:()=>null,setItem:()=>{}},
   window:{BassDialog:{confirm:async msg=>{confirmations.push(msg);return true;}},BassLibrary:{
