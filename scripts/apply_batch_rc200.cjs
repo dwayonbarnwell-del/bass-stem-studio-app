@@ -17,4 +17,4 @@ assert(html.includes('Songs per run') || html.includes('Songs per run'.replace('
 assert(html.includes('bass-billing')||html.includes('billingShortcuts'),'Existing Settings billing links must remain');
 assert(html.includes("saveBassStudioProject({batchName:name})"),'Existing full-quality save hook retained');
 fs.writeFileSync(path,html);
-console.log('PASS: RC200 batch options 10, 15, 20; no paid cloud calls; app scripts parse.');
+console.log('PASS: RC200 options 10, 15, 20, preserved analysis and valid scripts.');
