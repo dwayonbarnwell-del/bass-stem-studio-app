@@ -1,4 +1,5 @@
 // RC198: apply only batch/library UI source updates to the existing app.
+// Integration checks use generated ZIP fixtures and never contact RunPod.
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 let html=fs.readFileSync('index.html','utf8');
 for(const [id,path] of [['rc195-library','library-source/library.js'],['rc196-batch','batch-source/batch.js']]){
