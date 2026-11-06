@@ -1,10 +1,10 @@
-/* RC198: resilient, accessible bulk ZIP import and aligned controls. Uses the app's own import, RunPod analysis and project save. */
+/* RC200: measured 10–20 song ZIP batches. Retains RC198 import, RunPod analysis and save functions without any new server. */
 window.BassBatch = (() => {
   const audio = new Set(['mp3','wav','wave','m4a','m4b','aac','aif','aiff','aifc','caf','flac','ogg','oga','opus','wma']);
   const video = new Set(['mp4','m4v','mov','webm','mkv','avi','mpeg','mpg','3gp','3g2','ogv','wmv']);
   const MAX_ZIP = 2 * 1024 * 1048576, MAX_ENTRY = 200 * 1048576, MAX_TOTAL = 3 * 1024 * 1048576, MAX_SONGS = 150;
   let hooks = {}, dialog, archive, entries = [], working = false, stopAfterCurrent = false, completed = new Set(), storageKey = '', checking = false;
-  let loadingZip=false, selectionId=0, selectedName='', archiveMessage='Choose a ZIP containing music files.', connectionMessage='', accessWarning='';
+  let loadingZip=false, selectionId=0, selectedName='', archiveMessage='Choose a ZIP containing music files.', connectionMessage='', accessWarning='', ticker=null;
   const $ = id => document.getElementById(id);
   const number = (v, offset, size) => size === 2 ? v.getUint16(offset, true) : v.getUint32(offset, true);
   const ext = name => String(name).split('.').pop().toLowerCase();
@@ -12,11 +12,22 @@ window.BassBatch = (() => {
   const projectTitle = name => clean(name).replace(/[\\/:*?"<>|]+/g,'_').replace(/\s+/g,' ').slice(0,95) || 'Untitled song';
   const errorMessage = err => String(err && err.message || err || 'Unknown error');
   const rowStatus = item => item.status || 'Queued';
+  const formatElapsed = ms => {
+    const seconds=Math.max(0,Math.floor((Number(ms)||0)/1000));
+    const m=Math.floor(seconds/60),s=String(seconds%60).padStart(2,'0');
+    return m>=60?Math.floor(m/60)+'h '+String(m%60).padStart(2,'0')+'m '+s+'s':m+'m '+s+'s';
+  };
+  function updateElapsed(){
+    const element=$('batchTiming');
+    if(!element)return;
+    const active=entries.find(item=>item.startedAt && ['Opening','Reopening','Analysing','Saving'].includes(item.status));
+    element.textContent=active ? active.status+' · '+active.name+' · '+formatElapsed(Date.now()-active.startedAt) : '';
+  }
   function tell(message) { if ($('batchStatus')) $('batchStatus').textContent = message; }
   function draw() {
     if (!dialog) return;
     const selected=entries.filter(i=>i.status==='Saved').length;
-    const actionable=entries.filter(i=>i.status!=='Saved'&&i.status!=='Skipped').length;
+    const actionable=entries.filter(i=>!['Saved','Skipped','Needs review'].includes(i.status)).length;
     const issues=entries.filter(i=>['Later','Needs review'].includes(i.status)).length;
     $('batchFileName').textContent=selectedName || 'No ZIP selected';
     $('batchFileName').title=selectedName;
@@ -24,7 +35,8 @@ window.BassBatch = (() => {
     $('batchCount').textContent=loadingZip?'Reading selected ZIP…':
       entries.length ? entries.length+' songs · '+selected+' saved · '+actionable+' to process'+(issues?' · '+issues+' need review':'') : 'No songs loaded';
     $('batchStart').disabled=working||loadingZip||!archive||actionable===0;
-    $('batchStart').textContent=working?'Processing…':entries.some(i=>['Later','Needs review','Error'].includes(i.status))?'Retry remaining':'Start batch';
+    $('batchStart').textContent=working?'Processing…':entries.some(i=>['Later','Error'].includes(i.status))?'Retry remaining':entries.some(i=>i.status==='Saved')?'Continue batch':'Start batch';
+    if($('batchLimit'))$('batchLimit').disabled=working||loadingZip;
     $('batchCheck').disabled=working||checking;
     $('batchCheck').textContent=checking?'Checking…':'Check connection';
     $('batchStop').disabled=!working;
@@ -37,8 +49,13 @@ window.BassBatch = (() => {
     entries.forEach((item,index)=>{
       const line=document.createElement('li'),title=document.createElement('span'),state=document.createElement('strong');
       title.textContent=(index+1)+'. '+item.name;
-      state.textContent=item.status||'Queued';
-      if(item.reason)state.title=item.reason;
+      state.textContent=(item.status||'Queued')+(Number.isFinite(item.timing?.totalMs)?' · '+formatElapsed(item.timing.totalMs):'');
+      const details=[item.reason, item.timing&&[
+        Number.isFinite(item.timing.openMs)?'Open '+formatElapsed(item.timing.openMs):'',
+        Number.isFinite(item.timing.analyseMs)?'Analyse '+formatElapsed(item.timing.analyseMs):'',
+        Number.isFinite(item.timing.saveMs)?'Save '+formatElapsed(item.timing.saveMs):''
+      ].filter(Boolean).join(' · ')].filter(Boolean).join(' | ');
+      if(details)state.title=details;
       line.append(title,state);list.append(line);
     });
   }
@@ -174,20 +191,29 @@ window.BassBatch = (() => {
     }
     if (hooks.hasPending?.()) throw Error('An earlier bass analysis job may still be charged or awaiting a result. Resolve it before processing another song.');
     item.status=retry?'Reopening':'Opening';draw();tell((retry?'Returning to: ':'Opening: ')+item.name);
+    item.startedAt=Date.now();item.timing={};
+    const openStart=Date.now();
     const file=await getSong(item);
     if (!await hooks.load(file)) throw Error('This song could not be imported.');
+    item.timing.openMs=Date.now()-openStart;
     const recovered=!!hooks.hasCompletedBass?.();
     if (!recovered && !allowNewAnalysis) throw Error('No completed bass analysis could be restored. A second paid analysis was NOT started.');
     if (!recovered) {
       item.status='Analysing';draw();tell('Analysing '+item.name+' with the existing engine…');
+      const analysisStart=Date.now();
       const result=await hooks.analyse();
+      item.timing.analyseMs=Date.now()-analysisStart;
       if (!result || !result.count || !result.partCount || !result.bassStemReady) {
         throw Error('Full bass analysis was not confirmed. No incomplete project was saved.');
       }
     }
     item.status='Saving';draw();tell('Checking full analysis and saving: '+item.name);
+    const saveStart=Date.now();
     const saved=await hooks.save(item.title);
+    item.timing.saveMs=Date.now()-saveStart;
     if (!saved?.noteCount) throw Error('The saved project was not confirmed.');
+    item.timing.totalMs=Date.now()-item.startedAt;
+    item.startedAt=null;
     item.status='Saved';item.reason='';
     completed.add(item.name+'|'+item.size+'|'+item.crc);
     try {localStorage.setItem(storageKey,JSON.stringify([...completed]));}catch {}
@@ -214,23 +240,28 @@ window.BassBatch = (() => {
       tell('Batch not started: '+errorMessage(err)+'. Reconnect your library folder, then try again. No analysis was started.');
       return;
     }
-    const remaining=entries.filter(i=>i.status!=='Saved'&&i.status!=='Skipped');
-    if (!remaining.length) {tell('All songs are already saved or skipped.');return;}
+    const remaining=entries.filter(i=>!['Saved','Skipped','Needs review'].includes(i.status));
+    if (!remaining.length) {tell(entries.some(i=>i.status==='Needs review')?'No songs left to start. Resolve songs marked Needs review before retrying.':'All songs are already saved or skipped.');return;}
+    const perRun=[10,15,20].includes(Number($('batchLimit')?.value))?Number($('batchLimit').value):10;
+    const selectedForRun=remaining.slice(0,perRun);
     const confirmed=await window.BassDialog.confirm(
-      'Process '+remaining.length+' songs with your existing RunPod analysis? Jobs may incur charges. Failed songs will be revisited once without repeating paid bass analysis. Only one song runs at a time. Keep this tab open.',
+      'Process '+selectedForRun.length+' of '+remaining.length+' remaining songs using your existing RunPod analysis? Jobs may incur charges. One song runs at a time. This tab must stay open until the small batch finishes.',
       {title:'Confirm batch analysis',accept:'Start batch'}
     );
     if (!confirmed) return;
     working=true;stopAfterCurrent=false;draw();
+    if(ticker && typeof clearInterval==='function')clearInterval(ticker);
+    if(typeof setInterval==='function')ticker=setInterval(updateElapsed,1000);
     let blocked=false;
     // First pass: carry on past ordinary failures and remember them for later.
-    for (const item of entries) {
+    for (const item of selectedForRun) {
       if (stopAfterCurrent) break;
-      if (item.status==='Saved'||item.status==='Skipped') continue;
+      if (item.status==='Saved'||item.status==='Skipped'||item.status==='Needs review') continue;
       item.reason='';
       try {await attempt(item,{allowNewAnalysis:true});}
       catch(err) {
         item.reason=errorMessage(err);
+        if(item.startedAt){item.timing={...(item.timing||{}),totalMs:Date.now()-item.startedAt};item.startedAt=null;}
         if (hooks.hasPending?.()) {
           item.status='Needs review';blocked=true;stopAfterCurrent=true;
           tell('Paused safely: RunPod may still be processing '+item.name+'. Check the saved analysis before retrying to avoid a second charge.');
@@ -244,12 +275,13 @@ window.BassBatch = (() => {
     // Second pass: reopen each deferred song once, restore its saved analysis
     // and resume/check its section job. Never submit another paid bass job here.
     if (!stopAfterCurrent) {
-      const deferred=entries.filter(i=>i.status==='Later');
+      const deferred=selectedForRun.filter(i=>i.status==='Later');
       for(const item of deferred) {
         if(stopAfterCurrent) break;
         try {await attempt(item,{allowNewAnalysis:false,retry:true});}
         catch(err) {
           item.status='Needs review';item.reason=errorMessage(err);
+          if(item.startedAt){item.timing={...(item.timing||{}),totalMs:Date.now()-item.startedAt};item.startedAt=null;}
           if(hooks.hasPending?.()) {blocked=true;stopAfterCurrent=true;}
           draw();
         }
@@ -257,23 +289,26 @@ window.BassBatch = (() => {
     }
     const saved=entries.filter(i=>i.status==='Saved').length;
     const issues=entries.filter(i=>['Later','Needs review'].includes(i.status)).length;
-    working=false;draw();
+    working=false;if(ticker && typeof clearInterval==='function')clearInterval(ticker);ticker=null;updateElapsed();draw();
+    const left=entries.filter(i=>!['Saved','Skipped','Needs review'].includes(i.status)).length;
     if (blocked) tell('Paused to avoid a possible duplicate RunPod charge. '+saved+' saved; '+issues+' need review. Finished songs are safe.');
     else if (stopAfterCurrent) tell('Stopped after the current song. '+saved+' saved; '+issues+' need review.');
-    else tell('Batch complete: '+saved+' saved; '+issues+' need review. All recoverable failures were revisited once, without extra paid bass analysis.');
+    else tell('Small batch finished. '+saved+' saved overall; '+left+' left to process; '+issues+' need review. Select Continue batch for the next songs. The full analysis method is unchanged.');
   }
   function build() {
     if(dialog)return;
     const css=document.createElement('style');
-    css.textContent="\n#bassBatchDialog{box-sizing:border-box;width:min(660px,calc(100vw - 24px));max-width:none;max-height:calc(100dvh - 28px);padding:18px;background:#122335;color:#edf5fc;border:1px solid #49677d;border-radius:16px;box-shadow:0 20px 60px #0008;overflow:auto;font:600 14px/1.45 system-ui,-apple-system,Arial,sans-serif}\n#bassBatchDialog *,#bassBatchDialog *::before,#bassBatchDialog *::after{box-sizing:border-box}\n#bassBatchDialog::backdrop{background:rgba(2,9,17,.72)}\n#bassBatchDialog h2{font:750 18px/1.25 system-ui,-apple-system,Arial,sans-serif;margin:0 0 8px;color:#fff}\n#bassBatchDialog p{margin:0}\n#bassBatchDialog .batch-description{color:#c6d5e3;font:600 14px/1.5 system-ui,-apple-system,Arial,sans-serif;margin:0 0 16px}\n#bassBatchDialog .batch-file-card{padding:14px;border:1px solid #385a75;border-radius:12px;background:#0b1b2b}\n#bassBatchDialog .batch-label{display:block;font-weight:750;font-size:14px;margin-bottom:8px}\n#bassBatchDialog .batch-file-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:stretch;gap:10px}\n#bassBatchDialog button{font:750 14px/1.3 system-ui,-apple-system,Arial,sans-serif;min-width:0;min-height:56px;width:100%;padding:10px 8px;border-radius:10px;border:1px solid #5a819b;color:#f4f9ff;background:#245371;display:flex;align-items:center;justify-content:center;text-align:center;white-space:normal;overflow-wrap:break-word;cursor:pointer}\n#bassBatchDialog button:focus-visible{outline:3px solid #9adaf0;outline-offset:2px}\n#bassBatchDialog button:disabled{opacity:.50;cursor:not-allowed}\n#bassBatchDialog #batchStart{background:#276f6a;border-color:#64a9a1}\n#bassBatchDialog #batchClose{background:#132c42}\n#bassBatchDialog .batch-file-name{display:flex;align-items:center;justify-content:center;min-width:0;overflow-wrap:anywhere;text-align:center;padding:10px;border:1px solid #344f66;border-radius:10px;color:#e6f0f6;font-size:14px;background:#112b3d}\n#bassBatchDialog .batch-file-input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}\n#bassBatchDialog .batch-archive{font:600 14px/1.45 system-ui,-apple-system,Arial,sans-serif;color:#c7e2ef;margin:10px 0 0}\n#bassBatchDialog .batch-summary{margin:12px 0 8px;color:#f3fbff}\n#bassBatchDialog #batchSongs{list-style:none;margin:8px 0;padding:0;max-height:32dvh;overflow:auto;border:1px solid #38536b;border-radius:10px;background:#0c1b2d}\n#bassBatchDialog #batchSongs li{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;padding:11px 12px;border-bottom:1px solid #284359;color:#eaf4fc}\n#bassBatchDialog #batchSongs li:last-child{border-bottom:0}\n#bassBatchDialog #batchSongs li span{min-width:0;overflow-wrap:anywhere}\n#bassBatchDialog #batchSongs li strong{font-size:13px;text-align:right;color:#c4e7e5}\n#bassBatchDialog .batch-feedback{font:600 14px/1.45 system-ui,-apple-system,Arial,sans-serif;color:#bfe5ef;margin:10px 0}\n#bassBatchDialog .batch-feedback:empty{display:none}\n#bassBatchDialog .batch-actions{position:sticky;bottom:-18px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:12px 0 18px;background:#122335}\n@media(max-width:370px){#bassBatchDialog{padding:14px}#bassBatchDialog button{font-size:13px;min-height:60px}#bassBatchDialog .batch-actions{bottom:-14px;padding-bottom:14px}}\n";
+    css.textContent="\n#bassBatchDialog{box-sizing:border-box;width:min(660px,calc(100vw - 24px));max-width:none;max-height:calc(100dvh - 28px);padding:18px;background:#122335;color:#edf5fc;border:1px solid #49677d;border-radius:16px;box-shadow:0 20px 60px #0008;overflow:auto;font:600 14px/1.45 system-ui,-apple-system,Arial,sans-serif}\n#bassBatchDialog *,#bassBatchDialog *::before,#bassBatchDialog *::after{box-sizing:border-box}\n#bassBatchDialog::backdrop{background:rgba(2,9,17,.72)}\n#bassBatchDialog h2{font:750 18px/1.25 system-ui,-apple-system,Arial,sans-serif;margin:0 0 8px;color:#fff}\n#bassBatchDialog p{margin:0}\n#bassBatchDialog .batch-description{color:#c6d5e3;font:600 14px/1.5 system-ui,-apple-system,Arial,sans-serif;margin:0 0 16px}\n#bassBatchDialog .batch-file-card{padding:14px;border:1px solid #385a75;border-radius:12px;background:#0b1b2b}\n#bassBatchDialog .batch-label{display:block;font-weight:750;font-size:14px;margin-bottom:8px}\n#bassBatchDialog .batch-file-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:stretch;gap:10px}\n#bassBatchDialog button{font:750 14px/1.3 system-ui,-apple-system,Arial,sans-serif;min-width:0;min-height:56px;width:100%;padding:10px 8px;border-radius:10px;border:1px solid #5a819b;color:#f4f9ff;background:#245371;display:flex;align-items:center;justify-content:center;text-align:center;white-space:normal;overflow-wrap:break-word;cursor:pointer}\n#bassBatchDialog button:focus-visible{outline:3px solid #9adaf0;outline-offset:2px}\n#bassBatchDialog button:disabled{opacity:.50;cursor:not-allowed}\n#bassBatchDialog #batchStart{background:#276f6a;border-color:#64a9a1}\n#bassBatchDialog #batchClose{background:#132c42}\n#bassBatchDialog .batch-file-name{display:flex;align-items:center;justify-content:center;min-width:0;overflow-wrap:anywhere;text-align:center;padding:10px;border:1px solid #344f66;border-radius:10px;color:#e6f0f6;font-size:14px;background:#112b3d}\n#bassBatchDialog .batch-file-input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}\n#bassBatchDialog .batch-archive{font:600 14px/1.45 system-ui,-apple-system,Arial,sans-serif;color:#c7e2ef;margin:10px 0 0}\n#bassBatchDialog .batch-summary{margin:12px 0 8px;color:#f3fbff}\n#bassBatchDialog .batch-size{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:10px;margin:12px 0;font:700 14px/1.4 system-ui,sans-serif;color:#fff}\n#bassBatchDialog .batch-size select{min-height:44px;min-width:70px;padding:8px;border-radius:8px;border:1px solid #6893aa;background:#102d42;color:#fff;font:700 14px system-ui,sans-serif}\n#bassBatchDialog #batchTiming{margin-top:8px;color:#bde9f0;font:700 14px/1.5 system-ui,sans-serif}\n#bassBatchDialog #batchSongs{list-style:none;margin:8px 0;padding:0;max-height:32dvh;overflow:auto;border:1px solid #38536b;border-radius:10px;background:#0c1b2d}\n#bassBatchDialog #batchSongs li{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;padding:11px 12px;border-bottom:1px solid #284359;color:#eaf4fc}\n#bassBatchDialog #batchSongs li:last-child{border-bottom:0}\n#bassBatchDialog #batchSongs li span{min-width:0;overflow-wrap:anywhere}\n#bassBatchDialog #batchSongs li strong{font-size:13px;text-align:right;color:#c4e7e5}\n#bassBatchDialog .batch-feedback{font:600 14px/1.45 system-ui,-apple-system,Arial,sans-serif;color:#bfe5ef;margin:10px 0}\n#bassBatchDialog .batch-feedback:empty{display:none}\n#bassBatchDialog .batch-actions{position:sticky;bottom:-18px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:12px 0 18px;background:#122335}\n@media(max-width:370px){#bassBatchDialog{padding:14px}#bassBatchDialog button{font-size:13px;min-height:60px}#bassBatchDialog .batch-actions{bottom:-14px;padding-bottom:14px}}\n";
     document.head.appendChild(css);
     dialog=document.createElement('dialog');
     dialog.id='bassBatchDialog';
     dialog.setAttribute('aria-labelledby','batchTitle');
-    dialog.innerHTML="<h2 id=\"batchTitle\">Batch ZIP analysis</h2>\n<p class=\"batch-description\">Analyse and save each song. Unfinished songs are checked again after the rest, without repeating paid bass analysis.</p>\n<div class=\"batch-file-card\">\n<label class=\"batch-label\" for=\"batchFile\">Audio or video ZIP</label>\n<div class=\"batch-file-row\"><button id=\"batchPick\" type=\"button\">Choose ZIP</button><span id=\"batchFileName\" class=\"batch-file-name\">No ZIP selected</span></div>\n<input id=\"batchFile\" class=\"batch-file-input\" type=\"file\" accept=\".zip,application/zip,application/x-zip-compressed\">\n<p id=\"batchArchive\" class=\"batch-archive\" role=\"status\" aria-live=\"polite\">Choose a ZIP containing music files.</p>\n</div>\n<p id=\"batchCount\" class=\"batch-summary\" role=\"status\" aria-live=\"polite\">No songs loaded</p>\n<ul id=\"batchSongs\" aria-label=\"Songs in this ZIP\"></ul>\n<p id=\"batchConnection\" class=\"batch-feedback\" role=\"status\" aria-live=\"polite\" hidden></p>\n<p id=\"batchStatus\" class=\"batch-feedback\" role=\"status\" aria-live=\"polite\"></p>\n<div class=\"batch-actions\">\n<button id=\"batchCheck\" type=\"button\">Check connection</button><button id=\"batchStart\" type=\"button\">Start batch</button>\n<button id=\"batchStop\" type=\"button\" disabled>Stop after song</button><button id=\"batchClose\" type=\"button\">Close</button>\n</div>";
+    dialog.innerHTML="<h2 id=\"batchTitle\">Batch ZIP analysis</h2>\n<p class=\"batch-description\">Process 10, 15 or 20 songs at a time, then continue the same ZIP. Each saved song stays in your library.</p>\n<div class=\"batch-file-card\">\n<label class=\"batch-label\" for=\"batchFile\">Audio or video ZIP</label>\n<div class=\"batch-file-row\"><button id=\"batchPick\" type=\"button\">Choose ZIP</button><span id=\"batchFileName\" class=\"batch-file-name\">No ZIP selected</span></div>\n<input id=\"batchFile\" class=\"batch-file-input\" type=\"file\" accept=\".zip,application/zip,application/x-zip-compressed\">\n<p id=\"batchArchive\" class=\"batch-archive\" role=\"status\" aria-live=\"polite\">Choose a ZIP containing music files.</p>\n</div>\n<div class=\"batch-size\"><label for=\"batchLimit\">Songs per run</label><select id=\"batchLimit\"><option value=\"10\" selected>10</option><option value=\"15\">15</option><option value=\"20\">20</option></select></div>\n<p id=\"batchCount\" class=\"batch-summary\" role=\"status\" aria-live=\"polite\">No songs loaded</p>\n<p id=\"batchTiming\" class=\"batch-feedback\" aria-live=\"polite\"></p>\n<ul id=\"batchSongs\" aria-label=\"Songs in this ZIP\"></ul>\n<p id=\"batchConnection\" class=\"batch-feedback\" role=\"status\" aria-live=\"polite\" hidden></p>\n<p id=\"batchStatus\" class=\"batch-feedback\" role=\"status\" aria-live=\"polite\"></p>\n<div class=\"batch-actions\">\n<button id=\"batchCheck\" type=\"button\">Check connection</button><button id=\"batchStart\" type=\"button\">Start batch</button>\n<button id=\"batchStop\" type=\"button\" disabled>Stop after song</button><button id=\"batchClose\" type=\"button\">Close</button>\n</div>";
     document.body.appendChild(dialog);
     $('batchPick').onclick=()=>{$('batchFile').click();};
     $('batchFile').onchange=e=>{const file=e.target.files?.[0];e.target.value='';if(file)void choose(file);};
+    $('batchLimit').onchange=e=>{try{localStorage.setItem('bassBatchRunLimit',e.target.value);}catch{}};
+    try{const saved=localStorage.getItem('bassBatchRunLimit');if(['10','15','20'].includes(saved))$('batchLimit').value=saved;}catch{}
     $('batchCheck').onclick=()=>void checkConnection();
     $('batchStart').onclick=()=>void run();
     $('batchStop').onclick=()=>{stopAfterCurrent=true;tell('Will stop once the current song is saved or checked.');};
