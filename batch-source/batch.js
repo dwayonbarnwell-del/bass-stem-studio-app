@@ -4,7 +4,7 @@ window.BassBatch = (() => {
   const video = new Set(['mp4','m4v','mov','webm','mkv','avi','mpeg','mpg','3gp','3g2','ogv','wmv']);
   const MAX_ZIP = 2 * 1024 * 1048576, MAX_ENTRY = 200 * 1048576, MAX_TOTAL = 3 * 1024 * 1048576, MAX_SONGS = 150;
   let hooks = {}, dialog, archive, entries = [], working = false, stopAfterCurrent = false, completed = new Set(), storageKey = '', checking = false;
-  let loadingZip=false, selectionId=0, selectedName='', archiveMessage='Choose a ZIP containing music files.', connectionMessage='', accessWarning='', ticker=null;
+  let loadingZip=false, selectionId=0, selectedName='', archiveMessage='Choose a ZIP containing music files.', connectionMessage='', accessWarning='', ticker=null, starting=false;
   const $ = id => document.getElementById(id);
   const number = (v, offset, size) => size === 2 ? v.getUint16(offset, true) : v.getUint32(offset, true);
   const ext = name => String(name).split('.').pop().toLowerCase();
@@ -35,14 +35,14 @@ window.BassBatch = (() => {
     $('batchCount').textContent=loadingZip?'Reading selected ZIP…':
       entries.length ? entries.length+' songs · '+(accessWarning?'saved songs not checked':selected+' saved')+' · '+actionable+' to process'+(issues?' · '+issues+' need review':'') : 'No songs loaded';
     const heldReady=entries.some(item=>item.status==='Needs review'&&(hooks.heldJobs?.()||[]).some(job=>matchesHeld(item,job)));
-    $('batchStart').disabled=working||loadingZip||!archive||(actionable===0&&!heldReady);
-    $('batchStart').textContent=working?'Processing…':actionable===0&&heldReady?'Check saved analysis':hooks.hasPending?.()?'Continue other songs':entries.some(i=>['Later','Error'].includes(i.status))?'Retry remaining':entries.some(i=>i.status==='Saved')?'Continue batch':'Start batch';
+    $('batchStart').disabled=working||starting||loadingZip||!archive||(actionable===0&&!heldReady);
+    $('batchStart').textContent=working?'Processing…':starting?'Checking…':actionable===0&&heldReady?'Check saved analysis':hooks.hasPending?.()?'Continue other songs':entries.some(i=>['Later','Error'].includes(i.status))?'Retry remaining':entries.some(i=>i.status==='Saved')?'Continue batch':'Start batch';
     if($('batchLimit'))$('batchLimit').disabled=working||loadingZip;
-    $('batchCheck').disabled=working||checking;
+    $('batchCheck').disabled=working||starting||checking;
     $('batchCheck').textContent=checking?'Checking…':'Check connection';
     $('batchStop').disabled=!working;
-    $('batchPick').disabled=working||loadingZip;
-    $('batchClose').disabled=working;
+    $('batchPick').disabled=working||starting||loadingZip;
+    $('batchClose').disabled=working||starting;
     $('batchConnection').textContent=connectionMessage;
     $('batchConnection').hidden=!connectionMessage;
     const list=$('batchSongs');list.replaceChildren();
@@ -292,8 +292,10 @@ window.BassBatch = (() => {
     }
   }
   async function run() {
-    if(working||!archive)return;
+    if(working||starting||!archive)return;
     if(hooks.isBusy?.()){tell('Finish the current song first.');return;}
+    starting=true;draw();
+    try {
     // Check the actual library before trusting the saved count or starting a new job.
     try{
       tell('Checking library permission and saved projects…');
@@ -412,6 +414,13 @@ window.BassBatch = (() => {
     if(blocked)tell('Paused to avoid a possible duplicate RunPod charge. '+saved+' saved; '+issues+' need review.');
     else if(stopAfterCurrent)tell('Stopped after the current song. '+saved+' saved; '+issues+' need review.');
     else tell('Small batch finished. '+saved+' saved; '+left+' left to process; '+issues+' kept for review. Continue batch for the next songs.');
+    }catch(err){
+      tell('Batch could not proceed: '+errorMessage(err)+'. Saved files and recovery records remain unchanged.');
+    }finally{
+      starting=false;
+      if(working){working=false;if(ticker&&typeof clearInterval==='function')clearInterval(ticker);ticker=null;}
+      draw();
+    }
   }
   function build() {
     if(dialog)return;
