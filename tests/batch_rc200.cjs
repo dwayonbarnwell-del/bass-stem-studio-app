@@ -26,7 +26,7 @@ function zip(names){
 }
 const dom=new Map(), saved=new Set(), confirmations=[], analysed=[];
 function get(id){
-  if(!dom.has(id))dom.set(id,{value:id==='batchLimit'?'2':'',textContent:'',title:'',disabled:false,hidden:false,replaceChildren(){},append(){}});
+  if(!dom.has(id))dom.set(id,{value:id==='batchLimit'?'10':'',textContent:'',title:'',disabled:false,hidden:false,replaceChildren(){},append(){}});
   return dom.get(id);
 }
 const ctx={File,Blob,Response,DecompressionStream,TextDecoder,DataView,Uint8Array,Set,Map,Number,String,Date,JSON,Error,
@@ -45,22 +45,23 @@ batch.init({
 });
 (async()=>{
   batch.forceDisplay();
-  await batch.choose(zip(['First.mp3','Second.mp3','Third.mp3','Fourth.mp3']));
-  assert.equal(batch.entries().length,4);
+  await batch.choose(zip(Array.from({length:25},(_,i)=>'Song '+String(i+1).padStart(2,'0')+'.mp3')));
+  assert.equal(batch.entries().length,25);
   await batch.run();
-  assert.deepEqual([...batch.entries()].map(x=>x.status),['Saved','Saved','Queued','Queued']);
-  assert.equal(analysed.length,2);
-  assert.match(confirmations[0],/Process 2 of 4 remaining songs/);
-  for(const song of batch.entries().slice(0,2)){
+  assert.deepEqual([...batch.entries()].map(x=>x.status),Array.from({length:25},(_,i)=>i<10?'Saved':'Queued'));
+  assert.equal(analysed.length,10);
+  assert.match(confirmations[0],/Process 10 of 25 remaining songs/);
+  for(const song of batch.entries().slice(0,10)){
     assert(Number.isFinite(song.timing?.openMs));
     assert(Number.isFinite(song.timing?.analyseMs));
     assert(Number.isFinite(song.timing?.saveMs));
     assert(Number.isFinite(song.timing?.totalMs));
   }
+  get('batchLimit').value='15';
   await batch.run();
-  assert.deepEqual([...batch.entries()].map(x=>x.status),['Saved','Saved','Saved','Saved']);
-  assert.equal(analysed.length,4,'Completed songs must not be analysed again');
-  assert.match(confirmations[1],/Process 2 of 2 remaining songs/);
+  assert.deepEqual([...batch.entries()].map(x=>x.status),Array(25).fill('Saved'));
+  assert.equal(analysed.length,25,'Completed songs must not be analysed again');
+  assert.match(confirmations[1],/Process 15 of 15 remaining songs/);
   assert.match(get('batchStatus').textContent,/0 left to process/);
-  console.log('PASS: two-song runs, next-song continuation, timings, unchanged full analysis callback, no repeated paid analysis.');
+  console.log('PASS: 10- and 15-song runs, next-song continuation, timings, unchanged full analysis callback, no repeated paid analysis.');
 })().catch(e=>{console.error(e);process.exitCode=1;});
