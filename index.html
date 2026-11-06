@@ -20900,6 +20900,46 @@ window.BassBillingLinks = Object.freeze({render:'https://dashboard.render.com/bi
 
 })();
 </script>
+<style id="rc202-uniform-actions">
+/* Keep Settings controls and lower action buttons the same width and height. */
+#settingsDialog #displaySizeControl{grid-auto-rows:minmax(106px,auto)!important;align-items:stretch!important}
+#settingsDialog #displaySizeControl > :is(#fontSizeCard,#bassStringSelector,#speedControl,#timelineBreakdownControl,#noteNumberToggle){height:100%!important;min-height:106px!important;justify-content:space-between!important}
+#settingsDialog #displaySizeControl #noteNumberToggle{min-height:106px!important}
+#settingsDialog #displaySizeControl :is(select,button){box-sizing:border-box!important;width:100%!important;min-width:0!important;max-width:100%!important;min-height:44px!important;flex:0 0 44px!important}
+#settingsDialog .billing-links{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;grid-auto-rows:50px!important;gap:10px!important;align-items:stretch!important}
+#settingsDialog .billing-links a{display:flex!important;box-sizing:border-box!important;width:100%!important;height:50px!important;min-height:50px!important;max-height:50px!important;padding:8px!important;align-items:center!important;justify-content:center!important;white-space:nowrap!important}
+#settingsDialog #sharePlatformShortcuts{box-sizing:border-box!important;width:100%!important;margin:14px 0 0!important;padding:16px!important;border:1px solid #496983!important;border-radius:14px!important;background:#14283c!important}
+#settingsDialog #sharePlatformShortcuts h3{margin:0 0 12px!important;text-align:center!important;color:#f3f8ff!important;font:750 16px/1.25 system-ui,sans-serif!important}
+#settingsDialog .share-platform-actions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;grid-auto-rows:50px!important;gap:10px!important}
+#settingsDialog .share-platform-actions > :is(a,button){box-sizing:border-box!important;display:flex!important;align-items:center!important;justify-content:center!important;width:100%!important;min-width:0!important;height:50px!important;min-height:50px!important;max-height:50px!important;margin:0!important;padding:8px!important;border:1px solid #6396b3!important;border-radius:10px!important;background:#245471!important;color:#fff!important;font:750 14px/1.3 system-ui,sans-serif!important;text-decoration:none!important;text-align:center!important;cursor:pointer!important}
+#settingsDialog .share-platform-actions > :is(a,button):focus-visible{outline:2px solid #90d5ff!important;outline-offset:3px!important}
+</style>
+<script id="rc202-share-platform">
+(()=>{
+ const dialog=document.getElementById('settingsDialog');
+ const close=document.getElementById('settingsClose');
+ if(!dialog||!close||document.getElementById('sharePlatformShortcuts'))return;
+ const url='https://bass-stem-studio-app-z5ja.onrender.com';
+ const section=document.createElement('section');section.id='sharePlatformShortcuts';
+ const heading=document.createElement('h3');heading.textContent='Share Bass Stem Studio';section.append(heading);
+ const actions=document.createElement('div');actions.className='share-platform-actions';
+ const open=document.createElement('a');open.href=url;open.target='_blank';open.rel='noopener noreferrer';open.textContent='Open platform';actions.append(open);
+ const copy=document.createElement('button');copy.type='button';copy.textContent='Copy link';
+ copy.addEventListener('click',async()=>{
+  try{
+   if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(url);}
+   else{throw new Error('Clipboard unavailable');}
+   copy.textContent='Link copied';
+  }catch{
+   const field=document.createElement('input');field.value=url;field.readOnly=true;field.style.cssText='position:fixed;left:10px;bottom:10px;width:calc(100% - 20px);z-index:2147483647';document.body.append(field);field.focus();field.select();
+   try{if(document.execCommand('copy'))copy.textContent='Link copied';else copy.textContent='Select link to copy';}
+   catch{copy.textContent='Select link to copy'}
+   field.remove();
+  }
+ });actions.append(copy);section.append(actions);
+ close.before(section);
+})();
+</script>
 </body>
 </html>
 
