@@ -193,7 +193,7 @@ window.BassLibrary=(()=>{
     el('libraryChoose').onclick=()=>run(chooseFolder);el('libraryDevice').onclick=()=>run(useDevice);
     el('libraryRefresh').onclick=()=>run(refresh);el('libraryReconnect').onclick=()=>run(reconnect);
     el('libraryAdd').onclick=()=>{el('libraryFiles').value='';el('libraryFiles').click();};
-    el('libraryBatch').onclick=()=>window.BassBatch?.show();
+    el('libraryBatch').onclick=()=>{dialog.close();window.BassBatch?.show();};
     el('libraryFiles').onchange=e=>{const files=Array.from(e.target.files||[]);e.target.value='';void run(()=>addFiles(files));};
   }
   async function show(){build();if(!dialog.open)dialog.showModal();el('librarySearch').focus();await run(refresh);}
