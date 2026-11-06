@@ -1,0 +1,23 @@
+Bass Stem Studio RC201 — Settings and batch recovery
+6 November 2026
+
+Settings:
+- Relocate the existing Settings dialog outside earlier transport-specific styling.
+- Keep five original controls with their existing listeners, in a spaced two-column grid.
+- Put Payments & Billing links on their own row; correct mobile spacing.
+- Preserve existing BPM position and all approved controls.
+
+Batch:
+- Reconnect the chosen Library folder and verify saved projects before examining pending RunPod jobs.
+- Show saved status as unverified until the folder can be read.
+- Check existing RunPod job IDs via GET only; do not equate an empty worker queue with a completed job.
+- Ask before recovering a completed analysis or preserving an uncertain job and continuing with others.
+- Preserve unfinished job records in device storage, skip their songs, and never automatically pay to analyse them again.
+- Recheck previously submitted held jobs on another run, recover existing results where possible, and save only confirmed full projects.
+- Continue with other songs when the user explicitly agrees, and return to recoverable local failures without a second paid bass upload.
+
+Implementation:
+- Original bass analysis and project schema remain unchanged.
+- Original 4.17 MB voice asset script is served unchanged from ai-assets-rc201.js, synchronously, and cached by the RC201 service worker.
+- No RunPod inference or GitHub Actions jobs were started during verification.
+- A live mobile RunPod batch still needs user-side verification; remote site build status alone does not test the phone's saved folder permissions.
