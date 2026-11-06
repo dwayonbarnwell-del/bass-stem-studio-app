@@ -46,7 +46,7 @@ function setup(){
     assert(await batch.checkConnection(),'GET-only connection check should report success');
     await batch.choose(makeZip([['A.mp3','one'],['B.mp3','two']]));
     await batch.run();
-    assert.deepEqual(batch.entries().map(x=>x.status),['Saved','Saved']);
+    assert.deepEqual(Array.from(batch.entries(),x=>x.status),['Saved','Saved']);
     assert.equal(analysisCalls,2,'Failed song retry must reuse recovered bass analysis');
     assert.deepEqual(order.filter(x=>x.startsWith('saved:')),['saved:B','saved:A'],'Other songs must finish before deferred song');
   }
@@ -60,7 +60,7 @@ function setup(){
       save:async name=>{saved.add(name);return {noteCount:2};}
     });
     await batch.choose(makeZip([['A.mp3','one'],['B.mp3','two']]));await batch.run();
-    assert.deepEqual(batch.entries().map(x=>x.status),['Needs review','Saved']);
+    assert.deepEqual(Array.from(batch.entries(),x=>x.status),['Needs review','Saved']);
     assert.equal(count,2,'Second pass must never pay to reanalyse a failed bass job');
   }
   {
@@ -73,7 +73,7 @@ function setup(){
     });
     await batch.choose(makeZip([['A.mp3','one'],['B.mp3','two']]));await batch.run();
     assert.equal(analysisCalls,1);
-    assert.deepEqual(batch.entries().map(x=>x.status),['Needs review','Queued'],
+    assert.deepEqual(Array.from(batch.entries(),x=>x.status),['Needs review','Queued'],
      'Unresolved paid job must pause safely, not overwrite it with the next song');
   }
   console.log('PASS: continue after section errors; return to failed songs; reuse bass results; never auto-reanalyse failed bass; pause for outstanding paid jobs; health check.');
