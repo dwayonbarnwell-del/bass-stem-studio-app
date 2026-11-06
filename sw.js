@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bass-stem-studio-rc203';
+const CACHE_NAME = 'bass-stem-studio-rc204';
 const APP_SHELL = ['./','./index.html','./manifest.webmanifest','./ai-assets-rc201.js','./icons/icon-192.png','./icons/icon-512.png'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)).then(()=>self.skipWaiting()));

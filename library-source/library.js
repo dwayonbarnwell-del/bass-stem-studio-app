@@ -1,7 +1,7 @@
 /* RC195: local saved-project library. No audio or index is sent to a server. */
 window.BassLibrary=(()=>{
   const DB='bass-studio-library-v1',SUPPORTED=/\.(bassstudio|bssproject|json)$/i;
-  let dbPromise,ready,folder=null,index={},rows=[],hooks={},dialog,busy=false,scan=0,downloadURLs=[];
+  let dbPromise,ready,folder=null,index={},rows=[],hooks={},dialog,busy=false,scan=0,downloadURLs=[],folderAccess='unknown';
   const el=id=>document.getElementById(id);
   const abort=()=>new DOMException('Cancelled','AbortError');
   const clean=v=>String(v||'').trim();
@@ -42,8 +42,8 @@ window.BassLibrary=(()=>{
   function status(message){if(el('libraryStatus'))el('libraryStatus').textContent=message;}
   function paintLocation(){
     if(!dialog)return;
-    el('libraryLocation').textContent=folder?'Folder: '+folder.name:'Saved on this device';
-    el('libraryHint').textContent=folder?'Projects stay in this folder. Select Refresh after adding files outside the app.':'Download backups before clearing browser data. Choose a folder to keep projects as normal files.';
+    el('libraryLocation').textContent=folder?'Folder: '+folder.name+(folderAccess==='ready'?' · Connected':folderAccess==='reconnect'?' · Permission needed':''):'Saved on this device';
+    el('libraryHint').textContent=folder?(folderAccess==='reconnect'?'Your folder is remembered. Allow access when prompted, or select Reconnect folder. Choose “Allow on every visit” if your browser offers it.':'Projects stay in this folder. Select Refresh after adding files outside the app.'):'Download backups before clearing browser data. Choose a folder to keep projects as normal files.';
     el('libraryDevice').hidden=!folder;
     el('libraryReconnect').hidden=!folder;
     el('libraryChoose').hidden=typeof window.showDirectoryPicker!=='function';
@@ -91,7 +91,8 @@ window.BassLibrary=(()=>{
       rows=await store('songs','readonly',s=>s.getAll());
     }else{
       const dir=folder;
-      if(!await permission(dir,'read')){status('Select Reconnect folder to show its songs.');return;}
+      if(!await permission(dir,'read')){folderAccess='reconnect';status('Folder remembered. Select Reconnect folder to allow access. Your saved songs are unchanged.');render();return;}
+      folderAccess='ready';
       const found=[],next={};let skipped=0;
       for await(const [name,handle] of dir.entries()){
         if(token!==scan||dir!==folder)return;
@@ -114,18 +115,25 @@ window.BassLibrary=(()=>{
     const dir=await window.showDirectoryPicker({id:'bass-studio-library',mode:'readwrite'});
     await ready;
     await put('folder',dir);await put('index',{});
-    folder=dir;index={};await refresh();
+    folder=dir;folderAccess='ready';index={};await refresh();
   }
-  async function useDevice(){await put('folder',null);folder=null;index={};await refresh();}
-  async function reconnect(){if(folder&&!await permission(folder,'readwrite',true))throw Error('Folder access was not granted. Your files are unchanged.');await refresh();}
+  async function useDevice(){await put('folder',null);folder=null;folderAccess='device';index={};await refresh();}
+  async function reconnect(){
+    if(folder){
+      try{if(!await permission(folder,'readwrite',true))throw Error('Access was not granted.');folderAccess='ready';}
+      catch(e){folderAccess='reconnect';throw Error('Folder permission was not granted. Your saved files are unchanged.');}
+    }
+    await refresh();
+  }
   async function ensureBatchAccess(){
     await ready;
     if(folder){
       try {
-        if(!await permission(folder,'readwrite',true))throw Error('Library folder permission was not granted.');
-        return true;
+        if(!await permission(folder,'readwrite',true))throw Error('Permission was not granted.');
+        folderAccess='ready';return true;
       }catch(err){
-        throw Error('Please open Library, select Reconnect folder, allow access and try again. '+(err?.message||''));
+        folderAccess='reconnect';
+        throw Error('The folder “'+folder.name+'” is remembered. Open Library or select Reconnect folder to allow access. '+(err?.message||''));
       }
     }
     await database();
@@ -209,7 +217,23 @@ window.BassLibrary=(()=>{
     el('libraryBatch').onclick=()=>{dialog.close();window.BassBatch?.show();};
     el('libraryFiles').onchange=e=>{const files=Array.from(e.target.files||[]);e.target.value='';void run(()=>addFiles(files));};
   }
-  async function show(){build();if(!dialog.open)dialog.showModal();el('librarySearch').focus();await run(refresh);}
-  function init(options){hooks=options;ready=(async()=>{folder=await get('folder')||null;index=await get('index')||{};})();ready.catch(()=>{});}
+  async function show(){
+    build();if(!dialog.open)dialog.showModal();el('librarySearch').focus();
+    // Open Library is a user gesture: request access now, not after the audio work.
+    const access=ensureBatchAccess();
+    await run(async()=>{await access;await refresh();});
+  }
+  function init(options){
+    hooks=options;
+    ready=(async()=>{
+      folder=await get('folder')||null;
+      index=await get('index')||{};
+      if(folder){
+        try{folderAccess=await permission(folder,'readwrite')?'ready':'reconnect';}
+        catch{folderAccess='reconnect';}
+      }else folderAccess='device';
+    })();
+    ready.catch(()=>{});
+  }
   return {init,show,prepareSave,save,hasProject,ensureBatchAccess,errorText};
 })();

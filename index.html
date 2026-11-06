@@ -13594,7 +13594,7 @@ html body #bassLibraryDialog [hidden]{display:none!important}
 /* RC195: local saved-project library. No audio or index is sent to a server. */
 window.BassLibrary=(()=>{
   const DB='bass-studio-library-v1',SUPPORTED=/\.(bassstudio|bssproject|json)$/i;
-  let dbPromise,ready,folder=null,index={},rows=[],hooks={},dialog,busy=false,scan=0,downloadURLs=[];
+  let dbPromise,ready,folder=null,index={},rows=[],hooks={},dialog,busy=false,scan=0,downloadURLs=[],folderAccess='unknown';
   const el=id=>document.getElementById(id);
   const abort=()=>new DOMException('Cancelled','AbortError');
   const clean=v=>String(v||'').trim();
@@ -13635,8 +13635,8 @@ window.BassLibrary=(()=>{
   function status(message){if(el('libraryStatus'))el('libraryStatus').textContent=message;}
   function paintLocation(){
     if(!dialog)return;
-    el('libraryLocation').textContent=folder?'Folder: '+folder.name:'Saved on this device';
-    el('libraryHint').textContent=folder?'Projects stay in this folder. Select Refresh after adding files outside the app.':'Download backups before clearing browser data. Choose a folder to keep projects as normal files.';
+    el('libraryLocation').textContent=folder?'Folder: '+folder.name+(folderAccess==='ready'?' · Connected':folderAccess==='reconnect'?' · Permission needed':''):'Saved on this device';
+    el('libraryHint').textContent=folder?(folderAccess==='reconnect'?'Your folder is remembered. Allow access when prompted, or select Reconnect folder. Choose “Allow on every visit” if your browser offers it.':'Projects stay in this folder. Select Refresh after adding files outside the app.'):'Download backups before clearing browser data. Choose a folder to keep projects as normal files.';
     el('libraryDevice').hidden=!folder;
     el('libraryReconnect').hidden=!folder;
     el('libraryChoose').hidden=typeof window.showDirectoryPicker!=='function';
@@ -13684,7 +13684,8 @@ window.BassLibrary=(()=>{
       rows=await store('songs','readonly',s=>s.getAll());
     }else{
       const dir=folder;
-      if(!await permission(dir,'read')){status('Select Reconnect folder to show its songs.');return;}
+      if(!await permission(dir,'read')){folderAccess='reconnect';status('Folder remembered. Select Reconnect folder to allow access. Your saved songs are unchanged.');render();return;}
+      folderAccess='ready';
       const found=[],next={};let skipped=0;
       for await(const [name,handle] of dir.entries()){
         if(token!==scan||dir!==folder)return;
@@ -13707,18 +13708,25 @@ window.BassLibrary=(()=>{
     const dir=await window.showDirectoryPicker({id:'bass-studio-library',mode:'readwrite'});
     await ready;
     await put('folder',dir);await put('index',{});
-    folder=dir;index={};await refresh();
+    folder=dir;folderAccess='ready';index={};await refresh();
   }
-  async function useDevice(){await put('folder',null);folder=null;index={};await refresh();}
-  async function reconnect(){if(folder&&!await permission(folder,'readwrite',true))throw Error('Folder access was not granted. Your files are unchanged.');await refresh();}
+  async function useDevice(){await put('folder',null);folder=null;folderAccess='device';index={};await refresh();}
+  async function reconnect(){
+    if(folder){
+      try{if(!await permission(folder,'readwrite',true))throw Error('Access was not granted.');folderAccess='ready';}
+      catch(e){folderAccess='reconnect';throw Error('Folder permission was not granted. Your saved files are unchanged.');}
+    }
+    await refresh();
+  }
   async function ensureBatchAccess(){
     await ready;
     if(folder){
       try {
-        if(!await permission(folder,'readwrite',true))throw Error('Library folder permission was not granted.');
-        return true;
+        if(!await permission(folder,'readwrite',true))throw Error('Permission was not granted.');
+        folderAccess='ready';return true;
       }catch(err){
-        throw Error('Please open Library, select Reconnect folder, allow access and try again. '+(err?.message||''));
+        folderAccess='reconnect';
+        throw Error('The folder “'+folder.name+'” is remembered. Open Library or select Reconnect folder to allow access. '+(err?.message||''));
       }
     }
     await database();
@@ -13802,8 +13810,24 @@ window.BassLibrary=(()=>{
     el('libraryBatch').onclick=()=>{dialog.close();window.BassBatch?.show();};
     el('libraryFiles').onchange=e=>{const files=Array.from(e.target.files||[]);e.target.value='';void run(()=>addFiles(files));};
   }
-  async function show(){build();if(!dialog.open)dialog.showModal();el('librarySearch').focus();await run(refresh);}
-  function init(options){hooks=options;ready=(async()=>{folder=await get('folder')||null;index=await get('index')||{};})();ready.catch(()=>{});}
+  async function show(){
+    build();if(!dialog.open)dialog.showModal();el('librarySearch').focus();
+    // Open Library is a user gesture: request access now, not after the audio work.
+    const access=ensureBatchAccess();
+    await run(async()=>{await access;await refresh();});
+  }
+  function init(options){
+    hooks=options;
+    ready=(async()=>{
+      folder=await get('folder')||null;
+      index=await get('index')||{};
+      if(folder){
+        try{folderAccess=await permission(folder,'readwrite')?'ready':'reconnect';}
+        catch{folderAccess='reconnect';}
+      }else folderAccess='device';
+    })();
+    ready.catch(()=>{});
+  }
   return {init,show,prepareSave,save,hasProject,ensureBatchAccess,errorText};
 })();
 </script>
@@ -13852,7 +13876,12 @@ window.BassBatch = (() => {
     const active=entries.find(item=>item.startedAt && ['Opening','Reopening','Analysing','Saving'].includes(item.status));
     element.textContent=active ? active.status+' · '+active.name+' · '+formatElapsed(Date.now()-active.startedAt) : '';
   }
-  function tell(message) { if ($('batchStatus')) $('batchStatus').textContent = message; }
+  function tell(message) {
+    const status=$('batchStatus');if(!status)return;
+    const active=entries.find(item=>item.startedAt&&['Opening','Reopening','Analysing','Saving'].includes(item.status));
+    const repeated=active&&String(message).includes(active.name)&&/^(?:Opening:|Returning to:|Analysing |Checking full analysis and saving:)/.test(message);
+    status.textContent=repeated?'':message;
+  }
   function draw() {
     if (!dialog) return;
     const selected=entries.filter(i=>i.status==='Saved').length;
@@ -13894,6 +13923,7 @@ window.BassBatch = (() => {
       }
       list.append(line);
     });
+    updateElapsed();
   }
   async function listZip(file) {
     if (!file || !/\.zip$/i.test(file.name)) throw Error('Choose a ZIP file.');
@@ -14040,8 +14070,9 @@ window.BassBatch = (() => {
       item.status='Saved';item.reason='Already saved in your chosen library';return;
     }
     if (hooks.hasPending?.()) throw Error('An earlier bass analysis job may still be charged or awaiting a result. Resolve it before processing another song.');
-    item.status=retry?'Reopening':'Opening';draw();tell((retry?'Returning to: ':'Opening: ')+item.name);
+    item.status=retry?'Reopening':'Opening';
     item.startedAt=Date.now();item.timing={};
+    draw();tell((retry?'Returning to: ':'Opening: ')+item.name);
     const openStart=Date.now();
     const file=await getSong(item);
     if (!await hooks.load(file)) throw Error('This song could not be imported.');
@@ -14194,11 +14225,12 @@ window.BassBatch = (() => {
       if(stopAfterCurrent){tell('Stopped. No new analysis started.');return;}
       const remaining=entries.filter(unfinished);
       if(!remaining.length){tell('All songs are already saved or skipped.');return;}
-      const perRun=[10,15,20].includes(Number($('batchLimit')?.value))?Number($('batchLimit').value):10;
+      const selectedLimit=String($('batchLimit')?.value||'all');
+      const perRun=['5','10','15','20'].includes(selectedLimit)?Number(selectedLimit):remaining.length;
       // Rotate previously checked rows so persistent failures cannot block later songs.
       const selectedForRun=remaining.slice().sort((a,b)=>(a.lastVisit||0)-(b.lastVisit||0)).slice(0,perRun);
       const confirmed=await window.BassDialog.confirm(
-        'Process '+selectedForRun.length+' of '+remaining.length+' remaining songs using your existing RunPod analysis? The batch will return to unfinished songs automatically and reuse existing results. Each confirmed failed RunPod job can be retried once using the same job ID. Analysis, missing sections and failed-job retries may incur charges. Unknown uploads stay protected. Keep this tab open.',
+        (selectedLimit==='all'?'Process all '+remaining.length+' remaining songs continuously':'Process '+selectedForRun.length+' of '+remaining.length+' remaining songs')+' using your existing RunPod analysis? Songs run one at a time, and each completed project is saved immediately. Failed songs will be checked again before the run ends. You can stop after the current song. Analysis, missing sections and authorised failed-job retries may incur charges. Unknown uploads stay protected from duplicate submissions. Keep this tab open.',
         {title:'Confirm batch analysis',accept:'Start batch'}
       );
       if(!confirmed||stopAfterCurrent){tell('Batch cancelled. Saved songs and earlier job records are kept.');return;}
@@ -14239,7 +14271,7 @@ window.BassBatch = (() => {
       const left=entries.filter(unfinished).length;
       const waiting=entries.filter(i=>unfinished(i)&&i.waitingForResult).length;
       const review=entries.filter(i=>i.status==='Needs review').length;
-      tell((stopAfterCurrent?'Stopped after the current song. ':'Batch and return passes finished. ')+saved+' saved; '+left+' left to process'+(waiting?'; '+waiting+' awaiting results':'')+(review?'; '+review+' need attention':'')+(left?'. Use Retry unfinished or Continue batch to return to the remaining songs.':'.'));
+      tell((stopAfterCurrent?'Stopped after the current song. ':selectedLimit==='all'?'Continuous run checked every song. ':'Batch and return passes finished. ')+saved+' saved; '+left+' unfinished'+(waiting?'; '+waiting+' awaiting results':'')+(review?'; '+review+' need attention':'')+(left?'. Unresolved jobs are preserved; select Retry unfinished to check them again.':'.'));
     }catch(err){
       tell('Batch paused: '+errorMessage(err)+'. Saved songs and recovery records are kept.');
     }finally{
@@ -14256,12 +14288,12 @@ window.BassBatch = (() => {
     dialog=document.createElement('dialog');
     dialog.id='bassBatchDialog';
     dialog.setAttribute('aria-labelledby','batchTitle');
-    dialog.innerHTML="<h2 id=\"batchTitle\">Batch ZIP analysis</h2>\n<p class=\"batch-description\">Process 10, 15 or 20 songs at a time, then continue the same ZIP. Each saved song stays in your library.</p>\n<div class=\"batch-file-card\">\n<label class=\"batch-label\" for=\"batchFile\">Audio or video ZIP</label>\n<div class=\"batch-file-row\"><button id=\"batchPick\" type=\"button\">Choose ZIP</button><span id=\"batchFileName\" class=\"batch-file-name\">No ZIP selected</span></div>\n<input id=\"batchFile\" class=\"batch-file-input\" type=\"file\" accept=\".zip,application/zip,application/x-zip-compressed\">\n<p id=\"batchArchive\" class=\"batch-archive\" role=\"status\" aria-live=\"polite\">Choose a ZIP containing music files.</p>\n</div>\n<div class=\"batch-size\"><label for=\"batchLimit\">Songs per run</label><select id=\"batchLimit\"><option value=\"10\" selected>10</option><option value=\"15\">15</option><option value=\"20\">20</option></select></div>\n<p id=\"batchCount\" class=\"batch-summary\" role=\"status\" aria-live=\"polite\">No songs loaded</p>\n<p id=\"batchTiming\" class=\"batch-feedback\" aria-live=\"polite\"></p>\n<ul id=\"batchSongs\" aria-label=\"Songs in this ZIP\"></ul>\n<p id=\"batchConnection\" class=\"batch-feedback\" role=\"status\" aria-live=\"polite\" hidden></p>\n<p id=\"batchStatus\" class=\"batch-feedback\" role=\"status\" aria-live=\"polite\"></p>\n<div class=\"batch-actions\">\n<button id=\"batchCheck\" type=\"button\">Check connection</button><button id=\"batchStart\" type=\"button\">Start batch</button>\n<button id=\"batchStop\" type=\"button\" disabled>Stop after song</button><button id=\"batchClose\" type=\"button\">Close</button>\n</div>";
+    dialog.innerHTML="<h2 id=\"batchTitle\">Batch ZIP analysis</h2>\n<p class=\"batch-description\">Process all songs automatically, one at a time. Each completed song is saved. You can pause after a set number if you prefer.</p>\n<div class=\"batch-file-card\">\n<label class=\"batch-label\" for=\"batchFile\">Audio or video ZIP</label>\n<div class=\"batch-file-row\"><button id=\"batchPick\" type=\"button\">Choose ZIP</button><span id=\"batchFileName\" class=\"batch-file-name\">No ZIP selected</span></div>\n<input id=\"batchFile\" class=\"batch-file-input\" type=\"file\" accept=\".zip,application/zip,application/x-zip-compressed\">\n<p id=\"batchArchive\" class=\"batch-archive\" role=\"status\" aria-live=\"polite\">Choose a ZIP containing music files.</p>\n</div>\n<div class=\"batch-size\"><label for=\"batchLimit\">Processing</label><select id=\"batchLimit\"><option value=\"all\" selected>Continuous (all songs)</option><option value=\"5\">Pause after 5</option><option value=\"10\">Pause after 10</option><option value=\"15\">Pause after 15</option><option value=\"20\">Pause after 20</option></select></div>\n<p id=\"batchCount\" class=\"batch-summary\" role=\"status\" aria-live=\"polite\">No songs loaded</p>\n<p id=\"batchTiming\" class=\"batch-feedback\" aria-live=\"polite\"></p>\n<p id=\"batchStatus\" class=\"batch-feedback\" role=\"status\" aria-live=\"polite\"></p>\n<ul id=\"batchSongs\" aria-label=\"Songs in this ZIP\"></ul>\n<p id=\"batchConnection\" class=\"batch-feedback\" role=\"status\" aria-live=\"polite\" hidden></p>\n<div class=\"batch-actions\">\n<button id=\"batchCheck\" type=\"button\">Check connection</button><button id=\"batchStart\" type=\"button\">Start batch</button>\n<button id=\"batchStop\" type=\"button\" disabled>Stop after song</button><button id=\"batchClose\" type=\"button\">Close</button>\n</div>";
     document.body.appendChild(dialog);
     $('batchPick').onclick=()=>{$('batchFile').click();};
     $('batchFile').onchange=e=>{const file=e.target.files?.[0];e.target.value='';if(file)void choose(file);};
-    $('batchLimit').onchange=e=>{try{localStorage.setItem('bassBatchRunLimit',e.target.value);}catch{}};
-    try{const saved=localStorage.getItem('bassBatchRunLimit');if(['10','15','20'].includes(saved))$('batchLimit').value=saved;}catch{}
+    $('batchLimit').onchange=e=>{try{localStorage.setItem('bassBatchRunLimitRC204',e.target.value);}catch{}};
+    try{const saved=localStorage.getItem('bassBatchRunLimitRC204');if(['all','5','10','15','20'].includes(saved))$('batchLimit').value=saved;}catch{}
     $('batchCheck').onclick=()=>void checkConnection();
     $('batchStart').onclick=()=>void run();
     $('batchStop').onclick=()=>{stopAfterCurrent=true;tell('Will stop once the current song is saved or checked.');};

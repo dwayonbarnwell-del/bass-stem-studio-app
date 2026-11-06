@@ -42,7 +42,12 @@ window.BassBatch = (() => {
     const active=entries.find(item=>item.startedAt && ['Opening','Reopening','Analysing','Saving'].includes(item.status));
     element.textContent=active ? active.status+' · '+active.name+' · '+formatElapsed(Date.now()-active.startedAt) : '';
   }
-  function tell(message) { if ($('batchStatus')) $('batchStatus').textContent = message; }
+  function tell(message) {
+    const status=$('batchStatus');if(!status)return;
+    const active=entries.find(item=>item.startedAt&&['Opening','Reopening','Analysing','Saving'].includes(item.status));
+    const repeated=active&&String(message).includes(active.name)&&/^(?:Opening:|Returning to:|Analysing |Checking full analysis and saving:)/.test(message);
+    status.textContent=repeated?'':message;
+  }
   function draw() {
     if (!dialog) return;
     const selected=entries.filter(i=>i.status==='Saved').length;
@@ -84,6 +89,7 @@ window.BassBatch = (() => {
       }
       list.append(line);
     });
+    updateElapsed();
   }
   async function listZip(file) {
     if (!file || !/\.zip$/i.test(file.name)) throw Error('Choose a ZIP file.');
@@ -230,8 +236,9 @@ window.BassBatch = (() => {
       item.status='Saved';item.reason='Already saved in your chosen library';return;
     }
     if (hooks.hasPending?.()) throw Error('An earlier bass analysis job may still be charged or awaiting a result. Resolve it before processing another song.');
-    item.status=retry?'Reopening':'Opening';draw();tell((retry?'Returning to: ':'Opening: ')+item.name);
+    item.status=retry?'Reopening':'Opening';
     item.startedAt=Date.now();item.timing={};
+    draw();tell((retry?'Returning to: ':'Opening: ')+item.name);
     const openStart=Date.now();
     const file=await getSong(item);
     if (!await hooks.load(file)) throw Error('This song could not be imported.');
@@ -384,11 +391,12 @@ window.BassBatch = (() => {
       if(stopAfterCurrent){tell('Stopped. No new analysis started.');return;}
       const remaining=entries.filter(unfinished);
       if(!remaining.length){tell('All songs are already saved or skipped.');return;}
-      const perRun=[10,15,20].includes(Number($('batchLimit')?.value))?Number($('batchLimit').value):10;
+      const selectedLimit=String($('batchLimit')?.value||'all');
+      const perRun=['5','10','15','20'].includes(selectedLimit)?Number(selectedLimit):remaining.length;
       // Rotate previously checked rows so persistent failures cannot block later songs.
       const selectedForRun=remaining.slice().sort((a,b)=>(a.lastVisit||0)-(b.lastVisit||0)).slice(0,perRun);
       const confirmed=await window.BassDialog.confirm(
-        'Process '+selectedForRun.length+' of '+remaining.length+' remaining songs using your existing RunPod analysis? The batch will return to unfinished songs automatically and reuse existing results. Each confirmed failed RunPod job can be retried once using the same job ID. Analysis, missing sections and failed-job retries may incur charges. Unknown uploads stay protected. Keep this tab open.',
+        (selectedLimit==='all'?'Process all '+remaining.length+' remaining songs continuously':'Process '+selectedForRun.length+' of '+remaining.length+' remaining songs')+' using your existing RunPod analysis? Songs run one at a time, and each completed project is saved immediately. Failed songs will be checked again before the run ends. You can stop after the current song. Analysis, missing sections and authorised failed-job retries may incur charges. Unknown uploads stay protected from duplicate submissions. Keep this tab open.',
         {title:'Confirm batch analysis',accept:'Start batch'}
       );
       if(!confirmed||stopAfterCurrent){tell('Batch cancelled. Saved songs and earlier job records are kept.');return;}
@@ -429,7 +437,7 @@ window.BassBatch = (() => {
       const left=entries.filter(unfinished).length;
       const waiting=entries.filter(i=>unfinished(i)&&i.waitingForResult).length;
       const review=entries.filter(i=>i.status==='Needs review').length;
-      tell((stopAfterCurrent?'Stopped after the current song. ':'Batch and return passes finished. ')+saved+' saved; '+left+' left to process'+(waiting?'; '+waiting+' awaiting results':'')+(review?'; '+review+' need attention':'')+(left?'. Use Retry unfinished or Continue batch to return to the remaining songs.':'.'));
+      tell((stopAfterCurrent?'Stopped after the current song. ':selectedLimit==='all'?'Continuous run checked every song. ':'Batch and return passes finished. ')+saved+' saved; '+left+' unfinished'+(waiting?'; '+waiting+' awaiting results':'')+(review?'; '+review+' need attention':'')+(left?'. Unresolved jobs are preserved; select Retry unfinished to check them again.':'.'));
     }catch(err){
       tell('Batch paused: '+errorMessage(err)+'. Saved songs and recovery records are kept.');
     }finally{
@@ -446,12 +454,12 @@ window.BassBatch = (() => {
     dialog=document.createElement('dialog');
     dialog.id='bassBatchDialog';
     dialog.setAttribute('aria-labelledby','batchTitle');
-    dialog.innerHTML="<h2 id=\"batchTitle\">Batch ZIP analysis</h2>\n<p class=\"batch-description\">Process 10, 15 or 20 songs at a time, then continue the same ZIP. Each saved song stays in your library.</p>\n<div class=\"batch-file-card\">\n<label class=\"batch-label\" for=\"batchFile\">Audio or video ZIP</label>\n<div class=\"batch-file-row\"><button id=\"batchPick\" type=\"button\">Choose ZIP</button><span id=\"batchFileName\" class=\"batch-file-name\">No ZIP selected</span></div>\n<input id=\"batchFile\" class=\"batch-file-input\" type=\"file\" accept=\".zip,application/zip,application/x-zip-compressed\">\n<p id=\"batchArchive\" class=\"batch-archive\" role=\"status\" aria-live=\"polite\">Choose a ZIP containing music files.</p>\n</div>\n<div class=\"batch-size\"><label for=\"batchLimit\">Songs per run</label><select id=\"batchLimit\"><option value=\"10\" selected>10</option><option value=\"15\">15</option><option value=\"20\">20</option></select></div>\n<p id=\"batchCount\" class=\"batch-summary\" role=\"status\" aria-live=\"polite\">No songs loaded</p>\n<p id=\"batchTiming\" class=\"batch-feedback\" aria-live=\"polite\"></p>\n<ul id=\"batchSongs\" aria-label=\"Songs in this ZIP\"></ul>\n<p id=\"batchConnection\" class=\"batch-feedback\" role=\"status\" aria-live=\"polite\" hidden></p>\n<p id=\"batchStatus\" class=\"batch-feedback\" role=\"status\" aria-live=\"polite\"></p>\n<div class=\"batch-actions\">\n<button id=\"batchCheck\" type=\"button\">Check connection</button><button id=\"batchStart\" type=\"button\">Start batch</button>\n<button id=\"batchStop\" type=\"button\" disabled>Stop after song</button><button id=\"batchClose\" type=\"button\">Close</button>\n</div>";
+    dialog.innerHTML="<h2 id=\"batchTitle\">Batch ZIP analysis</h2>\n<p class=\"batch-description\">Process all songs automatically, one at a time. Each completed song is saved. You can pause after a set number if you prefer.</p>\n<div class=\"batch-file-card\">\n<label class=\"batch-label\" for=\"batchFile\">Audio or video ZIP</label>\n<div class=\"batch-file-row\"><button id=\"batchPick\" type=\"button\">Choose ZIP</button><span id=\"batchFileName\" class=\"batch-file-name\">No ZIP selected</span></div>\n<input id=\"batchFile\" class=\"batch-file-input\" type=\"file\" accept=\".zip,application/zip,application/x-zip-compressed\">\n<p id=\"batchArchive\" class=\"batch-archive\" role=\"status\" aria-live=\"polite\">Choose a ZIP containing music files.</p>\n</div>\n<div class=\"batch-size\"><label for=\"batchLimit\">Processing</label><select id=\"batchLimit\"><option value=\"all\" selected>Continuous (all songs)</option><option value=\"5\">Pause after 5</option><option value=\"10\">Pause after 10</option><option value=\"15\">Pause after 15</option><option value=\"20\">Pause after 20</option></select></div>\n<p id=\"batchCount\" class=\"batch-summary\" role=\"status\" aria-live=\"polite\">No songs loaded</p>\n<p id=\"batchTiming\" class=\"batch-feedback\" aria-live=\"polite\"></p>\n<p id=\"batchStatus\" class=\"batch-feedback\" role=\"status\" aria-live=\"polite\"></p>\n<ul id=\"batchSongs\" aria-label=\"Songs in this ZIP\"></ul>\n<p id=\"batchConnection\" class=\"batch-feedback\" role=\"status\" aria-live=\"polite\" hidden></p>\n<div class=\"batch-actions\">\n<button id=\"batchCheck\" type=\"button\">Check connection</button><button id=\"batchStart\" type=\"button\">Start batch</button>\n<button id=\"batchStop\" type=\"button\" disabled>Stop after song</button><button id=\"batchClose\" type=\"button\">Close</button>\n</div>";
     document.body.appendChild(dialog);
     $('batchPick').onclick=()=>{$('batchFile').click();};
     $('batchFile').onchange=e=>{const file=e.target.files?.[0];e.target.value='';if(file)void choose(file);};
-    $('batchLimit').onchange=e=>{try{localStorage.setItem('bassBatchRunLimit',e.target.value);}catch{}};
-    try{const saved=localStorage.getItem('bassBatchRunLimit');if(['10','15','20'].includes(saved))$('batchLimit').value=saved;}catch{}
+    $('batchLimit').onchange=e=>{try{localStorage.setItem('bassBatchRunLimitRC204',e.target.value);}catch{}};
+    try{const saved=localStorage.getItem('bassBatchRunLimitRC204');if(['all','5','10','15','20'].includes(saved))$('batchLimit').value=saved;}catch{}
     $('batchCheck').onclick=()=>void checkConnection();
     $('batchStart').onclick=()=>void run();
     $('batchStop').onclick=()=>{stopAfterCurrent=true;tell('Will stop once the current song is saved or checked.');};
