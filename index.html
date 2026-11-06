@@ -21019,6 +21019,77 @@ window.BassBillingLinks = Object.freeze({render:'https://dashboard.render.com/bi
  close.before(section);
 })();
 </script>
+<style id="rc206-settings-rows">
+/* Keep the five working settings controls in two separate, equally sized rows. */
+#settingsDialog #displaySizeControl{
+ display:flex!important;flex-direction:column!important;align-items:stretch!important;
+ justify-content:flex-start!important;gap:12px!important;width:100%!important;
+ min-width:0!important;max-width:100%!important;height:auto!important;
+ min-height:0!important;max-height:none!important;overflow:visible!important;
+ grid-template-columns:none!important;grid-template-rows:none!important;
+}
+#settingsDialog #displaySizeControl > .settings-control-row{
+ display:grid!important;align-items:stretch!important;justify-content:stretch!important;
+ width:100%!important;min-width:0!important;max-width:100%!important;
+ margin:0!important;padding:0!important;gap:12px!important;
+ grid-auto-rows:minmax(114px,auto)!important;
+}
+#settingsDialog #displaySizeControl > #settingsPrimaryRow{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+#settingsDialog #displaySizeControl > #settingsSecondaryRow{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+#settingsDialog #displaySizeControl .settings-control-row > :is(#noteNumberToggle,#fontSizeCard,#bassStringSelector,#timelineBreakdownControl,#speedControl){
+ box-sizing:border-box!important;position:static!important;inset:auto!important;float:none!important;
+ grid-column:auto!important;grid-row:auto!important;
+ display:flex!important;flex-direction:column!important;
+ align-items:stretch!important;justify-content:space-between!important;
+ flex:none!important;gap:10px!important;width:100%!important;
+ min-width:0!important;max-width:100%!important;height:100%!important;
+ min-height:114px!important;max-height:none!important;
+ margin:0!important;padding:12px!important;transform:none!important;
+ border:1px solid #496983!important;border-radius:14px!important;
+ background:#192e43!important;overflow:visible!important;box-shadow:none!important;
+}
+#settingsDialog #displaySizeControl .settings-control-row :is(label,.settings-card-label,.top-card-label){
+ box-sizing:border-box!important;position:static!important;display:block!important;
+ order:0!important;flex:none!important;width:100%!important;
+ min-width:0!important;max-width:100%!important;height:auto!important;
+ min-height:0!important;max-height:none!important;margin:0!important;padding:0!important;
+ font:750 14px/1.25 system-ui,sans-serif!important;white-space:normal!important;
+ overflow-wrap:normal!important;text-align:center!important;color:#dce9f4!important;
+}
+#settingsDialog #displaySizeControl .settings-control-row #noteNumberToggle{display:flex!important;align-items:stretch!important}
+#settingsDialog #displaySizeControl .settings-control-row #noteNumberToggle > .settings-card-label{display:block!important}
+#settingsDialog #displaySizeControl .settings-control-row :is(select){
+ position:static!important;inset:auto!important;display:block!important;order:1!important;
+ box-sizing:border-box!important;flex:0 0 44px!important;width:100%!important;
+ min-width:0!important;max-width:100%!important;height:44px!important;
+ min-height:44px!important;max-height:44px!important;margin:0!important;
+ padding:0 6px!important;transform:none!important;opacity:1!important;
+ visibility:visible!important;appearance:auto!important;pointer-events:auto!important;
+ background:#091a2a!important;color:#f5f9ff!important;border:1px solid #68869d!important;
+ border-radius:10px!important;font:750 14px/1.2 system-ui,sans-serif!important;
+ text-align:center!important;text-align-last:center!important;
+}
+@media(max-width:370px){
+ #settingsDialog #displaySizeControl > .settings-control-row{gap:8px!important}
+ #settingsDialog #displaySizeControl .settings-control-row > :is(#noteNumberToggle,#fontSizeCard,#bassStringSelector,#timelineBreakdownControl,#speedControl){padding:7px!important}
+ #settingsDialog #displaySizeControl .settings-control-row select{padding:0 3px!important}
+}
+</style>
+<script id="rc206-settings-rows">
+(()=>{
+ const $=id=>document.getElementById(id);
+ const dialog=$('settingsDialog'),controls=$('displaySizeControl');
+ if(!dialog||!controls||controls.parentElement!==dialog||$('settingsPrimaryRow'))return;
+ const ids=['noteNumberToggle','fontSizeCard','bassStringSelector','timelineBreakdownControl','speedControl'];
+ const cards=ids.map($);
+ if(cards.some(card=>!card||card.parentElement!==controls))return;
+ const first=document.createElement('div');first.id='settingsPrimaryRow';first.className='settings-control-row';
+ first.setAttribute('role','group');first.setAttribute('aria-label','Note view and text size');
+ const second=document.createElement('div');second.id='settingsSecondaryRow';second.className='settings-control-row';
+ second.setAttribute('role','group');second.setAttribute('aria-label','Strings, seconds and speed');
+ first.append(cards[0],cards[1]);second.append(cards[2],cards[3],cards[4]);controls.append(first,second);
+})();
+</script>
 </body>
 </html>
 
