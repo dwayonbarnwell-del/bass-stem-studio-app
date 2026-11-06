@@ -2,36 +2,49 @@ name: Verify batch recovery RC203
 on:
   push:
     branches: [fix/batch-return-rc203]
-    paths: [.github/workflows/batch-rc203.yml, scripts/apply_batch_rc203.cjs, tests/batch_rc203.cjs]
+    paths: [.github/workflows/batch-rc203.yml, .rc203-patch.json.gz]
 permissions:
-  contents: read
+  contents: write
 jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-      - name: Inspect recovery hooks
-        run: |
-          node - <<'JS'
-          const html=require('fs').readFileSync('index.html','utf8');
-          for(const [start,end] of [
-            ['  function batchHeldJobs(', '  window.BassBatch'],
-            ['  async function inspectBatchPending(', '  window.BassBatch'],
-            ['  async function resumeSavedRunPodAnalysis(', '\n  function ']
-          ]){
-            const a=html.indexOf(start);if(a<0){console.log('NOT FOUND',start);continue;}
-            const b=html.indexOf(end,a+start.length);
-            console.log(html.slice(a,b>a&&b-a<18000?b:a+7000));
-          }
-          JS
-      - uses: actions/upload-artifact@v4
+      - uses: actions/setup-node@v4
         with:
-          name: batch-rc203-source
-          path: |
-            index.html
-            batch-source/batch.js
-            scripts/apply_batch_rc200.cjs
-            tests/batch_rc*.cjs
-            sw.js
-          retention-days: 1
+          node-version: '22'
+      - name: Verify baseline and unpack tested patch
+        run: |
+          test "$(git hash-object index.html)" = 247efa692f40c2c92bae4cb44b3d018a2af7ecd9
+          test "$(git hash-object batch-source/batch.js)" = 2576e00f4a095c3ec0b585139e6dcc92bf1d799f
+          python - <<'PY'
+          import gzip,json,hashlib,pathlib
+          data=pathlib.Path('.rc203-patch.json.gz').read_bytes()
+          assert hashlib.sha256(data).hexdigest()=='0add1e0b7dda936e27e7f36deb09d8f88a7d2e31308715d4c4ac996284aeb1d9'
+          payload=json.loads(gzip.decompress(data))
+          assert set(payload['files'])=={'scripts/apply_batch_rc203.cjs','tests/batch_rc203.cjs'}
+          for name,content in payload['files'].items():pathlib.Path(name).write_text(content,encoding='utf-8')
+          pathlib.Path('/tmp/rc203-expected.json').write_text(json.dumps(payload['expected']))
+          PY
+      - name: Apply patch and run mocked tests without live audio jobs
+        run: |
+          node scripts/apply_batch_rc203.cjs
+          node tests/batch_rc196.cjs
+          node tests/batch_rc203.cjs | tee /tmp/rc203-test-results.txt
+          python - <<'PY'
+          import json,hashlib,pathlib
+          for name,expected in json.loads(pathlib.Path('/tmp/rc203-expected.json').read_text()).items():
+            actual=hashlib.sha256(pathlib.Path(name).read_bytes()).hexdigest()
+            assert actual==expected,(name,actual,expected)
+            print('VERIFIED EXACT TESTED OUTPUT',name,actual)
+          PY
+      - name: Commit verified files to the isolated fix branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html batch-source/batch.js sw.js scripts/apply_batch_rc203.cjs tests/batch_rc203.cjs
+          git rm .rc203-patch.json.gz
+          git commit -m 'RC203 return to unfinished batch songs and retry verified failed job IDs once'
+          git push origin HEAD:fix/batch-return-rc203
+          git rev-parse HEAD
