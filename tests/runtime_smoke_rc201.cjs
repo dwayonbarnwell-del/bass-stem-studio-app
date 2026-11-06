@@ -2,12 +2,22 @@
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),http=require('node:http'),cp=require('node:child_process'),assert=require('node:assert/strict');
 const source=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
 const pre='<script>window.__smokeErrors=[];window.addEventListener("error",e=>window.__smokeErrors.push(String(e.message||e.target?.src||"resource error")));window.addEventListener("unhandledrejection",e=>window.__smokeErrors.push(String(e.reason||"rejected")));</script>';
+function makeDiagnosticZip(){
+ const name=Buffer.from('Diagnostic-song.mp3'),data=Buffer.from('test-audio-placeholder');
+ const local=Buffer.alloc(30),central=Buffer.alloc(46),end=Buffer.alloc(22);
+ local.writeUInt32LE(0x04034b50,0);local.writeUInt32LE(data.length,18);local.writeUInt32LE(data.length,22);local.writeUInt16LE(name.length,26);
+ central.writeUInt32LE(0x02014b50,0);central.writeUInt32LE(data.length,20);central.writeUInt32LE(data.length,24);central.writeUInt16LE(name.length,28);
+ end.writeUInt32LE(0x06054b50,0);end.writeUInt16LE(1,8);end.writeUInt16LE(1,10);end.writeUInt32LE(central.length+name.length,12);end.writeUInt32LE(local.length+name.length+data.length,16);
+ return Buffer.concat([local,name,data,central,name,end]).toString('base64');
+}
+const fixture64=makeDiagnosticZip();
 const tail=[
 '<script>',
-'setTimeout(function(){',
+'setTimeout(async function(){',
 "const result={loaded:!!document.querySelector('#appRoot'),batch:!!window.BassBatch,library:!!window.BassLibrary,errors:window.__smokeErrors.slice(0,12)};",
 'try{',
 'window.BassBatch.show();',
+"const raw=Uint8Array.from(atob('"+fixture64+"'),c=>c.charCodeAt(0));const file=new File([raw],'diagnostic.zip',{type:'application/zip'});const input=document.getElementById('batchFile');const dt=new DataTransfer();dt.items.add(file);input.files=dt.files;input.dispatchEvent(new Event('change',{bubbles:true}));await new Promise(r=>setTimeout(r,1700));result.archiveMessage=document.getElementById('batchArchive')?.textContent;result.songCount=document.getElementById('batchCount')?.textContent;",
 "const d=document.querySelector('#bassBatchDialog');",
 'result.dialog=!!d?.open;',
 "result.startDisabled=document.querySelector('#batchStart')?.disabled;",
@@ -40,7 +50,7 @@ server.listen(0,'127.0.0.1',()=>{
  const port=server.address().port, tmp=fs.mkdtempSync(path.join(os.tmpdir(),'bass-runtime-'));
  const browsers=['/usr/bin/google-chrome','/usr/bin/google-chrome-stable','/usr/bin/chromium','/usr/bin/chromium-browser'].filter(fs.existsSync);
  if(!browsers.length){console.error('No Chrome/Chromium installed on runner');process.exitCode=1;server.close();return;}
- const args=['--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--no-first-run','--disable-extensions','--disable-background-networking','--disable-default-apps','--no-default-browser-check','--user-data-dir='+tmp,'--virtual-time-budget=5500',
+ const args=['--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--no-first-run','--disable-extensions','--disable-background-networking','--disable-default-apps','--no-default-browser-check','--user-data-dir='+tmp,'--virtual-time-budget=9500',
  '--host-resolver-rules=MAP api.runpod.ai 0.0.0.0, MAP *.runpod.io 0.0.0.0','--dump-dom','http://127.0.0.1:'+port+'/index.html'];
  const proc=cp.spawn(browsers[0],args);
  let stdout='',stderr='',timedout=false;
@@ -58,6 +68,8 @@ server.listen(0,'127.0.0.1',()=>{
       console.log('BOOT DIAGNOSTIC:',JSON.stringify(data));
       assert(data.loaded&&data.batch&&data.library&&data.dialog&&data.controlsPresent,'App or batch dialog failed');
       assert(Math.max(...data.buttonWidths)-Math.min(...data.buttonWidths)<=2,'Batch controls have unequal widths');
+      assert(data.startDisabled===false,'Start batch remained disabled after valid ZIP import: '+data.archiveMessage);
+      assert((data.archiveMessage||'').includes('songs found'),'ZIP song list did not load: '+data.archiveMessage);
       if(data.errors.length)console.log('Browser JS errors:',JSON.stringify(data.errors));
     }catch(e){console.error('Smoke assertion:',e.stack||e);process.exitCode=1;}
   }else{console.error('No diagnostic output. Browser DOM tail:',stdout.slice(-1300));process.exitCode=1;}
