@@ -46,7 +46,7 @@ batch.init({
 (async()=>{
   batch.forceDisplay();
   await batch.choose(zip(Array.from({length:25},(_,i)=>'Song '+String(i+1).padStart(2,'0')+'.mp3')));
-  assert.equal(batch.entries().length,25);
+  assert.equal(batch.entries().length,25,'ZIP load: '+get('batchArchive').textContent);
   await batch.run();
   assert.deepEqual([...batch.entries()].map(x=>x.status),Array.from({length:25},(_,i)=>i<10?'Saved':'Queued'));
   assert.equal(analysed.length,10);
