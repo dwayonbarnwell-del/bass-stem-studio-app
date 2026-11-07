@@ -1,0 +1,25 @@
+name: Batch repair RC207 verification
+on:
+  push:
+    branches: [fix/batch-repair-rc207]
+    paths: [.github/workflows/repair-rc207.yml, .rc207-patch.json.gz]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rc207-baseline
+          retention-days: 1
+          path: |
+            AGENTS.md
+            index.html
+            sw.js
+            batch-source
+            library-source
+            tests
+            scripts
