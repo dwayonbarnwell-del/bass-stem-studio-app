@@ -44,7 +44,7 @@ window.BassBatch = (() => {
         if(!Array.isArray(previous))continue;
         for(const row of previous){
           if(!Array.isArray(row)||typeof row[0]!=='string'||!row[1])continue;
-          const match=/^(.*)\\|(\\d+)\\|(\\d+)$/.exec(row[0]);
+          const match=/^(.*)\|(\d+)\|(\d+)$/.exec(row[0]);
           if(!match)continue;
           const pkey=match[1].replace(/\\/g,'/').split('/').pop().toLocaleLowerCase()+'|'+match[2]+'|'+match[3];
           if(wanted.has(pkey))portableRetryJournal.set(pkey,mergeRetry(portableRetryJournal.get(pkey),row[1]));
