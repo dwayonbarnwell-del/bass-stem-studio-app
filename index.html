@@ -12556,7 +12556,150 @@ window.BassMidi=notes=>{
  }
  return {init,cancel:()=>cancel()};
 })();
-</script><script id="rc167-live-script">/* RC168: AI-assisted local live audio. No microphone audio is uploaded by this module. */
+</script><script id="rc208-worship-live">
+/* RC208: Church-focused lead voice and basic chord evidence. Runs on the device. */
+window.BassWorshipLive = (()=>{
+ 'use strict';
+ const labels=['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B'];
+ const midiName=m=>labels[((m%12)+12)%12]+(Math.floor(m/12)-1);
+ const triads=[];
+ for(let root=0;root<12;root++)for(const [suffix,pcs] of [['',[0,4,7]],['m',[0,3,7]]])triads.push({root,label:labels[root]+suffix,pcs:pcs.map(x=>(root+x)%12)});
+ const empty=()=>({lead:null,chord:'—',confidence:0,hist:Array(12).fill(0),seconds:0,voiceFrames:0,chordFrames:0});
+ function chordRank(chroma){
+  const total=chroma.reduce((s,v)=>s+v,0),peak=Math.max(...chroma);
+  if(total<.1||peak<.1)return null;
+  let best=null,runner=-Infinity;
+  for(const c of triads){
+   const a=c.pcs.map(p=>chroma[p]),min=Math.min(...a),inside=a.reduce((s,v)=>s+v,0)/total;
+   if(min<peak*.18||inside<.52)continue;
+   const score=inside+.11*min/peak;
+   if(!best||score>best.score){runner=best?.score??-Infinity;best={label:c.label,score,inside};}
+   else if(score>runner)runner=score;
+  }
+  return best&&best.score-runner>=.045?best:null;
+ }
+ // Pitch candidates come from the existing on-device note model. Continue a singing
+ // line rather than picking the loudest piano/choir note in each small frame.
+ function bestLead(d,track){
+  if(track.length<7)return null;
+  // A small Viterbi tracker prefers one continuous singing line and keeps
+  // a quieter, sustained note over a louder but fleeting competing sound.
+  let previous=[],paths=[];
+  for(let frame=0;frame<track.length;frame++){
+   const current=[];
+   for(const note of track[frame]){
+    let best=-Infinity,bestIdx=-1;
+    for(let j=0;j<previous.length;j++){
+     const distance=Math.abs(track[frame-1][j].midi-note.midi);
+     const penalty=distance===0?0:distance<=2?.018:distance<=5?.08:distance<=9?.17:.26;
+     const value=previous[j].score-penalty;
+     if(value>best){best=value;bestIdx=j;}
+    }
+    const bonus=note.midi>=52&&note.midi<=85?.025:0;
+    current.push({score:(frame?best:0)+.30*note.value+bonus,prev:bestIdx});
+   }
+   previous=current;paths.push(current);
+  }
+  let idx=previous.reduce((best,v,i)=>v.score>previous[best].score?i:best,0);
+  const trajectory=[];
+  for(let f=track.length-1;f>=0;f--){
+   trajectory.push({midi:track[f][idx].midi,value:track[f][idx].value});
+   idx=paths[f][idx].prev;
+   if(idx<0&&f>0)break;
+  }
+  trajectory.reverse();
+  const recent=trajectory.slice(-Math.max(8,Math.ceil(trajectory.length*.4)));
+  if(recent.length<6)return null;
+  const tally=new Map();let strength=0;
+  for(const n of recent){tally.set(n.midi,(tally.get(n.midi)||0)+n.value);strength+=n.value;}
+  const grouped=[...tally].sort((a,b)=>b[1]-a[1]);
+  const end=recent.at(-1).midi;
+  let best=grouped[0]?.[0];
+  // A new strong note may be taking over at the end of a phrase.
+  const ending=recent.slice(-Math.min(7,recent.length));
+  if(ending.filter(n=>n.midi===end).length>=4)best=end;
+  const share=(tally.get(best)||0)/Math.max(.1,strength),average=strength/recent.length;
+  const confidence=Math.min(1,(share*.75+average*.35)*1.2);
+  return confidence>=.37?{midi:best,note:midiName(best),confidence}:null;
+ }
+
+ function analyse(d){
+  if(!d||!d.values||!Number.isFinite(d.frames)||!Number.isFinite(d.pitches)||d.frames<1)return empty();
+  const hist=Array(12).fill(0),votes=new Map(),track=[];
+  let voiced=0,chordFrames=0;
+  for(let f=0;f<d.frames;f++){
+   const row=d.values.subarray(f*d.pitches,(f+1)*d.pitches);
+   let peak=0;for(let p=0;p<row.length;p++)if(row[p]>peak)peak=row[p];
+   if(peak<.32)continue;
+   voiced++;
+   const chroma=new Float64Array(12),voice=[];let distinct=0;
+   for(let p=0;p<row.length;p++){
+    const midi=p+21,v=row[p];
+    if(v<Math.max(.26,peak*.30))continue;
+    if(midi>=43&&midi<=89&&v>=Math.max(.31,peak*.53))voice.push({midi,value:v});
+    if(midi>=40&&midi<=85){
+     const pc=midi%12,amount=Math.sqrt(v);
+     if(!chroma[pc])distinct++;
+     chroma[pc]+=amount;
+    }
+   }
+   voice.sort((a,b)=>b.value-a.value);
+   if(voice.length)track.push(voice.slice(0,5));
+   if(distinct>=3){
+    chordFrames++;
+    const candidate=chordRank(chroma);
+    if(candidate){
+     const vote=votes.get(candidate.label)||{n:0,weight:0};
+     vote.n++;vote.weight+=candidate.inside;votes.set(candidate.label,vote);
+    }
+    for(let j=0;j<12;j++)hist[j]+=chroma[j];
+   }
+  }
+  let chord='—',confidence=0;
+  const ranks=[...votes].sort((a,b)=>b[1].weight-a[1].weight);
+  if(ranks.length&&chordFrames>=Math.max(4,d.frames*.14)){
+   const best=ranks[0],other=ranks[1]?.[1].weight||0;
+   confidence=best[1].weight/chordFrames;
+   if(best[1].n>=Math.max(4,chordFrames*.45)&&best[1].weight>other*1.2&&confidence>=.42)chord=best[0];
+  }
+  // Worship rooms often include much stronger bass and piano fundamentals.
+  // Follow a supported upper singing line where present; use a lower voice
+  // range only when there is no sustained upper line. Do not follow bass notes.
+  const upperFrames=track.filter(row=>row.some(n=>n.midi>=60&&n.midi<=88&&n.value>=.34)).length;
+  const minVoice=upperFrames>=Math.max(7,track.length*.26)?60:50;
+  const singer=track.map(row=>row.filter(n=>n.midi>=minVoice&&n.midi<=88)).filter(row=>row.length);
+  return {lead:bestLead(d,singer),chord,confidence,hist,seconds:voiced*256/22050,voiceFrames:voiced,chordFrames};
+ }
+ // Keep a chord through short gaps, but never invent a new chord from a single frame.
+ function createFollower(){
+  let chord='—',chordNext='',chordCount=0,chordSeen=0,lead=null,leadSeen=0;
+  return {
+   update(e,seconds){
+    if(e.chord!=='—'){
+     if(e.chord===chord){chordCount=0;chordNext='';chordSeen=seconds;}
+     else{
+      chordCount=e.chord===chordNext?chordCount+1:1;chordNext=e.chord;
+      // A clearly supported chord can be shown at once. Otherwise wait for
+      // a second matching result, so ordinary choir notes do not cause jumps.
+      if(e.confidence>=.86||(chordCount>=2&&e.confidence>=.48)){
+       chord=e.chord;chordSeen=seconds;chordNext='';chordCount=0;
+      }
+     }
+    }else{chordNext='';chordCount=0;}
+    if(seconds-chordSeen>3.5)chord='—';
+    if(e.lead?.confidence>=.38){
+     if(!lead||e.lead.midi===lead.midi||e.lead.confidence>=.72||seconds-leadSeen>=.6){lead=e.lead;leadSeen=seconds;}
+    }
+    if(seconds-leadSeen>1.6)lead=null;
+    return {chord,lead};
+   },
+   clear(){chord='—';chordNext='';chordCount=0;chordSeen=0;lead=null;leadSeen=0;}
+  };
+ }
+ return Object.freeze({analyse,createFollower,midiName,chordRank});
+})();
+</script>
+<script id="rc167-live-script">/* RC168: AI-assisted local live audio. No microphone audio is uploaded by this module. */
 window.BassLiveDSP = (()=>{
   const names=['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B'];
   const templates=[['',[0,4,7]],['m',[0,3,7]],['7',[0,4,7,10]],['maj7',[0,4,7,11]],['m7',[0,3,7,10]],['sus2',[0,2,7]],['sus4',[0,5,7]],['dim',[0,3,6]],['aug',[0,4,8]]];
@@ -12606,7 +12749,8 @@ window.BassLiveAudio = (()=>{
     const $=id=>document.getElementById(id),dialog=$('liveAudioDialog'),player=$('liveReplay');
     let stream=null,context=null,source=null,analyser=null,recorder=null,timer=null,generation=0,pending=false,finishing=false,importing=false;
     let autoCandidate='',autoCount=0,autoHarmony=false,clipping=false;
-    let ai=null,latestRms=0,aiOrigin=0,history=[],lastAIEnd=-1,aiNotes='',aiKey='Gathering notes';
+    let ai=null,latestRms=0,aiOrigin=0,history=[],lastAIEnd=-1,aiNotes='',aiKey='Gathering notes',quietSince=0;
+    const worshipFollow=window.BassWorshipLive.createFollower();
     let fft,timeData,smooth=new Float64Array(12),lastTick=0,candidate='',candidateSince=0,shown='—';
     let chunks=[],audioBlob=null,audioURL='',downloaded=true,recordStart=0,listenStart=0,recordEnd=0,recordName='',events=[],lastEvent=null,stopPromise=null,resolveStop=null;
     let recovering=true,exporting=false,humNotes=[],humLastTime=-1,feedbackTotal=0,feedbackMatch=0;
@@ -12650,14 +12794,14 @@ window.BassLiveAudio = (()=>{
       let sum=0,peak=0;for(const v of timeData){sum+=v*v;peak=Math.max(peak,Math.abs(v));}
       const rms=Math.sqrt(sum/timeData.length);meter.value=Math.min(1,rms*5);
       latestRms=rms;clipping=peak>.98;
-      if(rms<.003){autoCandidate='';autoCount=0;autoHarmony=false;aiNotes='';$('liveNotes').textContent='Notes: —';show('—','quiet',now);}
-      else if(peak>.98){show('—','unclear',now);detail.textContent='Input too loud. Lower the volume.';}
+      if(rms<.003){if(!quietSince)quietSince=now;if(now-quietSince>=700){aiNotes='';$('liveNotes').textContent='Lead note: —';show('—','quiet',now);}}
+      else {quietSince=0;if(peak>.98){show('—','unclear',now);detail.textContent='Input too loud. Lower the volume.';}}
       elapsed.textContent=clock((now-(recording()?recordStart:listenStart))/1000);
       // Bound memory use; the finished recording remains available to save.
       if(recording()&&now-recordStart>=3600000){void stop('One-hour recording complete. Save it before starting another.');}
     }
     function releaseMic(){window.BassCoach?.stop();
-      clearInterval(timer);timer=null;ai?.stop();ai=null;$('liveAIState').textContent='AI stopped';
+      clearInterval(timer);timer=null;ai?.stop();ai=null;worshipFollow.clear();$('liveAIState').textContent='AI stopped';
       if(stream){for(const track of stream.getTracks()){track.onended=null;track.stop();}stream=null;}
       try{source?.disconnect();analyser?.disconnect();}catch(_){}
       source=null;analyser=null;
@@ -12681,8 +12825,8 @@ window.BassLiveAudio = (()=>{
         smooth.fill(0);candidate='';shown='—';chord.textContent='—';detail.textContent='Waiting for music';listenStart=performance.now();lastTick=listenStart;
         stream.getTracks().forEach(t=>{t.onended=()=>void stop('Microphone disconnected. Any recording is ready to save.');});
         state.textContent='Listening on this device.';timer=setInterval(tick,100);
-        autoCandidate='';autoCount=0;autoHarmony=false;history=[];lastAIEnd=-1;aiNotes='';aiKey='Gathering notes';aiOrigin=performance.now()-context.currentTime*1000;
-        $('liveNotes').textContent='Notes: —';$('liveKey').textContent='Key: gathering notes';
+        autoCandidate='';autoCount=0;autoHarmony=false;history=[];lastAIEnd=-1;aiNotes='';aiKey='Gathering notes';quietSince=0;worshipFollow.clear();aiOrigin=performance.now()-context.currentTime*1000;
+        $('liveNotes').textContent='Lead note: —';$('liveKey').textContent='Key: gathering notes';
         const liveContext=context;void window.BassCoach?.start(context,source);
         void (async()=>{try{
           const handle=await window.BassVoiceAI.start(context,source,d=>{
@@ -12705,17 +12849,14 @@ window.BassLiveAudio = (()=>{
               $('liveFeedback').textContent=feedbackTotal?'Scale fit: '+Math.round(feedbackMatch/feedbackTotal*100)+'% of detected frames.':'';
             }
 
-            const poly=window.BassVoiceAI.readFrames(d,window.BassLiveDSP.classify,false);
-            if(mode==='auto'){
-              const next=poly.chord!=='—'?'harmony':'single';
-              autoCount=next===autoCandidate?autoCount+1:1;autoCandidate=next;
-              if(autoCount>=2)autoHarmony=next==='harmony';
-            }
-            const evidence=(mode==='harmony'||mode==='auto'&&autoHarmony)?poly:window.BassVoiceAI.readFrames(d,window.BassLiveDSP.classify,true);
-            const speech=$('liveVoiceMode').value==='speech';
-            $('liveAIState').textContent=(mode==='auto'?(autoHarmony?'Auto: harmony':'Auto: single line'):'AI ready')+' · '+Math.max(0,age).toFixed(1)+'s';
+            const speech=mode==='speech';
+            const church=mode==='auto'||mode==='solo'||mode==='harmony';
+            const evidence=church?window.BassWorshipLive.analyse(d):window.BassVoiceAI.readFrames(d,window.BassLiveDSP.classify,true);
+            const focus=church?worshipFollow.update(evidence,d.end):null;
+            $('liveAIState').textContent=(church?'Lead singer + simple chords':'AI ready')+' · '+Math.max(0,age).toFixed(1)+'s';
             if(latestRms<.003||clipping)return;
-            aiNotes=evidence.notes.join(' ');$('liveNotes').textContent='Notes: '+(aiNotes||'—');
+            aiNotes=church?(focus.lead?.note||''):evidence.notes.join(' ');
+            $('liveNotes').textContent=(church?'Lead note: ':speech?'Voice pitch: ':'Bass notes: ')+(aiNotes||'—');
             if(d.end>lastAIEnd){
               const fraction=lastAIEnd<=d.start?1:Math.max(0,(d.end-lastAIEnd)/(d.end-d.start));
               history.push({time:d.end,hist:evidence.hist.map(x=>x*fraction),seconds:evidence.seconds*fraction});lastAIEnd=d.end;
@@ -12724,9 +12865,11 @@ window.BassLiveAudio = (()=>{
             const hist=new Array(12).fill(0);let seconds=0;for(const h of history){seconds+=h.seconds;h.hist.forEach((v,i)=>hist[i]+=v);}
             aiKey=speech?'Not estimated for speech':window.BassVoiceAI.keyEstimate(hist,seconds);
             $('liveKey').textContent='Key: '+aiKey;
-            show(speech?'—':evidence.chord,evidence.chord!=='—'&&!speech?'chord':evidence.notes.length?'notes':'unclear',aiOrigin+d.end*1000);
-            if(speech)detail.textContent='Vocal pitch only';
-            else if(evidence.notes.length&&evidence.chord==='—')detail.textContent='No clear chord';
+            const basicChord=church&&mode!=='solo'?focus.chord:'—';
+            show(basicChord,basicChord!=='—'?'chord':aiNotes?'notes':'unclear',aiOrigin+d.end*1000);
+            if(church)detail.textContent=basicChord!=='—'?'Basic chord (estimate)':aiNotes?'Listening for a clear chord':'Listening for lead singing';
+            else if(speech)detail.textContent='Vocal pitch only';
+            else if(aiNotes)detail.textContent='Bass note estimate';
           },message=>{if(token===generation)$('liveAIState').textContent=message;});
           if(token!==generation)handle.stop();else ai=handle;
         }catch(_){if(token===generation)$('liveAIState').textContent='AI unavailable. Recording still works.';}})();
@@ -12822,7 +12965,7 @@ window.BassLiveAudio = (()=>{
       }catch(_){state.textContent='Could not load this recording. You can still save the audio.';}
       finally{importing=false;sync();}
     };
-    $('liveVoiceMode').onchange=()=>{$('livePractice').hidden=$('liveVoiceMode').value!=='hum';autoCandidate='';autoCount=0;autoHarmony=false;history=[];shown='—';chord.textContent='—';aiNotes='';$('liveNotes').textContent='Notes: —';aiKey='Gathering notes';$('liveKey').textContent=$('liveVoiceMode').value==='speech'?'Key: not estimated for speech':'Key: gathering notes';};
+    $('liveVoiceMode').onchange=()=>{$('livePractice').hidden=$('liveVoiceMode').value!=='hum';autoCandidate='';autoCount=0;autoHarmony=false;worshipFollow.clear();history=[];shown='—';chord.textContent='—';aiNotes='';$('liveNotes').textContent='Lead note: —';aiKey='Gathering notes';$('liveKey').textContent=$('liveVoiceMode').value==='speech'?'Key: not estimated for speech':'Key: gathering notes';};
     window.addEventListener('beforeunload',e=>{if(recording()||finishing||(audioBlob&&!downloaded)){e.preventDefault();e.returnValue='';}});
     window.addEventListener('pagehide',()=>void stop('Microphone off.'));
     restoreSaved=async saved=>{
@@ -13402,8 +13545,8 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRo
 <dialog id="liveAudioDialog" aria-labelledby="liveTitle">
  <h2 id="liveTitle">Live Audio</h2>
  <p id="liveStatus" role="status">Listen or record.</p>
- <label for="liveVoiceMode">Input</label><select id="liveVoiceMode"><option value="auto" selected>Auto: notes / harmony</option><option value="solo">Solo singing</option><option value="hum">Hum bassline</option><option value="harmony">Choir / instruments</option><option value="speech">Speaking (pitch only)</option></select>
- <div id="liveReadout"><strong id="liveChord" aria-label="Detected chord">—</strong><span id="liveDetail">Stopped</span><span id="liveNotes">Notes: —</span><span id="liveKey">Key: gathering notes</span><small id="liveAIState">AI starts when you listen.</small><output id="liveElapsed" aria-label="Elapsed time">0:00</output></div>
+ <label for="liveVoiceMode">Input</label><select id="liveVoiceMode"><option value="auto" selected>Church: lead singer + basic chords</option><option value="solo">Lead singer only</option><option value="hum">Hum bassline</option><option value="harmony">Basic chords / instruments</option><option value="speech">Speaking (pitch only)</option></select>
+ <div id="liveReadout"><strong id="liveChord" aria-label="Detected chord">—</strong><span id="liveDetail">Stopped</span><span id="liveNotes">Lead note: —</span><span id="liveKey">Key: gathering notes</span><small id="liveAIState">AI starts when you listen.</small><output id="liveElapsed" aria-label="Elapsed time">0:00</output></div>
  <label id="liveMeterLabel">Input level <meter id="liveLevel" min="0" max="1" value="0"></meter></label>
  <div class="live-buttons"><button id="liveListen" type="button">Listen</button><button id="liveRecord" type="button">Record</button><button id="liveStop" type="button" disabled>Stop</button></div>
  
