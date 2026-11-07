@@ -1,0 +1,16 @@
+Bass Stem Studio RC213: Searchable, editable song chord reference library
+
+Initial songs: 514 user-supplied names, 46 pages of original user progression notes, and 27 traditional hymns.
+Added: CCLI Top 100 (101 chart positions due to a tie), 50 recent Nigerian chart songs, worship classics, and public-domain hymns, deduplicated where safely possible.
+
+Catalogue: 858 song entries. 353 have at least one section progression. These include 334 with the user's unverified numbered notes, nine with concise publisher-referenced chord sequences and ten with checked public-domain hymn progressions. 346 original user entries retain their personal notes. The remaining songs have editable metadata and blank chord sections rather than invented arrangements.
+
+Collections: 101 CCLI Top 100 entries, 100 Nigerian worship essentials (50 recent chart songs plus 50 from user-supplied Nigerian repertoire), classics, hymns, personal notes and favourites.
+
+Search and use: More tools > Song chords. Instant on-device search by title or artist, filters, alphabetic order, view and edit verse, chorus, intro, bridge, key and notes, star favourites, add songs, import/export JSON backups. Edits are saved locally via separate IndexedDB store, with a localStorage fallback. Nothing changes the audio library, saved project files or RunPod jobs. All three new reference assets are included in RC213's PWA offline cache.
+
+Evidence: CCLI via https://www.renewingworshipnc.org/top-100-ccli/ ; Nigerian weekly chart via https://www.ngmcharts.com/charts/top50 ; public-domain chord charts via https://worshipchordbook.com/hymns . Externally sourced title lists support song selection, not harmonic verification; unverified progressions are marked accordingly. No copyrighted lyrics were copied in bulk.
+
+Checks: Browser interaction tested at 390px, 800px and 1280px with search/filter/edit/save and no horizontal overflow. Inline JavaScript compiled. No paid RunPod or chargeable CI work performed.
+
+Further work: User's longer-term goal is 750 to 2,500 songs with useful section progressions, not just song names. This build passes 750 entries but only 353 have progressions, primarily unverified. Continue verifying missing progressions with recording or permission-based charts; never manufacture them to inflate coverage.
