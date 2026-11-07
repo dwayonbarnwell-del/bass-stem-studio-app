@@ -1,0 +1,20 @@
+Bass Stem Studio RC215 — visible searchable songs and editable number progressions
+
+User feedback: hiding songs with no progression prevented discovery and adding chords. All titles now remain visible. The song search defaults to All songs; filters include With progressions and Needs progression. Unfilled entries are labelled Needs progression, not mistaken for usable charts. Each chorded search result previews the first section's numbers.
+
+Music: 874 searchable entries, 375 with at least one chorded section, 499 needing progressions. This is a progress figure, not 375 fully verified arrangements. The original 514 user-supplied song titles and 46-page personal numbered progression notes remain. User-provided notes are unverified and editable. There is no fabricated section data.
+
+Numeric display is the default. 61 labelled original letter-chord chart sections were mechanically transcribed into scale degrees relative to the documented major key, including modulation where stated. The original chord names remain stored and displayed for reference. Older saved named-chord edits are optionally transcribed only when a known key and a complete parse allow it; no unsafe guess is made. Number notation includes 6m for a minor chord, 1/3 for an inversion, and 2(7) for a seventh chord. Editing is non-destructive to audio songs and preserves previous section source data unless that section is edited.
+
+New compact Nigerian worship number references include Onise Iyanu, Alagbada Ina, Arugbo Ojo, Na You Be God, Unlimited God, Hallelujah (Onos), You Are Holy (Nathaniel Bassey) and Baba (Open the Floodgates), plus additional sections for existing songs from public music blogs, as well as two traditional public-domain hymn charts. Some references include only a main recurring loop or selected sections; label as partial and verify performance variants. Source links are kept but are optional to view the stored numbers. Added only short progression sequences, not bulk lyrics or arrangements.
+
+Source examples:
+https://michaelphils.com/chord-progression-solfa-of-onise-iyanu/
+https://michaelphils.com/chord-progression-of-alagbada-ina-by/
+https://michaelphils.com/tonic-solfa-of-na-you-be-godibuchukwu/
+https://playthepianos.blogspot.com/2018/09/tonic-solfa-and-chord-progression-of_92.html
+https://gospelpianopath.com/charts/jesus-paid-it-all/
+
+Access: More tools > Song chords or Library > Song chords. All searchable and available offline after initial online load and service-worker caching. Corrections remain in the device-only separate IndexedDB/localStorage library; export a backup periodically. RC215 service worker updates the PWA cache.
+
+Limitations: The 750–2,500 complete progressions target remains unmet; most user-entered sections are unverified, many external references are partial, and 499 songs remain without a checked progression. Do not state that these have been completed. No RunPod jobs, paid tests or audio processing were launched.
