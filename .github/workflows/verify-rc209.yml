@@ -1,0 +1,69 @@
+name: Verify RC209 local chord and ZIP repairs
+on:
+  push:
+    branches: [fix/responsive-live-rc209]
+    paths: [.github/workflows/verify-rc209.yml, .rc209-payload.0, .rc209-payload.1, .rc209-payload.2]
+permissions:
+  contents: write
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify baseline and reconstruct tested changes
+        run: |
+          test "$(git hash-object index.html)" = 3cbc90bc580117f1e0346ab9e79ad97009a18c1f
+          cp index.html index.baseline.html
+          python3 - <<'PY'
+          from pathlib import Path
+          import gzip,json,hashlib
+          data=b''.join(Path('.rc209-payload.'+str(i)).read_bytes() for i in range(3))
+          assert hashlib.sha256(data).hexdigest()=='0eb36f55effe78c9d91cc0ef573c6b5fbe5ac931e139d96c999b727a2dd95847'
+          p=json.loads(gzip.decompress(data))
+          assert p['base']=='8a68cf44656eba2b439ce6a7a149eb9e7b79c7d5'
+          assert set(p['files'])=={'scripts/apply_rc209.py','scripts/patch_zip_rc209.py','scripts/finalise_rc209.py','ai-source/responsive-live.js','tests/responsive_live_rc209.cjs','tests/batch_repair_rc209.cjs','RELEASE_NOTES_RC209.txt'}
+          for name,text in p['files'].items():
+            f=Path(name);f.parent.mkdir(parents=True,exist_ok=True);f.write_text(text,encoding='utf-8')
+          Path('/tmp/rc209-expected.json').write_text(json.dumps(p['expected']))
+          PY
+          python3 scripts/apply_rc209.py
+          python3 scripts/patch_zip_rc209.py
+          python3 scripts/finalise_rc209.py
+      - name: Verify exact output and scripts
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json,hashlib
+          expected=json.loads(Path('/tmp/rc209-expected.json').read_text())
+          assert set(expected)=={'index.html','ai-source/rc171-live.js','ai-source/voice-ai.js','ai-source/responsive-live.js','batch-source/batch.js','sw.js','tests/responsive_live_rc209.cjs','tests/batch_repair_rc209.cjs','RELEASE_NOTES_RC209.txt'}
+          for name,digest in expected.items():
+            assert hashlib.sha256(Path(name).read_bytes()).hexdigest()==digest,name
+            print('Exact tested output verified:',name)
+          PY
+          node - <<'JS'
+          const fs=require('fs'),vm=require('vm');let n=0;
+          for(const m of fs.readFileSync('index.html','utf8').matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)){
+            if(/\btype\s*=\s*["'](?:application\/json|importmap)/i.test(m[1])||!m[2].trim())continue;
+            new vm.Script(m[2]);n++;
+          }
+          console.log('Valid inline scripts:',n);
+          JS
+      - name: Run synthetic and mocked checks without paid audio requests
+        run: |
+          node tests/responsive_live_rc209.cjs
+          node tests/batch_repair_rc209.cjs
+          node tests/live_audio_rc167.cjs
+          node tests/voice_ai_rc168.cjs
+          node tests/batch_rc196.cjs
+      - name: Save verified changes on the test branch only
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html ai-source/rc171-live.js ai-source/voice-ai.js ai-source/responsive-live.js batch-source/batch.js sw.js tests/responsive_live_rc209.cjs tests/batch_repair_rc209.cjs RELEASE_NOTES_RC209.txt
+          git commit -m 'RC209 tested responsive basic chords and repeatable ZIP recovery'
+          git push origin HEAD:fix/responsive-live-rc209
+          git rev-parse HEAD
