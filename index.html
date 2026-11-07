@@ -11963,7 +11963,7 @@ html body #appRoot#appRoot#appRoot#appRoot #liveReplay[hidden]{display:none!impo
   const best=[...votes].sort((a,b)=>b[1]-a[1])[0];
   return {notes:notes.map(m=>names[m%12]+(Math.floor(m/12)-1)),midis:notes,chord:best&&best[1]>=d.frames*.5?best[0]:'—',hist,seconds:voiced*256/22050};
  }
- const worklet=`class VoiceCapture extends AudioWorkletProcessor{constructor(){super();this.ring=new Float32Array(43844);this.pos=0;this.count=0;this.since=0;}process(inputs,outputs){const a=inputs[0]?.[0];if(a){for(const x of a){this.ring[this.pos]=x;this.pos=(this.pos+1)%43844;}this.count+=a.length;this.since+=a.length;if(this.count>=43844&&this.since>=17640){this.since=0;const samples=new Float32Array(43844);samples.set(this.ring.subarray(this.pos));samples.set(this.ring.subarray(0,this.pos),43844-this.pos);this.port.postMessage({samples,end:(currentFrame+a.length)/sampleRate},[samples.buffer]);}}return true;}}registerProcessor('bass-voice-capture',VoiceCapture);`;
+ const worklet=`class VoiceCapture extends AudioWorkletProcessor{constructor(){super();this.ring=new Float32Array(43844);this.pos=0;this.count=0;this.since=0;}process(inputs,outputs){const a=inputs[0]?.[0];if(a){for(const x of a){this.ring[this.pos]=x;this.pos=(this.pos+1)%43844;}this.count+=a.length;this.since+=a.length;if(this.count>=43844&&this.since>=8820){this.since=0;const samples=new Float32Array(43844);samples.set(this.ring.subarray(this.pos));samples.set(this.ring.subarray(0,this.pos),43844-this.pos);this.port.postMessage({samples,end:(currentFrame+a.length)/sampleRate},[samples.buffer]);}}return true;}}registerProcessor('bass-voice-capture',VoiceCapture);`;
  async function start(context,source,onResult,onState){
   if(context.sampleRate!==22050)throw Error('This browser cannot start AI audio capture.');
   const assets=window.BASS_VOICE_ASSETS;
@@ -11972,7 +11972,7 @@ html body #appRoot#appRoot#appRoot#appRoot #liveReplay[hidden]{display:none!impo
   const workletUrl=URL.createObjectURL(new Blob([worklet],{type:'text/javascript'}));
   const worker=new Worker(workerUrl);let node=null,ready=false,busy=false,ended=false,latest=null,watchdog;
   const stop=()=>{if(ended)return;ended=true;clearTimeout(watchdog);worker.terminate();try{source.disconnect(node);node?.disconnect();}catch(_){}URL.revokeObjectURL(workerUrl);URL.revokeObjectURL(workletUrl);};
-  const send=()=>{if(ended||!ready||busy||!latest)return;const data=latest;latest=null;busy=true;worker.postMessage({type:'audio',...data},[data.samples.buffer]);clearTimeout(watchdog);watchdog=setTimeout(()=>{onState('AI took too long. Stop and retry.');stop();},20000);};
+  const send=()=>{if(ended||!ready||busy||!latest)return;const data=latest;latest=null;let peak=0;for(const x of data.samples)peak=Math.max(peak,Math.abs(x));if(peak>.95){const gain=.95/peak;for(let i=0;i<data.samples.length;i++)data.samples[i]*=gain;}busy=true;worker.postMessage({type:'audio',...data},[data.samples.buffer]);clearTimeout(watchdog);watchdog=setTimeout(()=>{onState('AI took too long. Stop and retry.');stop();},20000);};
   worker.onmessage=({data:d})=>{
    if(ended)return;
    if(d.type==='ready'){ready=true;clearTimeout(watchdog);onState('AI ready. Listening for notes.');send();}
@@ -11990,7 +11990,7 @@ html body #appRoot#appRoot#appRoot#appRoot #liveReplay[hidden]{display:none!impo
     const ring=new Float32Array(43844);let pos=0,count=0,since=0;
     node.onaudioprocess=e=>{
      const a=e.inputBuffer.getChannelData(0);for(const x of a){ring[pos]=x;pos=(pos+1)%43844;}count+=a.length;since+=a.length;
-     if(count>=43844&&since>=17640){since=0;const samples=new Float32Array(43844);samples.set(ring.subarray(pos));samples.set(ring.subarray(0,pos),43844-pos);latest={samples,end:e.playbackTime};send();}
+     if(count>=43844&&since>=8820){since=0;const samples=new Float32Array(43844);samples.set(ring.subarray(pos));samples.set(ring.subarray(0,pos),43844-pos);latest={samples,end:e.playbackTime};send();}
     };
    }
    source.connect(node);node.connect(context.destination); // Capture outputs silence: no feedback.
@@ -12699,6 +12699,136 @@ window.BassWorshipLive = (()=>{
  return Object.freeze({analyse,createFollower,midiName,chordRank});
 })();
 </script>
+<script id="rc209-responsive-live">
+/* RC209: fast, local basic chords. No uploads or paid requests. */
+window.BassResponsiveLive = (()=>{
+ 'use strict';
+ const names=['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B'];
+ const blank=()=>({chord:'—',confidence:0});
+ const triads=[];
+ for(let root=0;root<12;root++)for(const [suffix,steps] of [['',[0,4,7]],['m',[0,3,7]]])
+  triads.push({chord:names[root]+suffix,pcs:steps.map(n=>(n+root)%12)});
+ function rank(chroma,{inside=.68,minimum=.14,margin=.035}={}){
+  const total=chroma.reduce((a,b)=>a+b,0),peak=Math.max(...chroma);
+  if(!Number.isFinite(total)||total<.05||!peak)return blank();
+  const ranked=[];
+  for(const t of triads){
+   const values=t.pcs.map(pc=>chroma[pc]),low=Math.min(...values),share=values.reduce((a,b)=>a+b,0)/total;
+   if(low<peak*minimum||share<inside)continue;
+   ranked.push({chord:t.chord,share,score:share+.10*low/peak});
+  }
+  ranked.sort((a,b)=>b.score-a.score);
+  if(!ranked.length)return blank();
+  const best=ranked[0],gap=best.score-(ranked[1]?.score||0);
+  if(gap<margin)return blank();
+  return {chord:best.chord,confidence:Math.min(1,best.share*.8+Math.min(.2,gap)),share:best.share};
+ }
+ function levels(samples){
+  let sum=0,peak=0,near=0,flat=0,previous=NaN;
+  for(const value of samples){
+   if(!Number.isFinite(value))continue;
+   const a=Math.abs(value);sum+=value*value;peak=Math.max(peak,a);
+   if(a>=.995){near++;if(Math.abs(value-previous)<.000015)flat++;}
+   previous=value;
+  }
+  const count=Math.max(1,samples.length),rms=Math.sqrt(sum/count);
+  // One large sample is not sustained distortion; stereo mixing can exceed 1.
+  return {rms,peak,quiet:rms<.0025,warning:near/count>.015,severe:flat/count>.025&&near/count>.08};
+ }
+ function spectrum(db,sampleRate,fftSize){
+  const step=sampleRate/fftSize,peaks=[];let maximum=-Infinity;
+  for(let i=Math.max(2,Math.ceil(65/step));i<Math.min(db.length-1,Math.floor(2400/step));i++)maximum=Math.max(maximum,db[i]);
+  if(!Number.isFinite(maximum)||maximum<-88)return blank();
+  for(let i=Math.max(2,Math.ceil(65/step));i<Math.min(db.length-1,Math.floor(2400/step));i++){
+   const v=db[i];if(!Number.isFinite(v)||v<maximum-34||v<-90||v<=db[i-1]||v<db[i+1])continue;
+   const denom=db[i-1]-2*v+db[i+1],offset=Number.isFinite(denom)&&denom!==0?Math.max(-.5,Math.min(.5,.5*(db[i-1]-db[i+1])/denom)):0;
+   const frequency=(i+offset)*step,midi=69+12*Math.log2(frequency/440),m=Math.round(midi);
+   if(Math.abs(midi-m)>.40||m<36||m>94)continue;
+   peaks.push({frequency,midi:m,weight:Math.pow(10,(v-maximum)/20)});
+  }
+  if(peaks.length<3)return blank();
+  const power=peaks.reduce((s,p)=>s+p.weight*p.weight,0);
+  // Reject the harmonic series of one voice or one instrument note.
+  for(const base of peaks.slice(0,12)){
+   if(base.weight<.15)continue;
+   let explained=0;
+   for(const p of peaks){const ratio=p.frequency/base.frequency,n=Math.round(ratio);
+    if(n>=1&&n<=12&&Math.abs(12*Math.log2(ratio/n))<.30)explained+=p.weight*p.weight;
+   }
+   if(explained/power>.97)return blank();
+  }
+  const chroma=new Float64Array(12);
+  for(const p of peaks){
+   let overtone=0;
+   for(const lower of peaks){
+    if(lower.frequency>=p.frequency*.76)break;
+    const ratio=p.frequency/lower.frequency,n=Math.round(ratio);
+    if(n>=2&&n<=8&&Math.abs(12*Math.log2(ratio/n))<.30){
+     overtone=Math.max(overtone,lower.weight/n);
+    }
+   }
+   const weight=Math.max(0,p.weight-1.6*overtone);
+   if(weight<.08)continue;
+   const pc=((p.midi%12)+12)%12;
+   chroma[pc]=Math.max(chroma[pc],Math.sqrt(weight));
+  }
+  return rank(chroma,{inside:.66,minimum:.16,margin:.04});
+ }
+ function model(d,{lead=true}={}){
+  if(!d?.values||!d.frames||!d.pitches)return {...blank(),lead:null};
+  // The worker already supplies the recent, reliable frames; do not average a whole phrase.
+  const from=Math.max(0,d.frames-43),votes=new Map();let usable=0;
+  for(let f=from;f<d.frames;f++){
+   const row=d.values.subarray(f*d.pitches,(f+1)*d.pitches);let peak=0;
+   for(const p of row)peak=Math.max(peak,p);
+   if(peak<.20)continue;
+   const chroma=new Float64Array(12);
+   for(let p=0;p<row.length;p++){
+    const midi=p+21,v=row[p];if(midi<40||midi>90||v<Math.max(.12,peak*.25))continue;
+    chroma[midi%12]=Math.max(chroma[midi%12],Math.sqrt(v));
+   }
+   if(Array.from(chroma).filter(x=>x>0).length<3)continue;
+   usable++;const c=rank(chroma,{inside:.62,minimum:.16,margin:.03});
+   if(c.chord!=='—'){const v=votes.get(c.chord)||{n:0,weight:0};v.n++;v.weight+=c.confidence;votes.set(c.chord,v);}
+  }
+  const sorted=[...votes].sort((a,b)=>b[1].weight-a[1].weight);let chord=blank();
+  if(sorted.length){
+   const [label,best]=sorted[0],other=sorted[1]?.[1].weight||0;
+   // Require simultaneous notes in several frames, never combine solo notes into a chord.
+   if(best.n>=4&&best.n>=usable*.35&&best.weight>other*1.18)
+    chord={chord:label,confidence:Math.min(1,best.weight/best.n*(.72+.28*best.n/Math.max(1,usable)))};
+  }
+  const singing=lead?window.BassWorshipLive.analyse(d):null;
+  return {...chord,lead:singing?.lead||null};
+ }
+ function createFollower(){
+  let current='—',seen=-Infinity,pending='',since=0,count=0,lastCandidate=-Infinity,lastTime=-Infinity;
+  const clear=()=>{current='—';seen=-Infinity;pending='';since=0;count=0;lastCandidate=-Infinity;lastTime=-Infinity;};
+  function state(now){
+   if(now-seen>2.8)current='—';
+   return {chord:current,held:current!=='—'&&now-seen>1.0,age:now-seen};
+  }
+  return {clear,state,update(e,now){
+   if(!Number.isFinite(now))return state(lastTime);
+   if(now<lastTime-.05)return state(lastTime);
+   lastTime=now;
+   if(e&&e.chord!=='—'&&e.confidence>=.58){
+    if(e.chord===current){seen=now;pending='';count=0;}
+    else{
+     if(pending!==e.chord||now-lastCandidate>.65){pending=e.chord;since=now;count=0;}
+     count++;lastCandidate=now;
+     const wait=current==='—'?.16:.24;
+     if((e.source==='model'&&e.confidence>=.88)||(count>=2&&now-since>=wait)){
+      current=e.chord;seen=now;pending='';count=0;
+     }
+    }
+   }else if(now-lastCandidate>.40){pending='';count=0;}
+   return state(now);
+  }};
+ }
+ return Object.freeze({rank,levels,spectrum,model,createFollower});
+})();
+</script>
 <script id="rc167-live-script">/* RC168: AI-assisted local live audio. No microphone audio is uploaded by this module. */
 window.BassLiveDSP = (()=>{
   const names=['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B'];
@@ -12751,6 +12881,8 @@ window.BassLiveAudio = (()=>{
     let autoCandidate='',autoCount=0,autoHarmony=false,clipping=false;
     let ai=null,latestRms=0,aiOrigin=0,history=[],lastAIEnd=-1,aiNotes='',aiKey='Gathering notes',quietSince=0;
     const worshipFollow=window.BassWorshipLive.createFollower();
+    const chordFollow=window.BassResponsiveLive.createFollower();
+    let leadSeen=-Infinity,lastLead=null,inputWarning=false;
     let fft,timeData,smooth=new Float64Array(12),lastTick=0,candidate='',candidateSince=0,shown='—';
     let chunks=[],audioBlob=null,audioURL='',downloaded=true,recordStart=0,listenStart=0,recordEnd=0,recordName='',events=[],lastEvent=null,stopPromise=null,resolveStop=null;
     let recovering=true,exporting=false,humNotes=[],humLastTime=-1,feedbackTotal=0,feedbackMatch=0;
@@ -12785,23 +12917,49 @@ window.BassLiveAudio = (()=>{
       detail.textContent=messages[kind]||'Listening';
       appendEvent(label,(now-recordStart)/1000);
     }
+    function renderListening(now){
+      const mode=$('liveVoiceMode').value,seconds=context?.currentTime||0;
+      if(seconds-leadSeen>1.6)lastLead=null;
+      aiNotes=lastLead?.note||'';
+      $('liveNotes').hidden=mode!=='auto';
+      $('liveNotes').textContent='Lead note: '+(aiNotes||'—');
+      if(mode==='solo'){
+        shown='—';chord.textContent=aiNotes||'—';
+        detail.textContent=aiNotes?'Voice note (estimate)':'Listening for a voice';
+        appendEvent('—',(now-recordStart)/1000);
+      }else{
+        const current=chordFollow.state(seconds);
+        show(current.chord,current.chord==='—'?'notes':'chord',now);
+        detail.textContent=current.chord==='—'?'Listening for a chord':current.held?'Last chord · listening…':'Basic chord (estimate)';
+      }
+      if(inputWarning)detail.textContent+=' · Sound is very loud';
+    }
     function tick(){
-      if(!analyser)return;
-      const now=performance.now();
-      if(now-lastTick>1000){smooth.fill(0);candidate='';candidateSince=now;show('—','unclear',now);}
+      if(!analyser||!context)return;
+      const now=performance.now(),seconds=context.currentTime;
+      if(now-lastTick>1500){chordFollow.clear();worshipFollow.clear();lastLead=null;leadSeen=-Infinity;}
       lastTick=now;
       analyser.getFloatTimeDomainData(timeData);
-      let sum=0,peak=0;for(const v of timeData){sum+=v*v;peak=Math.max(peak,Math.abs(v));}
-      const rms=Math.sqrt(sum/timeData.length);meter.value=Math.min(1,rms*5);
-      latestRms=rms;clipping=peak>.98;
-      if(rms<.003){if(!quietSince)quietSince=now;if(now-quietSince>=700){aiNotes='';$('liveNotes').textContent='Lead note: —';show('—','quiet',now);}}
-      else {quietSince=0;if(peak>.98){show('—','unclear',now);detail.textContent='Input too loud. Lower the volume.';}}
+      const quality=window.BassResponsiveLive.levels(timeData);
+      latestRms=quality.rms;clipping=quality.severe;inputWarning=quality.warning;
+      meter.value=Math.min(1,Math.sqrt(Math.max(0,latestRms)));
+      if(quality.quiet){
+        if(!quietSince)quietSince=now;
+        if(now-quietSince>=1100){chordFollow.clear();worshipFollow.clear();lastLead=null;}
+      }else{
+        quietSince=0;
+        if($('liveVoiceMode').value!=='solo'&&!clipping){
+          analyser.getFloatFrequencyData(fft);
+          const evidence=window.BassResponsiveLive.spectrum(fft,context.sampleRate,analyser.fftSize);
+          chordFollow.update({...evidence,source:'spectrum'},seconds);
+        }
+      }
+      renderListening(now);
       elapsed.textContent=clock((now-(recording()?recordStart:listenStart))/1000);
-      // Bound memory use; the finished recording remains available to save.
-      if(recording()&&now-recordStart>=3600000){void stop('One-hour recording complete. Save it before starting another.');}
+      if(recording()&&now-recordStart>=3600000)void stop('One-hour recording complete. Save it before starting another.');
     }
     function releaseMic(){window.BassCoach?.stop();
-      clearInterval(timer);timer=null;ai?.stop();ai=null;worshipFollow.clear();$('liveAIState').textContent='AI stopped';
+      clearInterval(timer);timer=null;ai?.stop();ai=null;worshipFollow.clear();chordFollow.clear();lastLead=null;leadSeen=-Infinity;$('liveAIState').textContent='Stopped';
       if(stream){for(const track of stream.getTracks()){track.onended=null;track.stop();}stream=null;}
       try{source?.disconnect();analyser?.disconnect();}catch(_){}
       source=null;analyser=null;
@@ -12817,7 +12975,7 @@ window.BassLiveAudio = (()=>{
         pausePlayer();player.pause();
         const AudioCtx=window.AudioContext||window.webkitAudioContext;
         ctx=new AudioCtx({sampleRate:22050});await ctx.resume();
-        acquired=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false},video:false});
+        acquired=await navigator.mediaDevices.getUserMedia({audio:{channelCount:{ideal:1},echoCancellation:false,noiseSuppression:false,autoGainControl:false},video:false});
         if(token!==generation){acquired.getTracks().forEach(t=>t.stop());await ctx.close();return false;}
         context=ctx;stream=acquired;source=context.createMediaStreamSource(stream);analyser=context.createAnalyser();
         analyser.fftSize=8192;analyser.smoothingTimeConstant=0;source.connect(analyser);
@@ -12825,51 +12983,25 @@ window.BassLiveAudio = (()=>{
         smooth.fill(0);candidate='';shown='—';chord.textContent='—';detail.textContent='Waiting for music';listenStart=performance.now();lastTick=listenStart;
         stream.getTracks().forEach(t=>{t.onended=()=>void stop('Microphone disconnected. Any recording is ready to save.');});
         state.textContent='Listening on this device.';timer=setInterval(tick,100);
-        autoCandidate='';autoCount=0;autoHarmony=false;history=[];lastAIEnd=-1;aiNotes='';aiKey='Gathering notes';quietSince=0;worshipFollow.clear();aiOrigin=performance.now()-context.currentTime*1000;
+        autoCandidate='';autoCount=0;autoHarmony=false;history=[];lastAIEnd=-1;aiNotes='';aiKey='Gathering notes';quietSince=0;worshipFollow.clear();chordFollow.clear();lastLead=null;leadSeen=-Infinity;aiOrigin=performance.now()-context.currentTime*1000;
         $('liveNotes').textContent='Lead note: —';$('liveKey').textContent='Key: gathering notes';
-        const liveContext=context;void window.BassCoach?.start(context,source);
+        const liveContext=context; // Keep live listening focused; no extra timing/pitch coach.
         void (async()=>{try{
           const handle=await window.BassVoiceAI.start(context,source,d=>{
             if(token!==generation||!context||context!==liveContext)return;
             const age=context.currentTime-d.end;
-            if(age>4){$('liveAIState').textContent='AI is behind. Try a faster device.';show('—','unclear',performance.now());return;}
+            // Late model results must not erase the faster chord display.
+            if(age>2){$('liveAIState').textContent='Listening';return;}
             const mode=$('liveVoiceMode').value;
-            if(recording()&&mode==='hum'){
-              for(let f=0;f<d.frames;f++){
-                const t=(aiOrigin-recordStart)/1000+d.start+f*256/22050;
-                if(t<0||t<=humLastTime)continue;humLastTime=t;
-                const row=d.values.subarray(f*d.pitches,(f+1)*d.pitches),peak=Math.max(...row);
-                if(peak<.5||latestRms<.003||clipping)continue;
-                const midi=row.indexOf(peak)+21,last=humNotes.at(-1);
-                if(last&&last.midi===midi&&t-last.end<.06)last.end=t+256/22050;
-                else humNotes.push({start:t,end:t+256/22050,midi});
-                const target=$('livePracticeKey').value;
-                if(target!=='off'){const [root,minor]=target.split(':').map(Number),scale=minor?[0,2,3,5,7,8,10]:[0,2,4,5,7,9,11];feedbackTotal++;if(scale.includes((midi-root+120)%12))feedbackMatch++;}
-              }
-              $('liveFeedback').textContent=feedbackTotal?'Scale fit: '+Math.round(feedbackMatch/feedbackTotal*100)+'% of detected frames.':'';
+            const evidence=window.BassResponsiveLive.model(d,{lead:mode!=='harmony'});
+            const focus=worshipFollow.update(evidence,d.end);
+            if(latestRms>=.0025&&!clipping){
+              if(focus.lead){lastLead=focus.lead;leadSeen=context.currentTime;}
+              if(mode!=='solo'&&age<.95&&evidence.chord!=='—')
+                chordFollow.update({...evidence,source:'model'},context.currentTime);
             }
-
-            const speech=mode==='speech';
-            const church=mode==='auto'||mode==='solo'||mode==='harmony';
-            const evidence=church?window.BassWorshipLive.analyse(d):window.BassVoiceAI.readFrames(d,window.BassLiveDSP.classify,true);
-            const focus=church?worshipFollow.update(evidence,d.end):null;
-            $('liveAIState').textContent=(church?'Lead singer + simple chords':'AI ready')+' · '+Math.max(0,age).toFixed(1)+'s';
-            if(latestRms<.003||clipping)return;
-            aiNotes=church?(focus.lead?.note||''):evidence.notes.join(' ');
-            $('liveNotes').textContent=(church?'Lead note: ':speech?'Voice pitch: ':'Bass notes: ')+(aiNotes||'—');
-            if(d.end>lastAIEnd){
-              const fraction=lastAIEnd<=d.start?1:Math.max(0,(d.end-lastAIEnd)/(d.end-d.start));
-              history.push({time:d.end,hist:evidence.hist.map(x=>x*fraction),seconds:evidence.seconds*fraction});lastAIEnd=d.end;
-              history=history.filter(x=>x.time>d.end-30);
-            }
-            const hist=new Array(12).fill(0);let seconds=0;for(const h of history){seconds+=h.seconds;h.hist.forEach((v,i)=>hist[i]+=v);}
-            aiKey=speech?'Not estimated for speech':window.BassVoiceAI.keyEstimate(hist,seconds);
-            $('liveKey').textContent='Key: '+aiKey;
-            const basicChord=church&&mode!=='solo'?focus.chord:'—';
-            show(basicChord,basicChord!=='—'?'chord':aiNotes?'notes':'unclear',aiOrigin+d.end*1000);
-            if(church)detail.textContent=basicChord!=='—'?'Basic chord (estimate)':aiNotes?'Listening for a clear chord':'Listening for lead singing';
-            else if(speech)detail.textContent='Vocal pitch only';
-            else if(aiNotes)detail.textContent='Bass note estimate';
+            $('liveAIState').textContent='Listening';
+            renderListening(performance.now());
           },message=>{if(token===generation)$('liveAIState').textContent=message;});
           if(token!==generation)handle.stop();else ai=handle;
         }catch(_){if(token===generation)$('liveAIState').textContent='AI unavailable. Recording still works.';}})();
@@ -12965,7 +13097,16 @@ window.BassLiveAudio = (()=>{
       }catch(_){state.textContent='Could not load this recording. You can still save the audio.';}
       finally{importing=false;sync();}
     };
-    $('liveVoiceMode').onchange=()=>{$('livePractice').hidden=$('liveVoiceMode').value!=='hum';autoCandidate='';autoCount=0;autoHarmony=false;worshipFollow.clear();history=[];shown='—';chord.textContent='—';aiNotes='';$('liveNotes').textContent='Lead note: —';aiKey='Gathering notes';$('liveKey').textContent=$('liveVoiceMode').value==='speech'?'Key: not estimated for speech':'Key: gathering notes';};
+    const selectMode=()=>{
+      if(!['auto','solo','harmony'].includes($('liveVoiceMode').value))$('liveVoiceMode').value='auto';
+      worshipFollow.clear();chordFollow.clear();lastLead=null;leadSeen=-Infinity;aiNotes='';aiKey='';
+      $('livePractice').hidden=true;$('liveNotes').hidden=$('liveVoiceMode').value!=='auto';
+      $('liveNotes').textContent='Lead note: —';chord.textContent='—';
+      detail.textContent=$('liveVoiceMode').value==='solo'?'Listening for a voice':'Listening for a chord';
+      try{localStorage.setItem('bassLiveModeRC209',$('liveVoiceMode').value);}catch{}
+    };
+    try{const saved=localStorage.getItem('bassLiveModeRC209');if(['auto','solo','harmony'].includes(saved))$('liveVoiceMode').value=saved;}catch{}
+    $('liveVoiceMode').onchange=selectMode;selectMode();
     window.addEventListener('beforeunload',e=>{if(recording()||finishing||(audioBlob&&!downloaded)){e.preventDefault();e.returnValue='';}});
     window.addEventListener('pagehide',()=>void stop('Microphone off.'));
     restoreSaved=async saved=>{
@@ -13299,6 +13440,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRo
 
 html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #settingsClose{background:#274b60!important;color:#fff!important;border:1px solid #638b9a!important;border-radius:10px!important;}
 </style>
+<style id="rc209-live-focus">#liveAudioDialog #liveKey,#liveAudioDialog #coachPanel,#liveAudioDialog #livePractice{display:none!important}#liveAudioDialog #liveNotes[hidden]{display:none!important}</style>
 </head>
 <body>
 <div id="sectionCompatibility" style="display:none" aria-hidden="true">
@@ -13545,7 +13687,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRo
 <dialog id="liveAudioDialog" aria-labelledby="liveTitle">
  <h2 id="liveTitle">Live Audio</h2>
  <p id="liveStatus" role="status">Listen or record.</p>
- <label for="liveVoiceMode">Input</label><select id="liveVoiceMode"><option value="auto" selected>Church: lead singer + basic chords</option><option value="solo">Lead singer only</option><option value="hum">Hum bassline</option><option value="harmony">Basic chords / instruments</option><option value="speech">Speaking (pitch only)</option></select>
+ <label for="liveVoiceMode">Input</label><select id="liveVoiceMode"><option value="solo">Lead notes (singer or speaker)</option><option value="auto" selected>Lead singer + band chords</option><option value="harmony">Instruments: basic chords</option></select>
  <div id="liveReadout"><strong id="liveChord" aria-label="Detected chord">—</strong><span id="liveDetail">Stopped</span><span id="liveNotes">Lead note: —</span><span id="liveKey">Key: gathering notes</span><small id="liveAIState">AI starts when you listen.</small><output id="liveElapsed" aria-label="Elapsed time">0:00</output></div>
  <label id="liveMeterLabel">Input level <meter id="liveLevel" min="0" max="1" value="0"></meter></label>
  <div class="live-buttons"><button id="liveListen" type="button">Listen</button><button id="liveRecord" type="button">Record</button><button id="liveStop" type="button" disabled>Stop</button></div>
@@ -13994,7 +14136,7 @@ window.BassBatch = (() => {
   const heldFor = item => (hooks.heldJobs?.()||[]).find(job=>matchesHeld(item,job));
   let retryJournal = new Map();
   function storeRetryState(item,strict=false){
-    retryJournal.set(itemKey(item),{analysisStarted:!!item.analysisStarted,status:item.status,reason:item.reason||'',lastVisit:item.lastVisit||0,sectionRequests:Number(item.sectionRequests)||0,paidRestarts:Number(item.paidRestarts)||0});
+    retryJournal.set(itemKey(item),{analysisStarted:!!item.analysisStarted,status:item.status,reason:item.reason||'',lastVisit:item.lastVisit||0,sectionRequests:Number(item.sectionRequests)||0,paidRestarts:Number(item.paidRestarts)||0,sectionIncomplete:!!item.sectionIncomplete});
     try{
       const value=JSON.stringify([...retryJournal]);
       localStorage.setItem(storageKey+'|retry-v1',value);
@@ -14154,7 +14296,7 @@ window.BassBatch = (() => {
       for(const item of entries){
         const saved=retryJournal.get(itemKey(item));
         item.analysisStarted=!!saved?.analysisStarted;item.lastVisit=Number(saved?.lastVisit)||0;
-        item.sectionRequests=Number(saved?.sectionRequests)||0;
+        item.sectionRequests=Number(saved?.sectionRequests)||0;item.sectionIncomplete=!!saved?.sectionIncomplete;
         item.paidRestarts=Number(saved?.paidRestarts)||0;
         if(item.status==='Queued'&&saved){
           item.status=item.analysisStarted?'Needs review':'Later';
@@ -14223,15 +14365,15 @@ window.BassBatch = (() => {
     const file=await getSong(item);
     if (!await hooks.load(file)) throw Error('This song could not be imported.');
     item.timing.openMs=Date.now()-openStart;
-    const recovered=!!hooks.hasCompletedBass?.();
+    const recovered=!!hooks.hasCompletedBass?.();item.bassReady=recovered;
     if (!recovered && !allowNewAnalysis) throw Error('No saved bass result is available. A fresh analysis needs your approval.');
     if (!recovered) {
       if(paidRestart){
         if(!hooks.preparePaidRestart||!await hooks.preparePaidRestart(item.name))throw Error('The old job could not be safely saved before restarting. Nothing was sent.');
         item.paidRestarts=(Number(item.paidRestarts)||0)+1;
       }
-      item.analysisStarted=true;
-      try{storeRetryState(item,true);}catch(err){storeRetryState(item);throw err;}
+      const wasStarted=item.analysisStarted;item.analysisStarted=true;
+      try{storeRetryState(item,true);}catch(err){item.analysisStarted=wasStarted;storeRetryState(item);throw err;}
       item.status='Analysing';draw();tell('Analysing '+item.name+' with the existing engine…');
       const analysisStart=Date.now();
       item.submittedThisRun=true;
@@ -14240,6 +14382,7 @@ window.BassBatch = (() => {
       if (!result || !result.count || !result.partCount || !result.bassStemReady) {
         throw Error('Full bass analysis was not confirmed. No incomplete project was saved.');
       }
+      item.bassReady=true;
     }
     // Reuse the bass track first; only request sections when genuinely missing.
     // Saved and in-progress section jobs are checked before any new section upload.
@@ -14249,8 +14392,15 @@ window.BassBatch = (() => {
         item.sectionRequests=(Number(item.sectionRequests)||0)+1;
         storeRetryState(item,true);
       }
+      if(paidRestart)item.sectionRepairThisRun=true;
       const complete=await hooks.completeSong({allowNewSections,paidRestart});
-      if(!complete){item.sectionIncomplete=true;throw Error('Song sections are not ready. Your bass work is kept.');}
+      if(!complete){
+        item.sectionIncomplete=true;
+        const status=hooks.sectionStatus?.();
+        item.waitingForResult=status?.state==='pending';
+        throw Error(status?.message||'Song sections are not ready. Your bass work is kept.');
+      }
+      item.sectionIncomplete=false;item.waitingForResult=false;
     }
     item.status='Saving';draw();tell('Checking full analysis and saving: '+item.name);
     const saveStart=Date.now();
@@ -14289,10 +14439,16 @@ window.BassBatch = (() => {
     if(!item)return false;
     try{
       if(!hooks.hasCompletedBass?.())throw Error('Full recovered bass analysis is not ready.');
+      item.bassReady=true;
       item.status='Saving';item.reason='Saving recovered analysis';draw();
       if(hooks.completeSong){
         const ok=await hooks.completeSong({allowNewSections:false,paidRestart:false});
-        if(!ok){item.sectionIncomplete=true;throw Error('Bass is ready, but song sections still need finishing.');}
+        if(!ok){
+          item.sectionIncomplete=true;
+          const status=hooks.sectionStatus?.();item.waitingForResult=status?.state==='pending';
+          throw Error(status?.message||'Bass is ready, but song sections still need finishing.');
+        }
+        item.sectionIncomplete=false;
       }
       const saved=await hooks.save(item.title);
       if(!saved?.noteCount)throw Error('Saved project was not confirmed.');
@@ -14383,8 +14539,20 @@ window.BassBatch = (() => {
       if(item.status==='Saved'&&held)hooks.removeHeld?.(held.signature);
     }
   }
+  async function recoverSectionRows(rows){
+    for(const item of rows){
+      if(stopAfterCurrent)break;
+      if(!unfinished(item)||!item.sectionIncomplete||heldFor(item))continue;
+      try{await attempt(item,{allowNewAnalysis:false,retry:true});}
+      catch(err){preserveFailure(item,err,true);}
+    }
+  }
   function canOfferPaidRestart(item){
-    if(!unfinished(item)||item.waitingForResult||item.submittedThisRun)return false;
+    if(!unfinished(item)||item.waitingForResult)return false;
+    // A bass upload and a sections repair are separate steps. Do not block
+    // section-only repair merely because the bass was completed in this run.
+    if(item.bassReady&&item.sectionIncomplete)return !item.sectionRepairThisRun;
+    if(item.submittedThisRun)return false;
     if(['running','check-failed','missing-key','unresolved'].includes(item.lastCheckState))return false;
     if(item.lastCheckState==='completed'&&!item.sectionIncomplete)return false;
     // Songs without any known earlier analysis should not be resent merely
@@ -14442,7 +14610,11 @@ window.BassBatch = (() => {
       );
       if(!confirmed||stopAfterCurrent){tell('Batch cancelled. Saved songs and earlier job records are kept.');return;}
       starting=false;draw();
-      for(const item of selectedForRun){item.lastVisit=Date.now();storeRetryState(item);}
+      for(const item of selectedForRun){
+        // These guards belong to this click/run, not the lifetime of the ZIP.
+        item.submittedThisRun=false;item.sectionRepairThisRun=false;item.waitingForResult=false;
+        item.lastVisit=Date.now();storeRetryState(item);
+      }
       if(hooks.hasPending?.()){
         const held=hooks.holdPending?.('');
         if(!held)throw Error('The earlier analysis could not be preserved. No new upload started.');
@@ -14469,11 +14641,12 @@ window.BassBatch = (() => {
       // Bounded return passes. Status checks do not submit new bass jobs.
       for(let pass=0;pass<3&&!stopAfterCurrent;pass++){
         if(pass){
-          if(!selectedForRun.some(item=>unfinished(item)&&heldFor(item)&&item.waitingForResult))break;
+          if(!selectedForRun.some(item=>unfinished(item)&&item.waitingForResult&&(heldFor(item)||item.sectionIncomplete)))break;
           tell('Waiting to recheck unfinished results · return pass '+(pass+1)+' of 3.');
           await pauseBeforeReturn(pass===1?15000:30000);
         }
         if(!stopAfterCurrent)await recoverHeldRows(selectedForRun);
+        if(!stopAfterCurrent)await recoverSectionRows(selectedForRun);
       }
       // Ask separately before replacing expired or unconfirmed paid work.
       // Never restart jobs that are running, inaccessible due to network, or
@@ -14521,7 +14694,7 @@ window.BassBatch = (() => {
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC207';
+  const APP_VERSION='RC209';
   const PROJECT_SCHEMA_VERSION=2;
   // RC125: compact practice-view and string selectors preserve space for P1/P2/P3; all RC124 audio, analysis, repeat, project and practice logic preserved.
 
@@ -18385,7 +18558,7 @@ window.BassBatch = (() => {
     aiAnalyse.setAttribute('aria-busy','true');
     const signature=cloudFileSignature(file);
     // Start or join the same section job while bass analysis runs.
-    if(!songStructure&&!savedSectionRanges)void ensureSongStructure();
+    if(!songStructure&&!savedSectionRanges&&!window.BassBatch?.isRunning())void ensureSongStructure();
 
     try{
       let pending=readPendingRunPodJob();
@@ -18426,7 +18599,7 @@ window.BassBatch = (() => {
       aiBusy=false;aiAnalyse.disabled=!buffer||songImportBusy;
       aiAnalyse.removeAttribute('aria-busy');
       updatePracticeLayoutState(true);
-      if(offlineAnalysisReady&&!songStructure&&!savedSectionRanges)ensureSongStructure();
+      if(offlineAnalysisReady&&!songStructure&&!savedSectionRanges&&!window.BassBatch?.isRunning())ensureSongStructure();
     }
   }
 
@@ -18485,7 +18658,7 @@ window.BassBatch = (() => {
       pendingResumeBusy=false;aiBusy=false;
       if(aiAnalyse){aiAnalyse.disabled=!buffer||songImportBusy;aiAnalyse.removeAttribute('aria-busy');}
       updatePracticeLayoutState(true);
-      if(offlineAnalysisReady&&!songStructure&&!savedSectionRanges)ensureSongStructure();
+      if(offlineAnalysisReady&&!songStructure&&!savedSectionRanges&&!window.BassBatch?.isRunning())ensureSongStructure();
     }
   }
 
@@ -18493,7 +18666,7 @@ window.BassBatch = (() => {
     setTimeout(()=>{if(document.visibilityState==='visible'&&!window.BassBatch?.isRunning()){
       resumeSavedRunPodAnalysis();
       const pending=pendingStructureJob();
-      if(!songStructure&&pending?.id&&activeAudioFile&&pending.signature===cloudFileSignature(activeAudioFile))ensureSongStructure();
+      if(!window.BassBatch?.isRunning()&&!songStructure&&pending?.id&&activeAudioFile&&pending.signature===cloudFileSignature(activeAudioFile))ensureSongStructure();
     }},delay);
   }
 
@@ -19957,7 +20130,7 @@ window.BassBatch = (() => {
       throw error;
     }finally{clearTimeout(timer);if(structureRequestController===controller)structureRequestController=null;}
   }
-  async function ensureSongStructure({interactive=false,importReady=false,allowNewJob=true}={}){
+  async function ensureSongStructure({interactive=false,importReady=false,allowNewJob=true,maxChecks=360,pollMs=5000}={}){
     if(songStructure)return true;
     if(structureBusy)return structurePromise;
     if(!buffer||!activeAudioFile||(songImportBusy&&!importReady))return false;
@@ -20016,10 +20189,10 @@ window.BassBatch = (() => {
           if(!result.id&&result.status!=='COMPLETED')throw new Error('The section request was not accepted. Please try again.');
           if(result.status!=='COMPLETED')setStructureStage(result.status==='IN_QUEUE'?'Waiting for a GPU…':'Finding song sections…');
         }
-        for(let checks=0;checks<360;checks++){
+        for(let checks=0;checks<Math.max(1,Math.min(360,Number(maxChecks)||360));checks++){
           assertSongSession(session);
           if(!result||!['COMPLETED','FAILED','CANCELLED','TIMED_OUT'].includes(result.status)){
-            if(checks||result)await cloudSleep(5000);
+            if(checks||result)await cloudSleep(Math.max(250,Math.min(5000,Number(pollMs)||5000)));
             result=await fetchStructureRequest(`https://api.runpod.ai/v2/${RUNPOD_ENDPOINT}/status/${encodeURIComponent(pending.id)}`,key,{method:'GET'},session);
           }
           assertSongSession(session);
@@ -20762,7 +20935,7 @@ window.BassBatch = (() => {
       // The user agreed to restore the full song. Wait for existing section work
       // before trying to save a complete, usable project.
       rememberBatchHeldJob(pending,pending.batchEntryName||pending.name);
-      if(!songStructure)await ensureSongStructure({allowNewJob:false});
+      if(!songStructure)await ensureSongStructure({allowNewJob:false,maxChecks:2,pollMs:500});
     }
     return ok;
   }
@@ -20845,11 +21018,11 @@ window.BassBatch = (() => {
       }
     }
     const earlier=pendingStructureJob();
-    let ok=await ensureSongStructure({allowNewJob:!!allowNewSections});
+    let ok=await ensureSongStructure({allowNewJob:!!allowNewSections,maxChecks:allowNewSections?18:2,pollMs:allowNewSections?3000:500});
     // If an old confirmed ID has expired or failed, a separately approved
     // restart may create ONE replacement job. Never repeat a new POST here.
     if(!ok&&paidRestart&&allowNewSections&&earlier?.id&&!earlier.unconfirmed&&!pendingStructureJob()&&storedRunPodKey())
-      ok=await ensureSongStructure({allowNewJob:true});
+      ok=await ensureSongStructure({allowNewJob:true,maxChecks:18,pollMs:3000});
     return !!ok&&!!songStructure?.segments?.length;
   }
   function preparePaidBatchRestart(entryName){
@@ -20874,6 +21047,7 @@ window.BassBatch = (() => {
     analyse:()=>analyseBassWithAI(),
     save:name=>saveBassStudioProject({batchName:name}),
     completeSong:options=>completeBatchSong(options),
+    sectionStatus:()=>({state:songStructure?.segments?.length?'ready':pendingStructureJob()?.unconfirmed?'unconfirmed':pendingStructureJob()?.id?'pending':'missing',message:structureError||'The song sections are still being checked. Your bass work is kept.'}),
     preparePaidRestart:entryName=>preparePaidBatchRestart(entryName),
     hasCompletedBass:()=>!!(offlineAnalysisReady&&notes.length&&analysisParts.length&&analysisParts.every(p=>!!p.bassBase64)),
     checkConnection:()=>checkBatchRunPodConnection(),
