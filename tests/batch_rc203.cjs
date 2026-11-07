@@ -74,7 +74,7 @@ test('unconfirmed upload is held without another submission',async()=>{
 });
 test('running jobs have bounded checks, not an infinite paid retry loop',async()=>{
  const h=harness({held:[job()],inspect:async()=> 'running'});await h.batch.choose(zip(['A.mp3']));await h.batch.run();
- assert.equal(calls(h,'check').length,4);assert.equal(calls(h,'analyse').length,0);assert.deepEqual(statuses(h),['Later']);assert.match(h.get('batchStatus').textContent,/awaiting results/);
+ assert.equal(calls(h,'check').length,4);assert.equal(calls(h,'analyse').length,0);assert.deepEqual(statuses(h),['Later']);assert.match(h.get('batchStatus').textContent,/still running/);
 });
 test('a review row without a held ID can restore its cached result',async()=>{
  const h=harness({cache:['A.mp3']});await h.batch.choose(zip(['A.mp3']));Object.assign(h.batch.entries()[0],{status:'Needs review',analysisStarted:true});
@@ -140,6 +140,6 @@ test('provider storage failure prevents retry POST',async()=>{
 test('RC202 interface, original full-save gate and background recovery exclusion retained',async()=>{
  for(const text of ['rc202-uniform-actions','rc202-share-platform','ai-assets-rc201.js','saveBassStudioProject({batchName:name})',"document.visibilityState==='visible'&&!window.BassBatch?.isRunning()"])
   assert(html.includes(text),text);
- assert(fs.readFileSync('sw.js','utf8').includes('bass-stem-studio-rc203'));
+ assert(fs.readFileSync('sw.js','utf8').includes('bass-stem-studio-rc207'));
 });
 (async()=>{for(const [name,fn] of tests){await fn();console.log('PASS '+name)}console.log(`PASS ${tests.length} RC203 mocked scenarios. No live audio or paid analysis requests.`)})().catch(err=>{console.error(err);process.exitCode=1});

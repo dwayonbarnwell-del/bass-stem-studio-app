@@ -17,7 +17,7 @@ window.BassBatch = (() => {
   const heldFor = item => (hooks.heldJobs?.()||[]).find(job=>matchesHeld(item,job));
   let retryJournal = new Map();
   function storeRetryState(item,strict=false){
-    retryJournal.set(itemKey(item),{analysisStarted:!!item.analysisStarted,status:item.status,reason:item.reason||'',lastVisit:item.lastVisit||0});
+    retryJournal.set(itemKey(item),{analysisStarted:!!item.analysisStarted,status:item.status,reason:item.reason||'',lastVisit:item.lastVisit||0,sectionRequests:Number(item.sectionRequests)||0,paidRestarts:Number(item.paidRestarts)||0});
     try{
       const value=JSON.stringify([...retryJournal]);
       localStorage.setItem(storageKey+'|retry-v1',value);
@@ -57,9 +57,9 @@ window.BassBatch = (() => {
     $('batchFileName').title=selectedName;
     $('batchArchive').textContent=archiveMessage;
     $('batchCount').textContent=loadingZip?'Reading selected ZIP…':
-      entries.length ? entries.length+' songs · '+(accessWarning?'saved songs not checked':selected+' saved')+' · '+actionable+' to process'+(issues?' · '+issues+' need review':'') : 'No songs loaded';
+      entries.length ? entries.length+' songs · '+(accessWarning?'saved songs not checked':selected+' saved')+' · '+actionable+' unfinished'+(issues?' · '+issues+' need help':'') : 'No songs loaded';
     $('batchStart').disabled=working||starting||loadingZip||!archive||actionable===0;
-    $('batchStart').textContent=starting?'Checking…':working?'Processing…':entries.some(i=>['Later','Needs review','Error'].includes(i.status))?'Retry unfinished':entries.some(i=>i.status==='Saved')?'Continue batch':'Start batch';
+    $('batchStart').textContent=starting?'Checking…':working?'Processing…':entries.some(i=>['Later','Needs review','Error'].includes(i.status))?'Repair unfinished':entries.some(i=>i.status==='Saved')?'Continue batch':'Start batch';
     if($('batchLimit'))$('batchLimit').disabled=working||loadingZip;
     $('batchCheck').disabled=working||starting||checking;
     $('batchCheck').textContent=checking?'Checking…':'Check connection';
@@ -177,6 +177,8 @@ window.BassBatch = (() => {
       for(const item of entries){
         const saved=retryJournal.get(itemKey(item));
         item.analysisStarted=!!saved?.analysisStarted;item.lastVisit=Number(saved?.lastVisit)||0;
+        item.sectionRequests=Number(saved?.sectionRequests)||0;
+        item.paidRestarts=Number(saved?.paidRestarts)||0;
         if(item.status==='Queued'&&saved){
           item.status=item.analysisStarted?'Needs review':'Later';
           item.reason=saved.reason||'Returning to unfinished work';
@@ -232,7 +234,7 @@ window.BassBatch = (() => {
       return false;
     }finally{checking=false;draw();}
   }
-  async function attempt(item, {allowNewAnalysis=true,retry=false}={}) {
+  async function attempt(item, {allowNewAnalysis=true,retry=false,paidRestart=false}={}) {
     if (await window.BassLibrary.hasProject(item.title)) {
       item.status='Saved';item.reason='Already saved in your chosen library';return;
     }
@@ -245,16 +247,33 @@ window.BassBatch = (() => {
     if (!await hooks.load(file)) throw Error('This song could not be imported.');
     item.timing.openMs=Date.now()-openStart;
     const recovered=!!hooks.hasCompletedBass?.();
-    if (!recovered && !allowNewAnalysis) throw Error('No completed bass analysis could be restored. A second paid analysis was NOT started.');
+    if (!recovered && !allowNewAnalysis) throw Error('No saved bass result is available. A fresh analysis needs your approval.');
     if (!recovered) {
-      item.analysisStarted=true;try{storeRetryState(item,true);}catch(err){item.analysisStarted=false;storeRetryState(item);throw err;}
+      if(paidRestart){
+        if(!hooks.preparePaidRestart||!await hooks.preparePaidRestart(item.name))throw Error('The old job could not be safely saved before restarting. Nothing was sent.');
+        item.paidRestarts=(Number(item.paidRestarts)||0)+1;
+      }
+      item.analysisStarted=true;
+      try{storeRetryState(item,true);}catch(err){storeRetryState(item);throw err;}
       item.status='Analysing';draw();tell('Analysing '+item.name+' with the existing engine…');
       const analysisStart=Date.now();
+      item.submittedThisRun=true;
       const result=await hooks.analyse();
       item.timing.analyseMs=Date.now()-analysisStart;
       if (!result || !result.count || !result.partCount || !result.bassStemReady) {
         throw Error('Full bass analysis was not confirmed. No incomplete project was saved.');
       }
+    }
+    // Reuse the bass track first; only request sections when genuinely missing.
+    // Saved and in-progress section jobs are checked before any new section upload.
+    if(hooks.completeSong){
+      const allowNewSections=!!paidRestart||(Number(item.sectionRequests)||0)===0;
+      if(allowNewSections){
+        item.sectionRequests=(Number(item.sectionRequests)||0)+1;
+        storeRetryState(item,true);
+      }
+      const complete=await hooks.completeSong({allowNewSections,paidRestart});
+      if(!complete)throw Error('Song sections are not ready. Your bass work is kept.');
     }
     item.status='Saving';draw();tell('Checking full analysis and saving: '+item.name);
     const saveStart=Date.now();
@@ -266,6 +285,8 @@ window.BassBatch = (() => {
     item.status='Saved';item.reason='';item.analysisStarted=true;storeRetryState(item);
     completed.add(item.name+'|'+item.size+'|'+item.crc);
     try {localStorage.setItem(storageKey,JSON.stringify([...completed]));}catch {}
+    const held=heldFor(item);
+    if(held)hooks.removeHeld?.(held.signature);
     draw();
   }
 
@@ -292,6 +313,10 @@ window.BassBatch = (() => {
     try{
       if(!hooks.hasCompletedBass?.())throw Error('Full recovered bass analysis is not ready.');
       item.status='Saving';item.reason='Saving recovered analysis';draw();
+      if(hooks.completeSong){
+        const ok=await hooks.completeSong({allowNewSections:false,paidRestart:false});
+        if(!ok)throw Error('Bass is ready, but song sections still need finishing.');
+      }
       const saved=await hooks.save(item.title);
       if(!saved?.noteCount)throw Error('Saved project was not confirmed.');
       item.status='Saved';item.reason='';item.waitingForResult=false;item.analysisStarted=true;storeRetryState(item);
@@ -322,6 +347,7 @@ window.BassBatch = (() => {
       if(throttled&&item.lastCheckedAt&&Date.now()-item.lastCheckedAt<15000)continue;
       item.waitingForResult=false;
       if(!job.parts?.length||!job.parts.every(part=>part.id&&!part.submitting)){
+        item.lastCheckState='unconfirmed';
         item.status='Needs review';
         item.reason='Upload not confirmed. Its record is kept; a second upload has not been sent.';
         storeRetryState(item);draw();continue;
@@ -332,11 +358,13 @@ window.BassBatch = (() => {
         item.recoveryChecks=(item.recoveryChecks||0)+1;draw();
         tell('Returning to unfinished song: '+item.name);
         let checked=await hooks.inspectPending?.();
+        item.lastCheckState=checked?.state||'needs-review';
         if(stopAfterCurrent){item.status='Later';item.reason='Stopped after checking the existing job.';continue;}
         if(checked?.state==='retryable'&&hooks.retryFailed){
           item.status='Retrying';draw();
           tell('Retrying the confirmed failed job once: '+item.name);
           checked=await hooks.retryFailed();
+          item.lastCheckState=checked?.state||'needs-review';
         }
         if(checked?.state==='completed'){
           if(await hooks.resumeVerified?.()){
@@ -356,6 +384,7 @@ window.BassBatch = (() => {
           }[checked?.state]||'The existing job needs attention. Its recovery record is kept.');
         }
       }catch(err){
+        item.lastCheckState='check-failed';
         item.status='Needs review';item.reason=errorMessage(err);
       }finally{
         // Never leave a held job active while opening a different song.
@@ -365,6 +394,39 @@ window.BassBatch = (() => {
         }
         storeRetryState(item);draw();
       }
+    }
+  }
+  async function recoverLocalRows(rows){
+    for(const item of rows){
+      if(stopAfterCurrent)break;
+      if(!unfinished(item)||!heldFor(item))continue;
+      const held=heldFor(item);
+      try{await attempt(item,{allowNewAnalysis:false,retry:true});}
+      catch(err){preserveFailure(item,err);}
+      if(item.status==='Saved'&&held)hooks.removeHeld?.(held.signature);
+    }
+  }
+  function canOfferPaidRestart(item){
+    if(!unfinished(item)||item.waitingForResult||item.submittedThisRun)return false;
+    if(['running','check-failed','missing-key','completed','unresolved'].includes(item.lastCheckState))return false;
+    // Songs without any known earlier analysis should not be resent merely
+    // because a damaged file could not be opened.
+    return !!item.analysisStarted || !!heldFor(item);
+  }
+  async function restartMissingRows(rows){
+    const candidates=rows.filter(canOfferPaidRestart);
+    if(!candidates.length||stopAfterCurrent)return;
+    const confirmed=await window.BassDialog.confirm(
+      candidates.length+' song'+(candidates.length===1?'':'s')+' still need work. Try fresh analysis for these songs? This can cost more money. Some earlier uploads may also have been charged. Saved songs and jobs still running will not be sent again. We will reuse any bass results already on your device. Continue?',
+      {title:'Approve fresh analysis',accept:'Restart missing songs'}
+    );
+    if(!confirmed||stopAfterCurrent){tell('Your unfinished songs have been kept. No fresh analysis was started.');return;}
+    for(const item of candidates){
+      if(stopAfterCurrent)break;
+      if(!canOfferPaidRestart(item))continue;
+      try{await attempt(item,{allowNewAnalysis:true,retry:true,paidRestart:true});}
+      catch(err){preserveFailure(item,err,true);}
+      if(!stopAfterCurrent)await recoverHeldRows(rows,{throttled:true});
     }
   }
   async function run() {
@@ -409,7 +471,8 @@ window.BassBatch = (() => {
         markHeldRows();
       }
       if(typeof setInterval==='function')ticker=setInterval(updateElapsed,1000);
-      await recoverHeldRows(selectedForRun);
+      await recoverLocalRows(selectedForRun);
+      if(!stopAfterCurrent)await recoverHeldRows(selectedForRun);
       for(const item of selectedForRun){
         if(stopAfterCurrent)break;
         if(!unfinished(item)||heldFor(item))continue;
@@ -434,11 +497,15 @@ window.BassBatch = (() => {
         }
         if(!stopAfterCurrent)await recoverHeldRows(selectedForRun);
       }
+      // Ask separately before replacing expired or unconfirmed paid work.
+      // Never restart jobs that are running, inaccessible due to network, or
+      // already retried as a brand new upload in this same run.
+      if(!stopAfterCurrent)await restartMissingRows(selectedForRun);
       const saved=entries.filter(i=>i.status==='Saved').length;
       const left=entries.filter(unfinished).length;
       const waiting=entries.filter(i=>unfinished(i)&&i.waitingForResult).length;
       const review=entries.filter(i=>i.status==='Needs review').length;
-      tell((stopAfterCurrent?'Stopped after the current song. ':selectedLimit==='all'?'Continuous run checked every song. ':'Batch and return passes finished. ')+saved+' saved; '+left+' unfinished'+(waiting?'; '+waiting+' awaiting results':'')+(review?'; '+review+' need attention':'')+(left?'. Unresolved jobs are preserved; select Retry unfinished to check them again.':'.'));
+      tell((stopAfterCurrent?'Stopped after this song. ':'Batch finished. ')+saved+' saved; '+left+' left'+(waiting?'; '+waiting+' still running':'')+(review?'; '+review+' need help':'')+(left?'. All earlier work is kept.':'.'));
     }catch(err){
       tell('Batch paused: '+errorMessage(err)+'. Saved songs and recovery records are kept.');
     }finally{
