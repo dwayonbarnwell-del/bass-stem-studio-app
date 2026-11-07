@@ -363,7 +363,7 @@ window.BassBatch = (() => {
       if(!job.parts?.length||!job.parts.every(part=>part.id&&!part.submitting)){
         item.lastCheckState='unconfirmed';
         item.status='Needs review';
-        item.reason='Upload not confirmed. Its record is kept; a second upload has not been sent.';
+        item.reason='Old upload could not be checked. No second upload was sent. After checking, you can approve a fresh try; it may cost more.';
         storeRetryState(item);draw();continue;
       }
       try{
@@ -414,6 +414,13 @@ window.BassBatch = (() => {
     for(const item of rows){
       if(stopAfterCurrent)break;
       if(!unfinished(item)||!heldFor(item))continue;
+      // Most unconfirmed uploads have no locally completed bass to restore.
+      // Check the saved index first, instead of decoding every blocked ZIP song.
+      const filename=item.name.replace(/\\/g,'/').split('/').pop();
+      let saved=false;
+      try{saved=!!(await hooks.hasSavedAnalysis?.(filename,item.size,archive?.lastModified||0));}
+      catch{}
+      if(!saved)continue;
       const held=heldFor(item);
       try{await attempt(item,{allowNewAnalysis:false,retry:true});}
       catch(err){preserveFailure(item,err);}
@@ -445,7 +452,7 @@ window.BassBatch = (() => {
     if(!candidates.length||stopAfterCurrent)return;
     const confirmed=await window.BassDialog.confirm(
       candidates.length+' song'+(candidates.length===1?'':'s')+' still need work. Try fresh analysis for these songs? This can cost more money. Some earlier uploads may also have been charged. Saved songs and jobs still running will not be sent again. We will reuse any bass results already on your device. Continue?',
-      {title:'Approve fresh analysis',accept:'Restart missing songs'}
+      {title:'Fresh analysis may cost more',accept:'Approve and retry'}
     );
     if(!confirmed||stopAfterCurrent){tell('Your unfinished songs have been kept. No fresh analysis was started.');return;}
     for(const item of candidates){

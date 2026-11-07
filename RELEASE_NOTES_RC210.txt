@@ -1,0 +1,9 @@
+Bass Stem Studio RC210 — ZIP reliability
+- Previously saved songs are not analysed again.
+- Check for a complete local bass result before opening an unfinished song, reducing repeated imports.
+- For batch songs, do not open a separate Import media dialog. A stalled audio import ends with a clear message instead of blocking the entire queue.
+- Keep HTTP rejection codes even when the service replies with an HTML error page. Definitely rejected uploads can be retried normally; unknown submission results remain protected.
+- For older unconfirmed uploads, always ask before starting a potentially chargeable fresh analysis.
+- A successful connection check cannot prove an older job did not run or incur a charge.
+- Local mock checks cover 19 saved + 13 stuck songs, user consent, failed imports, and mobile timeouts.
+- Actual ZIP audio and old RunPod job records were not available to verify.

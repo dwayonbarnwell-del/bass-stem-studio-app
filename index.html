@@ -12041,7 +12041,34 @@ html body #appRoot#appRoot#appRoot#appRoot #liveReplay[hidden]{display:none!impo
   }finally{signal?.removeEventListener('abort',cancel);}
  }
  function init(){const d=document.getElementById('mediaImportDialog'),cancel=document.getElementById('mediaImportCancel');cancel.onclick=()=>{active?.abort();document.getElementById('mediaImportState').textContent='Cancelling…';};d.oncancel=e=>{e.preventDefault();cancel.click();};}
- async function open(file,ctx,options={}){active?.abort();const controller=new AbortController();active=controller;const d=document.getElementById('mediaImportDialog');if(!d.open)d.showModal();try{return await prepare(file,ctx,{...options,signal:controller.signal,progress:text=>{if(active===controller)document.getElementById('mediaImportState').textContent=text;options.progress?.(text);}});}finally{if(active===controller){active=null;d.close();}}}
+ async function open(file,ctx,options={}){
+  active?.abort();
+  const controller=new AbortController();active=controller;
+  const d=document.getElementById('mediaImportDialog');
+  const batch=!!options.batchImport;
+  // Batch is already showing its progress. Never cover the stop controls with
+  // a second media-import dialog for every song.
+  if(batch&&d.open)d.close();
+  if(!batch&&!d.open)d.showModal();
+  let timer=null;
+  const timeoutMs=Math.max(1000,Number(options.timeoutMs)||
+    (video(file)?240000:batch?90000:150000));
+  try{
+    const deadline=new Promise((_,reject)=>{timer=setTimeout(()=>{
+      controller.abort();
+      reject(Error('This song took too long to open. It was skipped without starting paid analysis. Try an MP3 or a smaller file.'));
+    },timeoutMs);});
+    return await Promise.race([
+      prepare(file,ctx,{...options,signal:controller.signal,progress:text=>{
+        if(active===controller&&!batch)document.getElementById('mediaImportState').textContent=text;
+        options.progress?.(text);
+      }}),deadline
+    ]);
+  }finally{
+    clearTimeout(timer);
+    if(active===controller){active=null;if(!batch&&d.open)d.close();}
+  }
+}
  return {init,open,prepare,wav,picker,audioExt,videoExt,video,cancel:()=>active?.abort()};
 })();
 </script><script id="rc178-features">window.BassTrash=(()=>{let pending,api,busy=false;const $=id=>document.getElementById(id);
@@ -14482,7 +14509,7 @@ window.BassBatch = (() => {
       if(!job.parts?.length||!job.parts.every(part=>part.id&&!part.submitting)){
         item.lastCheckState='unconfirmed';
         item.status='Needs review';
-        item.reason='Upload not confirmed. Its record is kept; a second upload has not been sent.';
+        item.reason='Old upload could not be checked. No second upload was sent. After checking, you can approve a fresh try; it may cost more.';
         storeRetryState(item);draw();continue;
       }
       try{
@@ -14533,6 +14560,13 @@ window.BassBatch = (() => {
     for(const item of rows){
       if(stopAfterCurrent)break;
       if(!unfinished(item)||!heldFor(item))continue;
+      // Most unconfirmed uploads have no locally completed bass to restore.
+      // Check the saved index first, instead of decoding every blocked ZIP song.
+      const filename=item.name.replace(/\\/g,'/').split('/').pop();
+      let saved=false;
+      try{saved=!!(await hooks.hasSavedAnalysis?.(filename,item.size,archive?.lastModified||0));}
+      catch{}
+      if(!saved)continue;
       const held=heldFor(item);
       try{await attempt(item,{allowNewAnalysis:false,retry:true});}
       catch(err){preserveFailure(item,err);}
@@ -14564,7 +14598,7 @@ window.BassBatch = (() => {
     if(!candidates.length||stopAfterCurrent)return;
     const confirmed=await window.BassDialog.confirm(
       candidates.length+' song'+(candidates.length===1?'':'s')+' still need work. Try fresh analysis for these songs? This can cost more money. Some earlier uploads may also have been charged. Saved songs and jobs still running will not be sent again. We will reuse any bass results already on your device. Continue?',
-      {title:'Approve fresh analysis',accept:'Restart missing songs'}
+      {title:'Fresh analysis may cost more',accept:'Approve and retry'}
     );
     if(!confirmed||stopAfterCurrent){tell('Your unfinished songs have been kept. No fresh analysis was started.');return;}
     for(const item of candidates){
@@ -14849,6 +14883,17 @@ window.BassBatch = (() => {
     recoveryWriteQueue=recoveryWriteQueue.catch(()=>{}).then(()=>recoveryStore('analyses',s=>s.put(record)))
       .then(()=>true).catch(()=>{if(session===songSession)toolsMessage('Device backup unavailable. Use Save to keep your work.');return false;});
     return recoveryWriteQueue;
+  }
+  async function hasSavedBatchAnalysis(filename,size,lastModified){
+    // Skip decoding if no full saved bass analysis exists for this ZIP entry.
+    if(!filename||!Number.isFinite(Number(size)))return false;
+    const signature=cloudFileSignature({name:String(filename),size:Number(size),lastModified:Number(lastModified)||0});
+    try{
+      const record=await recoveryStore('analyses',store=>store.get(signature));
+      const parts=record?.parts;
+      return !!(record?.state?.notes?.length&&Array.isArray(parts)&&parts.length&&
+        parts.every(part=>!!part.bassBase64));
+    }catch{return false;}
   }
   async function restoreDeviceAnalysis(){
     if(!activeAudioFile)return false;
@@ -16226,7 +16271,7 @@ window.BassBatch = (() => {
     let decodedBuffer=null;
     try{
       ensureCtx();
-      const prepared=await window.BassMedia.open(f,ctx);
+      const prepared=await window.BassMedia.open(f,ctx,{batchImport});
       if(request!==songLoadRequest||session!==songSession)return false;
       f=prepared.file;decodedBuffer=prepared.buffer;
     }catch(err){
@@ -17260,11 +17305,12 @@ window.BassBatch = (() => {
         }});
         const text=await res.text();
         assertSongSession(session);
-        let data;try{data=JSON.parse(text)}catch{throw new Error('The analysis service returned an unreadable reply. Your saved work is unchanged.');}
+        // Keep a definite HTTP rejection even when the server returns HTML.
         if(!res.ok){
           const err=new Error(`Analysis service request failed (${res.status}). Your saved work is unchanged.`);
           err.httpStatus=res.status;throw err;
         }
+        let data;try{data=JSON.parse(text)}catch{throw new Error('The analysis service returned an unreadable reply. Your saved work is unchanged.');}
         return data;
       }catch(err){
         assertSongSession(session);
@@ -18241,7 +18287,7 @@ window.BassBatch = (() => {
           }})
         },1,session
       );}catch(error){
-        if([400,401,403,413,422,429].includes(error?.httpStatus)){delete part.submitting;savePendingRunPodJob(pending);}
+        if([400,401,403,404,413,422,429].includes(error?.httpStatus)){delete part.submitting;savePendingRunPodJob(pending);}
         throw error;
       }
       // Persist the returned ID before subsequent local processing.
@@ -21044,6 +21090,7 @@ window.BassBatch = (() => {
   }
   window.BassBatch.init({
     load:file=>loadAudioFile(file,{batchImport:true}),
+    hasSavedAnalysis:(filename,size,lastModified)=>hasSavedBatchAnalysis(filename,size,lastModified),
     analyse:()=>analyseBassWithAI(),
     save:name=>saveBassStudioProject({batchName:name}),
     completeSong:options=>completeBatchSong(options),
