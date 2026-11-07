@@ -11,8 +11,10 @@ jobs:
     timeout-minutes: 3
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: 0941ecd723aae46f05e9442efb184169d65c997d
       - name: Export source for local checks
-        run: git archive --format=zip --output=source-rc206.zip 0941ecd723aae46f05e9442efb184169d65c997d
+        run: git archive --format=zip --output=source-rc206.zip HEAD
       - uses: actions/upload-artifact@v4
         with:
           name: recovery-rc207-source
