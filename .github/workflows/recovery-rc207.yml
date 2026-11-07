@@ -1,0 +1,20 @@
+name: Recovery RC207 verification
+on:
+  push:
+    branches: [fix/batch-recovery-rc207]
+    paths: [.github/workflows/recovery-rc207.yml, scripts/apply_recovery_rc207.cjs, tests/recovery_rc207.cjs]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Export source for local checks
+        run: git archive --format=zip --output=source-rc206.zip 0941ecd723aae46f05e9442efb184169d65c997d
+      - uses: actions/upload-artifact@v4
+        with:
+          name: recovery-rc207-source
+          path: source-rc206.zip
+          retention-days: 1
