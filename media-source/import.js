@@ -38,6 +38,33 @@ window.BassMedia=(()=>{
   }finally{signal?.removeEventListener('abort',cancel);}
  }
  function init(){const d=document.getElementById('mediaImportDialog'),cancel=document.getElementById('mediaImportCancel');cancel.onclick=()=>{active?.abort();document.getElementById('mediaImportState').textContent='Cancelling…';};d.oncancel=e=>{e.preventDefault();cancel.click();};}
- async function open(file,ctx,options={}){active?.abort();const controller=new AbortController();active=controller;const d=document.getElementById('mediaImportDialog');if(!d.open)d.showModal();try{return await prepare(file,ctx,{...options,signal:controller.signal,progress:text=>{if(active===controller)document.getElementById('mediaImportState').textContent=text;options.progress?.(text);}});}finally{if(active===controller){active=null;d.close();}}}
+ async function open(file,ctx,options={}){
+  active?.abort();
+  const controller=new AbortController();active=controller;
+  const d=document.getElementById('mediaImportDialog');
+  const batch=!!options.batchImport;
+  // Batch is already showing its progress. Never cover the stop controls with
+  // a second media-import dialog for every song.
+  if(batch&&d.open)d.close();
+  if(!batch&&!d.open)d.showModal();
+  let timer=null;
+  const timeoutMs=Math.max(1000,Number(options.timeoutMs)||
+    (video(file)?240000:batch?90000:150000));
+  try{
+    const deadline=new Promise((_,reject)=>{timer=setTimeout(()=>{
+      controller.abort();
+      reject(Error('This song took too long to open. It was skipped without starting paid analysis. Try an MP3 or a smaller file.'));
+    },timeoutMs);});
+    return await Promise.race([
+      prepare(file,ctx,{...options,signal:controller.signal,progress:text=>{
+        if(active===controller&&!batch)document.getElementById('mediaImportState').textContent=text;
+        options.progress?.(text);
+      }}),deadline
+    ]);
+  }finally{
+    clearTimeout(timer);
+    if(active===controller){active=null;if(!batch&&d.open)d.close();}
+  }
+}
  return {init,open,prepare,wav,picker,audioExt,videoExt,video,cancel:()=>active?.abort()};
 })();
