@@ -1,0 +1,10 @@
+Bass Stem Studio RC211 — retain unfinished batch work across rebuilt ZIP files
+- The original ZIP has 20 valid MP3 entries; their content is not modified.
+- Continue using the same original job IDs and local retry records. An archive with a changed ZIP timestamp or parent folder now finds older recovery records by song filename, size and ZIP CRC, including older RC210 records.
+- Recovery history is merged conservatively so any earlier upload is still treated as potentially chargeable. The prior batch records remain untouched.
+- Match held RunPod jobs by filename AND file size when that information exists, avoiding an accidental match to a different recording with the same name.
+- Synchronise the stored media import source with the existing RC210 release. Future rebuilds keep the non-modal batch import and its 90-second timeout.
+- Rotate the service-worker cache to RC211 so clients can fetch this update.
+
+Validation: the batch module parses; embedded app source matches; synthetic legacy ZIP-journal migration, conservative upload-state merging, and held-job size matching pass. The actual uploaded ZIP is valid and audio metadata was inspected locally. No chargeable RunPod work, CI builds or test deployments have been started.
+Limitations: Previous RunPod results may have expired; missing or unconfirmed job IDs cannot safely be retried without user approval. A real-device and live RunPod end-to-end verification is still outstanding.
