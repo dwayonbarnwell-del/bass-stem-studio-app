@@ -14160,15 +14160,57 @@ window.BassBatch = (() => {
   const rowStatus = item => item.status || 'Queued';
   const unfinished = item => !['Saved','Skipped'].includes(item.status);
   const itemKey = item => item.name+'|'+item.size+'|'+item.crc;
+  // Rebuilt ZIPs have new timestamps and sometimes a different parent folder.
+  // The song filename, uncompressed size and ZIP CRC remain stable.
+  const portableKey = item => String(item.name||'').replace(/\\/g,'/').split('/').pop().toLocaleLowerCase()+'|'+item.size+'|'+item.crc;
+  const PORTABLE_RETRY_KEY='bassBatchPortableRetryRC211';
+  function mergeRetry(current,previous){
+    if(!current||typeof current!=='object')return previous;
+    if(!previous||typeof previous!=='object')return current;
+    const recent=(Number(current.lastVisit)||0)>=(Number(previous.lastVisit)||0)?current:previous;
+    return {...recent,
+      analysisStarted:!!(current.analysisStarted||previous.analysisStarted),
+      sectionIncomplete:!!(current.sectionIncomplete||previous.sectionIncomplete),
+      sectionRequests:Math.max(Number(current.sectionRequests)||0,Number(previous.sectionRequests)||0),
+      paidRestarts:Math.max(Number(current.paidRestarts)||0,Number(previous.paidRestarts)||0),
+      lastVisit:Math.max(Number(current.lastVisit)||0,Number(previous.lastVisit)||0)
+    };
+  }
+  function readPortableRetries(items){
+    const stored=JSON.parse(localStorage.getItem(PORTABLE_RETRY_KEY)||'[]');
+    if(!Array.isArray(stored))throw Error('The saved song recovery record is unreadable. Nothing has been resent.');
+    portableRetryJournal=new Map(stored.filter(entry=>Array.isArray(entry)&&typeof entry[0]==='string'&&entry[1]&&typeof entry[1]==='object'));
+    const wanted=new Set(items.map(portableKey));
+    // Import older batch journals without replacing them or forgetting prior uploads.
+    for(let i=0;i<localStorage.length;i++){
+      const key=localStorage.key(i);
+      if(!key||!key.startsWith('bass-batch-v1|')||!key.endsWith('|retry-v1'))continue;
+      try{
+        const previous=JSON.parse(localStorage.getItem(key)||'[]');
+        if(!Array.isArray(previous))continue;
+        for(const row of previous){
+          if(!Array.isArray(row)||typeof row[0]!=='string'||!row[1])continue;
+          const match=/^(.*)\\|(\\d+)\\|(\\d+)$/.exec(row[0]);
+          if(!match)continue;
+          const pkey=match[1].replace(/\\/g,'/').split('/').pop().toLocaleLowerCase()+'|'+match[2]+'|'+match[3];
+          if(wanted.has(pkey))portableRetryJournal.set(pkey,mergeRetry(portableRetryJournal.get(pkey),row[1]));
+        }
+      }catch{ /* A different ZIP's damaged journal must not erase valid records. */ }
+    }
+  }
   const heldFor = item => (hooks.heldJobs?.()||[]).find(job=>matchesHeld(item,job));
-  let retryJournal = new Map();
+  let retryJournal = new Map(),portableRetryJournal=new Map();
   function storeRetryState(item,strict=false){
-    retryJournal.set(itemKey(item),{analysisStarted:!!item.analysisStarted,status:item.status,reason:item.reason||'',lastVisit:item.lastVisit||0,sectionRequests:Number(item.sectionRequests)||0,paidRestarts:Number(item.paidRestarts)||0,sectionIncomplete:!!item.sectionIncomplete});
+    const state={analysisStarted:!!item.analysisStarted,status:item.status,reason:item.reason||'',lastVisit:item.lastVisit||0,sectionRequests:Number(item.sectionRequests)||0,paidRestarts:Number(item.paidRestarts)||0,sectionIncomplete:!!item.sectionIncomplete};
+    retryJournal.set(itemKey(item),state);
+    portableRetryJournal.set(portableKey(item),mergeRetry(portableRetryJournal.get(portableKey(item)),state));
     try{
       const value=JSON.stringify([...retryJournal]);
       localStorage.setItem(storageKey+'|retry-v1',value);
       if(strict&&localStorage.getItem(storageKey+'|retry-v1')!==value)throw Error('Storage check failed');
     }catch(err){if(strict)throw Error('Could not preserve the retry record. No new bass analysis was sent.');}
+    // Secondary recovery index survives re-zipping without overwriting the original journal.
+    try{localStorage.setItem(PORTABLE_RETRY_KEY,JSON.stringify([...portableRetryJournal]));}catch{}
   }
   function finishTiming(item){
     if(item.startedAt){item.timing={...(item.timing||{}),totalMs:Date.now()-item.startedAt};item.startedAt=null;}
@@ -14320,8 +14362,10 @@ window.BassBatch = (() => {
         if(!Array.isArray(saved))throw Error('Invalid retry record');
         retryJournal=new Map(saved);
       }catch{throw Error('The saved retry record could not be read. It has been kept to prevent duplicate analysis.');}
+      readPortableRetries(entries);
       for(const item of entries){
-        const saved=retryJournal.get(itemKey(item));
+        const saved=mergeRetry(retryJournal.get(itemKey(item)),portableRetryJournal.get(portableKey(item)));
+        if(saved)retryJournal.set(itemKey(item),saved);
         item.analysisStarted=!!saved?.analysisStarted;item.lastVisit=Number(saved?.lastVisit)||0;
         item.sectionRequests=Number(saved?.sectionRequests)||0;item.sectionIncomplete=!!saved?.sectionIncomplete;
         item.paidRestarts=Number(saved?.paidRestarts)||0;
@@ -14447,7 +14491,9 @@ window.BassBatch = (() => {
   function matchesHeld(item,job){
     const base=name=>String(name||'').replace(/\\/g,'/').split('/').pop().toLocaleLowerCase();
     const name=base(job.batchEntryName||job.name);
-    return !!name&&base(item.name)===name;
+    const originalSize=Number(job.size);
+    return !!name&&base(item.name)===name&&
+      (!Number.isFinite(originalSize)||originalSize<=0||originalSize===Number(item.size));
   }
   function markHeldRows(){
     const held=hooks.heldJobs?.()||[];
