@@ -1,0 +1,22 @@
+Bass Stem Studio RC209
+
+Live audio
+- Three inputs only: lead notes (singer or speaker), lead singer + band chords, instruments: basic chords.
+- Fast local spectrum-based chord checks run separately from the voice model.
+- Requires stable simultaneous chord evidence; holds short gaps with a Last chord label, then clears stale results.
+- One large waveform peak no longer suppresses the entire chord display. Sustained clipping still blocks unreliable updates.
+- Slower note model uses newer audio more often, with one request in flight. Model input scaling affects analysis only, not recordings.
+- Extra live key/coach displays and background coaching disabled; recording, export and save remain.
+
+ZIP recovery
+- Reset per-run submission guards at the start of each user-approved run.
+- Keep missing-section state across refreshes and check existing section jobs on return passes.
+- Reuse completed bass while repairing sections after explicit approval; never silently save a partial project.
+- Bound batch section checks and prevent hidden background section requests during batch work.
+- Preserve current saved projects and prevent replacement of known running or unverified jobs without the existing informed consent.
+
+Verification
+- 60 focused synthetic detector/behaviour tests and 13 mocked batch scenarios passed locally.
+- Four supplied recording excerpts checked locally with the spectral path; not a labelled accuracy benchmark. No audio or recordings added to this repository.
+- Isolated Chromium Live audio component tested at 320, 390 and 700 px. Synthetic C displayed in 0.459 s, change to Am in 0.710 s, with voice model deliberately paused. These are test measurements, not phone/church guarantees.
+- Full-page navigation was blocked by this test environment. This is not a full live microphone or paid RunPod end-to-end test.
