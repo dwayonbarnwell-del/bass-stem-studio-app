@@ -14107,7 +14107,7 @@ window.BassBatch = (() => {
         storeRetryState(item,true);
       }
       const complete=await hooks.completeSong({allowNewSections,paidRestart});
-      if(!complete)throw Error('Song sections are not ready. Your bass work is kept.');
+      if(!complete){item.sectionIncomplete=true;throw Error('Song sections are not ready. Your bass work is kept.');}
     }
     item.status='Saving';draw();tell('Checking full analysis and saving: '+item.name);
     const saveStart=Date.now();
@@ -14149,7 +14149,7 @@ window.BassBatch = (() => {
       item.status='Saving';item.reason='Saving recovered analysis';draw();
       if(hooks.completeSong){
         const ok=await hooks.completeSong({allowNewSections:false,paidRestart:false});
-        if(!ok)throw Error('Bass is ready, but song sections still need finishing.');
+        if(!ok){item.sectionIncomplete=true;throw Error('Bass is ready, but song sections still need finishing.');}
       }
       const saved=await hooks.save(item.title);
       if(!saved?.noteCount)throw Error('Saved project was not confirmed.');
@@ -14242,7 +14242,8 @@ window.BassBatch = (() => {
   }
   function canOfferPaidRestart(item){
     if(!unfinished(item)||item.waitingForResult||item.submittedThisRun)return false;
-    if(['running','check-failed','missing-key','completed','unresolved'].includes(item.lastCheckState))return false;
+    if(['running','check-failed','missing-key','unresolved'].includes(item.lastCheckState))return false;
+    if(item.lastCheckState==='completed'&&!item.sectionIncomplete)return false;
     // Songs without any known earlier analysis should not be resent merely
     // because a damaged file could not be opened.
     return !!item.analysisStarted || !!heldFor(item);
