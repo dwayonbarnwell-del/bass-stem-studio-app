@@ -51,3 +51,9 @@
 #bsChordLibraryDialog .bs-ref-edit-actions,#bsChordLibraryDialog .bs-ref-bottom{grid-template-columns:repeat(2,minmax(0,1fr))}
 #bsChordLibraryDialog .bs-ref-header{gap:8px}#bsChordLibraryDialog .bs-ref-header #bsRefClose{min-width:76px}
 }
+/* RC215: show the progress status without hiding any songs. */
+#bsChordLibraryDialog .bs-ref-item .bs-ref-preview{font:750 13px/1.35 system-ui,sans-serif;color:#a5efd6;overflow-wrap:anywhere;padding-top:3px}
+#bsChordLibraryDialog .bs-ref-part-row .bs-ref-letter-reference{grid-column:1/-1;color:#aabfd0;font:600 12px/1.45 system-ui,sans-serif;overflow-wrap:anywhere;margin:0}
+#bsChordLibraryDialog .bs-ref-add-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:12px 0}
+#bsChordLibraryDialog .bs-ref-add-actions a.bs-ref-button{text-decoration:none;color:#f6fbff}
+@media(max-width:460px){#bsChordLibraryDialog .bs-ref-add-actions{grid-template-columns:repeat(2,minmax(0,1fr))}}
