@@ -54,7 +54,7 @@ function prepare(){
  if(lastSession!==info.session){
   lastSession=info.session;stopRequest();clearResults();
   const proposed=String(info.title||'').replace(/\.(mp3|wav|m4a|aac|flac|ogg|opus|mp4|mov|webm|bassstudio)$/i,'').replace(/[_]+/g,' ').trim();
-  titleInput.value=proposed;
+  titleInput.value=proposed.split(/\s+[-–]\s+/)[0].trim()||proposed;
   artistInput.value=String(info.artist||'').trim();
   setNotice(info.hasAudio?'Search for timed lyrics from the version you are playing.':'Import an audio file first.');
  }
@@ -64,7 +64,7 @@ function showChoices(songs,sessionId,sourceDuration){
  clearResults();
  const matches=songs.filter(r=>r&&typeof r.syncedLyrics==='string'&&r.syncedLyrics.trim()&&!r.instrumental&&Number.isFinite(Number(r.duration)));
  matches.sort((a,b)=>Math.abs(Number(a.duration)-sourceDuration)-Math.abs(Number(b.duration)-sourceDuration));
- if(!matches.length){setNotice('No timed lyrics found. You can still use Detect to find words in your audio.');return;}
+ if(!matches.length){setNotice('No matching lyrics found. Choose Find all words below.');return;}
  for(const item of matches.slice(0,12)){
   const button=document.createElement('button');button.type='button';button.className='lrclib-result';
   const name=document.createElement('strong');name.textContent=String(item.trackName||'Untitled recording').slice(0,160);
@@ -138,23 +138,23 @@ function install(){
  const dialog=$('lyricsDialog'),open=$('openLyrics');
  if(!dialog||!open||$('lrclibPanel'))return;
  panel=document.createElement('details');panel.id='lrclibPanel';panel.className='lrclib-panel';
- const heading=document.createElement('summary');heading.textContent='Find timed lyrics (free)';
- const explanation=document.createElement('p');explanation.textContent='Choose lyrics for the recording you have imported. Lines are timed; individual word positions may differ.';
+ const heading=document.createElement('summary');heading.textContent='Find song lyrics (free)';
+ const explanation=document.createElement('p');explanation.textContent='Choose a version that matches your song.';
  const fields=document.createElement('div');fields.className='lrclib-fields';
  const song=document.createElement('label');song.textContent='Song title';
  titleInput=document.createElement('input');titleInput.id='lrclibTitle';titleInput.maxLength=150;titleInput.autocomplete='off';song.append(titleInput);
  const performer=document.createElement('label');performer.textContent='Artist (optional)';
  artistInput=document.createElement('input');artistInput.id='lrclibArtist';artistInput.maxLength=150;artistInput.autocomplete='off';performer.append(artistInput);
  fields.append(song,performer);
- searchButton=document.createElement('button');searchButton.type='button';searchButton.id='lrclibFind';searchButton.textContent='Find timed lyrics';
+ searchButton=document.createElement('button');searchButton.type='button';searchButton.id='lrclibFind';searchButton.textContent='Find lyrics';
  notice=document.createElement('p');notice.className='lrclib-status';notice.id='lrclibStatus';notice.setAttribute('role','status');notice.setAttribute('aria-live','polite');
  results=document.createElement('div');results.id='lrclibResults';results.className='lrclib-results';results.hidden=true;
  const credit=document.createElement('p');credit.className='lrclib-credit';
  credit.append('Lyrics provided by ');
  const source=document.createElement('a');source.href='https://lrclib.net';source.target='_blank';source.rel='noopener noreferrer';source.textContent='LRCLIB';
- credit.append(source,'. Check the version and respect copyright.');
+ credit.append(source,'. Check that the words match your recording.');
  panel.append(heading,explanation,fields,searchButton,notice,results,credit);
- $('lyricsStatus').after(panel);
+ ($('lyricsSticky')||$('lyricsStatus')).after(panel);
  searchButton.addEventListener('click',()=>void search());
  open.addEventListener('click',prepare);
  $('lyricsClose').addEventListener('click',stopRequest);

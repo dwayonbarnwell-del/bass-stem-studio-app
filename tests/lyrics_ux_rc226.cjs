@@ -1,0 +1,11 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),path=require('node:path');
+const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8'),src=fs.readFileSync(path.join(__dirname,'../ai-source/lyrics.js'),'utf8');
+const inline=html.match(/<script id="rc169-lyrics">([\s\S]*?)<\/script>/)?.[1];
+assert.equal(inline,src);assert(html.includes('id="lyricsSticky"'));assert(html.includes('id="lyricsChordSummary"'));
+assert(!html.includes('id="lyricsRange"'));assert(!html.includes('id="lyricsStart"'));assert(!html.includes('id="lyricsLanguage"'));
+assert(src.includes('const start=0,end=s.buffer.duration;'));assert(src.includes("const language='english';"));
+assert(!src.includes('controls();api.pause();'));assert(src.includes('chordKey(s.chords)!==lastChordSignature'));
+assert(html.includes("lyrics:window.BassLyrics?.exportData()||[]"));assert(html.includes('window.BassLyrics?.restore(project.analysis.lyrics)'));
+const ctx={window:{},document:{},console};vm.createContext(ctx);vm.runInContext(inline,ctx);
+assert.equal(ctx.window.BassLyrics.assign([{text:'Sing',start:1,end:2}],[{start:1.2,end:2,label:'C'}])[0].autoChord,'C');
+console.log('PASS: RC226 whole-song English lyrics, persistent playback, chord updates and saved projects.');
