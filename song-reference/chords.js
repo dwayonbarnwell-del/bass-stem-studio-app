@@ -207,7 +207,7 @@ function collect(){if(!selected)return;selected.title=$('bsRefTitle').value.trim
  const raw=$('bsRefOriginal').value;
  selected.notes={...(selected.notes||{}),heading:selected.notes?.heading||selected.title,lines:raw.split('\n'),type:'Editable original notes'};
 }
-async function saveSelected(quiet=false){if(!selected||!unsaved)return true;collect();const id=selected.id;const savedSong=clone(selected),base=original.get(id),pending=clone(selected._referenceUpdate||{});for(const field of ['sections','notes'])if(base&&sameValue(referenceField(selected,field),referenceField(base,field)))delete pending[field];for(const field of ['_referenceUpdate','previousReference','previousImport','documentImport'])delete savedSong[field];const edited={id,modifiedAt:Date.now(),song:savedSong,favourite:!!selected.favourite,hidden:!!changes.get(id)?.hidden};if(base){edited.referenceBase=referenceSnapshot(base);edited.baselineVersion=window.BassSongReferenceData?.version;edited.referencePending=pending;}try{await putSaved(edited);changes.set(id,edited);unsaved=false;renderList();if(!quiet)status('Saved on this device. Export a backup when you have made several changes.','success');return true;}catch(e){status('Could not save changes: '+text(e.message||e),'error');return false;}}
+async function saveSelected(quiet=false){if(!selected||!unsaved)return true;collect();const id=selected.id;const savedSong=clone(selected),base=original.get(id),pending=clone(selected._referenceUpdate||{});for(const field of ['sections','notes'])if(base&&sameValue(referenceField(selected,field),referenceField(base,field)))delete pending[field];for(const field of ['_referenceUpdate','previousReference','previousImport','documentImport'])delete savedSong[field];const edited={id,modifiedAt:Date.now(),song:savedSong,favourite:!!selected.favourite,hidden:!!changes.get(id)?.hidden};if(base){edited.referenceBase=referenceSnapshot(base);edited.baselineVersion=window.BassSongReferenceData?.version;edited.referencePending=pending;}try{await putSaved(edited);changes.set(id,edited);unsaved=false;renderList();window.dispatchEvent(new Event('bass-stem:chord-reference-changed'));if(!quiet)status('Saved on this device. Export a backup when you have made several changes.','success');return true;}catch(e){status('Could not save changes: '+text(e.message||e),'error');return false;}}
 function newSection(part='',chords='',letterChords='',originalData=null){
  const row=node('div','bs-ref-part-row');row._reference=originalData?clone(originalData):null;row.dataset.letterChords=text(letterChords);
  const partInput=node('input','');partInput.type='text';partInput.value=part;partInput.placeholder='Verse, Chorus, Bridge…';partInput.dataset.part='yes';partInput.maxLength=Math.max(120,text(part).length+60);
@@ -735,6 +735,19 @@ function install(){
  }
  // Keep the approved four practice cards unchanged.
 }
-window.BassChordLibrary={open:show,statistics:()=>{const songs=everySong();return {total:songs.length,withProgressions:songs.filter(hasSections).length,needsProgression:songs.filter(s=>!hasSections(s)).length,archivedChartOnly:initial.filter(archiveUnchartedChartOnly).length,withNigerian:songs.filter(s=>s.collections?.includes('Nigerian worship essentials')&&hasSections(s)).length,withCCLI:songs.filter(s=>s.collections?.includes('CCLI Top 100 worship')&&hasSections(s)).length};}};
+async function missingProgressions(){
+ setup();if(!ready)ready=init();await ready;
+ return everySong().filter(song=>!hasSections(song)).map(song=>({
+  id:song.id,title:text(song.title),artist:text(song.artist),
+  notes:!!song.notes?.lines?.some(line=>text(line).trim())
+ })).sort((a,b)=>a.title.localeCompare(b.title,'en'));
+}
+async function openSongById(id){
+ await show();
+ const song=currentSong(Number(id));
+ if(!song||song.hidden)return false;
+ await selectSong(Number(id));return true;
+}
+window.BassChordLibrary={open:show,missingProgressions,openSongById,statistics:()=>{const songs=everySong();return {total:songs.length,withProgressions:songs.filter(hasSections).length,needsProgression:songs.filter(s=>!hasSections(s)).length,archivedChartOnly:initial.filter(archiveUnchartedChartOnly).length,withNigerian:songs.filter(s=>s.collections?.includes('Nigerian worship essentials')&&hasSections(s)).length,withCCLI:songs.filter(s=>s.collections?.includes('CCLI Top 100 worship')&&hasSections(s)).length};}};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })();

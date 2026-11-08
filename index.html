@@ -13538,6 +13538,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRo
 <link rel="stylesheet" href="./ai-source/lrclib.css">
 <link rel="stylesheet" href="./ai-source/lyrics-ux.css">
 <link rel="stylesheet" href="./library-source/saved-audio-match.css">
+<link rel="stylesheet" href="./library-source/song-tasks.css">
 </head>
 <body>
 <div id="sectionCompatibility" style="display:none" aria-hidden="true">
@@ -14149,6 +14150,7 @@ window.BassLibrary=(()=>{
       try{void navigator.storage?.persist?.().catch(()=>{});}catch{}
     }
     if(dialog?.open)await refresh().catch(e=>status(errorText(e)));
+    window.dispatchEvent(new Event('bass-stem:project-saved'));
     return target.dir?'folder “'+target.dir.name+'”':'this device';
   }
   async function rowFile(row){
@@ -14293,6 +14295,71 @@ window.BassLibrary=(()=>{
     }
   }
 
+
+  // Read-only inventory: scan only the device library and an already-authorised folder.
+  async function analysisSummary(){
+    await ready;
+    const stored=await store('songs','readonly',s=>s.getAll());
+    const all=[],issues=[],seen=new Set();
+    for(const entry of stored||[]){
+      if(!entry?.filename||!SUPPORTED.test(entry.filename))continue;
+      try{
+        let meta=entry;
+        if(typeof meta.hasChordAnalysis!=='boolean'||typeof meta.hasBassAnalysis!=='boolean'){
+          const file=new File([entry.blob],entry.filename,{type:'application/json'});
+          meta={...entry,...metadata(JSON.parse(await file.text()),file)};
+        }
+        const id='device:'+String(entry.id||entry.filename).toLowerCase();
+        if(seen.has(id))continue;
+        seen.add(id);all.push({location:'device',id:String(entry.id||entry.filename),...meta});
+      }catch{issues.push('A device file could not be read.');}
+    }
+    let reconnect=false;
+    if(folder){
+      try{
+        if(!await permission(folder,'read'))reconnect=true;
+        else {
+          let updated=false;
+          for await(const [name,handle] of folder.entries()){
+            if(handle.kind!=='file'||!SUPPORTED.test(name))continue;
+            const id='folder:'+name.toLowerCase();if(seen.has(id))continue;
+            try{
+              const file=await handle.getFile();
+              let info=index[name];
+              if(!info||info.size!==file.size||info.modified!==file.lastModified
+                ||typeof info.hasBassAnalysis!=='boolean'||typeof info.hasChordAnalysis!=='boolean'){
+                info=metadata(JSON.parse(await file.text()),file);
+                index[name]=info;updated=true;
+              }
+              seen.add(id);all.push({location:'folder',id:name,...info});
+            }catch{issues.push('A saved folder file could not be read.');}
+          }
+          if(updated)await put('index',index).catch(()=>{});
+        }
+      }catch{reconnect=true;}
+    }
+    return {songs:all.map(r=>({
+      location:r.location,id:r.id,filename:clean(r.filename),title:clean(r.title),
+      artist:clean(r.artist),sourceName:clean(r.sourceName),duration:Number(r.duration)||0,
+      hasChordAnalysis:r.hasChordAnalysis===true,hasBassAnalysis:r.hasBassAnalysis===true
+    })),reconnect,issues:issues.length};
+  }
+  async function openForAnalysis(location,id){
+    await ready;
+    if(hooks.isBusy?.())throw Error('Finish the current song first.');
+    let file;
+    if(location==='folder'){
+      if(!folder||!await permission(folder,'read'))throw Error('Open Library and reconnect your saved folder first.');
+      const handle=await folder.getFileHandle(id);
+      file=await handle.getFile();
+    }else{
+      const record=await store('songs','readonly',s=>s.get(String(id).toLowerCase()));
+      if(!record?.blob)throw Error('This saved song is not available on the device.');
+      file=new File([record.blob],record.filename,{type:'application/json'});
+    }
+    return !!await hooks.open(file);
+  }
+
   function build(){
     if(dialog)return;
     dialog=document.createElement('dialog');dialog.id='bassLibraryDialog';dialog.className='bass-library';dialog.setAttribute('aria-labelledby','libraryTitle');
@@ -14355,7 +14422,7 @@ window.BassLibrary=(()=>{
           quality:c.quality,confidence:c.confidence,uncertain:c.uncertain,manual:c.manual}))},
       settings:{sections:project.settings?.sections||{}}};
   }
-  return {init,show,prepareSave,save,hasProject,ensureBatchAccess,errorText,chartProjects,chartProject,checkAudioImport};
+  return {init,show,prepareSave,save,hasProject,ensureBatchAccess,errorText,chartProjects,chartProject,checkAudioImport,analysisSummary,openForAnalysis};
 })();
 </script>
 <script id="rc196-batch">
@@ -21847,6 +21914,7 @@ window.BassBillingLinks = Object.freeze({render:'https://dashboard.render.com/bi
 <script defer src="./song-reference/data.js"></script>
 <script defer src="./song-reference/chords.js"></script>
 <script src="./ai-source/lrclib.js" defer></script>
+<script defer src="./library-source/song-tasks.js"></script>
 </body>
 </html>
 
