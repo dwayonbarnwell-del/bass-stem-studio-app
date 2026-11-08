@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>How to use Bass Stem Studio | Start, Save and Share</title>
+<meta name="description" content="Learn how to use Bass Stem Studio to practise bass, review number chord progressions, save analysed songs, protect backups and share the app.">
+<link rel="canonical" href="https://bass-stem-studio-app-z5ja.onrender.com/guide.html"><meta name="theme-color" content="#09111f">
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;padding:18px;background:#09111f;color:#edf5ff;font:600 15px/1.6 system-ui,-apple-system,Arial,sans-serif}main{max-width:760px;margin:auto}h1{font-size:26px;margin:12px 0}h2{font-size:18px;color:#b4d8ff;margin:19px 0 5px}p,li{color:#c8d8e6}li{padding:4px 0}article{background:#122238;border:1px solid #3d6381;padding:18px;border-radius:14px}a{color:#99e2ff}button,.cta{display:flex;justify-content:center;align-items:center;min-height:48px;width:100%;border:1px solid #6e97a9;background:#285572;color:white;border-radius:10px;padding:10px;font:750 15px system-ui;text-decoration:none;cursor:pointer;text-align:center}.cta{background:#297267}.actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:16px 0}code{color:#99e2ff}small{color:#adbecc}@media(max-width:390px){.actions{grid-template-columns:1fr}}
+</style>
+</head>
+<body><main>
+<h1>Bass Stem Studio</h1><p>Practice tools for bass players and other musicians. Use your own songs and keep the parts you have already analysed.</p>
+<div class="actions"><a class="cta" href="https://bass-stem-studio-app-z5ja.onrender.com/">Open Bass Stem Studio</a><button id="shareApp" type="button">Share app link</button></div>
+<p id="shareStatus" role="status" aria-live="polite"></p>
+<article>
+<h2>Get started</h2>
+<ol><li>Open the app and choose an audio file you own or are allowed to use.</li><li>Select Analyse to review bass notes, chords and song sections. The results are estimates and may need correction.</li><li>Use the playback and practice tools to focus on short parts or repeat a section.</li><li>Save your project in Library so you can open it again without repeating a completed analysis.</li></ol>
+<h2>See a simple song chart</h2>
+<p>Select <strong>More tools → Song chords</strong>, search for a song and open its numbered Intro, Verse, Chorus and other recorded parts. Select <strong>Edit progression</strong> to make changes.</p>
+<p>You can use <strong>Add charts from saved library</strong> to build simple draft charts from compatible saved <code>.bassstudio</code> or JSON analyses. Check these drafts against the recording.</p>
+<h2>Remove several songs</h2>
+<p>In Song chords, use <strong>Select songs</strong> and then <strong>Select all matching</strong> or choose individual songs. <strong>Remove selected</strong> puts them in a recoverable list. Under <strong>Show → Removed songs</strong> you can restore them, or permanently delete your own saved songs after confirmation.</p>
+<h2>Keep backups safe</h2>
+<p>In Song chords, choose <strong>Share backup</strong> or <strong>Export backup</strong>. Save a copy outside your browser. Local files and progressions are not automatically synced to other devices.</p>
+<h2>Share with another musician</h2><p>Use the Share app link button above. The app is accessible by its public web address. Other users need their own audio and any required analysis access. Some online analysis may incur charges.</p>
+<small>Import or analyse only audio you are entitled to use. Automatically detected chords and sections may need review.</small>
+</article><p><a href="https://bass-stem-studio-app-z5ja.onrender.com/">Return to Bass Stem Studio</a></p>
+</main>
+<script>document.getElementById('shareApp').addEventListener('click',async()=>{const link='https://bass-stem-studio-app-z5ja.onrender.com/',status=document.getElementById('shareStatus');try{if(navigator.share){await navigator.share({title:'Bass Stem Studio',url:link});status.textContent='Sharing options opened.';return;}if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(link);status.textContent='Link copied. You can paste it into a message.';return;}status.textContent=link;}catch(e){if(e?.name!=='AbortError')status.textContent='Copy this link: '+link;}});</script>
+</body></html>

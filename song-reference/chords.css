@@ -121,3 +121,17 @@
 /* RC220: four equal action buttons, including Android share. */
 #bsChordLibraryDialog .bs-ref-bottom{grid-template-columns:repeat(2,minmax(0,1fr))}
 #bsChordLibraryDialog .bs-ref-bottom .bs-ref-button{min-height:45px;height:auto}
+
+/* RC221: accessible bulk selection and reversible song removal. */
+#bsChordLibraryDialog .bs-ref-manage-bar{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:7px 0 10px}
+#bsChordLibraryDialog .bs-ref-manage-bar .bs-ref-button{min-height:39px;padding:8px 14px;max-width:180px}
+#bsChordLibraryDialog .bs-ref-manage-bar .bs-ref-muted{margin:0}
+#bsChordLibraryDialog .bs-ref-bulk-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:8px 0 12px}
+#bsChordLibraryDialog .bs-ref-bulk-actions .bs-ref-button{min-height:42px;padding:8px 10px;font-size:13px}
+#bsChordLibraryDialog .bs-ref-bulk-actions .bs-ref-remove{background:#70443f;border-color:#b8887a}
+#bsChordLibraryDialog .bs-ref-bulk-actions .bs-ref-delete{background:#653038;border-color:#ce8591}
+#bsChordLibraryDialog #bsRefSongs[data-selecting="true"] .bs-ref-item{padding-left:41px}
+#bsChordLibraryDialog #bsRefSongs .bs-ref-select-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:21px;color:#c4eaf4}
+#bsChordLibraryDialog #bsRefSongs .bs-ref-item[data-chosen="true"]{border-color:#7bddd1;background:#245557}
+#bsChordLibraryDialog .bs-ref-button:disabled{opacity:.47;cursor:not-allowed}
+@media(max-width:430px){#bsChordLibraryDialog .bs-ref-bulk-actions{grid-template-columns:repeat(2,minmax(0,1fr))}}

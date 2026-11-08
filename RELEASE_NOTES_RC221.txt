@@ -1,0 +1,19 @@
+Bass Stem Studio RC221 | Bulk song selection, safe removal and public sharing
+8 November 2026
+
+BULK SONG MANAGEMENT
+In Song chords, choose Select songs to toggle selection mode. Tap individual rows or choose Select all matching; this selects all results matching the current search and filter, even those beyond the first 80 visible. Clear selection is available. A count shows how many will be affected. The default screen still opens a read-only progression overview when not selecting.
+
+Remove selected moves entries into a recoverable Removed songs list. It never destroys personal charts or original notes, and imported records remain included in standard Song chords backups. In Show > Removed songs, select items to Restore selected, or choose Delete permanently for locally added songs. Built-in catalogue songs cannot be erased by users, only hidden and restored. Permanent deletion requires a separate confirmation explaining that only a previous backup can recover it.
+
+The storage format and IndexedDB keys remain unchanged. Local imported .bassstudio/JSON charts, the private 206-song book pack, existing favourites, manual corrections and the RC220 importer remain compatible. Hidden entries are not shown in normal search, but are retained in backups. Normal app updates do not clear the local selection data or hidden markers. No chargeable analysis is performed.
+
+DISCOVERABILITY / NEW USERS
+The page title no longer shows an outdated RC195 number. The main page has a plain description, canonical URL and Open Graph/social metadata. New robots.txt and sitemap.xml refer to the public Render site and the public guide page. A Help & share button in More tools leads to a short mobile-friendly Quick Guide that explains how to start, save, view progressions, manage multiple songs, protect backups, and share the app link. This adds one more equal-size More tools card to give a balanced 3x3 grid.
+
+This is not proof of search engine indexing or ranking. Ownership verification and URL/sitemap submission via Google Search Console are still needed for definitive indexing status. No user data, private chart pack or paid API credentials were included in search metadata or the guide.
+
+TESTS
+Static page/code checks and 34 in-memory checks passed for bulk removal and recovery of built-in and saved songs; additional multi-page selection/backup regression tests added as tests/song_bulk_rc221.cjs. No paid GitHub CI, RunPod jobs, audio re-analysis or backend changes were made. Real-device usability and indexed status need external verification.
+
+Baseline: RC220 commit df32dc27908e2f23d7b647ffe9a715dd8e891e1c.

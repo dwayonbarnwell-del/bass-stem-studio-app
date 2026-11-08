@@ -2,7 +2,7 @@
   "id": "./",
   "name": "Bass Stem Studio",
   "short_name": "Bass Studio",
-  "description": "Bass Stem Studio practice and bass analysis player.",
+  "description": "Practise bass and other stems, review numbered song progressions, and organise saved music projects.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
