@@ -342,7 +342,7 @@ function beginEditing(){
  renderDetail(song);setView('edit');
 }
 
-function renderDetail(song){selected=clone(song);const wrap=$('bsRefDetails');wrap.hidden=false;$('bsRefEmpty').hidden=true;$('bsRefTitle').value=text(song.title);$('bsRefArtist').value=text(song.artist);$('bsRefKey').value=text(song.key||song.source?.key||'');setFavourite(song.favourite);const info=$('bsRefInfo');info.textContent=captionText(song)+' · '+text(song.category||'Worship')+(song.collections?.length?' · '+song.collections.join(', '):'');const root=$('bsRefSectionRows');root.replaceChildren();for(const section of song.sections||[]){let numbers=text(section.chords),letters=text(section.letterChords);if(!letters){const calculated=recognisedChordNumbers(numbers,section.sourceKey||song.key||song.source?.key,section.part);if(calculated){letters=numbers;numbers=calculated;}}root.append(newSection(section.part,numbers,letters,section));}if(!root.children.length)root.append(newSection('Verse',''));const find=$('bsRefFind');if(find)find.href='https://www.google.com/search?q='+encodeURIComponent([song.title,song.artist,'chord progression numbers solfa verse chorus'].filter(Boolean).join(' '));
+function renderDetail(song){selected=clone(song);const wrap=$('bsRefDetails');wrap.hidden=false;$('bsRefEmpty').hidden=true;$('bsRefTitle').value=text(song.title);$('bsRefArtist').value=text(song.artist);$('bsRefKey').value=text(song.key||song.source?.key||'');setFavourite(song.favourite);resetMetadataLookup();const info=$('bsRefInfo');info.textContent=captionText(song)+' · '+text(song.category||'Worship')+(song.collections?.length?' · '+song.collections.join(', '):'');const root=$('bsRefSectionRows');root.replaceChildren();for(const section of song.sections||[]){let numbers=text(section.chords),letters=text(section.letterChords);if(!letters){const calculated=recognisedChordNumbers(numbers,section.sourceKey||song.key||song.source?.key,section.part);if(calculated){letters=numbers;numbers=calculated;}}root.append(newSection(section.part,numbers,letters,section));}if(!root.children.length)root.append(newSection('Verse',''));const find=$('bsRefFind');if(find)find.href='https://www.google.com/search?q='+encodeURIComponent([song.title,song.artist,'chord progression numbers solfa verse chorus'].filter(Boolean).join(' '));
  const originalText=song.notes?.lines?.join('\n')||'';$('bsRefOriginal').value=originalText;$('bsRefOriginal').maxLength=Math.max(18000,originalText.length+4000);
  const hint=$('bsRefNotesHint');hint.textContent=originalText?'Imported from your earlier song notes. Some headings or progressions may need correction.':'Add your own number progressions, reminders or section notes here.';
  const link=$('bsRefSource');const href=safeUrl(song.source?.url);link.hidden=!href;if(href){link.href=href;link.textContent='View '+text(song.source?.name||'source')+' chart';}const licence=$('bsRefLicence');licence.textContent=href?[song.source?.licence,song.source?.note||'Check the arrangement and any usage conditions on the source website.'].filter(Boolean).join(' · '):'No external song chart added.';const licenceLink=$('bsRefLicenceLink'),licenceUrl=safeUrl(song.source?.licenceUrl);licenceLink.hidden=!licenceUrl;if(licenceUrl){licenceLink.href=licenceUrl;licenceLink.textContent='View '+text(song.source?.licence||'licence')+' terms';}const chartLink=$('bsRefChart'),chartUrl=safeUrl(song.source?.chartUrl);chartLink.hidden=!chartUrl||chartUrl===href;if(!chartLink.hidden){chartLink.href=chartUrl;chartLink.textContent='Open the original chord chart';}const arrangement=$('bsRefArrangementNotes');arrangement.textContent=text(song.source?.sectionNote);arrangement.hidden=!arrangement.textContent;renderEarlierImports(song);renderReferenceUpdate();
@@ -672,6 +672,88 @@ async function importSongbookPack(data){
 }
 
 async function importBackup(file){if(!file)return;try{if(file.size>10*1024*1024)throw Error('Backup exceeds 10 MB.');const data=JSON.parse(await file.text());if(data?.format==='BassStemSongChordPack'){await importSongbookPack(data);return;}if(data?.format!=='BassStemSongReferences'||!Array.isArray(data.changes))throw Error('This is not a Bass Stem song chords backup.');if(data.changes.length>5000)throw Error('Too many records in backup.');const valid=data.changes.filter(row=>Number.isInteger(row?.id)&&row?.song&&row.song.id===row.id&&typeof row.song.title==='string'&&row.song.title.length<300&&Array.isArray(row.song.sections)&&row.song.sections.length<=100);if(valid.length!==data.changes.length)throw Error('The backup has unsupported song data.');if(!confirm('Restore '+valid.length+' saved edits? Entries with the same song will be replaced. The original built-in catalogue will remain available.'))return;for(const row of valid){await putSaved(row);changes.set(row.id,row);}renderList();if(selectedId!==null){const item=currentSong(selectedId);if(item){if(view==='edit')renderDetail(item);else if(view==='overview')renderOverview(item);}}status(valid.length+' saved edits restored.','success');}catch(e){status('Backup import failed: '+text(e.message||e),'error');}}
+
+// RC223: Opt-in MusicBrainz recording lookup. Never change saved data automatically.
+let metadataLookupSequence=0,metadataLastRequest=0;
+const metadataCache=new Map();
+function resetMetadataLookup(){
+ metadataLookupSequence++;
+ const results=$('bsRefMetadataResults'),notice=$('bsRefMetadataNotice');
+ if(results){results.replaceChildren();results.hidden=true;}
+ if(notice)notice.textContent='Optional title and artist suggestions. No changes until you choose and save.';
+}
+function recordingArtist(item){
+ const credits=Array.isArray(item?.['artist-credit'])?item['artist-credit']:[];
+ return credits.map(part=>typeof part==='string'?part:text(part?.name||part?.artist?.name)).join('').trim();
+}
+function showRecordingSuggestions(rows,token){
+ const results=$('bsRefMetadataResults'),notice=$('bsRefMetadataNotice');
+ if(token!==metadataLookupSequence||!results||!notice)return;
+ results.replaceChildren();
+ if(!rows.length){results.hidden=true;notice.textContent='No reliable matches found. Your song details are unchanged.';return;}
+ for(const item of rows){
+  const choice=button('',null);
+  choice.classList.add('bs-ref-metadata-choice');
+  choice.append(node('strong','',item.title),node('small','',item.artist));
+  choice.onclick=()=>{
+   if(token!==metadataLookupSequence)return;
+   $('bsRefTitle').value=item.title.slice(0,180);
+   $('bsRefArtist').value=item.artist.slice(0,180);
+   markUnsaved();
+   results.replaceChildren();results.hidden=true;
+   notice.textContent='Suggestion selected. Choose Save and view to keep it.';
+  };
+  results.append(choice);
+ }
+ results.hidden=false;
+ notice.textContent='Choose a matching recording, or keep your details. These are suggestions, not verified chord charts.';
+}
+async function lookupRecordingMetadata(){
+ const title=text($('bsRefTitle')?.value).trim();
+ const notice=$('bsRefMetadataNotice'),buttonEl=$('bsRefMetadataLookup');
+ const results=$('bsRefMetadataResults');
+ if(!notice||!buttonEl||!results)return;
+ if(!title||normalize(title)==='new worship song'){notice.textContent='Enter a song title first.';return;}
+ if(!navigator.onLine){notice.textContent='This lookup needs an internet connection. Saved songs work offline.';return;}
+ const clean=title.replace(/["\\]/g,' ').replace(/\s+/g,' ').slice(0,140).trim();
+ if(!clean){notice.textContent='Enter a valid song title.';return;}
+ const key=normalize(clean);
+ const token=++metadataLookupSequence;
+ results.replaceChildren();results.hidden=true;
+ const cached=metadataCache.get(key);
+ if(cached){showRecordingSuggestions(cached,token);return;}
+ if(Date.now()-metadataLastRequest<1200){notice.textContent='Please try again in a moment.';return;}
+ metadataLastRequest=Date.now();
+ buttonEl.disabled=true;
+ notice.textContent='Checking MusicBrainz…';
+ const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),12000);
+ try{
+  const url=new URL('https://musicbrainz.org/ws/2/recording/');
+  url.searchParams.set('query','recording:"'+clean+'"');
+  url.searchParams.set('limit','12');
+  url.searchParams.set('fmt','json');
+  const response=await fetch(url.toString(),{headers:{Accept:'application/json'},signal:controller.signal});
+  if(!response.ok)throw Error('lookup unavailable');
+  const payload=await response.json();
+  const seen=new Set(),rows=[];
+  for(const recording of Array.isArray(payload?.recordings)?payload.recordings:[]){
+   const artist=recordingArtist(recording),name=text(recording?.title).trim();
+   if(!artist||!name)continue;
+   const fingerprint=normalize(name)+'|'+normalize(artist);
+   if(seen.has(fingerprint))continue;
+   seen.add(fingerprint);rows.push({title:name,artist});
+   if(rows.length===6)break;
+  }
+  metadataCache.set(key,rows);
+  showRecordingSuggestions(rows,token);
+ }catch{
+  if(token===metadataLookupSequence)notice.textContent='Online lookup unavailable. Your songs and edits are unchanged.';
+ }finally{
+  clearTimeout(timeout);
+  buttonEl.disabled=false;
+ }
+}
+
 function html(){return `<div class="bs-ref-header"><div><h2 id="bsRefHeading">Song Chords</h2><p>Search song progressions without loading audio</p></div><button class="bs-ref-button" id="bsRefClose" type="button">Close</button></div>
 <div id="bsRefToolbar" class="bs-ref-toolbar"><label class="bs-ref-field"><span>Search songs or artists</span><input type="search" id="bsRefSearch" autocomplete="off" placeholder="e.g. Sinach, Way Maker, Dunsin"></label><label class="bs-ref-field"><span>Show</span><select id="bsRefFilter"><option value="progressions">With progressions</option><option value="all">All songs</option><option value="saved">Saved project charts</option><option value="songbook">My songbook</option><option value="removed">Removed songs</option><option value="missing">Needs progression</option><option value="ccli">CCLI Top 100</option><option value="nigerian">Nigerian worship</option><option value="modern">Modern songs 2002 to 2026</option><option value="classics">Worship classics</option><option value="hymns">Traditional hymns</option><option value="notes">My original notes</option><option value="sourced">Sourced progressions</option><option value="favourites">Favourites</option></select></label><label class="bs-ref-field"><span>Order</span><select id="bsRefSort"><option value="title">Song title (A to Z)</option><option value="artist">Artist (A to Z)</option></select></label></div>
 <p class="bs-ref-muted" id="bsRefCount"></p><div id="bsRefManageBar" class="bs-ref-manage-bar"><button class="bs-ref-button" type="button" id="bsRefToggleBulk" aria-pressed="false">Select songs</button><span id="bsRefBulkCount" class="bs-ref-muted" role="status">0 selected</span></div>
@@ -688,6 +770,8 @@ function html(){return `<div class="bs-ref-header"><div><h2 id="bsRefHeading">So
 </div>
 <div id="bsRefDetails" hidden><div class="bs-ref-detail-head"><h3>Edit song reference</h3><button type="button" class="bs-ref-button" id="bsRefFavourite" aria-pressed="false">♡ Add to favourites</button></div><p id="bsRefInfo" class="bs-ref-muted"></p>
 <div class="bs-ref-meta"><label class="bs-ref-field"><span>Song</span><input id="bsRefTitle" maxlength="180"></label><label class="bs-ref-field"><span>Artist</span><input id="bsRefArtist" maxlength="180"></label><label class="bs-ref-field"><span>Key (optional)</span><input id="bsRefKey" maxlength="60" placeholder="e.g. D or F#"></label></div>
+<div class="bs-ref-metadata-tools"><button type="button" class="bs-ref-button" id="bsRefMetadataLookup">Find title and artist</button><span id="bsRefMetadataNotice" role="status" aria-live="polite">Optional title and artist suggestions. No changes until you choose and save.</span></div>
+<div id="bsRefMetadataResults" class="bs-ref-metadata-results" hidden></div>
 <details id="bsRefUpdated" class="bs-ref-reference-panel" hidden><summary>Updated reference available</summary><p class="bs-ref-muted">Your saved changes are kept. Compare the latest reference below.</p><div id="bsRefUpdatedBody"></div><div class="bs-ref-reference-actions"><button class="bs-ref-button" id="bsRefAddUpdated" type="button">Add new sections</button><button class="bs-ref-button" id="bsRefAddUpdatedNotes" type="button">Add latest notes</button><button class="bs-ref-button" id="bsRefKeepUpdated" type="button">Keep my version</button></div></details><h4>Number progressions: intro, verse, chorus, bridge and ending</h4><p class="bs-ref-muted">Enter progressions in numbers as in your original notes. 6m means a minor chord; 1/3 shows the bass note. Your original chord names and notes are retained.</p><div id="bsRefSectionRows"></div><div class="bs-ref-add-actions"><button class="bs-ref-button" id="bsRefAddPart" type="button">+ Add section</button><a class="bs-ref-button" id="bsRefFind" target="_blank" rel="noopener noreferrer" href="https://www.google.com/">Find progression online</a></div>
 <h4>My original notes</h4><p id="bsRefNotesHint" class="bs-ref-muted"></p><textarea id="bsRefOriginal" rows="7" maxlength="18000" aria-label="Editable original song notes"></textarea>
 <details id="bsRefEarlier" class="bs-ref-reference-panel" hidden><summary>Earlier imported notes</summary><div id="bsRefEarlierBody"></div></details><p class="bs-ref-source"><a id="bsRefSource" target="_blank" rel="noopener noreferrer" hidden>Source</a><a id="bsRefChart" target="_blank" rel="noopener noreferrer" hidden>Original chart</a><small id="bsRefLicence"></small><small id="bsRefArrangementNotes" hidden></small><a id="bsRefLicenceLink" target="_blank" rel="noopener noreferrer" hidden>Licence</a></p><div class="bs-ref-edit-actions"><button class="bs-ref-button bs-ref-save" id="bsRefSave" type="button">Save and view</button><button class="bs-ref-button" id="bsRefReset" type="button">Restore original</button><button class="bs-ref-button bs-ref-delete" id="bsRefDelete" type="button" hidden>Delete song</button></div></div></section></div>
@@ -696,6 +780,7 @@ function html(){return `<div class="bs-ref-header"><div><h2 id="bsRefHeading">So
 function setup(){if(dialog)return;dialog=node('dialog','bs-ref-dialog');dialog.id='bsChordLibraryDialog';dialog.setAttribute('aria-labelledby','bsRefHeading');dialog.innerHTML=html();document.body.append(dialog);
  const search=$('bsRefSearch');search.addEventListener('input',()=>{searchTerm=search.value;visible=80;bulkSelected.clear();renderList();});$('bsRefFilter').onchange=e=>{filter=e.target.value;visible=80;bulkSelected.clear();renderList();};$('bsRefSort').onchange=e=>{sort=e.target.value;renderList();};$('bsRefMore').onclick=()=>{visible+=80;renderList();};$('bsRefToggleBulk').onclick=toggleBulkMode;$('bsRefSelectMatching').onclick=allMatchingSelected;$('bsRefClearSelected').onclick=clearBulkSelection;$('bsRefRemoveSelected').onclick=()=>void removeSelectedSongs();$('bsRefRestoreSelected').onclick=()=>void restoreSelectedSongs();$('bsRefPurgeSelected').onclick=()=>void permanentlyDeleteSelected();$('bsRefClose').onclick=()=>void backFromSong();dialog.addEventListener('cancel',e=>{e.preventDefault();void backFromSong();});$('bsRefOverviewEdit').onclick=beginEditing;
  for(const id of ['bsRefTitle','bsRefArtist','bsRefKey','bsRefOriginal'])$(id).addEventListener('input',markUnsaved);
+ $('bsRefMetadataLookup').onclick=()=>void lookupRecordingMetadata();
  $('bsRefFavourite').onclick=()=>{const fav=$('bsRefFavourite').getAttribute('aria-pressed')!=='true';setFavourite(fav);markUnsaved();};
  $('bsRefAddPart').onclick=()=>{$('bsRefSectionRows').append(newSection('',''));markUnsaved();};$('bsRefSave').onclick=()=>void saveAndOverview();$('bsRefAddUpdated').onclick=addUpdatedSections;$('bsRefAddUpdatedNotes').onclick=addUpdatedNotes;$('bsRefKeepUpdated').onclick=keepSavedReference;$('bsRefReset').onclick=()=>void resetSong();$('bsRefDelete').onclick=()=>void deleteSong();$('bsRefFromSaved').onclick=()=>void importSavedLibrary();$('bsRefPickProjects').onclick=()=>{$('bsRefProjectFiles').value='';$('bsRefProjectFiles').click();};$('bsRefProjectFiles').onchange=e=>{const files=Array.from(e.target.files||[]);e.target.value='';void importSavedCharts(files,true);};$('bsRefAdd').onclick=()=>void createSong();$('bsRefExport').onclick=()=>void exportBackup();$('bsRefShare').onclick=()=>void shareBackup();$('bsRefImport').onclick=()=>{$('bsRefImportFile').value='';$('bsRefImportFile').click();};$('bsRefImportFile').onchange=e=>void importBackup(e.target.files?.[0]);
 }
