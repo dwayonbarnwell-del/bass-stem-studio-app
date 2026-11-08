@@ -160,10 +160,11 @@ function render(){
   for(const song of filtered.slice(0,visibleDiscover))root.append(suggestionCard(song));
   $('btShowDiscover').hidden=filtered.length<=visibleDiscover;
   $('btDiscoverEmpty').hidden=filtered.length>0;
-  $('btFindMore').disabled=searching||Date.now()<pausedUntil||cursor>=SEEDS.length;
+  $('btFindMore').disabled=searching||count()>=CAP||Date.now()<pausedUntil||cursor>=SEEDS.length;
   if(!searching)displayStatus(Date.now()<pausedUntil?'Song search is temporarily limited. Try again later.':
    !navigator.onLine?'Connect to the internet for more suggestions.':
-   networkError||cursor>=SEEDS.length&&usable.length<CAP?'No more different matches found for these searches.':'');
+   networkError?networkError:
+   cursor>=SEEDS.length&&usable.length<CAP?'No more different matches found for these searches.':'');
  }
 }
 function wait(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
