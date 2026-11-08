@@ -1,0 +1,12 @@
+Bass Stem Studio RC222 | Six traditional Christmas hymns in scale numbers
+8 November 2026
+
+The user supplied https://www.psalmnote.com/song/o-holy-night-chords-hillsong-worship and asked for numbered chords from songs on the site. Psalmnote refused an automated view of this specific URL (403 Forbidden) and no permission to redistribute its copyrighted modern arrangements has been confirmed. Accordingly, no Psalmnote charts or lyrics have been copied to the published catalogue.
+
+The catalogue already contains the user's own four numbered sections for O Holy Night (ID 308), and these are unchanged. A link to Psalmnote has been added to this song for an external comparison, with an explicit note that the existing numbers came from the user's own notes, not the linked chart. O Come, All Ye Faithful (ID 307) also already has user numbers and was not duplicated.
+
+Six additional traditional public-domain carols were added as compact number-only references, without any lyrics: Away in a Manger, Angels We Have Heard on High, The First Noel, O Come O Come Emmanuel, What Child Is This?, and O Little Town of Bethlehem. The user's earlier uploaded Praise and Worship with Chords book provided chord clues, and Hymn Commons' Christmas public-domain directory supports the traditional public-domain status. These are basic reference progressions, not transcription of Hillsong, Psalmnote, or a recording, and must be checked against the arrangement the musician plays.
+
+The built-in catalogue now has 856 songs, 571 with numbered progressions and 285 still missing. Existing IDs remain stable; new IDs 900–905. Personal Song Chords edits, imported chart packs, favourites, backups, 171 or more local saved-project charts, and audio/batch settings were not modified. The service-worker offline shell advances to RC222. No paid audio processing or CI launched.
+
+Broader Psalmnote harvesting or wholesale conversion is not authorised by a page being publicly viewable. Separate permission or appropriate open licences would be required for copying distinctive published arrangements to this public app.
