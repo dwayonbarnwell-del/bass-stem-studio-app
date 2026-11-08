@@ -1,0 +1,13 @@
+Bass Stem Studio RC236: optional free missing-chord scan
+
+8 November 2026
+
+Adds a separate "Find missing chords (free)" control beneath Bass Analysis. The scan reads the loaded song's decoded audio on the device and uses no RunPod endpoint, paid job, network request or bass stem analysis. This remains available when a different, earlier RunPod bass job is being protected.
+
+Only major and minor basic chord suggestions are produced. Every new suggestion is labelled uncertain (?) and never overlaps previously detected or manually corrected chords. The 68 original saved bass notes, stems, corrections, song sections and pending RunPod job state stay unchanged. Existing tentative chords are kept rather than replaced. Repeating the free scan replaces only earlier generated local suggestions, not genuine manual edits. The user must review the result and tap Save to export an updated .bassstudio file.
+
+This is an estimated, basic chord pass, not a verified neural transcription and not a guarantee of full-song coverage. It cannot produce a complete or accurate chart when the harmony is unclear. It does not add a new paid chord-only endpoint, and it does not unblock paid bass reanalysis. Audio remains on the device.
+
+Synthetic four-chord test, manual-override, repeat-scan, cancellation, no-network and code syntax checks passed. On the previously supplied Mercy Chinwo Chinedum recording, the local scan independently identified 39 additional tentative spans (around 119 seconds), none overlapping 56 existing chord entries; real-device Android playback and musical accuracy have not been fully verified.
+
+No RunPod request or billable GitHub Actions test was executed in development.

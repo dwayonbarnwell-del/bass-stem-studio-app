@@ -15070,6 +15070,7 @@ window.BassBatch = (() => {
   return {init,show,isRunning:()=>working,listZip};
 })();
 </script>
+<script src="./chord-source/recovery.js"></script>
 <script>
 (() => {
   'use strict';
@@ -19743,7 +19744,7 @@ window.BassBatch = (() => {
     return `${root}${q}${bass}${chord.uncertain?'?':''}`;
   }
   function reliableChord(c){
-    return c && ((c.manual===true&&c.evidenceVersion==='user-correction-v1') || (c.evidenceVersion==='chord-timeline-v2'&&Number(c.confidence)>=.76) ||
+    return c && ((c.manual===true&&c.evidenceVersion==='user-correction-v1') || (c.evidenceVersion==='chord-timeline-v2'&&Number(c.confidence)>=.76) || (c.evidenceVersion==='local-chord-v1'&&Number(c.confidence)>=.70) ||
       (['chord-timeline-v3','chord-timeline-v4'].includes(c.evidenceVersion)&&Number(c.confidence)>=(c.uncertain ? .67 : .76))) &&
       Number.isFinite(c.rootPc) && Object.hasOwn(CHORD_QUALITY_LABELS,c.quality) &&
       Number.isFinite(c.start) && Number.isFinite(c.end) && c.end>c.start;
@@ -21623,6 +21624,19 @@ window.BassBatch = (() => {
     refreshBassPracticeToggle();refreshMetronomeToggle();updateProjectButtons();
   }
 
+  // The free chord-only scan cannot replace bass notes, paid-job records or manual edits.
+  window.BassChordRecovery?.init({
+    getContext:()=>({buffer,session:songSession,chords:detectedChordChanges.map(c=>({...c})),
+      busy:aiBusy||songImportBusy||projectSaveBusy}),
+    apply:async(session,result)=>{
+      if(session!==songSession||aiBusy||songImportBusy||projectSaveBusy)return 0;
+      rememberAnalysis('Before on-device chord recovery');
+      detectedChordChanges=[...result.old,...result.added].sort((a,b)=>a.start-b.start||a.end-b.end);
+      refreshEditedAnalysis();
+      await persistAnalysisRecovery(true);
+      return result.added.length;
+    }
+  });
   let analysisStartPending=false;
   aiAnalyse?.addEventListener('click',async()=>{
     if(analysisStartPending||aiBusy||pendingResumeBusy||songImportBusy)return;
