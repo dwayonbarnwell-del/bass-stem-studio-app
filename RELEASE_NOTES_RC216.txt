@@ -1,0 +1,73 @@
+Bass Stem Studio RC216: reconciled personal progressions and modern CC0 songs
+8 November 2026
+
+Baseline: RC215, Git commit 21444db28a936ebcb74db769aed3c63429fdc8df.
+
+CATALOGUE
+899 searchable entries, up from 874.
+559 entries contain at least one number progression, up from 375.
+340 entries still need progressions, down from 499.
+These are entries with some usable numbers, not counts of complete or recording-verified arrangements.
+
+PERSONAL NOTES
+Reconciled all 558 headings and 2,742 body paragraphs from Song_Progressions_Alphabetical.docx.
+Source SHA-256: 3f11035ee976a4a6259fa435a1fdf0d156cde2e6f0fc0c44ad269b60dc64b964.
+514 existing entries reconciled; 159 previously blank existing entries now have progressions.
+14 separate entries added from the document. This increases progression-bearing entries by 173 before the modern-song additions.
+11 exact repeated sections removed from active sections; their source mappings remain.
+All 874 previous IDs remain stable. Existing external reference sections are unchanged.
+Original paragraphs remain verbatim in documentImport. Earlier imported default notes and sections remain in previousImport and are available under Earlier imported notes.
+Reminder words remain editable alongside number progressions. Chord qualities, slash bass, repeat marks, uncertainty marks and modulation instructions are preserved. Ordinals in key-change instructions are not treated as new chords.
+
+REVIEWED ORGANISATION
+Separated the Eben and Israel & New Breed passages formerly mixed under At the Centre of It All.
+Moved embedded Firm Foundation passages out of Good Good Father and Heaven on Earth, keeping explicit A and Eb session variants.
+Separated He's Able excerpts from God Is Able, without guessing the user's recording.
+Kept High Praise I as a separate untitled notes entry.
+Corrected That Great Name's artist to All Nations Music and applied supported section labels.
+Kept unsupported song identities and section names unconfirmed. A later Heaven on Earth excerpt does not inherit an unsupported earlier key.
+Publisher or distributor metadata supports song identities and section labels only; it does not verify the user's harmonic arrangement.
+
+MODERN SONGS WITH REUSE PERMISSION
+Added 11 songs with original words and music by Ryan Daniel Cornett, dated within the requested 2002 to 2026 period. Their score dates range from 2019 to 2026.
+The songwriter explicitly releases the songs under CC0 1.0. Included 18 distinct section forms, mechanically converted to numbers. Original chord names, key, source page, chart, authorship, score dates and licence links are retained.
+The final chorus of There Is Rest remains separate. Pickup and performance-repeat guidance is retained. These compact progressions do not encode note durations or a complete timed performance order.
+No third-party song lyrics or audio were added in this source batch.
+
+Songs: Born That We Might Be Born Again; From the Depths; His Goodness Will Carry Me; In Jesus' Name; Let There Be Light; My Help and My Hope; My Hope Is Found in This; There Is Rest; Welcomed to the Table; What Vastness the Redeemer Crossed; You Are Wise in All Your Ways.
+
+Primary permission and source pages:
+https://ryancornett.com/
+https://creativecommons.org/publicdomain/zero/1.0/
+Individual chart links and section evidence are in song-reference/sources/rc216-open-songs.json and rc216-open-source-evidence.json.
+
+SAVED EDITS AND ACCESS
+Unchanged or favourite-only RC215 saves receive updated default progressions and notes.
+Real saved corrections to titles, artists, keys, progressions and original notes remain.
+When a corrected field differs from the new reference, a collapsed Updated reference available panel lets the user add new sections, add latest notes or keep their version.
+New saves and backups retain a reference baseline for later updates. Malformed backup IDs are rejected before writing.
+All songs remain visible by default, including Needs progression.
+Access: More tools > Song chords or Library > Song chords.
+New Show filter: Modern songs 2002 to 2026.
+Service-worker cache advanced to rc216. Reload online to receive and cache the release.
+
+VALIDATION
+17 focused Node VM and DOM-harness checks passed for upgrades, favourites, deliberate blank edits, conflicts, source links, long text and backup handling.
+188 import regression checks passed, including 148 exact chord-quality, slash-bass and repetition tokens from the document.
+Catalogue release gates passed for all original IDs, exact migration baselines, previous imports, unchanged external sections and complete document provenance.
+All 323 chord symbols in the 11 new songs passed an independent root, suffix and bass-note comparison against the original letter-chord transcriptions.
+The original app shell, audio engine and analysis assets are unchanged. No paid analysis, RunPod job or audio processing was launched.
+Live browser and Render verification are performed after the automatic deployment of this commit; pre-publication tests do not claim an Android or real-audio run.
+
+REPRODUCTION
+The importer requires the exact source document above and an unchanged RC215 data.js. It refuses another document SHA or release baseline.
+Run scripts/reconcile_progressions_rc216.py with --baseline, --document and --out paths.
+Run scripts/build_song_reference_rc216.py with --baseline, --personal (the generated data.candidate.js), --open-songs song-reference/sources/rc216-open-songs.json and --output song-reference/data.js.
+Run tests/song_reference_upgrade_rc216.cjs with Node.
+Run tests/test_import_notation_rc216.py with --parser, --candidate, --entries and --report paths from the import.
+Run tests/test_song_catalogue_rc216.py with --baseline and --entries paths.
+
+REMAINING WORK
+The earlier 750 to 2,500 useful-progressions target remains unmet. There are still 340 entries without numbers; existing personal progressions are not recording-verified and some references cover only selected sections.
+Six mapped document entries contain no progression. Wonderful Merciful Savior has letter chords without a stated key, so no key or numeric conversion is guessed. All Honour retains its multiple-key notes and original letters.
+Unconfirmed song identities remain flagged in the personal import audit. Obtain reliable source details or the user's recording before merging or completing them.

@@ -57,3 +57,14 @@
 #bsChordLibraryDialog .bs-ref-add-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:12px 0}
 #bsChordLibraryDialog .bs-ref-add-actions a.bs-ref-button{text-decoration:none;color:#f6fbff}
 @media(max-width:460px){#bsChordLibraryDialog .bs-ref-add-actions{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+
+/* RC216: editable reminders and compact reference history. */
+#bsChordLibraryDialog .bs-ref-part-row .bs-ref-cue{grid-column:1/-1}
+#bsChordLibraryDialog .bs-ref-part-row .bs-ref-cue textarea{min-height:43px}
+#bsChordLibraryDialog .bs-ref-reference-panel{margin:12px 0;padding:10px;border:1px solid #48677e;border-radius:10px;background:#102235;min-width:0}
+#bsChordLibraryDialog .bs-ref-reference-panel summary{cursor:pointer;font:750 14px/1.45 system-ui,sans-serif;color:#c3e8ef;padding:3px 0}
+#bsChordLibraryDialog .bs-ref-reference-part{margin:10px 0;padding:10px;border-radius:8px;background:#183246;min-width:0}
+#bsChordLibraryDialog .bs-ref-reference-text{white-space:pre-wrap;overflow-wrap:anywhere;margin:7px 0;font:700 14px/1.5 system-ui,sans-serif}
+#bsChordLibraryDialog .bs-ref-reference-part small{white-space:pre-wrap;overflow-wrap:anywhere}
+#bsChordLibraryDialog .bs-ref-reference-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:12px}

@@ -1,0 +1,210 @@
+{
+  "baselineVersion": "RC215",
+  "candidateVersion": "RC216",
+  "document": "Song_Progressions_Alphabetical.docx",
+  "documentSha256": "3f11035ee976a4a6259fa435a1fdf0d156cde2e6f0fc0c44ad269b60dc64b964",
+  "sourceHeadings": 558,
+  "sourceBodyParagraphs": 2742,
+  "baselineSongs": 874,
+  "candidateSongs": 888,
+  "baselineWithProgressions": 375,
+  "candidateWithProgressions": 548,
+  "candidateNeedsProgression": 340,
+  "existingSongsReconciled": 514,
+  "newEntries": 14,
+  "existingMissingFilled": 159,
+  "newWithProgressions": 14,
+  "exactSectionDuplicatesRemoved": 11,
+  "identityReview": [
+    {
+      "heading": 2,
+      "songId": 875,
+      "title": "A Million Tongues",
+      "reason": "Song identity or recording requires confirmation"
+    },
+    {
+      "heading": 97,
+      "songId": 877,
+      "title": "From the rising",
+      "reason": "Song identity or recording requires confirmation"
+    },
+    {
+      "heading": 141,
+      "songId": 879,
+      "title": "Hallelujah eh, Hallelujah oh",
+      "reason": "Song identity or recording requires confirmation"
+    },
+    {
+      "heading": 143,
+      "songId": 880,
+      "title": "Hallelujah for the Lord our God the almighty reigns",
+      "reason": "Song identity or recording requires confirmation"
+    },
+    {
+      "heading": 156,
+      "songId": 881,
+      "title": "He has turned my life around",
+      "reason": "Song identity or recording requires confirmation"
+    },
+    {
+      "heading": 162,
+      "songId": 882,
+      "title": "He picks me up",
+      "reason": "Song identity or recording requires confirmation"
+    },
+    {
+      "heading": 171,
+      "songId": 883,
+      "title": "High Praise I (untitled notes)",
+      "reason": "Unlabelled session or medley; no canonical song or artist assumed"
+    },
+    {
+      "heading": 185,
+      "songId": 884,
+      "title": "Hosanna (In the Highest)",
+      "reason": "Song identity or recording requires confirmation"
+    },
+    {
+      "heading": 426,
+      "songId": 885,
+      "title": "This",
+      "reason": "Song identity or recording requires confirmation"
+    },
+    {
+      "heading": 478,
+      "songId": 886,
+      "title": "When you call to him, he will answer you",
+      "reason": "Song identity or recording requires confirmation"
+    },
+    {
+      "heading": 501,
+      "songId": 887,
+      "title": "Yahweh you are worthy of my praise, oh oh oh you are worthy of my praise",
+      "reason": "Song identity or recording requires confirmation"
+    },
+    {
+      "heading": 506,
+      "songId": 888,
+      "title": "You Alone Deserve the Glory (Yahweh)",
+      "reason": "Song identity or recording requires confirmation"
+    }
+  ],
+  "withoutImportedNumbers": [
+    {
+      "songId": 9,
+      "title": "Ah-ah-eh-ah -eh ah-eh-ah-ah-eh",
+      "headings": [
+        9
+      ],
+      "hasLetterChords": false
+    },
+    {
+      "songId": 46,
+      "title": "Come and See",
+      "headings": [
+        51
+      ],
+      "hasLetterChords": false
+    },
+    {
+      "songId": 80,
+      "title": "Father we your name you are worthy of",
+      "headings": [
+        86
+      ],
+      "hasLetterChords": false
+    },
+    {
+      "songId": 171,
+      "title": "I am blessed, I am blessed",
+      "headings": [
+        188
+      ],
+      "hasLetterChords": false
+    },
+    {
+      "songId": 182,
+      "title": "I Have Decided to Follow Jesus",
+      "headings": [
+        201
+      ],
+      "hasLetterChords": false
+    },
+    {
+      "songId": 385,
+      "title": "The Lord of host the king of glory",
+      "headings": [
+        413
+      ],
+      "hasLetterChords": false
+    },
+    {
+      "songId": 454,
+      "title": "Wonderful Merciful Savior",
+      "headings": [
+        490
+      ],
+      "hasLetterChords": true
+    }
+  ],
+  "rules": [
+    "Existing IDs and every existing catalogue entry retained.",
+    "Exact normalised matching plus explicit reviewed alias table; no fuzzy matching.",
+    "Every heading and body line retained verbatim in documentImport provenance.",
+    "Only supplied section labels or cited metadata corrections used; unlabelled parts stay unlabelled.",
+    "Numbers extracted without changing root degree, accidentals, suffixes, order or compact notation.",
+    "Reminder words stored in editable cue and preserved verbatim in original notes.",
+    "Only identical part, numbers, cue, letter chords and key sections deduplicated.",
+    "Replaced previous defaults archived exactly; device edits are handled separately by UI.",
+    "External publisher/blog/hymn sections unchanged."
+  ],
+  "reviewedSplitHeadings": [
+    {
+      "heading": 23,
+      "title": "At the Centre of It All",
+      "songIds": [
+        240,
+        876
+      ],
+      "method": "Explicit publisher-confirmed separation of Eben and Israel versions"
+    },
+    {
+      "heading": 109,
+      "title": "God Is Able",
+      "songIds": [
+        878,
+        99
+      ],
+      "method": "Separate source-confirmed He’s Able cue from the differently notated God Is Able excerpt"
+    },
+    {
+      "heading": 122,
+      "title": "Good Good Father",
+      "songIds": [
+        112,
+        547
+      ],
+      "method": "Explicit embedded Firm Foundation title confirmed by the publisher; session A retained"
+    },
+    {
+      "heading": 171,
+      "title": "Heaven on Earth",
+      "songIds": [
+        153,
+        547,
+        878,
+        883
+      ],
+      "method": "Explicit embedded titles and session boundaries; unconfirmed medley kept separate"
+    },
+    {
+      "heading": 452,
+      "title": "We cast down our crowds",
+      "songIds": [
+        375,
+        33
+      ],
+      "method": "Source-confirmed That Great Name opening; exact repeated Blessed Be the Name excerpt separated"
+    }
+  ]
+}

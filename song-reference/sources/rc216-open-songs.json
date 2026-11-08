@@ -1,0 +1,443 @@
+[
+  {
+    "title": "Born That We Might Be Born Again",
+    "artist": "Ryan Cornett",
+    "year": 2021,
+    "category": "Christian worship",
+    "collections": [
+      "Modern Christian songs 2002–2026"
+    ],
+    "sections": [
+      {
+        "part": "Verse",
+        "chords": "1 4 1 4 1\n5 1 1 4 1\n4 1 5 1",
+        "letterChords": "G C G C G\nD G G C G\nC G D G",
+        "sourceKey": "G",
+        "source": "open",
+        "confidence": "Publisher chart; numbered transcription"
+      },
+      {
+        "part": "Refrain",
+        "chords": "1 4 1 4 5\n1 4 1 4 5\n1 4 1 4 1 5 1",
+        "letterChords": "G C G C D\nG C G C D\nG C G C G D G",
+        "sourceKey": "G",
+        "source": "open",
+        "confidence": "Publisher chart; numbered transcription"
+      }
+    ],
+    "source": {
+      "key": "G",
+      "url": "https://ryancornett.com/hymns/born-that-we-might-be-born-again/",
+      "chartUrl": "https://drive.google.com/file/d/1Ku_3J5_tWy_GI071TZeEahJWwe1BqEp0",
+      "name": "Ryan Cornett",
+      "licence": "CC0 1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "checkedAt": "2026-11-08",
+      "note": "Compact chord changes only; durations and performance repeats follow the linked score. Words and music are dated 2021 in the songwriter's score.",
+      "sectionNote": "One verse form covers all three stanzas; the refrain is listed once.",
+      "wordsBy": "Ryan Daniel Cornett",
+      "musicBy": "Ryan Daniel Cornett",
+      "wordsYear": 2021,
+      "musicYear": 2021,
+      "licenceEvidenceUrl": "https://ryancornett.com/hymns/born-that-we-might-be-born-again/"
+    }
+  },
+  {
+    "title": "From the Depths",
+    "artist": "Ryan Cornett",
+    "year": 2026,
+    "category": "Christian worship",
+    "collections": [
+      "Modern Christian songs 2002–2026"
+    ],
+    "sections": [
+      {
+        "part": "Verse",
+        "chords": "1 5 1/3 4 1/3 6m 5\n4 5 6m 4 5 1",
+        "letterChords": "Eb Bb Eb/G Ab Eb/G Cm Bb\nAb Bb Cm Ab Bb Eb",
+        "sourceKey": "Eb",
+        "source": "open",
+        "confidence": "Publisher chart; numbered transcription"
+      },
+      {
+        "part": "Chorus",
+        "chords": "4 5 1/3 4 5 1\n4 5 6m 4 5 1",
+        "letterChords": "Ab Bb Eb/G Ab Bb Eb\nAb Bb Cm Ab Bb Eb",
+        "sourceKey": "Eb",
+        "source": "open",
+        "confidence": "Publisher chart; numbered transcription"
+      }
+    ],
+    "source": {
+      "key": "Eb",
+      "url": "https://ryancornett.com/songs/from-the-depths/",
+      "chartUrl": "https://drive.google.com/file/d/1H58CYGzx_tsV9DEWb8AVZgTA6wHsLgOf",
+      "name": "Ryan Cornett",
+      "licence": "CC0 1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "checkedAt": "2026-11-08",
+      "note": "Compact chord changes only; durations and performance repeats follow the linked score. The score dates the words to 2026 and the music to 2019.",
+      "sectionNote": "The four verses share one form, and the four choruses share one form. The chorus pickup continues the preceding tonic before the first printed Ab chord.",
+      "wordsBy": "Ryan Daniel Cornett",
+      "musicBy": "Ryan Daniel Cornett",
+      "wordsYear": 2026,
+      "musicYear": 2019,
+      "licenceEvidenceUrl": "https://ryancornett.com/songs/from-the-depths/"
+    }
+  },
+  {
+    "title": "His Goodness Will Carry Me",
+    "artist": "Ryan Cornett",
+    "year": 2026,
+    "category": "Christian worship",
+    "collections": [
+      "Modern Christian songs 2002–2026"
+    ],
+    "sections": [
+      {
+        "part": "Verse",
+        "chords": "1 5 1/3 4 5sus 5\n6m 5/7 1 4 5sus 5/7 1\n6m 5/7 4 1 2m 3m 4 5\n6m 5/7 1 4 5sus 5/7 5 1",
+        "letterChords": "G D G/B C Dsus D\nEm D/F# G C Dsus D/F# G\nEm D/F# C G Am Bm C D\nEm D/F# G C Dsus D/F# D G",
+        "sourceKey": "G",
+        "source": "open",
+        "confidence": "Publisher chart; numbered transcription"
+      }
+    ],
+    "source": {
+      "key": "G",
+      "url": "https://ryancornett.com/hymns/his-goodness-will-carry-me/",
+      "chartUrl": "https://drive.google.com/file/d/15eJYLtRm3q7IVkIl7DR75fgwz3X33VPG",
+      "name": "Ryan Cornett",
+      "licence": "CC0 1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "checkedAt": "2026-11-08",
+      "note": "Compact chord changes only; durations and performance repeats follow the linked score. Words and music are dated 2026 in the songwriter's score.",
+      "sectionNote": "One full stanza form covers all four stanzas. The printed Dsus suffix is retained without choosing a different suspension.",
+      "wordsBy": "Ryan Daniel Cornett",
+      "musicBy": "Ryan Daniel Cornett",
+      "wordsYear": 2026,
+      "musicYear": 2026,
+      "licenceEvidenceUrl": "https://ryancornett.com/hymns/his-goodness-will-carry-me/"
+    }
+  },
+  {
+    "title": "In Jesus' Name",
+    "artist": "Ryan Cornett",
+    "year": 2026,
+    "category": "Christian worship",
+    "collections": [
+      "Modern Christian songs 2002–2026"
+    ],
+    "sections": [
+      {
+        "part": "Verse",
+        "chords": "1 5(6) 5 1\n5 5(7) 1\n6(7)\n1 5(6) 5(7) 1",
+        "letterChords": "G D6 D G\nD D7 G\nE7\nG D6 D7 G",
+        "sourceKey": "G",
+        "source": "open",
+        "confidence": "Publisher chart; numbered transcription"
+      }
+    ],
+    "source": {
+      "key": "G",
+      "url": "https://ryancornett.com/hymns/in-jesus-name/",
+      "chartUrl": "https://drive.google.com/file/d/1oNls6Aqkm2S51h186PgVP92PWOWwH6VR",
+      "name": "Ryan Cornett",
+      "licence": "CC0 1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "checkedAt": "2026-11-08",
+      "note": "Compact chord changes only; durations and performance repeats follow the linked score. Words and music are dated 2026 in the songwriter's score.",
+      "sectionNote": "One stanza form covers all five stanzas. Uses the G-major score without the optional modulation. E7 is the printed major dominant-seventh chord, so its number is 6(7), not 6m7.",
+      "wordsBy": "Ryan Daniel Cornett",
+      "musicBy": "Ryan Daniel Cornett",
+      "wordsYear": 2026,
+      "musicYear": 2026,
+      "licenceEvidenceUrl": "https://ryancornett.com/hymns/in-jesus-name/"
+    }
+  },
+  {
+    "title": "Let There Be Light",
+    "artist": "Ryan Cornett",
+    "year": 2021,
+    "category": "Christian worship",
+    "collections": [
+      "Modern Christian songs 2002–2026"
+    ],
+    "sections": [
+      {
+        "part": "Verse",
+        "chords": "1 4 6m 4 6m 5\n1 4 6m 4 5 1\n5 1/3 4 1 5 6m 4\n1 4 6m 4 5 1",
+        "letterChords": "D G Bm G Bm A\nD G Bm G A D\nA D/F# G D A Bm G\nD G Bm G A D",
+        "sourceKey": "D",
+        "source": "open",
+        "confidence": "Publisher chart; numbered transcription"
+      }
+    ],
+    "source": {
+      "key": "D",
+      "url": "https://ryancornett.com/hymns/let-there-be-light/",
+      "chartUrl": "https://drive.google.com/file/d/1CdTvmSF1A_W-1C0PgpwcLB8r22aC4-Mo",
+      "name": "Ryan Cornett",
+      "licence": "CC0 1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "checkedAt": "2026-11-08",
+      "note": "Compact chord changes only; durations and performance repeats follow the linked score. Words and music are dated 2021 in the songwriter's score.",
+      "sectionNote": "One full stanza form covers all three stanzas.",
+      "wordsBy": "Ryan Daniel Cornett",
+      "musicBy": "Ryan Daniel Cornett",
+      "wordsYear": 2021,
+      "musicYear": 2021,
+      "licenceEvidenceUrl": "https://ryancornett.com/hymns/let-there-be-light/"
+    }
+  },
+  {
+    "title": "My Help and My Hope",
+    "artist": "Ryan Cornett",
+    "year": 2022,
+    "category": "Christian worship",
+    "collections": [
+      "Modern Christian songs 2002–2026"
+    ],
+    "sections": [
+      {
+        "part": "Verse",
+        "chords": "1 4 6m 4 6m 5(5) 6m\n1 4 6m 4 6m 5/7 1\n1/3 4 1 1/3 4 1 1/3 4 5(5) 6m 5 6m\n1/3 4 1 1/3 4 1 1/3 4 5(5) 6m 5/7 1",
+        "letterChords": "D G Bm G Bm A5 Bm\nD G Bm G Bm A/C# D\nD/F# G D D/F# G D D/F# G A5 Bm A Bm\nD/F# G D D/F# G D D/F# G A5 Bm A/C# D",
+        "sourceKey": "D",
+        "source": "open",
+        "confidence": "Publisher chart; numbered transcription"
+      }
+    ],
+    "source": {
+      "key": "D",
+      "url": "https://ryancornett.com/hymns/my-help-and-my-hope/",
+      "chartUrl": "https://drive.google.com/file/d/1z1G2To6h64UH1C9xIHNet5Enb1iaP3IP",
+      "name": "Ryan Cornett",
+      "licence": "CC0 1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "checkedAt": "2026-11-08",
+      "note": "Compact chord changes only; durations and performance repeats follow the linked score. Words and music are dated 2022 in the songwriter's score.",
+      "sectionNote": "One full stanza form covers all three stanzas. The printed A5 chord is retained as 5(5).",
+      "wordsBy": "Ryan Daniel Cornett",
+      "musicBy": "Ryan Daniel Cornett",
+      "wordsYear": 2022,
+      "musicYear": 2022,
+      "licenceEvidenceUrl": "https://ryancornett.com/hymns/my-help-and-my-hope/"
+    }
+  },
+  {
+    "title": "My Hope Is Found in This",
+    "artist": "Ryan Cornett",
+    "year": 2026,
+    "category": "Christian worship",
+    "collections": [
+      "Modern Christian songs 2002–2026"
+    ],
+    "sections": [
+      {
+        "part": "Verse",
+        "chords": "1 5 1 4 5 1\n4 5 6m 1 1/3 4 5\n1 5 1 4 5 1\n4 5 6m 1 1/3 4 5",
+        "letterChords": "C G C F G C\nF G Am C C/E F G\nC G C F G C\nF G Am C C/E F G",
+        "sourceKey": "C",
+        "source": "open",
+        "confidence": "Publisher chart; numbered transcription"
+      },
+      {
+        "part": "Chorus",
+        "chords": "4 5 1 4 5 1\n4 5 3m 6m 4 5 1",
+        "letterChords": "F G C F G C\nF G Em Am F G C",
+        "sourceKey": "C",
+        "source": "open",
+        "confidence": "Publisher chart; numbered transcription"
+      }
+    ],
+    "source": {
+      "key": "C",
+      "url": "https://ryancornett.com/songs/my-hope-is-found-in-this/",
+      "chartUrl": "https://drive.google.com/file/d/1zg4klFmX5MAVc9w9gxJA0uqLzS4ftgaU",
+      "name": "Ryan Cornett",
+      "licence": "CC0 1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "checkedAt": "2026-11-08",
+      "note": "Compact chord changes only; durations and performance repeats follow the linked score. Words and music are dated 2026 in the songwriter's score.",
+      "sectionNote": "The four verses share one form, and the four choruses share one form. The chorus pickup continues the preceding G chord before the first printed F chord.",
+      "wordsBy": "Ryan Daniel Cornett",
+      "musicBy": "Ryan Daniel Cornett",
+      "wordsYear": 2026,
+      "musicYear": 2026,
+      "licenceEvidenceUrl": "https://ryancornett.com/songs/my-hope-is-found-in-this/"
+    }
+  },
+  {
+    "title": "There Is Rest",
+    "artist": "Ryan Cornett",
+    "year": 2021,
+    "category": "Christian worship",
+    "collections": [
+      "Modern Christian songs 2002–2026"
+    ],
+    "sections": [
+      {
+        "part": "Verse",
+        "chords": "1 4\n5 1/3 4\n1 4\n5 1/3 4",
+        "letterChords": "E A\nB E/G# A\nE A\nB E/G# A",
+        "sourceKey": "E",
+        "source": "open",
+        "confidence": "Publisher chart; numbered transcription"
+      },
+      {
+        "part": "Pre-chorus",
+        "chords": "4(2) 5 1/3 4 5",
+        "letterChords": "A2 B E/G# A B",
+        "sourceKey": "E",
+        "source": "open",
+        "confidence": "Publisher chart; numbered transcription"
+      },
+      {
+        "part": "Chorus",
+        "chords": "4 5 1 4 5\n4 5 6m 4 5\n2m 1(2)/3 4 5(2) 1",
+        "letterChords": "A B E A B\nA B C#m A B\nF#m E2/G# A B2 E",
+        "sourceKey": "E",
+        "source": "open",
+        "confidence": "Publisher chart; numbered transcription"
+      },
+      {
+        "part": "Final chorus",
+        "chords": "4 5 1 4 5\n4 5 1 4 5\n2m 1(2)/3\n4 5 1 4 5\n4 5 1 4 5\n2m 1(2)/3 4 5(2) 1",
+        "letterChords": "A B E A B\nA B E A B\nF#m E2/G#\nA B E A B\nA B E A B\nF#m E2/G# A B2 E",
+        "sourceKey": "E",
+        "source": "open",
+        "confidence": "Publisher chart; numbered transcription"
+      },
+      {
+        "part": "Tag",
+        "chords": "2m 1(2)/3 4 5(2) 1",
+        "letterChords": "F#m E2/G# A B2 E",
+        "sourceKey": "E",
+        "source": "open",
+        "confidence": "Publisher chart; numbered transcription"
+      }
+    ],
+    "source": {
+      "key": "E",
+      "url": "https://ryancornett.com/songs/there-is-rest/",
+      "chartUrl": "https://drive.google.com/file/d/1xiqL5eLRGNyFJ3PGlK1nVwWdRBeq6hkE",
+      "name": "Ryan Cornett",
+      "licence": "CC0 1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "checkedAt": "2026-11-08",
+      "note": "Compact chord changes only; durations and performance repeats follow the linked score. Words and music are dated 2021 in the songwriter's score.",
+      "sectionNote": "The three verses and pre-choruses share their respective forms. The final chorus changes C#m to E and has an extended return, so it remains separate. The source uses both 4/4 and 2/4; timings are not reproduced here.",
+      "wordsBy": "Ryan Daniel Cornett",
+      "musicBy": "Ryan Daniel Cornett",
+      "wordsYear": 2021,
+      "musicYear": 2021,
+      "licenceEvidenceUrl": "https://ryancornett.com/songs/there-is-rest/"
+    }
+  },
+  {
+    "title": "Welcomed to the Table",
+    "artist": "Ryan Cornett",
+    "year": 2021,
+    "category": "Christian worship",
+    "collections": [
+      "Modern Christian songs 2002–2026"
+    ],
+    "sections": [
+      {
+        "part": "Verse",
+        "chords": "1 4\n1/3 6m 5\n1 4 5 1",
+        "letterChords": "Ab Db\nAb/C Fm Eb\nAb Db Eb Ab",
+        "sourceKey": "Ab",
+        "source": "open",
+        "confidence": "Publisher chart; numbered transcription"
+      }
+    ],
+    "source": {
+      "key": "Ab",
+      "url": "https://ryancornett.com/hymns/welcomed-to-the-table/",
+      "chartUrl": "https://drive.google.com/file/d/14okIMBxo_3bV5TTJ2U75VWaYexbo5LkT",
+      "name": "Ryan Cornett",
+      "licence": "CC0 1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "checkedAt": "2026-11-08",
+      "note": "Compact chord changes only; durations and performance repeats follow the linked score. Words and music are dated 2021 in the songwriter's score.",
+      "sectionNote": "One full stanza form covers all three stanzas.",
+      "wordsBy": "Ryan Daniel Cornett",
+      "musicBy": "Ryan Daniel Cornett",
+      "wordsYear": 2021,
+      "musicYear": 2021,
+      "licenceEvidenceUrl": "https://ryancornett.com/hymns/welcomed-to-the-table/"
+    }
+  },
+  {
+    "title": "What Vastness the Redeemer Crossed",
+    "artist": "Ryan Cornett",
+    "year": 2024,
+    "category": "Christian worship",
+    "collections": [
+      "Modern Christian songs 2002–2026"
+    ],
+    "sections": [
+      {
+        "part": "Verse",
+        "chords": "1 4 1/3 1 4 5 1 5\n4 5 1/3 4 1 4 5 1\n5 1/3 4 1/3 5 6m 4 5\n4 5 1/3 4 1 4 5 1",
+        "letterChords": "C F C/E C F G C G\nF G C/E F C F G C\nG C/E F C/E G Am F G\nF G C/E F C F G C",
+        "sourceKey": "C",
+        "source": "open",
+        "confidence": "Publisher chart; numbered transcription"
+      }
+    ],
+    "source": {
+      "key": "C",
+      "url": "https://ryancornett.com/hymns/what-vastness-the-redeemer-crossed/",
+      "chartUrl": "https://drive.google.com/file/d/1_vBRLh-vcEPjstOSq5xcqx0udkQtt3O9",
+      "name": "Ryan Cornett",
+      "licence": "CC0 1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "checkedAt": "2026-11-08",
+      "note": "Compact chord changes only; durations and performance repeats follow the linked score. Words and music are dated 2024 in the songwriter's score.",
+      "sectionNote": "One full stanza form covers all three stanzas.",
+      "wordsBy": "Ryan Daniel Cornett",
+      "musicBy": "Ryan Daniel Cornett",
+      "wordsYear": 2024,
+      "musicYear": 2024,
+      "licenceEvidenceUrl": "https://ryancornett.com/hymns/what-vastness-the-redeemer-crossed/"
+    }
+  },
+  {
+    "title": "You Are Wise in All Your Ways",
+    "artist": "Ryan Cornett",
+    "year": 2026,
+    "category": "Christian worship",
+    "collections": [
+      "Modern Christian songs 2002–2026"
+    ],
+    "sections": [
+      {
+        "part": "Verse",
+        "chords": "1 4(6) 4 1 6m 5\n1 4 1 5 1\n2m 1 4 5\n1 4(6) 4 1 5 1",
+        "letterChords": "G C6 C G Em D\nG C G D G\nAm G C D\nG C6 C G D G",
+        "sourceKey": "G",
+        "source": "open",
+        "confidence": "Publisher chart; numbered transcription"
+      }
+    ],
+    "source": {
+      "key": "G",
+      "url": "https://ryancornett.com/hymns/you-are-wise-in-all-your-ways/",
+      "chartUrl": "https://drive.google.com/file/d/15S31KGiKD2Fopu1goJ6Uk0P22D9GjJY0",
+      "name": "Ryan Cornett",
+      "licence": "CC0 1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "checkedAt": "2026-11-08",
+      "note": "Compact chord changes only; durations and performance repeats follow the linked score. Words and music are dated 2026 in the songwriter's score.",
+      "sectionNote": "One full stanza form covers all three stanzas. C6 is retained as 4(6).",
+      "wordsBy": "Ryan Daniel Cornett",
+      "musicBy": "Ryan Daniel Cornett",
+      "wordsYear": 2026,
+      "musicYear": 2026,
+      "licenceEvidenceUrl": "https://ryancornett.com/hymns/you-are-wise-in-all-your-ways/"
+    }
+  }
+]

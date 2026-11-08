@@ -1,0 +1,110 @@
+{
+  "checkedAt": "2026-11-08",
+  "catalogue": "https://ryancornett.com/",
+  "licence": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "notes": "All included songs have original words and music by Cornett dated within 2002–2026. Source score dates are not claimed to establish the first recording release. No lyrics or audio are included. Chord symbols and section boundaries were visually checked against the publisher scores. Numeric conversions round-trip exactly to the transcribed chord names.",
+  "songs": [
+    {
+      "title": "Born That We Might Be Born Again",
+      "page": "https://ryancornett.com/hymns/born-that-we-might-be-born-again/",
+      "chart": "https://drive.google.com/file/d/1Ku_3J5_tWy_GI071TZeEahJWwe1BqEp0",
+      "checkedAt": "2026-11-08",
+      "yearEvidence": "Words and music are dated 2021 in the songwriter's score.",
+      "sectionEvidence": "One verse form covers all three stanzas; the refrain is listed once."
+    },
+    {
+      "title": "From the Depths",
+      "page": "https://ryancornett.com/songs/from-the-depths/",
+      "chart": "https://drive.google.com/file/d/1H58CYGzx_tsV9DEWb8AVZgTA6wHsLgOf",
+      "checkedAt": "2026-11-08",
+      "yearEvidence": "The score dates the words to 2026 and the music to 2019.",
+      "sectionEvidence": "The four verses share one form, and the four choruses share one form. The chorus pickup continues the preceding tonic before the first printed Ab chord."
+    },
+    {
+      "title": "His Goodness Will Carry Me",
+      "page": "https://ryancornett.com/hymns/his-goodness-will-carry-me/",
+      "chart": "https://drive.google.com/file/d/15eJYLtRm3q7IVkIl7DR75fgwz3X33VPG",
+      "checkedAt": "2026-11-08",
+      "yearEvidence": "Words and music are dated 2026 in the songwriter's score.",
+      "sectionEvidence": "One full stanza form covers all four stanzas. The printed Dsus suffix is retained without choosing a different suspension."
+    },
+    {
+      "title": "In Jesus' Name",
+      "page": "https://ryancornett.com/hymns/in-jesus-name/",
+      "chart": "https://drive.google.com/file/d/1oNls6Aqkm2S51h186PgVP92PWOWwH6VR",
+      "checkedAt": "2026-11-08",
+      "yearEvidence": "Words and music are dated 2026 in the songwriter's score.",
+      "sectionEvidence": "One stanza form covers all five stanzas. Uses the G-major score without the optional modulation. E7 is the printed major dominant-seventh chord, so its number is 6(7), not 6m7."
+    },
+    {
+      "title": "Let There Be Light",
+      "page": "https://ryancornett.com/hymns/let-there-be-light/",
+      "chart": "https://drive.google.com/file/d/1CdTvmSF1A_W-1C0PgpwcLB8r22aC4-Mo",
+      "checkedAt": "2026-11-08",
+      "yearEvidence": "Words and music are dated 2021 in the songwriter's score.",
+      "sectionEvidence": "One full stanza form covers all three stanzas."
+    },
+    {
+      "title": "My Help and My Hope",
+      "page": "https://ryancornett.com/hymns/my-help-and-my-hope/",
+      "chart": "https://drive.google.com/file/d/1z1G2To6h64UH1C9xIHNet5Enb1iaP3IP",
+      "checkedAt": "2026-11-08",
+      "yearEvidence": "Words and music are dated 2022 in the songwriter's score.",
+      "sectionEvidence": "One full stanza form covers all three stanzas. The printed A5 chord is retained as 5(5)."
+    },
+    {
+      "title": "My Hope Is Found in This",
+      "page": "https://ryancornett.com/songs/my-hope-is-found-in-this/",
+      "chart": "https://drive.google.com/file/d/1zg4klFmX5MAVc9w9gxJA0uqLzS4ftgaU",
+      "checkedAt": "2026-11-08",
+      "yearEvidence": "Words and music are dated 2026 in the songwriter's score.",
+      "sectionEvidence": "The four verses share one form, and the four choruses share one form. The chorus pickup continues the preceding G chord before the first printed F chord."
+    },
+    {
+      "title": "There Is Rest",
+      "page": "https://ryancornett.com/songs/there-is-rest/",
+      "chart": "https://drive.google.com/file/d/1xiqL5eLRGNyFJ3PGlK1nVwWdRBeq6hkE",
+      "checkedAt": "2026-11-08",
+      "yearEvidence": "Words and music are dated 2021 in the songwriter's score.",
+      "sectionEvidence": "The three verses and pre-choruses share their respective forms. The final chorus changes C#m to E and has an extended return, so it remains separate. The source uses both 4/4 and 2/4; timings are not reproduced here."
+    },
+    {
+      "title": "Welcomed to the Table",
+      "page": "https://ryancornett.com/hymns/welcomed-to-the-table/",
+      "chart": "https://drive.google.com/file/d/14okIMBxo_3bV5TTJ2U75VWaYexbo5LkT",
+      "checkedAt": "2026-11-08",
+      "yearEvidence": "Words and music are dated 2021 in the songwriter's score.",
+      "sectionEvidence": "One full stanza form covers all three stanzas."
+    },
+    {
+      "title": "What Vastness the Redeemer Crossed",
+      "page": "https://ryancornett.com/hymns/what-vastness-the-redeemer-crossed/",
+      "chart": "https://drive.google.com/file/d/1_vBRLh-vcEPjstOSq5xcqx0udkQtt3O9",
+      "checkedAt": "2026-11-08",
+      "yearEvidence": "Words and music are dated 2024 in the songwriter's score.",
+      "sectionEvidence": "One full stanza form covers all three stanzas."
+    },
+    {
+      "title": "You Are Wise in All Your Ways",
+      "page": "https://ryancornett.com/hymns/you-are-wise-in-all-your-ways/",
+      "chart": "https://drive.google.com/file/d/15S31KGiKD2Fopu1goJ6Uk0P22D9GjJY0",
+      "checkedAt": "2026-11-08",
+      "yearEvidence": "Words and music are dated 2026 in the songwriter's score.",
+      "sectionEvidence": "One full stanza form covers all three stanzas. C6 is retained as 4(6)."
+    }
+  ],
+  "held": [
+    {
+      "title": "Laid Up for Us Is a Crown",
+      "reason": "The 2019 score has no printed chord symbols; no guessed harmony added."
+    },
+    {
+      "title": "Through Tests and Trials",
+      "reason": "Modern words set to an older tune; excluded from this batch of newly written songs."
+    },
+    {
+      "title": "All My Ways Are in Thy Hand",
+      "reason": "Modern setting of 1909 words; excluded from this batch of newly written songs."
+    }
+  ]
+}
