@@ -117,3 +117,7 @@
 #bsChordLibraryDialog .bs-ref-import-actions .bs-ref-button{min-width:0;min-height:45px}
 #bsChordLibraryDialog[data-view="overview"] .bs-ref-import-actions,#bsChordLibraryDialog[data-view="edit"] .bs-ref-import-actions{display:none}
 @media(max-width:350px){#bsChordLibraryDialog .bs-ref-import-actions{grid-template-columns:minmax(0,1fr)}}
+
+/* RC220: four equal action buttons, including Android share. */
+#bsChordLibraryDialog .bs-ref-bottom{grid-template-columns:repeat(2,minmax(0,1fr))}
+#bsChordLibraryDialog .bs-ref-bottom .bs-ref-button{min-height:45px;height:auto}

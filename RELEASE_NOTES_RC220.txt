@@ -1,0 +1,14 @@
+Bass Stem Studio RC220 — personal songbook numbers and backup sharing
+8 November 2026
+
+A 72-page Praise and Worship with Chords PDF was supplied for personal conversion. 206 distinct songs and 327 numbered sections have been prepared in a separate downloadable BassStem_Praise_Worship_Number_Charts.json file, with no lyrics or original letter-chord arrangements. That personal songbook file is NOT committed to the public app repository.
+
+The Song Chords Import control is now labelled "Import charts / backup". It recognises either the existing JSON backup or this BassStemSongChordPack format. Imported songs are stored only in the user's own device Song Chords database and appear in With progressions, All songs and the new My songbook filter. Existing non-empty sections, saved favourites and original reminder words are preserved; missing sections are added and empty progressions can be filled. Repeated imports are tracked by document fingerprint and song reference ID. Ambiguous title matches are skipped rather than guessed. All imported sections are explicitly marked as draft charts that need checking against the recording. Device-specific songs and full audio files remain unchanged.
+
+Export backup now displays its downloaded filename and explains that Android downloads are usually under My Files > Downloads or Chrome > Downloads. Share backup provides a direct Android share sheet for saving the JSON in a chosen application such as Drive where browser support permits. The existing export remains as a fallback. Bottom actions use equal two-column buttons on phones.
+
+The pack's 206 entries and 327 sections were validated programmatically, with rendered source-page checks and no unsupported letter-chord strings. The new importer was tested with simulated missing songs, user corrections, duplicate imports, validation errors and backup sharing. Real Android share and PDF chart harmonic accuracy have not been independently verified.
+
+Usage: refresh Bass Stem Studio; open More tools > Song chords; select Import charts / backup; choose the downloaded BassStem_Praise_Worship_Number_Charts.json; choose Show > My songbook or All songs; use Share backup afterwards to keep a copy outside the browser. Normal GitHub/Render app updates do not clear the local Song Chords database.
+
+Baseline RC219: 083ac6cde90afc081f22998209c209fe20039267. No paid CI, RunPod analysis, audio processing or backend changes.

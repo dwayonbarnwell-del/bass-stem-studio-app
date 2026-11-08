@@ -1,4 +1,4 @@
-/* Bass Stem Studio RC219 · Saved analysis to simplified numbered chart, offline. */
+/* Bass Stem Studio RC220 · Personal songbook import and safer backups. */
 (()=>{
 'use strict';
 const initial=(window.BassSongReferenceData&&Array.isArray(window.BassSongReferenceData.songs))?window.BassSongReferenceData.songs:[];
@@ -94,8 +94,9 @@ function everySong(){return [...new Set([...original.keys(),...changes.keys()])]
 function hasSections(song){return Array.isArray(song?.sections)&&song.sections.some(r=>text(r.chords).trim());}
 function summary(song){const user=Array.isArray(song.notes?.lines)&&song.notes.lines.some(v=>text(v).trim());const arr=Array.isArray(song.sections)?song.sections:[];const publisher=arr.some(r=>['publisher','public-domain'].includes(r.source));const blog=arr.some(r=>r.source==='blog');const open=arr.some(r=>['open','cc0'].includes(r.source));return {user,publisher,blog,open,source:publisher||blog||open,has:hasSections(song)};}
 function savedChart(song){return (song.sections||[]).some(s=>s.source==='saved-project');}
-function captionText(song){const v=summary(song);return !v.has?(v.user?'Original notes · needs progression':'Needs progression'):v.open?'Openly licensed reference · check version':v.publisher?'Publisher or hymn reference · check version':v.blog?'Blog progression · check recording':savedChart(song)?'Draft from saved analysis · check chords':'My progression · not checked';}
-function fits(song){const q=normalize(searchTerm);if(q&&!normalize([song.title,song.artist,song.category,song.notes?.heading,(song.aliases||[]).join(' '),(song.collections||[]).join(' ')].join(' ')).includes(q))return false;const meta=summary(song);if(filter==='favourites'&&!song.favourite)return false;if(filter==='saved'&&!song.collections?.includes('Saved project charts'))return false;if(filter==='progressions'&&!meta.has)return false;if(filter==='notes'&&!meta.user)return false;if(filter==='missing'&&meta.has)return false;if(filter==='sourced'&&!meta.source)return false;if(filter==='ccli'&&!song.collections?.includes('CCLI Top 100 worship'))return false;if(filter==='nigerian'&&!song.collections?.includes('Nigerian worship essentials')&&!song.collections?.includes('Additional Nigerian worship')&&!String(song.category).startsWith('Nigerian'))return false;if(filter==='modern'&&!song.collections?.includes('Modern Christian songs 2002–2026'))return false;if(filter==='classics'&&!song.collections?.includes('Worship classics'))return false;if(filter==='hymns'&&song.category!=='Public-domain hymn'&&!song.collections?.includes('Public-domain hymns'))return false;return true;}
+function bookChart(song){return (song.sections||[]).some(s=>s.source==='user-supplied-book');}
+function captionText(song){const v=summary(song);return !v.has?(v.user?'Original notes · needs progression':'Needs progression'):v.open?'Openly licensed reference · check version':v.publisher?'Publisher or hymn reference · check version':v.blog?'Blog progression · check recording':savedChart(song)?'Draft from saved analysis · check chords':bookChart(song)?'Songbook numbers · check recording':'My progression · not checked';}
+function fits(song){const q=normalize(searchTerm);if(q&&!normalize([song.title,song.artist,song.category,song.notes?.heading,(song.aliases||[]).join(' '),(song.collections||[]).join(' ')].join(' ')).includes(q))return false;const meta=summary(song);if(filter==='favourites'&&!song.favourite)return false;if(filter==='saved'&&!song.collections?.includes('Saved project charts'))return false;if(filter==='songbook'&&!song.collections?.includes('My songbook'))return false;if(filter==='progressions'&&!meta.has)return false;if(filter==='notes'&&!meta.user)return false;if(filter==='missing'&&meta.has)return false;if(filter==='sourced'&&!meta.source)return false;if(filter==='ccli'&&!song.collections?.includes('CCLI Top 100 worship'))return false;if(filter==='nigerian'&&!song.collections?.includes('Nigerian worship essentials')&&!song.collections?.includes('Additional Nigerian worship')&&!String(song.category).startsWith('Nigerian'))return false;if(filter==='modern'&&!song.collections?.includes('Modern Christian songs 2002–2026'))return false;if(filter==='classics'&&!song.collections?.includes('Worship classics'))return false;if(filter==='hymns'&&song.category!=='Public-domain hymn'&&!song.collections?.includes('Public-domain hymns'))return false;return true;}
 function listSorted(){return everySong().filter(fits).sort((a,b)=>sort==='artist'?(text(a.artist).localeCompare(text(b.artist),'en')||text(a.title).localeCompare(text(b.title),'en')):text(a.title).localeCompare(text(b.title),'en'));}
 function updateCount(){const c=$('bsRefCount');if(!c)return;const songs=everySong(),p=songs.filter(hasSections).length;c.textContent=songs.length+' songs · '+p+' with progressions · '+(songs.length-p)+' need progressions · Offline';}
 function renderList(){const found=listSorted(),root=$('bsRefSongs');root.replaceChildren();for(const song of found.slice(0,visible)){const b=button('');b.className='bs-ref-item';b.dataset.songId=String(song.id);b.dataset.current=String(song.id===selectedId);const name=node('strong','',song.title||'Untitled song');const desc=node('small','',text(song.artist)+' · '+captionText(song));b.append(name,desc);const section=(song.sections||[]).find(r=>text(r.chords).trim());if(section){const preview=node('small','bs-ref-preview',text(section.part)+': '+text(section.chords).replace(/\s+/g,' ').slice(0,70));b.append(preview);}if(song.favourite)b.append(node('span','bs-ref-heart','♥'));b.onclick=()=>void selectSong(song.id);root.append(b);}const more=$('bsRefMore');more.hidden=found.length<=visible;more.textContent='Show more ('+Math.min(80,found.length-visible)+' of '+(found.length-visible)+' remaining)';const foundEl=$('bsRefMatches');foundEl.textContent=found.length+' matching songs'+(found.length>visible?' · showing first '+visible:'');updateCount();}
@@ -249,7 +250,35 @@ async function createSong(){if(!await saveSelected(true))return;let id=Date.now(
 async function resetSong(){if(!selected)return;const id=selected.id;if(!original.has(id)){status('Your added song can be deleted using Delete song.');return;}if(!confirm('Restore the original reference for this song? Your edits will be lost.'))return;try{await dropSaved(id);changes.delete(id);renderDetail(currentSong(id));renderList();status('Original reference restored.','success');}catch(e){status('Could not restore original: '+text(e.message),'error');}}
 async function deleteSong(){if(!selected||original.has(selected.id))return;if(!confirm('Delete this added song from your library?'))return;try{await dropSaved(selected.id);changes.delete(selected.id);selected=null;selectedId=null;selected=null;renderList();setView('list');status('Added song deleted.','success');}catch(e){status('Could not delete song: '+text(e.message),'error');}}
 function backupName(){return 'BassStem_SongChords_'+new Date().toISOString().slice(0,10)+'.json';}
-async function exportBackup(){if(!await saveSelected(true))return;const changesList=await allSaved();const payload={format:'BassStemSongReferences',version:1,exportedAt:new Date().toISOString(),sourceVersion:window.BassSongReferenceData?.version,changes:changesList};const data=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const url=URL.createObjectURL(data),a=node('a');a.href=url;a.download=backupName();document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);status('Backup downloaded. Keep a copy outside this browser.','success');}
+
+async function makeBackup(){
+ if(!await saveSelected(true))return null;
+ const entries=await allSaved();
+ const payload={format:'BassStemSongReferences',version:1,exportedAt:new Date().toISOString(),sourceVersion:window.BassSongReferenceData?.version,changes:entries};
+ return {filename:backupName(),text:JSON.stringify(payload,null,2)};
+}
+async function exportBackup(){
+ const pack=await makeBackup();if(!pack)return;
+ const blob=new Blob([pack.text],{type:'application/json'}),url=URL.createObjectURL(blob),a=node('a');
+ a.href=url;a.download=pack.filename;document.body.append(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),30000);
+ status('Downloaded '+pack.filename+'. On your phone, open My Files > Downloads or Chrome > Downloads. Keep a second copy outside this browser.','success');
+}
+async function shareBackup(){
+ const pack=await makeBackup();if(!pack)return;
+ const file=new File([pack.text],pack.filename,{type:'application/json'});
+ let shareable=false;
+ try{shareable=typeof navigator.share==='function'&&typeof navigator.canShare==='function'&&navigator.canShare({files:[file]});}catch{}
+ if(!shareable){
+   status('Your browser cannot share backup files directly. Use Export backup, then open Downloads and move the JSON file to your chosen folder.','error');
+   return;
+ }
+ try{
+   await navigator.share({files:[file],title:'Bass Stem Song Chords backup'});
+   status('Backup shared. Keep it in a folder or cloud drive you control.','success');
+ }catch(e){if(e?.name!=='AbortError')status('Sharing did not finish: '+text(e?.message||e),'error');}
+}
+
 
 /* RC219: no audio re-analysis: convert saved stable chord spans into short draft number charts. */
 function nameFromProject(v){return text(v).replace(/\.(bassstudio|bssproject|json|mp3|m4a|wav)$/i,'').trim();}
@@ -439,9 +468,110 @@ async function importSavedLibrary(){
  catch(e){status(text(e.message||e),'error');}
 }
 
-async function importBackup(file){if(!file)return;try{if(file.size>10*1024*1024)throw Error('Backup exceeds 10 MB.');const data=JSON.parse(await file.text());if(data?.format!=='BassStemSongReferences'||!Array.isArray(data.changes))throw Error('This is not a Bass Stem song chords backup.');if(data.changes.length>5000)throw Error('Too many records in backup.');const valid=data.changes.filter(row=>Number.isInteger(row?.id)&&row?.song&&row.song.id===row.id&&typeof row.song.title==='string'&&row.song.title.length<300&&Array.isArray(row.song.sections)&&row.song.sections.length<=100);if(valid.length!==data.changes.length)throw Error('The backup has unsupported song data.');if(!confirm('Restore '+valid.length+' saved edits? Entries with the same song will be replaced. The original built-in catalogue will remain available.'))return;for(const row of valid){await putSaved(row);changes.set(row.id,row);}renderList();if(selectedId!==null){const item=currentSong(selectedId);if(item){if(view==='edit')renderDetail(item);else if(view==='overview')renderOverview(item);}}status(valid.length+' saved edits restored.','success');}catch(e){status('Backup import failed: '+text(e.message||e),'error');}}
+
+/* RC220: personal chart pack import. Converts an already-prepared private JSON pack
+   into local saved references without publishing third-party arrangements. */
+const cleanBookTitle=value=>normalize(text(value).replace(/&/g,' and ').replace(/[’']/g,''));
+function findSongForBook(title){
+ const key=cleanBookTitle(title),songs=everySong();
+ const exact=songs.filter(s=>cleanBookTitle(s.title)===key);
+ if(exact.length>1)return {match:null,ambiguous:true};
+ if(exact.length===1)return {match:exact[0],ambiguous:false};
+ const suffix=songs.filter(s=>cleanBookTitle(text(s.title).replace(/\s+\([^)]{2,70}\)\s*$/,''))===key);
+ return {match:suffix.length===1?suffix[0]:null,ambiguous:suffix.length>1};
+}
+const bookChordLine=/^(?:[b#]?[1-7](?:m|dim)?)(?:\s+[b#]?[1-7](?:m|dim)?)*$/;
+function validateSongbook(data){
+ if(!data||data.format!=='BassStemSongChordPack'||data.schemaVersion!==1||!Array.isArray(data.songs))
+  throw Error('This is not a supported Bass Stem numbered songbook.');
+ if(data.songs.length>600)throw Error('The songbook has more than 600 songs.');
+ if(!/^[a-f0-9]{64}$/i.test(text(data.source?.documentFingerprint)))
+  throw Error('The songbook source identifier is missing.');
+ const entries=[],seen=new Set();
+ for(const incoming of data.songs){
+  if(typeof incoming.title!=='string'||!incoming.title.trim()||incoming.title.length>200||
+   !/^[a-z0-9-]{7,50}$/i.test(text(incoming.referenceId))||
+   !Number.isInteger(incoming.sourcePage)||incoming.sourcePage<1||incoming.sourcePage>500||
+   !Array.isArray(incoming.sections)||incoming.sections.length<1||incoming.sections.length>25)
+   throw Error('The songbook contains an invalid song entry.');
+  if(seen.has(incoming.referenceId))throw Error('Duplicate songbook identifier.');
+  seen.add(incoming.referenceId);
+  const sections=[];
+  for(const p of incoming.sections){
+   if(typeof p.part!=='string'||!p.part.trim()||p.part.length>80||
+    typeof p.chords!=='string'||p.chords.length>400||!bookChordLine.test(p.chords.trim())||
+    p.sourcePage!==incoming.sourcePage)throw Error('Invalid section in the songbook.');
+   sections.push({part:p.part.trim(),chords:p.chords.trim(),cue:'',
+    source:'user-supplied-book',sourcePage:incoming.sourcePage,
+    confidence:'Converted from your supplied book; check the actual recording'});
+  }
+  entries.push({title:incoming.title.trim(),sourcePage:incoming.sourcePage,
+   referenceId:incoming.referenceId,sections});
+ }
+ return entries;
+}
+async function importSongbookPack(data){
+ if(chartImportBusy)throw Error('Finish the current local chart import first.');
+ const entries=validateSongbook(data);
+ if(!await saveSelected(true))return;
+ chartImportBusy=true;
+ const counts={created:0,completed:0,extra:0,already:0,ambiguous:0};
+ const fingerprint=text(data.source.documentFingerprint);
+ try{
+  for(let i=0;i<entries.length;i++){
+   const entry=entries[i],ref=entry.referenceId,found=findSongForBook(entry.title);
+   if(found.ambiguous){counts.ambiguous++;continue;}
+   const existing=found.match,bookId=fingerprint+'|'+ref;
+   if(existing?.bookImportIds?.includes(bookId)){counts.already++;continue;}
+   let song,changed=0,newPart=false;
+   if(existing){
+    song=clone(existing);
+    const current=Array.isArray(song.sections)?song.sections:[];
+    for(const incoming of entry.sections){
+     const same=current.find(p=>cleanBookTitle(p.part)===cleanBookTitle(incoming.part));
+     if(same){
+      if(!text(same.chords).trim()){same.chords=incoming.chords;same.source=incoming.source;
+       same.sourcePage=incoming.sourcePage;same.confidence=incoming.confidence;changed++;}
+      // Never overwrite a user-entered section or a previous analysed chart.
+     }else{
+      current.push(clone(incoming));changed++;newPart=true;
+     }
+    }
+    if(!changed){counts.already++;continue;}
+    song.sections=current;
+    song.collections=[...new Set([...(song.collections||[]),'My songbook'])];
+   }else{
+    const title=entry.title;
+    song={id:null,title,artist:'Not confirmed',category:'My songbook',key:'',
+     sections:clone(entry.sections),collections:['My songbook'],
+     notes:{heading:title,lines:[]},
+     source:{name:'Your uploaded Praise and Worship songbook',
+      note:'Numbers converted from your personal PDF, page '+entry.sourcePage+'. Check the version you play.'}};
+    changed=entry.sections.length;
+   }
+   let id;
+   if(existing){id=existing.id;if(!hasSections(existing))counts.completed++;else if(newPart)counts.extra++;else counts.completed++;}
+   else{id=Date.now()+i;while(original.has(id)||changes.has(id))id++;song.id=id;counts.created++;}
+   song.bookImportIds=[...new Set([...(song.bookImportIds||[]),bookId])];
+   song.bookImport={fingerprint,page:entry.sourcePage};
+   const record={id,song,modifiedAt:Date.now(),favourite:!!song.favourite};
+   const base=original.get(id);
+   if(base){record.referenceBase=referenceSnapshot(base);record.baselineVersion=window.BassSongReferenceData?.version;}
+   await putSaved(record);changes.set(id,record);
+   if(i%20===19)await new Promise(resolve=>setTimeout(resolve,0));
+  }
+  visible=80;renderList();
+  if(view==='overview'&&selectedId!==null){const updated=currentSong(selectedId);if(updated)renderOverview(updated);}
+  status('Songbook imported: '+counts.created+' new songs, '+counts.completed+
+    ' previously empty songs filled, '+counts.extra+' songs given missing sections. '+
+    counts.already+' already covered'+(counts.ambiguous?', '+counts.ambiguous+' ambiguous titles skipped':'')+
+    '. Saved on this device. Export or share a backup.','success');
+ }finally{chartImportBusy=false;}
+}
+
+async function importBackup(file){if(!file)return;try{if(file.size>10*1024*1024)throw Error('Backup exceeds 10 MB.');const data=JSON.parse(await file.text());if(data?.format==='BassStemSongChordPack'){await importSongbookPack(data);return;}if(data?.format!=='BassStemSongReferences'||!Array.isArray(data.changes))throw Error('This is not a Bass Stem song chords backup.');if(data.changes.length>5000)throw Error('Too many records in backup.');const valid=data.changes.filter(row=>Number.isInteger(row?.id)&&row?.song&&row.song.id===row.id&&typeof row.song.title==='string'&&row.song.title.length<300&&Array.isArray(row.song.sections)&&row.song.sections.length<=100);if(valid.length!==data.changes.length)throw Error('The backup has unsupported song data.');if(!confirm('Restore '+valid.length+' saved edits? Entries with the same song will be replaced. The original built-in catalogue will remain available.'))return;for(const row of valid){await putSaved(row);changes.set(row.id,row);}renderList();if(selectedId!==null){const item=currentSong(selectedId);if(item){if(view==='edit')renderDetail(item);else if(view==='overview')renderOverview(item);}}status(valid.length+' saved edits restored.','success');}catch(e){status('Backup import failed: '+text(e.message||e),'error');}}
 function html(){return `<div class="bs-ref-header"><div><h2 id="bsRefHeading">Song Chords</h2><p>Search song progressions without loading audio</p></div><button class="bs-ref-button" id="bsRefClose" type="button">Close</button></div>
-<div id="bsRefToolbar" class="bs-ref-toolbar"><label class="bs-ref-field"><span>Search songs or artists</span><input type="search" id="bsRefSearch" autocomplete="off" placeholder="e.g. Sinach, Way Maker, Dunsin"></label><label class="bs-ref-field"><span>Show</span><select id="bsRefFilter"><option value="progressions">With progressions</option><option value="all">All songs</option><option value="saved">Saved project charts</option><option value="missing">Needs progression</option><option value="ccli">CCLI Top 100</option><option value="nigerian">Nigerian worship</option><option value="modern">Modern songs 2002 to 2026</option><option value="classics">Worship classics</option><option value="hymns">Traditional hymns</option><option value="notes">My original notes</option><option value="sourced">Sourced progressions</option><option value="favourites">Favourites</option></select></label><label class="bs-ref-field"><span>Order</span><select id="bsRefSort"><option value="title">Song title (A to Z)</option><option value="artist">Artist (A to Z)</option></select></label></div>
+<div id="bsRefToolbar" class="bs-ref-toolbar"><label class="bs-ref-field"><span>Search songs or artists</span><input type="search" id="bsRefSearch" autocomplete="off" placeholder="e.g. Sinach, Way Maker, Dunsin"></label><label class="bs-ref-field"><span>Show</span><select id="bsRefFilter"><option value="progressions">With progressions</option><option value="all">All songs</option><option value="saved">Saved project charts</option><option value="songbook">My songbook</option><option value="missing">Needs progression</option><option value="ccli">CCLI Top 100</option><option value="nigerian">Nigerian worship</option><option value="modern">Modern songs 2002 to 2026</option><option value="classics">Worship classics</option><option value="hymns">Traditional hymns</option><option value="notes">My original notes</option><option value="sourced">Sourced progressions</option><option value="favourites">Favourites</option></select></label><label class="bs-ref-field"><span>Order</span><select id="bsRefSort"><option value="title">Song title (A to Z)</option><option value="artist">Artist (A to Z)</option></select></label></div>
 <p class="bs-ref-muted" id="bsRefCount"></p>
 <div class="bs-ref-layout"><section id="bsRefListPane" class="bs-ref-list-pane" aria-label="Search results"><p class="bs-ref-muted" id="bsRefMatches"></p><div id="bsRefSongs"></div><button class="bs-ref-button" type="button" id="bsRefMore" hidden>Show more</button></section>
 <section id="bsRefDetailPane" class="bs-ref-detail-pane" hidden><p id="bsRefEmpty" class="bs-ref-muted" hidden>Choose a song to see its progressions.</p>
@@ -459,12 +589,12 @@ function html(){return `<div class="bs-ref-header"><div><h2 id="bsRefHeading">So
 <h4>My original notes</h4><p id="bsRefNotesHint" class="bs-ref-muted"></p><textarea id="bsRefOriginal" rows="7" maxlength="18000" aria-label="Editable original song notes"></textarea>
 <details id="bsRefEarlier" class="bs-ref-reference-panel" hidden><summary>Earlier imported notes</summary><div id="bsRefEarlierBody"></div></details><p class="bs-ref-source"><a id="bsRefSource" target="_blank" rel="noopener noreferrer" hidden>Source</a><a id="bsRefChart" target="_blank" rel="noopener noreferrer" hidden>Original chart</a><small id="bsRefLicence"></small><small id="bsRefArrangementNotes" hidden></small><a id="bsRefLicenceLink" target="_blank" rel="noopener noreferrer" hidden>Licence</a></p><div class="bs-ref-edit-actions"><button class="bs-ref-button bs-ref-save" id="bsRefSave" type="button">Save and view</button><button class="bs-ref-button" id="bsRefReset" type="button">Restore original</button><button class="bs-ref-button bs-ref-delete" id="bsRefDelete" type="button" hidden>Delete song</button></div></div></section></div>
 <div id="bsRefImportActions" class="bs-ref-import-actions"><button class="bs-ref-button" id="bsRefFromSaved" type="button">Add charts from saved library</button><button class="bs-ref-button" id="bsRefPickProjects" type="button">Choose .bassstudio / JSON files</button><input id="bsRefProjectFiles" type="file" accept=".bassstudio,.bssproject,.json,application/json" multiple hidden></div>
-<div id="bsRefBottom" class="bs-ref-bottom"><button class="bs-ref-button" id="bsRefAdd" type="button">+ Add my song</button><button class="bs-ref-button" id="bsRefExport" type="button">Export backup</button><button class="bs-ref-button" id="bsRefImport" type="button">Import backup</button><input id="bsRefImportFile" type="file" accept=".json,application/json" hidden></div><p role="status" id="bsRefStatus" aria-live="polite"></p>`;}
+<div id="bsRefBottom" class="bs-ref-bottom"><button class="bs-ref-button" id="bsRefAdd" type="button">+ Add my song</button><button class="bs-ref-button" id="bsRefExport" type="button">Export backup</button><button class="bs-ref-button" id="bsRefImport" type="button">Import charts / backup</button><button class="bs-ref-button" id="bsRefShare" type="button">Share backup</button><input id="bsRefImportFile" type="file" accept=".json,application/json" hidden></div><p role="status" id="bsRefStatus" aria-live="polite"></p>`;}
 function setup(){if(dialog)return;dialog=node('dialog','bs-ref-dialog');dialog.id='bsChordLibraryDialog';dialog.setAttribute('aria-labelledby','bsRefHeading');dialog.innerHTML=html();document.body.append(dialog);
  const search=$('bsRefSearch');search.addEventListener('input',()=>{searchTerm=search.value;visible=80;renderList();});$('bsRefFilter').onchange=e=>{filter=e.target.value;visible=80;renderList();};$('bsRefSort').onchange=e=>{sort=e.target.value;renderList();};$('bsRefMore').onclick=()=>{visible+=80;renderList();};$('bsRefClose').onclick=()=>void backFromSong();dialog.addEventListener('cancel',e=>{e.preventDefault();void backFromSong();});$('bsRefOverviewEdit').onclick=beginEditing;
  for(const id of ['bsRefTitle','bsRefArtist','bsRefKey','bsRefOriginal'])$(id).addEventListener('input',markUnsaved);
  $('bsRefFavourite').onclick=()=>{const fav=$('bsRefFavourite').getAttribute('aria-pressed')!=='true';setFavourite(fav);markUnsaved();};
- $('bsRefAddPart').onclick=()=>{$('bsRefSectionRows').append(newSection('',''));markUnsaved();};$('bsRefSave').onclick=()=>void saveAndOverview();$('bsRefAddUpdated').onclick=addUpdatedSections;$('bsRefAddUpdatedNotes').onclick=addUpdatedNotes;$('bsRefKeepUpdated').onclick=keepSavedReference;$('bsRefReset').onclick=()=>void resetSong();$('bsRefDelete').onclick=()=>void deleteSong();$('bsRefFromSaved').onclick=()=>void importSavedLibrary();$('bsRefPickProjects').onclick=()=>{$('bsRefProjectFiles').value='';$('bsRefProjectFiles').click();};$('bsRefProjectFiles').onchange=e=>{const files=Array.from(e.target.files||[]);e.target.value='';void importSavedCharts(files,true);};$('bsRefAdd').onclick=()=>void createSong();$('bsRefExport').onclick=()=>void exportBackup();$('bsRefImport').onclick=()=>{$('bsRefImportFile').value='';$('bsRefImportFile').click();};$('bsRefImportFile').onchange=e=>void importBackup(e.target.files?.[0]);
+ $('bsRefAddPart').onclick=()=>{$('bsRefSectionRows').append(newSection('',''));markUnsaved();};$('bsRefSave').onclick=()=>void saveAndOverview();$('bsRefAddUpdated').onclick=addUpdatedSections;$('bsRefAddUpdatedNotes').onclick=addUpdatedNotes;$('bsRefKeepUpdated').onclick=keepSavedReference;$('bsRefReset').onclick=()=>void resetSong();$('bsRefDelete').onclick=()=>void deleteSong();$('bsRefFromSaved').onclick=()=>void importSavedLibrary();$('bsRefPickProjects').onclick=()=>{$('bsRefProjectFiles').value='';$('bsRefProjectFiles').click();};$('bsRefProjectFiles').onchange=e=>{const files=Array.from(e.target.files||[]);e.target.value='';void importSavedCharts(files,true);};$('bsRefAdd').onclick=()=>void createSong();$('bsRefExport').onclick=()=>void exportBackup();$('bsRefShare').onclick=()=>void shareBackup();$('bsRefImport').onclick=()=>{$('bsRefImportFile').value='';$('bsRefImportFile').click();};$('bsRefImportFile').onchange=e=>void importBackup(e.target.files?.[0]);
 }
 async function init(){try{activeDb=await openDb();}catch(err){activeDb=null;}try{const saved=await allSaved();for(const item of saved){if(Number.isInteger(item?.id)&&item.song)changes.set(item.id,item);}}catch(e){status('Saved edits could not be read. Do not clear your browser storage.','error');}renderList();}
 async function show(){setup();if(!dialog.open)dialog.showModal();if(!ready)ready=init();await ready;renderList();setView('list');$('bsRefSearch').focus();}
