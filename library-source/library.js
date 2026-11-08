@@ -30,7 +30,10 @@ window.BassLibrary=(()=>{
       throw Error('This file is not a supported saved Bass Stem project.');
     return {title:clean(p.projectName)||file.name.replace(SUPPORTED,''),artist:clean(p.library?.artist),
       key:clean(p.analysis.scale),bpm:Number(p.analysis.tempoBpm)||null,duration:Number(p.source.duration)||0,
-      filename:file.name,size:file.size,modified:file.lastModified||Date.now(),savedAt:clean(p.savedAt)};
+      filename:file.name,size:file.size,modified:file.lastModified||Date.now(),savedAt:clean(p.savedAt),
+      sourceName:clean(p.source?.name),sourceSize:Number(p.source?.size)||0,
+      hasChordAnalysis:Array.isArray(p.analysis?.chords)&&p.analysis.chords.length>0,
+      hasBassAnalysis:Array.isArray(p.analysis?.notes)&&p.analysis.notes.length>0};
   }
   function errorText(e){
     if(e?.name==='QuotaExceededError')return 'Device storage is full. Choose a folder or free some space, then save again.';
@@ -47,7 +50,7 @@ window.BassLibrary=(()=>{
     el('libraryDevice').hidden=!folder;
     el('libraryReconnect').hidden=!folder;
     el('libraryChoose').hidden=typeof window.showDirectoryPicker!=='function';
-    if(!window.showDirectoryPicker&&!folder)el('libraryHint').textContent='This browser cannot remember a normal folder. Projects stay in this browser; download backups before clearing its data.';
+    if(!window.showDirectoryPicker&&!folder)el('libraryHint').textContent='Saved songs are kept here. To open a .bassstudio file from Downloads, choose Import saved file. Download a backup before clearing browser data.';
   }
   function filterRows(list,query,sort){
     const words=clean(query).toLocaleLowerCase().split(/\s+/).filter(Boolean);
@@ -203,10 +206,128 @@ window.BassLibrary=(()=>{
     }
     await refresh();status(added+' added'+(cancelled?' · '+cancelled+' cancelled':'')+(failed?' · '+failed+' could not be added; check the file format, folder access and free space.':'.'));
   }
+
+  /* RC227: Reuse saved analysed songs before loading audio or creating a paid job. */
+  function songKey(value){
+    return String(value||'').split(/[\\/]/).pop().replace(/\.(?:mp3|wav|m4a|aac|flac|ogg|opus|mp4|mov|webm|bassstudio|bssproject|json)$/i,'')
+      .normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+  }
+  function audioMatchScore(file,row){
+    const name=songKey(file?.name),source=songKey(row?.sourceName),
+      title=songKey(row?.title),savedName=songKey(row?.filename);
+    if(!name)return 0;
+    const named=name===source||name===title||name===savedName;
+    const base=name.split(/\s+\b(?:feat|ft)\b\s+/)[0].trim();
+    const plain=name.replace(/\s+(?:official|lyrics|audio|video|remastered)\s*$/,'').trim();
+    const similar=[base,plain].some(k=>k&&k!==name&&(k===source||k===title));
+    if(source===name&&Number(row?.sourceSize)>0&&Number(file?.size)>0&&Number(row.sourceSize)===Number(file.size))return 100;
+    if(source===name)return 85;
+    if(title===name||savedName===name)return 75;
+    if(similar)return 55;
+    return 0;
+  }
+  async function audioMatches(file){
+    await ready;
+    const all=[],seen=new Set();
+    const stored=await store('songs','readonly',s=>s.getAll());
+    for(const r of stored||[]){
+      if(!r?.filename||!SUPPORTED.test(r.filename))continue;
+      const id='device:'+String(r.id||r.filename).toLowerCase();if(seen.has(id))continue;
+      seen.add(id);all.push({...r,where:'this device'});
+    }
+    let folderNotConnected=false;
+    if(folder){
+      try{
+        if(!await permission(folder,'read'))folderNotConnected=true;
+        else for await(const [name,handle] of folder.entries()){
+          if(handle.kind!=='file'||!SUPPORTED.test(name))continue;
+          const id='folder:'+name.toLowerCase();if(seen.has(id))continue;
+          try{
+            const f=await handle.getFile(),memo=index[name]||{};
+            const row={...memo,title:memo.title||name.replace(SUPPORTED,''),
+              filename:name,size:f.size,modified:f.lastModified,handle,where:'your saved folder'};
+            seen.add(id);all.push(row);
+          }catch(err){if(err?.name==='NotAllowedError')folderNotConnected=true;}
+        }
+      }catch{folderNotConnected=true;}
+    }
+    const matches=all.map(row=>({row,score:audioMatchScore(file,row)}))
+      .filter(x=>x.score>0).sort((a,b)=>b.score-a.score||String(a.row.title).localeCompare(String(b.row.title)))
+      .slice(0,16);
+    return {matches,folderNotConnected};
+  }
+  function chooseSavedVersion(file,matches){
+    return new Promise(resolve=>{
+      const previous=document.activeElement,d=document.createElement('dialog');
+      d.className='bass-saved-match';d.setAttribute('aria-labelledby','savedAudioTitle');
+      const heading=document.createElement('h2');heading.id='savedAudioTitle';heading.textContent='Saved song found';
+      const explanation=document.createElement('p');
+      explanation.textContent='A song with a matching name is in your library. Open it to reuse saved notes and chords without new analysis.';
+      const label=document.createElement('label');label.textContent=matches.length>1?'Choose saved version':'Saved version';
+      const picker=document.createElement('select');picker.setAttribute('aria-label','Saved song version');
+      matches.forEach((item,i)=>{
+        const option=document.createElement('option');option.value=String(i);
+        const r=item.row;
+        option.textContent=String(r.title||r.filename).slice(0,90)+' · '+r.where+
+          (item.score===100?' · same file name and size':item.score<85?' · check version':'');
+        picker.append(option);
+      });
+      label.append(picker);
+      const hint=document.createElement('p');hint.className='saved-match-hint';
+      hint.textContent='If this is a different recording, choose Import this audio. You can decide when to analyse it.';
+      const actions=document.createElement('div');actions.className='saved-match-actions';
+      const open=document.createElement('button');open.type='button';open.className='saved-open';open.textContent='Open saved song';
+      const fresh=document.createElement('button');fresh.type='button';fresh.textContent='Import this audio';
+      const cancel=document.createElement('button');cancel.type='button';cancel.textContent='Cancel';
+      actions.append(open,fresh,cancel);
+      d.append(heading,explanation,label,hint,actions);document.body.append(d);
+      let finished=false;
+      const finish=(choice)=>{
+        if(finished)return;finished=true;d.close();d.remove();
+        if(previous?.isConnected)previous.focus({preventScroll:true});
+        resolve(choice);
+      };
+      open.onclick=()=>finish({action:'open',index:Number(picker.value)});
+      fresh.onclick=()=>finish({action:'audio'});
+      cancel.onclick=()=>finish({action:'cancel'});
+      d.addEventListener('cancel',e=>{e.preventDefault();finish({action:'cancel'});});
+      try{d.showModal();}catch{finish({action:'cancel'});}
+      if(d.open)open.focus({preventScroll:true});
+    });
+  }
+  async function checkAudioImport(file){
+    if(!file)return 'cancel';
+    if(hooks.isBusy?.()){status('Finish the current song before importing another.');return 'cancel';}
+    let found;
+    try{found=await audioMatches(file);}
+    catch(err){status('Could not check saved songs: '+errorText(err));return 'cancel';}
+    if(!found.matches.length){
+      if(found.folderNotConnected){
+        const approved=await window.BassDialog.confirm(
+          'Your saved-song folder needs reconnecting. Open Library and select Reconnect folder to check it, or continue with this audio.',
+          {title:'Check saved songs first',accept:'Import audio'});
+        return approved?'audio':'cancel';
+      }
+      return 'audio';
+    }
+    const choice=await chooseSavedVersion(file,found.matches);
+    if(choice.action!=='open')return choice.action;
+    const match=found.matches[choice.index];
+    if(!match)return 'cancel';
+    try{
+      const saved=await rowFile(match.row);
+      const ok=await hooks.open(saved);
+      if(ok){status('Opened saved song. No new analysis was started.');return 'opened';}
+      status('Could not open that saved song. Your current song is unchanged.');return 'cancel';
+    }catch(err){
+      status('Could not open the saved song: '+errorText(err));return 'cancel';
+    }
+  }
+
   function build(){
     if(dialog)return;
     dialog=document.createElement('dialog');dialog.id='bassLibraryDialog';dialog.className='bass-library';dialog.setAttribute('aria-labelledby','libraryTitle');
-    dialog.innerHTML='<div class="library-heading"><div><h2 id="libraryTitle">Song library</h2><p id="libraryLocation"></p></div><button id="libraryClose" type="button">Close</button></div><div class="library-toolbar"><button id="libraryChoose" type="button">Choose folder</button><button id="libraryReconnect" type="button">Reconnect folder</button><button id="libraryDevice" type="button">On this device</button><button id="libraryAdd" type="button">Add saved files</button><button id="libraryBatch" type="button">Batch ZIP</button><button id="libraryRefresh" type="button">Refresh</button></div><p id="libraryHint"></p><div class="library-filters"><div><label for="librarySearch">Search songs</label><input id="librarySearch" type="search" placeholder="Title, artist, key or BPM" autocomplete="off"></div><div><label for="librarySort">Sort by</label><select id="librarySort"><option value="recent">Recently saved</option><option value="name">Song name</option></select></div></div><div class="library-summary"><span id="libraryCount"></span><span id="libraryStatus" role="status" aria-live="polite"></span></div><ul id="librarySongs"></ul><input id="libraryFiles" type="file" accept=".bassstudio,.bssproject,.json,application/json" multiple hidden>';
+    dialog.innerHTML='<div class="library-heading"><div><h2 id="libraryTitle">Song library</h2><p id="libraryLocation"></p></div><button id="libraryClose" type="button">Close</button></div><div class="library-toolbar"><button id="libraryChoose" type="button">Choose folder</button><button id="libraryReconnect" type="button">Reconnect folder</button><button id="libraryDevice" type="button">On this device</button><button id="libraryAdd" type="button">Import saved file</button><button id="libraryBatch" type="button">Batch ZIP</button><button id="libraryRefresh" type="button">Refresh</button></div><p id="libraryHint"></p><div class="library-filters"><div><label for="librarySearch">Search songs</label><input id="librarySearch" type="search" placeholder="Title, artist, key or BPM" autocomplete="off"></div><div><label for="librarySort">Sort by</label><select id="librarySort"><option value="recent">Recently saved</option><option value="name">Song name</option></select></div></div><div class="library-summary"><span id="libraryCount"></span><span id="libraryStatus" role="status" aria-live="polite"></span></div><ul id="librarySongs"></ul><input id="libraryFiles" type="file" accept=".bassstudio,.bssproject,.json,application/json" multiple hidden>';
     document.body.append(dialog);
     el('libraryClose').onclick=()=>dialog.close();
     dialog.addEventListener('close',()=>document.getElementById('importProjectBtn')?.focus());
@@ -265,5 +386,5 @@ window.BassLibrary=(()=>{
           quality:c.quality,confidence:c.confidence,uncertain:c.uncertain,manual:c.manual}))},
       settings:{sections:project.settings?.sections||{}}};
   }
-  return {init,show,prepareSave,save,hasProject,ensureBatchAccess,errorText,chartProjects,chartProject};
+  return {init,show,prepareSave,save,hasProject,ensureBatchAccess,errorText,chartProjects,chartProject,checkAudioImport};
 })();

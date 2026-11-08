@@ -1,0 +1,14 @@
+/* RC227: three clear choices before opening potentially duplicate audio. */
+html body dialog.bass-saved-match{box-sizing:border-box;width:min(530px,calc(100vw - 22px));max-height:calc(100dvh - 22px);margin:auto;padding:21px;background:#101f2c;color:#f4f8fc;border:1px solid #62879b;border-radius:16px;box-shadow:0 25px 85px #0009;overflow:auto;font:600 14px/1.5 system-ui,sans-serif}
+html body dialog.bass-saved-match::backdrop{background:#06121dda;backdrop-filter:blur(3px)}
+html body dialog.bass-saved-match *{box-sizing:border-box}
+html body dialog.bass-saved-match h2{font:800 21px/1.3 system-ui,sans-serif;color:#fff;margin:0 0 10px;text-align:center}
+html body dialog.bass-saved-match p{color:#d2e1ec;font-size:14px;line-height:1.5;margin:8px 0 14px}
+html body dialog.bass-saved-match label{display:block;font-weight:750;color:#e6f2fb}
+html body dialog.bass-saved-match select{width:100%;max-width:100%;min-height:48px;margin-top:6px;padding:10px;border:1px solid #7096a9;border-radius:9px;background:#132c3e;color:#fff;font:650 14px/1.4 system-ui}
+html body dialog.bass-saved-match .saved-match-hint{font-size:13px;color:#b9cbd6}
+html body dialog.bass-saved-match .saved-match-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;align-items:stretch}
+html body dialog.bass-saved-match .saved-match-actions button{min-width:0;min-height:49px;height:auto;padding:10px 8px;border:1px solid #7a9aaa;border-radius:10px;background:#284c64;color:#fff;font:750 14px/1.3 system-ui;cursor:pointer;text-align:center;white-space:normal}
+html body dialog.bass-saved-match .saved-match-actions button.saved-open{background:#276858;border-color:#6fbd9e}
+html body dialog.bass-saved-match .saved-match-actions button:last-child{grid-column:1/-1;background:#223644}
+html body dialog.bass-saved-match button:focus-visible,html body dialog.bass-saved-match select:focus-visible{outline:2px solid #b0ecfa;outline-offset:2px}
