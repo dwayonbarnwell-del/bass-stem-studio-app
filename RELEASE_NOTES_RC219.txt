@@ -1,0 +1,14 @@
+Bass Stem Studio RC219: generate compact number charts from saved local song analyses
+8 November 2026
+
+The Song chords page now defaults to With progressions and includes buttons for Add charts from saved library and Choose .bassstudio / JSON files. These read the existing saved chord and section information on the device, without sending audio to a server or running another chargeable analysis. The selected device library or remembered folder can be scanned; files in other locations require the file picker because the browser cannot access arbitrary phone folders.
+
+Where a saved file has a usable detected key, chord timeline, and named sections, the app uses the detected key internally to convert chords to portable scale numbers. Minor songs use the relative major numbering convention (for example, 6m). The chart shows only number progressions. It simplifies passing chords, suspensions and inversions into short section patterns. Unclear sections or unstable long passages are omitted rather than invented. Every resulting chart is marked as an unverified draft and can be edited.
+
+An existing user's entered progression is never overwritten. Already imported saved files are skipped; new results are saved in the independent device-only Song chords database. The original .bassstudio or JSON audio file and the full analysis remain unchanged. The app skips large saved projects that already correspond to charted songs without opening their audio payload.
+
+The 49 blank Nigerian chart-list entries were physically removed from the built-in catalogue while protecting any user edits or copies already saved on the device. The built-in catalogue now has 850 titles, with 565 containing at least one progression. The default list shows only charts with progressions; All songs and Needs progression remain optional filters. No matching Ghanaian blank chart entries were found.
+
+RC217's read-only overview, editing, search, favourites, backups and layout are unchanged. Index.html's embedded local-library code and library-source/library.js were updated in sync. PWA offline cache advanced to RC219.
+
+Checks: JavaScript compiled, 26 focused in-memory tests passed, including number conversion, section names, duplicate imports, user-edit protection and retained catalogue. The real Android folder-permission flow and musical accuracy remain unverified. No paid RunPod job, GitHub Actions CI or audio processing was triggered during development.

@@ -111,3 +111,9 @@
  #bsChordLibraryDialog .bs-ref-sheet-grid{grid-template-columns:minmax(0,1fr)}
  #bsChordLibraryDialog .bs-ref-sheet-section.bs-ref-sheet-wide{grid-column:auto}
 }
+
+/* RC219: imported songs remain compact and the import buttons use equal widths. */
+#bsChordLibraryDialog .bs-ref-import-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:14px}
+#bsChordLibraryDialog .bs-ref-import-actions .bs-ref-button{min-width:0;min-height:45px}
+#bsChordLibraryDialog[data-view="overview"] .bs-ref-import-actions,#bsChordLibraryDialog[data-view="edit"] .bs-ref-import-actions{display:none}
+@media(max-width:350px){#bsChordLibraryDialog .bs-ref-import-actions{grid-template-columns:minmax(0,1fr)}}

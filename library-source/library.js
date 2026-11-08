@@ -235,5 +235,35 @@ window.BassLibrary=(()=>{
     })();
     ready.catch(()=>{});
   }
-  return {init,show,prepareSave,save,hasProject,ensureBatchAccess,errorText};
+
+  /* RC219: read only small analysis fields from each existing local project. */
+  async function chartProjects(){
+    if(ready)await ready;
+    if(folder&&!await permission(folder,'read'))throw Error('Reconnect your saved-song folder in Library first.');
+    await refresh();
+    if(folder&&folderAccess==='reconnect')throw Error('Reconnect the saved-song folder in Library first.');
+    return rows.filter(r=>r&&r.filename).map(r=>({
+      id:String(r.id||r.filename).toLowerCase(),title:r.title||'',filename:r.filename,
+      size:Number(r.size)||0,modified:Number(r.modified)||0
+    }));
+  }
+  async function chartProject(id){
+    const row=rows.find(r=>String(r.id||r.filename).toLowerCase()===String(id).toLowerCase());
+    if(!row)throw Error('The saved project is not available in your current library.');
+    if(Number(row.size)>120*1024*1024)throw Error('This saved project is too large to chart on this device.');
+    const file=await rowFile(row),project=JSON.parse(await file.text());
+    if(project?.format!=='Bass Stem Studio Project'||!Array.isArray(project.analysis?.chords))
+      throw Error('No compatible saved chord analysis was found.');
+    // Never send the original source, audio, stems, lyrics or full note timeline to Song chords.
+    const a=project.analysis;
+    return {format:project.format,projectName:project.projectName,
+      library:{artist:project.library?.artist||''},
+      source:{name:project.source?.name||'',duration:project.source?.duration||0},
+      analysis:{baseScale:a.baseScale||{},scale:a.scale||'',tempoBpm:a.tempoBpm,
+        structure:{segments:a.structure?.segments||[],downbeats:a.structure?.downbeats||[]},
+        chords:a.chords.map(c=>({start:c.start,end:c.end,rootPc:c.rootPc,
+          quality:c.quality,confidence:c.confidence,uncertain:c.uncertain,manual:c.manual}))},
+      settings:{sections:project.settings?.sections||{}}};
+  }
+  return {init,show,prepareSave,save,hasProject,ensureBatchAccess,errorText,chartProjects,chartProject};
 })();
