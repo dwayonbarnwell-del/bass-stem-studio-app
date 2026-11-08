@@ -13744,7 +13744,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRo
       </div>
       </div>
 
-<section id="liveAudioEntry" aria-label="Practice controls"><button id="openLiveAudio" type="button" aria-label="Live audio"><span>Live</span> <span>audio</span></button><button id="openEar" type="button" aria-label="Ear training"><span>Ear</span> <span>training</span></button><button id="openReview" type="button" aria-label="Review chords"><span>Review</span> <span>chords</span></button><button id="openMoreTools" type="button" aria-label="More tools" aria-expanded="false" aria-controls="moreTools"><span>More</span> <span>tools</span></button></section><div id="moreTools" hidden><div id="extraTools"><button id="openTrash" type="button">Recently deleted</button><button id="openPatterns" type="button">Scales &amp; arpeggios</button><button id="openLoopShare" type="button">Share loop</button><button id="openLyrics" type="button">Lyrics</button><button id="openIdeas" type="button">Ideas</button><button id="openRhythm" type="button">Rhythm / practice</button><button id="openSoundCheck" type="button">Sound check</button></div><div class="more-tools-close-row"><button id="closeMoreTools" type="button" aria-controls="moreTools">Close tools</button></div></div><div id="practiceComfort"><label title="Short fades soften loop joins"><input id="smoothLoops" type="checkbox" checked>Smooth loops</label><label><input id="keepAwake" type="checkbox" checked>Keep awake</label><small id="awakeStatus" role="status"></small></div>
+<section id="liveAudioEntry" aria-label="Practice controls"><button id="openLiveAudio" type="button" aria-label="Live audio"><span>Live</span> <span>audio</span></button><button id="openEar" type="button" aria-label="Ear training"><span>Ear</span> <span>training</span></button><button id="openReview" type="button" aria-label="Review chords"><span>Review</span> <span>chords</span></button><button id="openMoreTools" type="button" aria-label="More tools" aria-expanded="false" aria-controls="moreTools"><span>More</span> <span>tools</span></button></section><div id="moreTools" hidden><div class="more-tools-select-row"><label for="moreToolsView" class="more-tools-select-label">Show tools</label><select id="moreToolsView" aria-label="More tools display"><option value="open">Tools open</option><option value="close">Close tools</option></select></div><div id="extraTools"><button id="openTrash" type="button">Recently deleted</button><button id="openPatterns" type="button">Scales &amp; arpeggios</button><button id="openLoopShare" type="button">Share loop</button><button id="openLyrics" type="button">Lyrics</button><button id="openIdeas" type="button">Ideas</button><button id="openRhythm" type="button">Rhythm / practice</button><button id="openSoundCheck" type="button">Sound check</button></div></div><div id="practiceComfort"><label title="Short fades soften loop joins"><input id="smoothLoops" type="checkbox" checked>Smooth loops</label><label><input id="keepAwake" type="checkbox" checked>Keep awake</label><small id="awakeStatus" role="status"></small></div>
 <dialog id="soundCheckDialog" aria-labelledby="soundCheckTitle"><h2 id="soundCheckTitle">Sound check</h2><p id="checkStatus" role="status">Check the room, then your playing level.</p><div class="check-buttons"><button id="checkQuiet">1. Quiet room</button><button id="checkLevel" disabled>2. Playing level</button></div><div id="checkResults" aria-live="polite"></div><small>Each check takes 3 seconds. No audio is saved. This checks input levels, not every cause of distortion.</small><div class="check-buttons"><button id="checkCancel" disabled>Stop check</button><button id="checkClose">Back</button></div></dialog>
 <dialog id="reviewDialog" aria-labelledby="reviewTitle"><h2 id="reviewTitle">Review chords</h2><p id="reviewCount"></p><h3 id="reviewChord">—</h3><p id="reviewTime"></p><p id="reviewStatus" role="status"></p><div class="review-buttons"><button id="reviewHear">Hear passage</button><button id="reviewStop" disabled>Stop audio</button><button id="reviewEdit">Check / correct</button><button id="reviewPrev">Previous</button><button id="reviewNext">Next</button><button id="reviewClose">Close</button></div><small>Save the correct chord to remove it from this queue. Use Save song to keep your corrections.</small></dialog>
 <dialog id="earDialog" aria-labelledby="earTitle"><h2 id="earTitle">Ear training</h2><p id="earSongName"></p><div class="ear-grid"><label>Skill<select id="earMode"><option value="note">Bass notes</option><option value="interval">Intervals</option><option value="chord">Chord types</option></select></label><label>Passage<select id="earScope"><option value="whole">Whole song</option><option value="loop">Loop / playhead</option></select></label></div><button id="earStart">Start round</button><p id="earStatus" role="status"></p><div class="ear-question"><h3 id="earQuestion">Listen and choose</h3><p id="earDetail"></p><p id="earScore"></p></div><div class="ear-grid"><button id="earReference" disabled>Reference A</button><button id="earReplay" disabled>Replay exercise</button><button id="earSong" disabled>Hear song</button><button id="earStop" disabled>Stop audio</button></div><div id="earAnswers" class="ear-grid" aria-label="Answer choices"></div><p id="earFeedback" aria-live="polite"></p><div class="ear-actions"><button id="earSkip" disabled>Skip</button><button id="earNext" disabled>Next</button><button id="earRetry" disabled>Retry missed</button></div><p id="earHistory"></p><small>Up to 10 questions. Uses the original song key. Exercises play detected notes; Hear song plays the recording. Correct analysis errors before practising.</small><div class="ear-actions"><button id="earClose">Close</button></div></dialog>
@@ -21773,23 +21773,40 @@ new ResizeObserver(size).observe(play);size();})();
 select:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid #78c9ff;outline-offset:3px}
 </style>
 <script id="rc189-tools-toggle">
-(()=>{const button=document.getElementById('openMoreTools'),panel=document.getElementById('moreTools');
- const close=document.getElementById('closeMoreTools');
+(()=>{const button=document.getElementById('openMoreTools'),panel=document.getElementById('moreTools'),view=document.getElementById('moreToolsView');
  if(!button||!panel)return;
- const setOpen=expanded=>{button.setAttribute('aria-expanded',String(expanded));panel.hidden=!expanded;};
+ const setOpen=open=>{
+  button.setAttribute('aria-expanded',String(open));
+  panel.hidden=!open;
+  if(view)view.value='open';
+ };
  button.addEventListener('click',()=>setOpen(button.getAttribute('aria-expanded')!=='true'));
- close?.addEventListener('click',()=>{setOpen(false);button.focus({preventScroll:true});});
+ view?.addEventListener('change',()=>{if(view.value==='close'){setOpen(false);button.focus({preventScroll:true});}});
  panel.addEventListener('click',event=>{
   const target=event.target.closest('button');
-  if(target&&target!==close&&(target.closest('#extraTools')||target.closest('.bs-featured-tools')))setOpen(false);
+  if(target&&(target.closest('#extraTools')||target.closest('.bs-featured-tools')))setOpen(false);
  });
 })();
 </script>
-<style id="rc232-more-tools-close">
+<style id="rc233-more-tools-layout">
+/* Premium tools panel: one compact dropdown and exactly three lower tool rows. */
 html body #appRoot #moreTools[hidden]{display:none!important}
-html body #appRoot #moreTools .more-tools-close-row{display:flex;justify-content:flex-end;padding:7px 4px 3px}
-html body #appRoot #moreTools #closeMoreTools{display:flex;justify-content:center;align-items:center;min-width:140px;min-height:45px;height:auto;max-width:100%;margin:0;padding:9px 16px;border:1px solid #7c9eaf;border-radius:10px;background:#193449;color:#eaf6fd;font:750 14px/1.3 system-ui,sans-serif;cursor:pointer}
-html body #appRoot #moreTools #closeMoreTools:focus-visible{outline:2px solid #a5e5f5;outline-offset:3px}
+html body #appRoot #moreTools .more-tools-select-row{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:10px!important;padding:4px 4px 10px!important}
+html body #appRoot #moreTools .more-tools-select-label{font:750 14px/1.35 system-ui,sans-serif;color:#dceef5!important}
+html body #appRoot #moreTools #moreToolsView{display:block!important;box-sizing:border-box!important;flex:0 1 200px!important;width:min(100%,200px)!important;min-width:0!important;height:47px!important;min-height:47px!important;max-height:47px!important;margin:0!important;padding:0 12px!important;border:2px solid #8ce4d5!important;border-radius:12px!important;background:#133b46!important;color:#fff!important;font:750 14px/1.3 system-ui,sans-serif!important;cursor:pointer!important;appearance:auto!important}
+html body #appRoot #moreTools #moreToolsView:focus-visible{outline:2px solid #8ce4d5;outline-offset:3px}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #extraTools{display:flex!important;flex-direction:column!important;align-items:stretch!important;justify-content:flex-start!important;gap:10px!important;padding:0 0 6px!important}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #extraTools>.bs-other-row{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;margin:0!important;padding:0!important;width:100%!important;min-width:0!important;align-items:stretch!important}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #extraTools>.bs-other-row:last-of-type{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #extraTools>.bs-other-row>button,
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #moreTools .bs-featured-tools>button{box-sizing:border-box!important;display:flex!important;align-items:center!important;justify-content:center!important;width:100%!important;min-width:0!important;height:68px!important;min-height:68px!important;max-height:68px!important;margin:0!important;padding:8px 6px!important;font:750 14px/1.25 system-ui,sans-serif!important;white-space:normal!important;text-align:center!important;border-radius:11px!important}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #moreTools .bs-featured-tools{margin:0 0 10px!important;gap:9px!important}
+@media(max-width:410px){
+ html body #appRoot #moreTools .more-tools-select-row{gap:7px!important}
+ html body #appRoot #moreTools #moreToolsView{flex-basis:175px!important;width:175px!important}
+ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #extraTools>.bs-other-row{gap:7px!important}
+ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #extraTools>.bs-other-row>button{padding:7px 3px!important}
+}
 </style>
 <script id="rc193-settings">
 (()=>{
@@ -21927,6 +21944,16 @@ window.BassBillingLinks = Object.freeze({render:'https://dashboard.render.com/bi
  #settingsDialog #displaySizeControl .settings-control-row > :is(#noteNumberToggle,#fontSizeCard,#bassStringSelector,#timelineBreakdownControl,#speedControl){padding:7px!important}
  #settingsDialog #displaySizeControl .settings-control-row select{padding:0 3px!important}
 }
+
+/* RC233: equal-size setting cards in aligned columns. */
+#settingsDialog #displaySizeControl{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;grid-template-rows:repeat(2,104px)!important;gap:11px!important}
+#settingsDialog #displaySizeControl>.settings-control-row{display:contents!important}
+#settingsDialog #displaySizeControl .settings-control-row>:is(#noteNumberToggle,#fontSizeCard,#bassStringSelector,#timelineBreakdownControl,#speedControl){height:104px!important;min-height:104px!important;max-height:104px!important;gap:7px!important;padding:9px!important;justify-content:flex-start!important}
+#settingsDialog #displaySizeControl #noteNumberToggle{grid-column:1!important;grid-row:1!important}
+#settingsDialog #displaySizeControl #fontSizeCard{grid-column:3!important;grid-row:1!important}
+#settingsDialog #displaySizeControl #bassStringSelector{grid-column:1!important;grid-row:2!important}
+#settingsDialog #displaySizeControl #timelineBreakdownControl{grid-column:2!important;grid-row:2!important}
+#settingsDialog #displaySizeControl #speedControl{grid-column:3!important;grid-row:2!important}
 </style>
 <script id="rc206-settings-rows">
 (()=>{
@@ -21941,6 +21968,32 @@ window.BassBillingLinks = Object.freeze({render:'https://dashboard.render.com/bi
  const second=document.createElement('div');second.id='settingsSecondaryRow';second.className='settings-control-row';
  second.setAttribute('role','group');second.setAttribute('aria-label','Strings, seconds and speed');
  first.append(cards[0],cards[1]);second.append(cards[2],cards[3],cards[4]);controls.append(first,second);
+ // A compact three-column grid, with Note view above Strings, Text above Speed.
+ // Keep the original cards and dropdowns, including all their working handlers.
+ const put=(el,key,value)=>el.style.setProperty(key,value,'important');
+ put(controls,'display','grid');
+ put(controls,'grid-template-columns','repeat(3,minmax(0,1fr))');
+ put(controls,'grid-template-rows','repeat(2,104px)');
+ put(controls,'gap','11px');
+ put(controls,'align-items','stretch');
+ put(controls,'width','100%');
+ for(const row of [first,second])put(row,'display','contents');
+ const positions=[[1,1],[3,1],[1,2],[2,2],[3,2]];
+ cards.forEach((card,i)=>{
+  put(card,'grid-column',String(positions[i][0]));
+  put(card,'grid-row',String(positions[i][1]));
+  put(card,'box-sizing','border-box');
+  put(card,'height','104px');
+  put(card,'min-height','104px');
+  put(card,'max-height','104px');
+  put(card,'width','100%');
+  put(card,'min-width','0');
+  put(card,'max-width','100%');
+  put(card,'padding','9px');
+  put(card,'margin','0');
+  put(card,'gap','7px');
+  put(card,'justify-content','flex-start');
+ });
 })();
 </script>
 <script defer src="./song-reference/data.js"></script>

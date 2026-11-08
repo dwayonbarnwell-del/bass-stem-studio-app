@@ -288,6 +288,19 @@ function install(){
  const button=elem('button','','To analyse');button.id='openToAnalyse';button.type='button';button.onclick=open;
  featured.append(chords,lyrics,button);
  host.insertBefore(featured,tools);
+ // Seven remaining tools, arranged in three balanced rows (2 + 2 + 3).
+ // Move existing buttons; never clone or replace their event handlers.
+ const remaining=Array.from(tools.children).filter(el=>el.tagName==='BUTTON');
+ const otherNodes=Array.from(tools.children).filter(el=>el.tagName!=='BUTTON');
+ if(remaining.length===7){
+  const sizes=[2,2,3],rows=[];let pos=0;
+  for(const size of sizes){
+   const row=elem('div','bs-other-row');
+   for(const button of remaining.slice(pos,pos+size))row.append(button);
+   rows.push(row);pos+=size;
+  }
+  tools.replaceChildren(...rows,...otherNodes);
+ }
  restoreState();
  window.addEventListener('bass-stem:project-saved',()=>{if(dialog?.open)void loadPending();});
  window.addEventListener('bass-stem:chord-reference-changed',()=>{if(dialog?.open)void loadPending();});
