@@ -13744,7 +13744,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRo
       </div>
       </div>
 
-<section id="liveAudioEntry" aria-label="Practice controls"><button id="openLiveAudio" type="button" aria-label="Live audio"><span>Live</span> <span>audio</span></button><button id="openEar" type="button" aria-label="Ear training"><span>Ear</span> <span>training</span></button><button id="openReview" type="button" aria-label="Review chords"><span>Review</span> <span>chords</span></button><button id="openMoreTools" type="button" aria-label="More tools" aria-expanded="false" aria-controls="moreTools"><span>More</span> <span>tools</span></button></section><div id="moreTools" hidden><div id="extraTools"><button id="openTrash" type="button">Recently deleted</button><button id="openPatterns" type="button">Scales &amp; arpeggios</button><button id="openLoopShare" type="button">Share loop</button><button id="openLyrics" type="button">Lyrics</button><button id="openIdeas" type="button">Ideas</button><button id="openRhythm" type="button">Rhythm / practice</button><button id="openSoundCheck" type="button">Sound check</button></div></div><div id="practiceComfort"><label title="Short fades soften loop joins"><input id="smoothLoops" type="checkbox" checked>Smooth loops</label><label><input id="keepAwake" type="checkbox" checked>Keep awake</label><small id="awakeStatus" role="status"></small></div>
+<section id="liveAudioEntry" aria-label="Practice controls"><button id="openLiveAudio" type="button" aria-label="Live audio"><span>Live</span> <span>audio</span></button><button id="openEar" type="button" aria-label="Ear training"><span>Ear</span> <span>training</span></button><button id="openReview" type="button" aria-label="Review chords"><span>Review</span> <span>chords</span></button><button id="openMoreTools" type="button" aria-label="More tools" aria-expanded="false" aria-controls="moreTools"><span>More</span> <span>tools</span></button></section><div id="moreTools" hidden><div id="extraTools"><button id="openTrash" type="button">Recently deleted</button><button id="openPatterns" type="button">Scales &amp; arpeggios</button><button id="openLoopShare" type="button">Share loop</button><button id="openLyrics" type="button">Lyrics</button><button id="openIdeas" type="button">Ideas</button><button id="openRhythm" type="button">Rhythm / practice</button><button id="openSoundCheck" type="button">Sound check</button></div><div class="more-tools-close-row"><button id="closeMoreTools" type="button" aria-controls="moreTools">Close tools</button></div></div><div id="practiceComfort"><label title="Short fades soften loop joins"><input id="smoothLoops" type="checkbox" checked>Smooth loops</label><label><input id="keepAwake" type="checkbox" checked>Keep awake</label><small id="awakeStatus" role="status"></small></div>
 <dialog id="soundCheckDialog" aria-labelledby="soundCheckTitle"><h2 id="soundCheckTitle">Sound check</h2><p id="checkStatus" role="status">Check the room, then your playing level.</p><div class="check-buttons"><button id="checkQuiet">1. Quiet room</button><button id="checkLevel" disabled>2. Playing level</button></div><div id="checkResults" aria-live="polite"></div><small>Each check takes 3 seconds. No audio is saved. This checks input levels, not every cause of distortion.</small><div class="check-buttons"><button id="checkCancel" disabled>Stop check</button><button id="checkClose">Back</button></div></dialog>
 <dialog id="reviewDialog" aria-labelledby="reviewTitle"><h2 id="reviewTitle">Review chords</h2><p id="reviewCount"></p><h3 id="reviewChord">—</h3><p id="reviewTime"></p><p id="reviewStatus" role="status"></p><div class="review-buttons"><button id="reviewHear">Hear passage</button><button id="reviewStop" disabled>Stop audio</button><button id="reviewEdit">Check / correct</button><button id="reviewPrev">Previous</button><button id="reviewNext">Next</button><button id="reviewClose">Close</button></div><small>Save the correct chord to remove it from this queue. Use Save song to keep your corrections.</small></dialog>
 <dialog id="earDialog" aria-labelledby="earTitle"><h2 id="earTitle">Ear training</h2><p id="earSongName"></p><div class="ear-grid"><label>Skill<select id="earMode"><option value="note">Bass notes</option><option value="interval">Intervals</option><option value="chord">Chord types</option></select></label><label>Passage<select id="earScope"><option value="whole">Whole song</option><option value="loop">Loop / playhead</option></select></label></div><button id="earStart">Start round</button><p id="earStatus" role="status"></p><div class="ear-question"><h3 id="earQuestion">Listen and choose</h3><p id="earDetail"></p><p id="earScore"></p></div><div class="ear-grid"><button id="earReference" disabled>Reference A</button><button id="earReplay" disabled>Replay exercise</button><button id="earSong" disabled>Hear song</button><button id="earStop" disabled>Stop audio</button></div><div id="earAnswers" class="ear-grid" aria-label="Answer choices"></div><p id="earFeedback" aria-live="polite"></p><div class="ear-actions"><button id="earSkip" disabled>Skip</button><button id="earNext" disabled>Next</button><button id="earRetry" disabled>Retry missed</button></div><p id="earHistory"></p><small>Up to 10 questions. Uses the original song key. Exercises play detected notes; Hear song plays the recording. Correct analysis errors before practising.</small><div class="ear-actions"><button id="earClose">Close</button></div></dialog>
@@ -14015,12 +14015,13 @@ window.BassLibrary=(()=>{
   function status(message){if(el('libraryStatus'))el('libraryStatus').textContent=message;}
   function paintLocation(){
     if(!dialog)return;
-    el('libraryLocation').textContent=folder?'Folder: '+folder.name+(folderAccess==='ready'?' · Connected':folderAccess==='reconnect'?' · Permission needed':''):'Saved on this device';
-    el('libraryHint').textContent=folder?(folderAccess==='reconnect'?'Your folder is remembered. Allow access when prompted, or select Reconnect folder. Choose “Allow on every visit” if your browser offers it.':'Projects stay in this folder. Select Refresh after adding files outside the app.'):'Download backups before clearing browser data. Choose a folder to keep projects as normal files.';
+    el('libraryLocation').textContent=folder?'Save folder: '+folder.name+(folderAccess==='reconnect'?' · Reconnect needed':' · Auto-scan'):'Save location: In this app';
+    el('libraryChoose').textContent=folder?'Change save folder':'Choose save folder';
+    el('libraryHint').textContent=folder?(folderAccess==='reconnect'?'Tap Reconnect folder to see saved songs there. Songs in the app remain available.':'Saved songs in this folder appear when you open Library. New saves go here.'):'Saved songs appear here automatically. Choose a save folder to keep normal files.';
     el('libraryDevice').hidden=!folder;
-    el('libraryReconnect').hidden=!folder;
+    el('libraryReconnect').hidden=!folder||folderAccess!=='reconnect';
     el('libraryChoose').hidden=typeof window.showDirectoryPicker!=='function';
-    if(!window.showDirectoryPicker&&!folder)el('libraryHint').textContent='Saved songs are kept here. To open a .bassstudio file from Downloads, choose Import saved file. Download a backup before clearing browser data.';
+    if(!window.showDirectoryPicker&&!folder)el('libraryHint').textContent='Songs are kept in this app. Download backups before clearing browser data.';
   }
   function filterRows(list,query,sort){
     const words=clean(query).toLocaleLowerCase().split(/\s+/).filter(Boolean);
@@ -14039,7 +14040,7 @@ window.BassLibrary=(()=>{
       const item=document.createElement('li'),info=document.createElement('div'),title=document.createElement('strong'),details=document.createElement('span'),actions=document.createElement('div');
       title.textContent=row.title;
       const minutes=Math.floor(row.duration/60),seconds=Math.floor(row.duration%60).toString().padStart(2,'0');
-      details.textContent=[row.artist,row.key&&row.key!=='—'?row.key:'',row.bpm?Math.round(row.bpm)+' BPM':'',row.duration?minutes+':'+seconds:''].filter(Boolean).join(' · ')||row.filename;
+      details.textContent=[row.artist,row.key&&row.key!=='—'?row.key:'',row.bpm?Math.round(row.bpm)+' BPM':'',row.duration?minutes+':'+seconds:'',row.storageLabel].filter(Boolean).join(' · ')||row.filename;
       info.className='library-song-info';info.append(title,details);actions.className='library-song-actions';
       const open=document.createElement('button');open.type='button';open.textContent='Open';open.setAttribute('aria-label','Open '+row.title);open.disabled=busy;open.onclick=()=>run(()=>openRow(row));actions.append(open);
       const download=document.createElement('a');download.className='library-download';download.textContent='Download';download.setAttribute('aria-label','Download '+row.title);
@@ -14059,29 +14060,41 @@ window.BassLibrary=(()=>{
     return request&&await handle.requestPermission({mode})==='granted';
   }
   async function refresh(){
-    const token=++scan;await ready;rows=[];render();status('Loading saved songs…');
-    if(!folder){
-      rows=await store('songs','readonly',s=>s.getAll());
-    }else{
-      const dir=folder;
-      if(!await permission(dir,'read')){folderAccess='reconnect';status('Folder remembered. Select Reconnect folder to allow access. Your saved songs are unchanged.');render();return;}
+    const token=++scan;await ready;rows=[];render();status('Checking saved songs…');
+    const deviceRows=(await store('songs','readonly',s=>s.getAll())||[])
+      .filter(r=>r?.filename&&SUPPORTED.test(r.filename))
+      .map(r=>({...r,storageLabel:'In app'}));
+    if(token!==scan)return;
+    if(!folder){rows=deviceRows;status('');render();return;}
+    const dir=folder;
+    try{
+      if(!await permission(dir,'read')){
+        folderAccess='reconnect';rows=deviceRows;
+        status('Tap Reconnect folder to see saved songs there.');render();return;
+      }
       folderAccess='ready';
       const found=[],next={};let skipped=0;
       for await(const [name,handle] of dir.entries()){
         if(token!==scan||dir!==folder)return;
         if(handle.kind!=='file'||!SUPPORTED.test(name))continue;
         try{
-          const f=await handle.getFile(),cached=index[name];
-          const meta=cached&&cached.size===f.size&&cached.modified===f.lastModified?cached:metadata(JSON.parse(await f.text()),f);
-          next[name]=meta;found.push({...meta,handle,file:f});
+          const file=await handle.getFile(),cached=index[name];
+          const meta=cached&&cached.size===file.size&&cached.modified===file.lastModified
+            ?cached:metadata(JSON.parse(await file.text()),file);
+          next[name]=meta;found.push({...meta,handle,file,storageLabel:'Save folder'});
         }catch{skipped++;}
       }
       if(token!==scan||dir!==folder)return;
-      rows=found;index=next;
+      rows=[...found,...deviceRows];index=next;
       await put('index',index).catch(()=>{});
-      status(skipped?skipped+' unreadable or unsupported '+(skipped===1?'file was':'files were')+' skipped.':'');render();return;
+      status(skipped?skipped+' unreadable saved '+(skipped===1?'file':'files')+' skipped.':'');
+      render();
+    }catch(error){
+      if(token!==scan||dir!==folder)return;
+      folderAccess='reconnect';rows=deviceRows;
+      status('Could not read the save folder. Tap Reconnect folder. Your saved songs remain available.');
+      render();
     }
-    if(token!==scan)return;status('');render();
   }
   async function chooseFolder(){
     // The picker must run directly from the button gesture, before other awaits.
@@ -14363,7 +14376,7 @@ window.BassLibrary=(()=>{
   function build(){
     if(dialog)return;
     dialog=document.createElement('dialog');dialog.id='bassLibraryDialog';dialog.className='bass-library';dialog.setAttribute('aria-labelledby','libraryTitle');
-    dialog.innerHTML='<div class="library-heading"><div><h2 id="libraryTitle">Song library</h2><p id="libraryLocation"></p></div><button id="libraryClose" type="button">Close</button></div><div class="library-toolbar"><button id="libraryChoose" type="button">Choose folder</button><button id="libraryReconnect" type="button">Reconnect folder</button><button id="libraryDevice" type="button">On this device</button><button id="libraryAdd" type="button">Import saved file</button><button id="libraryBatch" type="button">Batch ZIP</button><button id="libraryRefresh" type="button">Refresh</button></div><p id="libraryHint"></p><div class="library-filters"><div><label for="librarySearch">Search songs</label><input id="librarySearch" type="search" placeholder="Title, artist, key or BPM" autocomplete="off"></div><div><label for="librarySort">Sort by</label><select id="librarySort"><option value="recent">Recently saved</option><option value="name">Song name</option></select></div></div><div class="library-summary"><span id="libraryCount"></span><span id="libraryStatus" role="status" aria-live="polite"></span></div><ul id="librarySongs"></ul><input id="libraryFiles" type="file" accept=".bassstudio,.bssproject,.json,application/json" multiple hidden>';
+    dialog.innerHTML='<div class="library-heading"><div><h2 id="libraryTitle">Song library</h2><p id="libraryLocation"></p></div><button id="libraryClose" type="button">Close</button></div><div class="library-toolbar"><button id="libraryChoose" type="button">Choose save folder</button><button id="libraryReconnect" type="button">Reconnect folder</button><button id="libraryDevice" type="button">Save in app</button><button id="libraryAdd" type="button">Import saved file</button><button id="libraryBatch" type="button">Batch ZIP</button><button id="libraryRefresh" type="button">Refresh</button></div><p id="libraryHint"></p><div class="library-filters"><div><label for="librarySearch">Search songs</label><input id="librarySearch" type="search" placeholder="Title, artist, key or BPM" autocomplete="off"></div><div><label for="librarySort">Sort by</label><select id="librarySort"><option value="recent">Recently saved</option><option value="name">Song name</option></select></div></div><div class="library-summary"><span id="libraryCount"></span><span id="libraryStatus" role="status" aria-live="polite"></span></div><ul id="librarySongs"></ul><input id="libraryFiles" type="file" accept=".bassstudio,.bssproject,.json,application/json" multiple hidden>';
     document.body.append(dialog);
     el('libraryClose').onclick=()=>dialog.close();
     dialog.addEventListener('close',()=>document.getElementById('importProjectBtn')?.focus());
@@ -14376,9 +14389,13 @@ window.BassLibrary=(()=>{
   }
   async function show(){
     build();if(!dialog.open)dialog.showModal();el('librarySearch').focus();
-    // Open Library is a user gesture: request access now, not after the audio work.
-    const access=ensureBatchAccess();
-    await run(async()=>{await access;await refresh();});
+    // Reuse the remembered folder automatically if access is still granted.
+    // If the browser needs permission again, ask while Library is opening.
+    await run(async()=>{
+      await ready;
+      if(folder)try{if(!await permission(folder,'read'))await permission(folder,'read',true);}catch{}
+      await refresh();
+    });
   }
   function init(options){
     hooks=options;
@@ -21757,8 +21774,23 @@ select:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid 
 </style>
 <script id="rc189-tools-toggle">
 (()=>{const button=document.getElementById('openMoreTools'),panel=document.getElementById('moreTools');
-button.addEventListener('click',()=>{const expanded=button.getAttribute('aria-expanded')!=='true';button.setAttribute('aria-expanded',String(expanded));panel.hidden=!expanded;});})();
+ const close=document.getElementById('closeMoreTools');
+ if(!button||!panel)return;
+ const setOpen=expanded=>{button.setAttribute('aria-expanded',String(expanded));panel.hidden=!expanded;};
+ button.addEventListener('click',()=>setOpen(button.getAttribute('aria-expanded')!=='true'));
+ close?.addEventListener('click',()=>{setOpen(false);button.focus({preventScroll:true});});
+ panel.addEventListener('click',event=>{
+  const target=event.target.closest('button');
+  if(target&&target!==close&&(target.closest('#extraTools')||target.closest('.bs-featured-tools')))setOpen(false);
+ });
+})();
 </script>
+<style id="rc232-more-tools-close">
+html body #appRoot #moreTools[hidden]{display:none!important}
+html body #appRoot #moreTools .more-tools-close-row{display:flex;justify-content:flex-end;padding:7px 4px 3px}
+html body #appRoot #moreTools #closeMoreTools{display:flex;justify-content:center;align-items:center;min-width:140px;min-height:45px;height:auto;max-width:100%;margin:0;padding:9px 16px;border:1px solid #7c9eaf;border-radius:10px;background:#193449;color:#eaf6fd;font:750 14px/1.3 system-ui,sans-serif;cursor:pointer}
+html body #appRoot #moreTools #closeMoreTools:focus-visible{outline:2px solid #a5e5f5;outline-offset:3px}
+</style>
 <script id="rc193-settings">
 (()=>{
  const $=id=>document.getElementById(id);
@@ -21853,7 +21885,7 @@ window.BassBillingLinks = Object.freeze({render:'https://dashboard.render.com/bi
  display:grid!important;align-items:stretch!important;justify-content:stretch!important;
  width:100%!important;min-width:0!important;max-width:100%!important;
  margin:0!important;padding:0!important;gap:12px!important;
- grid-auto-rows:minmax(114px,auto)!important;
+ grid-auto-rows:minmax(100px,auto)!important;
 }
 #settingsDialog #displaySizeControl > #settingsPrimaryRow{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 #settingsDialog #displaySizeControl > #settingsSecondaryRow{grid-template-columns:repeat(3,minmax(0,1fr))!important}
@@ -21861,11 +21893,11 @@ window.BassBillingLinks = Object.freeze({render:'https://dashboard.render.com/bi
  box-sizing:border-box!important;position:static!important;inset:auto!important;float:none!important;
  grid-column:auto!important;grid-row:auto!important;
  display:flex!important;flex-direction:column!important;
- align-items:stretch!important;justify-content:space-between!important;
+ align-items:stretch!important;justify-content:flex-start!important;
  flex:none!important;gap:10px!important;width:100%!important;
  min-width:0!important;max-width:100%!important;height:100%!important;
- min-height:114px!important;max-height:none!important;
- margin:0!important;padding:12px!important;transform:none!important;
+ min-height:100px!important;max-height:none!important;
+ margin:0!important;padding:11px!important;transform:none!important;
  border:1px solid #496983!important;border-radius:14px!important;
  background:#192e43!important;overflow:visible!important;box-shadow:none!important;
 }
