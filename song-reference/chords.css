@@ -16,7 +16,7 @@
 #bsChordLibraryDialog .bs-ref-layout{display:grid;grid-template-columns:minmax(210px,35%) minmax(0,65%);gap:12px;align-items:stretch;min-height:300px}
 #bsChordLibraryDialog .bs-ref-list-pane,#bsChordLibraryDialog .bs-ref-detail-pane{background:#12283a;border:1px solid #33556e;border-radius:12px;min-width:0;padding:12px}
 #bsChordLibraryDialog #bsRefSongs{display:flex;flex-direction:column;gap:7px;max-height:min(52dvh,590px);overflow:auto;overscroll-behavior:contain}
-#bsChordLibraryDialog .bs-ref-item{display:flex;flex-direction:column;align-items:stretch;justify-content:center;position:relative;min-height:56px;gap:4px;width:100%;margin:0;padding:10px 12px;border:1px solid #3c627a;border-radius:10px;background:#19364c;color:#fff;text-align:left;cursor:pointer}
+#bsChordLibraryDialog .bs-ref-item{display:flex;flex-direction:column;align-items:stretch;justify-content:center;position:relative;flex:0 0 auto;height:auto;min-height:56px;gap:4px;width:100%;margin:0;padding:10px 12px;border:1px solid #3c627a;border-radius:10px;background:#19364c;color:#fff;text-align:left;cursor:pointer}
 #bsChordLibraryDialog .bs-ref-item strong{font-weight:770;font-size:14px;line-height:1.35;padding-right:16px}
 #bsChordLibraryDialog .bs-ref-item small{font-size:12px;color:#bcd4e0;font-weight:600;padding-right:14px}
 #bsChordLibraryDialog .bs-ref-item[data-current="true"]{background:#276169;border-color:#8fd9d3;box-shadow:0 0 0 1px #8fd9d350}

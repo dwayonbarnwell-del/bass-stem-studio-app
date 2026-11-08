@@ -49,7 +49,7 @@ New saves and backups retain a reference baseline for later updates. Malformed b
 All songs remain visible by default, including Needs progression.
 Access: More tools > Song chords or Library > Song chords.
 New Show filter: Modern songs 2002 to 2026.
-Service-worker cache advanced to rc216. Reload online to receive and cache the release.
+Service-worker cache advanced to rc216-1. Reload online to receive and cache the release.
 
 VALIDATION
 17 focused Node VM and DOM-harness checks passed for upgrades, favourites, deliberate blank edits, conflicts, source links, long text and backup handling.
@@ -71,3 +71,6 @@ REMAINING WORK
 The earlier 750 to 2,500 useful-progressions target remains unmet. There are still 340 entries without numbers; existing personal progressions are not recording-verified and some references cover only selected sections.
 Six mapped document entries contain no progression. Wonderful Merciful Savior has letter chords without a stated key, so no key or numeric conversion is guessed. All Honour retains its multiple-key notes and original letters.
 Unconfirmed song identities remain flagged in the personal import audit. Obtain reliable source details or the user's recording before merging or completing them.
+
+LIVE DISPLAY FOLLOW-UP
+The first live browser check found that long result cards were shrinking inside the bounded scrolling list and their text overlapped. A narrow card-only flex rule now lets each result fit its content. List scrolling, the existing layout and other controls are preserved. This follow-up changes CSS and cache version only; catalogue data and saved-edit handling are unchanged.
