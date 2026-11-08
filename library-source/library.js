@@ -45,12 +45,13 @@ window.BassLibrary=(()=>{
   function status(message){if(el('libraryStatus'))el('libraryStatus').textContent=message;}
   function paintLocation(){
     if(!dialog)return;
-    el('libraryLocation').textContent=folder?'Folder: '+folder.name+(folderAccess==='ready'?' · Connected':folderAccess==='reconnect'?' · Permission needed':''):'Saved on this device';
-    el('libraryHint').textContent=folder?(folderAccess==='reconnect'?'Your folder is remembered. Allow access when prompted, or select Reconnect folder. Choose “Allow on every visit” if your browser offers it.':'Projects stay in this folder. Select Refresh after adding files outside the app.'):'Download backups before clearing browser data. Choose a folder to keep projects as normal files.';
+    el('libraryLocation').textContent=folder?'Save folder: '+folder.name+(folderAccess==='reconnect'?' · Reconnect needed':' · Auto-scan'):'Save location: In this app';
+    el('libraryChoose').textContent=folder?'Change save folder':'Choose save folder';
+    el('libraryHint').textContent=folder?(folderAccess==='reconnect'?'Tap Reconnect folder to see saved songs there. Songs in the app remain available.':'Saved songs in this folder appear when you open Library. New saves go here.'):'Saved songs appear here automatically. Choose a save folder to keep normal files.';
     el('libraryDevice').hidden=!folder;
-    el('libraryReconnect').hidden=!folder;
+    el('libraryReconnect').hidden=!folder||folderAccess!=='reconnect';
     el('libraryChoose').hidden=typeof window.showDirectoryPicker!=='function';
-    if(!window.showDirectoryPicker&&!folder)el('libraryHint').textContent='Saved songs are kept here. To open a .bassstudio file from Downloads, choose Import saved file. Download a backup before clearing browser data.';
+    if(!window.showDirectoryPicker&&!folder)el('libraryHint').textContent='Songs are kept in this app. Download backups before clearing browser data.';
   }
   function filterRows(list,query,sort){
     const words=clean(query).toLocaleLowerCase().split(/\s+/).filter(Boolean);
@@ -69,7 +70,7 @@ window.BassLibrary=(()=>{
       const item=document.createElement('li'),info=document.createElement('div'),title=document.createElement('strong'),details=document.createElement('span'),actions=document.createElement('div');
       title.textContent=row.title;
       const minutes=Math.floor(row.duration/60),seconds=Math.floor(row.duration%60).toString().padStart(2,'0');
-      details.textContent=[row.artist,row.key&&row.key!=='—'?row.key:'',row.bpm?Math.round(row.bpm)+' BPM':'',row.duration?minutes+':'+seconds:''].filter(Boolean).join(' · ')||row.filename;
+      details.textContent=[row.artist,row.key&&row.key!=='—'?row.key:'',row.bpm?Math.round(row.bpm)+' BPM':'',row.duration?minutes+':'+seconds:'',row.storageLabel].filter(Boolean).join(' · ')||row.filename;
       info.className='library-song-info';info.append(title,details);actions.className='library-song-actions';
       const open=document.createElement('button');open.type='button';open.textContent='Open';open.setAttribute('aria-label','Open '+row.title);open.disabled=busy;open.onclick=()=>run(()=>openRow(row));actions.append(open);
       const download=document.createElement('a');download.className='library-download';download.textContent='Download';download.setAttribute('aria-label','Download '+row.title);
@@ -89,29 +90,41 @@ window.BassLibrary=(()=>{
     return request&&await handle.requestPermission({mode})==='granted';
   }
   async function refresh(){
-    const token=++scan;await ready;rows=[];render();status('Loading saved songs…');
-    if(!folder){
-      rows=await store('songs','readonly',s=>s.getAll());
-    }else{
-      const dir=folder;
-      if(!await permission(dir,'read')){folderAccess='reconnect';status('Folder remembered. Select Reconnect folder to allow access. Your saved songs are unchanged.');render();return;}
+    const token=++scan;await ready;rows=[];render();status('Checking saved songs…');
+    const deviceRows=(await store('songs','readonly',s=>s.getAll())||[])
+      .filter(r=>r?.filename&&SUPPORTED.test(r.filename))
+      .map(r=>({...r,storageLabel:'In app'}));
+    if(token!==scan)return;
+    if(!folder){rows=deviceRows;status('');render();return;}
+    const dir=folder;
+    try{
+      if(!await permission(dir,'read')){
+        folderAccess='reconnect';rows=deviceRows;
+        status('Tap Reconnect folder to see saved songs there.');render();return;
+      }
       folderAccess='ready';
       const found=[],next={};let skipped=0;
       for await(const [name,handle] of dir.entries()){
         if(token!==scan||dir!==folder)return;
         if(handle.kind!=='file'||!SUPPORTED.test(name))continue;
         try{
-          const f=await handle.getFile(),cached=index[name];
-          const meta=cached&&cached.size===f.size&&cached.modified===f.lastModified?cached:metadata(JSON.parse(await f.text()),f);
-          next[name]=meta;found.push({...meta,handle,file:f});
+          const file=await handle.getFile(),cached=index[name];
+          const meta=cached&&cached.size===file.size&&cached.modified===file.lastModified
+            ?cached:metadata(JSON.parse(await file.text()),file);
+          next[name]=meta;found.push({...meta,handle,file,storageLabel:'Save folder'});
         }catch{skipped++;}
       }
       if(token!==scan||dir!==folder)return;
-      rows=found;index=next;
+      rows=[...found,...deviceRows];index=next;
       await put('index',index).catch(()=>{});
-      status(skipped?skipped+' unreadable or unsupported '+(skipped===1?'file was':'files were')+' skipped.':'');render();return;
+      status(skipped?skipped+' unreadable saved '+(skipped===1?'file':'files')+' skipped.':'');
+      render();
+    }catch(error){
+      if(token!==scan||dir!==folder)return;
+      folderAccess='reconnect';rows=deviceRows;
+      status('Could not read the save folder. Tap Reconnect folder. Your saved songs remain available.');
+      render();
     }
-    if(token!==scan)return;status('');render();
   }
   async function chooseFolder(){
     // The picker must run directly from the button gesture, before other awaits.
@@ -393,7 +406,7 @@ window.BassLibrary=(()=>{
   function build(){
     if(dialog)return;
     dialog=document.createElement('dialog');dialog.id='bassLibraryDialog';dialog.className='bass-library';dialog.setAttribute('aria-labelledby','libraryTitle');
-    dialog.innerHTML='<div class="library-heading"><div><h2 id="libraryTitle">Song library</h2><p id="libraryLocation"></p></div><button id="libraryClose" type="button">Close</button></div><div class="library-toolbar"><button id="libraryChoose" type="button">Choose folder</button><button id="libraryReconnect" type="button">Reconnect folder</button><button id="libraryDevice" type="button">On this device</button><button id="libraryAdd" type="button">Import saved file</button><button id="libraryBatch" type="button">Batch ZIP</button><button id="libraryRefresh" type="button">Refresh</button></div><p id="libraryHint"></p><div class="library-filters"><div><label for="librarySearch">Search songs</label><input id="librarySearch" type="search" placeholder="Title, artist, key or BPM" autocomplete="off"></div><div><label for="librarySort">Sort by</label><select id="librarySort"><option value="recent">Recently saved</option><option value="name">Song name</option></select></div></div><div class="library-summary"><span id="libraryCount"></span><span id="libraryStatus" role="status" aria-live="polite"></span></div><ul id="librarySongs"></ul><input id="libraryFiles" type="file" accept=".bassstudio,.bssproject,.json,application/json" multiple hidden>';
+    dialog.innerHTML='<div class="library-heading"><div><h2 id="libraryTitle">Song library</h2><p id="libraryLocation"></p></div><button id="libraryClose" type="button">Close</button></div><div class="library-toolbar"><button id="libraryChoose" type="button">Choose save folder</button><button id="libraryReconnect" type="button">Reconnect folder</button><button id="libraryDevice" type="button">Save in app</button><button id="libraryAdd" type="button">Import saved file</button><button id="libraryBatch" type="button">Batch ZIP</button><button id="libraryRefresh" type="button">Refresh</button></div><p id="libraryHint"></p><div class="library-filters"><div><label for="librarySearch">Search songs</label><input id="librarySearch" type="search" placeholder="Title, artist, key or BPM" autocomplete="off"></div><div><label for="librarySort">Sort by</label><select id="librarySort"><option value="recent">Recently saved</option><option value="name">Song name</option></select></div></div><div class="library-summary"><span id="libraryCount"></span><span id="libraryStatus" role="status" aria-live="polite"></span></div><ul id="librarySongs"></ul><input id="libraryFiles" type="file" accept=".bassstudio,.bssproject,.json,application/json" multiple hidden>';
     document.body.append(dialog);
     el('libraryClose').onclick=()=>dialog.close();
     dialog.addEventListener('close',()=>document.getElementById('importProjectBtn')?.focus());
@@ -406,9 +419,13 @@ window.BassLibrary=(()=>{
   }
   async function show(){
     build();if(!dialog.open)dialog.showModal();el('librarySearch').focus();
-    // Open Library is a user gesture: request access now, not after the audio work.
-    const access=ensureBatchAccess();
-    await run(async()=>{await access;await refresh();});
+    // Reuse the remembered folder automatically if access is still granted.
+    // If the browser needs permission again, ask while Library is opening.
+    await run(async()=>{
+      await ready;
+      if(folder)try{if(!await permission(folder,'read'))await permission(folder,'read',true);}catch{}
+      await refresh();
+    });
   }
   function init(options){
     hooks=options;
