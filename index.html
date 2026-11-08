@@ -19727,16 +19727,20 @@ window.BassBatch = (() => {
     }
   }
 
-  const CHORD_QUALITY_LABELS={maj:'M',min:'m',sus2:'sus2',sus4:'sus4',dim:'dim',aug:'aug','7':'7',maj7:'M7',min7:'m7','6':'6',min6:'m6',add9:'add9',minadd9:'madd9','9':'9',maj9:'M9',min9:'m9','11':'11',min11:'m11','13':'13',min13:'m13','7sus4':'7sus4',dim7:'dim7',min7b5:'m7b5','7b9':'7b9','7#9':'7#9'};
+  const CHORD_QUALITY_LABELS={maj:'',min:'m',sus2:'sus2',sus4:'sus4',dim:'dim',aug:'aug','7':'7',maj7:'M7',min7:'m7','6':'6',min6:'m6',add9:'add9',minadd9:'madd9','9':'9',maj9:'M9',min9:'m9','11':'11',min11:'m11','13':'13',min13:'m13','7sus4':'7sus4',dim7:'dim7',min7b5:'m7b5','7b9':'7b9','7#9':'7#9'};
   function chordDisplayLabel(chord){
     if(!chord||!Number.isFinite(Number(chord.rootPc)))return '—';
     const pc=((Math.round(Number(chord.rootPc))+transposeSemitones)%12+12)%12;
-    const root=(SCALE_ROOTS.find(x=>x.pc===pc)||SCALE_ROOTS[0]).n;
     const quality=String(chord.quality||'maj').toLowerCase();
-    const q=CHORD_QUALITY_LABELS[quality]||String(chord.quality||'');
+    const q=Object.hasOwn(CHORD_QUALITY_LABELS,quality)?CHORD_QUALITY_LABELS[quality]:quality;
     const bassPc=chord.bassPc==null?null:((Math.round(Number(chord.bassPc))+transposeSemitones)%12+12)%12;
-    const bass=bassPc!==null&&bassPc!==pc?'/'+(SCALE_ROOTS.find(x=>x.pc===bassPc)?.n||''):'';
-    return `${root}${q||'M'}${bass}${chord.uncertain?'?':''}`;
+    // The selected Note view determines letters versus numbers. Never
+    // invent a degree when the song key has not been established.
+    const numeric=noteDisplayMode==='numbers'&&!!numberingScaleContext();
+    const name=p=>numeric?scaleDegreeLabel(p):(SCALE_ROOTS.find(x=>x.pc===p)||SCALE_ROOTS[0]).n;
+    const root=name(pc);
+    const bass=bassPc!==null&&bassPc!==pc?'/'+name(bassPc):'';
+    return `${root}${q}${bass}${chord.uncertain?'?':''}`;
   }
   function reliableChord(c){
     return c && ((c.manual===true&&c.evidenceVersion==='user-correction-v1') || (c.evidenceVersion==='chord-timeline-v2'&&Number(c.confidence)>=.76) ||
