@@ -52,7 +52,7 @@ window.BassPiano=(()=>{
    }
    const visible=display.filter(n=>n.end>start&&n.start<end),r=range(visible,keyCount(width)),keyboard=$('pianoKeyboard');keyboard.replaceChildren();const whites=[];for(let m=r.low;m<=r.high;m++)if(!black(m))whites.push(m);
    for(let m=r.low;m<=r.high;m++){const k=document.createElement('button');k.className='piano-key '+(black(m)?'black':'white');k.dataset.midi=m;k.textContent=black(m)?names[m%12]:label(m);k.setAttribute('aria-label','Play '+label(m));const w=100/whites.length;
-    const before=whites.filter(n=>n<m).length;k.style.left=((black(m)?before-.32:before)*w)+'%';k.style.width=(black(m)?.64*w:w)+'%';k.onclick=()=>sound(m);keyboard.append(k);}
+    const before=whites.filter(n=>n<m).length;k.style.left=((black(m)?before-.32:before)*w)+'%';k.style.setProperty('width',(black(m)?.64*w:w)+'%','important');k.onclick=()=>sound(m);keyboard.append(k);}
    $('pianoRange').textContent=label(r.low)+' – '+label(r.high)+' · '+keyCount(width)+' keys';
    $('pianoPrevious').disabled=page===0;$('pianoNext').disabled=end>=s.duration;$('pianoPage').textContent=api.fmt(start)+' – '+api.fmt(end);
   }
