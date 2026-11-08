@@ -16088,7 +16088,7 @@ window.BassBatch = (() => {
       seek.value=0;curTime.textContent=fmt(0);
       status.className='status good';status.textContent='';
       aiStatus(`Opened “${loadedProjectName||audioName}” · ${restored.length} notes`,100);
-      if(!songStructure&&!savedSectionRanges)void ensureSongStructure({importReady:true});
+      if(!songStructure&&!savedSectionRanges)void ensureSongStructure({importReady:true,allowNewJob:false});
       // The old song has already been replaced. A slow/missing optional stem
       // cannot leave its title, notes, selection or transport on screen.
       if(analysisParts.length){
@@ -16121,7 +16121,7 @@ window.BassBatch = (() => {
       const expectedBass=analysisParts.length?!!analysisParts[0].bassBase64:!!project.analysis.bassAudioBase64;
       const expectedNoBass=analysisParts.length?!!analysisParts[0].noBassBase64:!!project.analysis.noBassAudioBase64;
       const warning=(expectedBass&&!bassStemReady)||(expectedNoBass&&!noBassReady);
-      aiStatus(`Opened “${loadedProjectName||audioName}” · ${restored.length} notes${warning?' · some saved backing audio unavailable':''}`,100);
+      aiStatus(`Saved results ready · ${restored.length} bass notes · ${detectedChordChanges.length} chords${warning?' · one saved track unavailable':''}. Press Play.`,100);
       await cacheAudioForRecovery(activeAudioFile);
       if(request!==songLoadRequest)return false;
       await persistAnalysisRecovery();
@@ -16558,24 +16558,30 @@ window.BassBatch = (() => {
   }
 
   async function play(){
-    if(!buffer) return;
+    if(!buffer||playing)return;
     const session=songSession;
-    ensureCtx(); await ctx.resume(); if(session!==songSession)return;buildGraph();
-    if(playing) return;
-    masterAudio.playbackRate=Number(tempo.value)/100;
-    masterAudio.preservesPitch=true;
-    if('webkitPreservesPitch' in masterAudio) masterAudio.webkitPreservesPitch=true;
     try{
-      await masterAudio.play();
+      ensureCtx();buildGraph();
+      masterAudio.playbackRate=Number(tempo.value)/100;
+      masterAudio.preservesPitch=true;
+      if('webkitPreservesPitch' in masterAudio)masterAudio.webkitPreservesPitch=true;
+      // Both start directly from the user's tap, before awaiting either.
+      const unlocked=ctx.state==='running'?Promise.resolve():ctx.resume();
+      const started=masterAudio.play();
+      await Promise.all([unlocked,started]);
       if(session!==songSession)return;
       playing=true;lastMetronomeBeat=-1;lastMetronomeTime=currentTime()-.045;
       if(noBassReady)await startNoBassPlayback();
       if(bassStemReady)await startBassStemPlayback();
       if(session!==songSession)return;
-      updateButtons(); tick();
-    }catch(e){
+      updateButtons();tick();
+    }catch(error){
       if(session!==songSession)return;
-      status.className='status warn'; status.textContent='Playback was blocked. Tap Play again.';
+      console.warn('Saved audio playback could not start',error);
+      try{masterAudio.pause()}catch(_){}
+      playing=false;updateButtons();
+      status.className='status warn';
+      status.textContent='Audio did not start. Tap Play again. Your saved analysis is unchanged.';
     }
   }
 
@@ -18962,7 +18968,7 @@ window.BassBatch = (() => {
       let pending=readPendingRunPodJob();
       const matching=!!(pending?.signature===signature&&Array.isArray(pending?.parts)&&pending.parts.length);
 
-      if(pending&&!matching)throw new Error('Re-open the song with the saved analysis before starting another.');
+      if(pending&&!matching)throw new Error('An earlier song has an unfinished upload. Open its saved result before starting a new analysis.');
       if(forceFreshAnalysis&&!matching){await persistAnalysisRecovery();assertSongSession(session);pending=null;}
       if(!pending||!matching){
         pending=makePendingPartGroup(file,signature);
@@ -21618,8 +21624,25 @@ window.BassBatch = (() => {
     if(analysisStartPending||aiBusy||pendingResumeBusy||songImportBusy)return;
     analysisStartPending=true;
     const session=songSession;
-    try{if(await reviewInterruptedUploads('analysis')&&session===songSession)await analyseBassWithAI();}
-    finally{analysisStartPending=false;}
+    try{
+      const current=activeAudioFile||fileInput.files?.[0];
+      const pending=readPendingRunPodJob();
+      if(pending&&current&&pending.signature!==cloudFileSignature(current)){
+        aiStatus(offlineAnalysisReady&&notes.length
+          ?'Saved results are ready. Press Play. An earlier upload is protected; no new charge started.'
+          :'Another song has an unfinished upload. Open its saved result before starting a new analysis.',
+          offlineAnalysisReady&&notes.length?100:0);
+        return;
+      }
+      if(offlineAnalysisReady&&notes.length){
+        const again=await BassDialog.confirm(
+          'This song already has saved bass notes and chords. A new analysis may cost money.',
+          {title:'Analysis already saved',accept:'Analyse again'});
+        if(!again){aiStatus('Saved results kept. Press Play.',100);return;}
+      }
+      if(session===songSession&&await reviewInterruptedUploads('analysis')&&session===songSession)
+        await analyseBassWithAI();
+    }finally{analysisStartPending=false;}
   });
   exportAnalysis?.addEventListener('click',exportBassAnalysisCSV);
   document.addEventListener('visibilitychange',()=>{

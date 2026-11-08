@@ -1,0 +1,13 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),path=require('node:path');
+const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
+const start=html.indexOf('async function play(){'),end=html.indexOf('\n  function pause(){',start);
+const play=html.slice(start,end);new vm.Script('('+play+')');
+assert(play.indexOf('masterAudio.play()')<play.indexOf('await Promise.all([unlocked,started])'));
+assert(play.includes('Your saved analysis is unchanged.'));
+assert(html.includes('pending.signature!==cloudFileSignature(current)'));
+assert(html.includes('A new analysis may cost money.'));
+assert(html.includes('Saved results kept. Press Play.'));
+assert(html.includes('ensureSongStructure({importReady:true,allowNewJob:false})'));
+assert(html.includes('window.BassBatch.init'));
+assert(html.includes("lyrics:window.BassLyrics?.exportData()||[]"));
+console.log('PASS: saved project playback, pending job protection and existing data preservation.');
