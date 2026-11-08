@@ -1,0 +1,365 @@
+{
+  "release": "RC218",
+  "verifiedOn": "2026-11-08",
+  "previousTotal": {
+    "size": 899,
+    "progressed": 559
+  },
+  "totals": {
+    "stored": 899,
+    "visible": 850,
+    "progressions": 565,
+    "needsProgressions": 285,
+    "archivedChartOnly": 49
+  },
+  "method": "Only chart-list imports with no numbers and no user notes are withheld from the public search; records are still held in the reference data to protect stable IDs and later saved edits. Existing authored notes, favourites and edited progressions remain discoverable.",
+  "archivedRegional": [
+    {
+      "id": 628,
+      "title": "You Are Good",
+      "artist": "Greatman Takit feat Nathaniel Bassey"
+    },
+    {
+      "id": 629,
+      "title": "Glorified",
+      "artist": "Esther Oji feat Kaestrings"
+    },
+    {
+      "id": 630,
+      "title": "Halle",
+      "artist": "Moses Bliss / Spotlite Nation"
+    },
+    {
+      "id": 631,
+      "title": "Glory to God in the Highest",
+      "artist": "Nathaniel Bassey"
+    },
+    {
+      "id": 632,
+      "title": "Good God",
+      "artist": "Minister GUC feat Sunmisola Agbebi"
+    },
+    {
+      "id": 633,
+      "title": "Aanu Ni",
+      "artist": "Bisimanuel"
+    },
+    {
+      "id": 634,
+      "title": "Eze Yoyo",
+      "artist": "David Jones David"
+    },
+    {
+      "id": 635,
+      "title": "Onye Kam Ga Si Na Oyiri Gi",
+      "artist": "Nathaniel Bassey feat Mirabel Ekezie"
+    },
+    {
+      "id": 636,
+      "title": "No Turning Back II",
+      "artist": "Gaise Baba feat Lawrence Oyor"
+    },
+    {
+      "id": 637,
+      "title": "Oro",
+      "artist": "BBO feat Tope Alabi"
+    },
+    {
+      "id": 638,
+      "title": "Ọ̀RáNmọNíṣẹ́ FàYàTí",
+      "artist": "Chinedu Ndubueze"
+    },
+    {
+      "id": 639,
+      "title": "ADML",
+      "artist": "Greatman Takit"
+    },
+    {
+      "id": 640,
+      "title": "Smile For Joy",
+      "artist": "Gaise Baba feat Nontokozo Mkhize"
+    },
+    {
+      "id": 641,
+      "title": "Miracle Baby",
+      "artist": "Sound Of Salem feat Precious Marc"
+    },
+    {
+      "id": 642,
+      "title": "Ihe Nyiri Mmadu Omume",
+      "artist": "Adazion IJ"
+    },
+    {
+      "id": 643,
+      "title": "Ebube Dike",
+      "artist": "Chinyere Udoma"
+    },
+    {
+      "id": 644,
+      "title": "Odaju",
+      "artist": "Bisimanuel feat EmmaOMG"
+    },
+    {
+      "id": 645,
+      "title": "Oluwatosin",
+      "artist": "Tkeyz feat SteveHills"
+    },
+    {
+      "id": 646,
+      "title": "The Battle Belongs to God (Praise Medley)",
+      "artist": "Nathaniel Bassey"
+    },
+    {
+      "id": 647,
+      "title": "C&B (Cast & Bind)",
+      "artist": "Greatman Takit"
+    },
+    {
+      "id": 648,
+      "title": "Jowo",
+      "artist": "Adeyinka Alaseyori feat O'Femismile"
+    },
+    {
+      "id": 649,
+      "title": "I Believe (Live)",
+      "artist": "Theophilus Sunday"
+    },
+    {
+      "id": 650,
+      "title": "Let It Show (Live)",
+      "artist": "Kaestrings"
+    },
+    {
+      "id": 651,
+      "title": "My God",
+      "artist": "Mercy Chinwo"
+    },
+    {
+      "id": 652,
+      "title": "My Daddy",
+      "artist": "Tim Godfrey"
+    },
+    {
+      "id": 653,
+      "title": "Omemma",
+      "artist": "Judikay"
+    },
+    {
+      "id": 654,
+      "title": "Ko'Rin Iyin",
+      "artist": "EmmaOMG"
+    },
+    {
+      "id": 655,
+      "title": "Thank You, God.",
+      "artist": "Vic Lucas feat Lady Audri"
+    },
+    {
+      "id": 656,
+      "title": "Baruch Hashem Adonai",
+      "artist": "Dunsin Oyekan feat Theophilus Sunday"
+    },
+    {
+      "id": 657,
+      "title": "Yahweh",
+      "artist": "Sunmisola Agbebi"
+    },
+    {
+      "id": 658,
+      "title": "Amin (Amen)",
+      "artist": "BBO"
+    },
+    {
+      "id": 659,
+      "title": "Revival",
+      "artist": "Anendlessocean"
+    },
+    {
+      "id": 660,
+      "title": "Ihe Di Gi Mma",
+      "artist": "Chinyere Udoma"
+    },
+    {
+      "id": 661,
+      "title": "Eze Ebube",
+      "artist": "Neon Adejo"
+    },
+    {
+      "id": 662,
+      "title": "Rahama",
+      "artist": "Kaestrings"
+    },
+    {
+      "id": 663,
+      "title": "This Year (Blessings)",
+      "artist": "Victor Thompson feat Ehis D Greatest"
+    },
+    {
+      "id": 664,
+      "title": "My God",
+      "artist": "BBO"
+    },
+    {
+      "id": 665,
+      "title": "Amioluwa",
+      "artist": "Sunmisola Agbebi feat Yinka Okeleye"
+    },
+    {
+      "id": 666,
+      "title": "Congratulations",
+      "artist": "Ada Ehi feat Buchi"
+    },
+    {
+      "id": 667,
+      "title": "Too Faithful",
+      "artist": "Moses Bliss"
+    },
+    {
+      "id": 668,
+      "title": "All That Matters",
+      "artist": "Minister GUC"
+    },
+    {
+      "id": 669,
+      "title": "Your Love",
+      "artist": "Moses Bliss feat Chandler Moore"
+    },
+    {
+      "id": 670,
+      "title": "Promise Keeper",
+      "artist": "Mercy Chinwo feat Nathaniel Bassey"
+    },
+    {
+      "id": 671,
+      "title": "Wonder",
+      "artist": "Sunmisola Agbebi feat Kaestrings"
+    },
+    {
+      "id": 672,
+      "title": "Eze Abata",
+      "artist": "Chinyere Udoma"
+    },
+    {
+      "id": 673,
+      "title": "Favour",
+      "artist": "Lawrence Oyor"
+    },
+    {
+      "id": 674,
+      "title": "Earthen Vessel (Live)",
+      "artist": "Theophilus Sunday"
+    },
+    {
+      "id": 675,
+      "title": "Calling My Name (I'm A Soldier)",
+      "artist": "Ebuka Songs"
+    },
+    {
+      "id": 676,
+      "title": "Jugular Jugular",
+      "artist": "Lawrence Oyor feat Greatman Takit"
+    }
+  ],
+  "hymnProgressions": [
+    {
+      "id": 515,
+      "title": "All Hail the Power of Jesus’ Name",
+      "key": "D",
+      "sourceUrl": "https://worshipchordbook.com/hymns/all-hail-the-power-of-jesus-name",
+      "sections": [
+        {
+          "part": "Verses 1–4",
+          "chords": "1 5 1 | 1 5(7) 1 | 4 1 | 5 5(7) 1 | 4 1 | 5 5(7) 1",
+          "letterChords": "D A D | D A7 D | G D | A A7 D | G D | A A7 D"
+        }
+      ],
+      "referenceId": "turn208466search2"
+    },
+    {
+      "id": 522,
+      "title": "Come Thou Fount",
+      "key": "G",
+      "sourceUrl": "https://worshipchordbook.com/hymns/come-thou-fount-of-every-blessing",
+      "sections": [
+        {
+          "part": "Verses 1–3",
+          "chords": "1 4 | 1 5 1 | 1 4 | 4 5 1 | 1 4 1 | 1 5 1 | 1 4 1 | 4 5 1",
+          "letterChords": "G C | G D G | G C | C D G | G C G | G D G | G C G | C D G"
+        }
+      ],
+      "referenceId": "turn208466search1"
+    },
+    {
+      "id": 525,
+      "title": "Immortal, Invisible, God Only Wise",
+      "key": "G",
+      "sourceUrl": "https://worshipchordbook.com/hymns/immortal-invisible-god-only-wise",
+      "sections": [
+        {
+          "part": "Verses 1–4",
+          "chords": "1 5 | 1 4 1 | 4 1 | 1 5 1 | 1 4 | 1 5 | 1 4 | 1 5 1",
+          "letterChords": "G D | G C G | C G | G D G | G C | G D | G C | G D G"
+        }
+      ],
+      "referenceId": "turn415293search0"
+    },
+    {
+      "id": 821,
+      "title": "All Things Bright and Beautiful",
+      "key": "G",
+      "sourceUrl": "https://worshipchordbook.com/hymns/all-things-bright-and-beautiful",
+      "sections": [
+        {
+          "part": "Chorus",
+          "chords": "1 4 1 | 1 5 1 | 1 4 1 | 1 5 1",
+          "letterChords": "G C G | G D G | G C G | G D G"
+        },
+        {
+          "part": "Verses 1–4",
+          "chords": "1 4 1 | 1 5 1 | 1 4 1 | 1 5 1",
+          "letterChords": "G C G | G D G | G C G | G D G"
+        }
+      ],
+      "referenceId": "turn849358view1"
+    },
+    {
+      "id": 833,
+      "title": "Guide Me O Thou Great Jehovah",
+      "key": "G",
+      "sourceUrl": "https://worshipchordbook.com/hymns/guide-me-o-thou-great-jehovah",
+      "sections": [
+        {
+          "part": "Verses 1–3",
+          "chords": "1 4 | 1 5 | 1 4 | 1 5 1",
+          "letterChords": "G C | G D | G C | G D G"
+        },
+        {
+          "part": "Refrain (each verse)",
+          "chords": "4 1 4 1 | 1 5 1 | 1 5 1",
+          "letterChords": "C G C G | G D G | G D G"
+        }
+      ],
+      "referenceId": "turn415293search1"
+    },
+    {
+      "id": 835,
+      "title": "I Need Thee Every Hour",
+      "key": "D",
+      "sourceUrl": "https://worshipchordbook.com/hymns/i-need-thee-every-hour",
+      "sections": [
+        {
+          "part": "Verses 1–4 (main pattern)",
+          "chords": "1 4 1 5 | 1 5 1 5",
+          "letterChords": "D G D A | D A D A"
+        },
+        {
+          "part": "Chorus",
+          "chords": "1 5 1 | 1 5 1 | 4 1 | 5 1",
+          "letterChords": "D A D | D A D | G D | A D"
+        }
+      ],
+      "referenceId": "turn208466search0"
+    }
+  ],
+  "notDone": "Modern Nigerian and Ghanaian copyrighted songs without explicit permission or an independently checked user-supplied recording have not been assigned invented progressions. No MP3 or MIDI files were downloaded or analysed."
+}

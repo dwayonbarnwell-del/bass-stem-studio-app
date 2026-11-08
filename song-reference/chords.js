@@ -1,4 +1,4 @@
-/* Bass Stem Studio RC217 · Read-first progression sheets and separate editing. */
+/* Bass Stem Studio RC218 · Curated song references and preserved personal edits. */
 (()=>{
 'use strict';
 const initial=(window.BassSongReferenceData&&Array.isArray(window.BassSongReferenceData.songs))?window.BassSongReferenceData.songs:[];
@@ -79,7 +79,18 @@ function currentSong(id){
  song.favourite=!!override?.favourite;
  return song;
 }
-function everySong(){return [...new Set([...original.keys(),...changes.keys()])].map(currentSong).filter(Boolean);}
+/* RC218: hide unsourced regional chart-list imports, never remove a personal edit. */
+function archiveUnchartedChartOnly(song){
+ const regional=(
+  (song.category==='Nigerian praise & worship'||song.category==='Ghanaian praise & worship')
+  &&(song.collections||[]).some(name=>name==='Nigerian gospel chart'||name==='Ghanaian gospel chart')
+ );
+ if(!regional||hasSections(song))return false;
+ if(changes.has(song.id)||song.favourite)return false;
+ if(song.notes?.lines?.some(line=>text(line).trim()))return false;
+ return true;
+}
+function everySong(){return [...new Set([...original.keys(),...changes.keys()])].map(currentSong).filter(Boolean).filter(song=>!archiveUnchartedChartOnly(song));}
 function hasSections(song){return Array.isArray(song?.sections)&&song.sections.some(r=>text(r.chords).trim());}
 function summary(song){const user=Array.isArray(song.notes?.lines)&&song.notes.lines.some(v=>text(v).trim());const arr=Array.isArray(song.sections)?song.sections:[];const publisher=arr.some(r=>['publisher','public-domain'].includes(r.source));const blog=arr.some(r=>r.source==='blog');const open=arr.some(r=>['open','cc0'].includes(r.source));return {user,publisher,blog,open,source:publisher||blog||open,has:hasSections(song)};}
 function captionText(song){const v=summary(song);return !v.has?(v.user?'Original notes · needs progression':'Needs progression'):v.open?'Openly licensed reference · check version':v.publisher?'Publisher or hymn reference · check version':v.blog?'Blog progression · check recording':'My progression · not checked';}
@@ -294,6 +305,6 @@ function install(){
  }
  // Keep the approved four practice cards unchanged.
 }
-window.BassChordLibrary={open:show,statistics:()=>({total:initial.length,withProgressions:initial.filter(hasSections).length,withNigerian:initial.filter(s=>s.collections?.includes('Nigerian worship essentials')&&hasSections(s)).length,withCCLI:initial.filter(s=>s.collections?.includes('CCLI Top 100 worship')&&hasSections(s)).length})};
+window.BassChordLibrary={open:show,statistics:()=>{const songs=everySong();return {total:songs.length,withProgressions:songs.filter(hasSections).length,needsProgression:songs.filter(s=>!hasSections(s)).length,archivedChartOnly:initial.filter(archiveUnchartedChartOnly).length,withNigerian:songs.filter(s=>s.collections?.includes('Nigerian worship essentials')&&hasSections(s)).length,withCCLI:songs.filter(s=>s.collections?.includes('CCLI Top 100 worship')&&hasSections(s)).length};}};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })();

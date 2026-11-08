@@ -1,0 +1,16 @@
+Bass Stem Studio RC218 – curated no-progression entries and public-domain hymn numbers
+8 November 2026
+
+Starting point: RC217, commit e9e4f2a2b7df57afbaf7eb30388b9556076179e8. The existing user-authored progressions and song cards, analysis engine, batch controls and saved audio projects were not changed.
+
+Six widely known public-domain hymns now have compact numbered reference sections in their documented keys: All Hail the Power of Jesus' Name (D), Come Thou Fount (G), Immortal Invisible God Only Wise (G), All Things Bright and Beautiful (G), Guide Me O Thou Great Jehovah (G), I Need Thee Every Hour (D). Some have repeated verses or refrains, not invented intro/bridge labels. Exact public-domain source-chart links are saved with their numbers and original letter-chord tokens. Some versions may differ; this is a traditional reference, not independent audio validation.
+
+49 chart-list Nigerian gospel entries had no progressions and no personal notes. Their records are archived from the visible song list pending a genuinely reusable progression or a checked recording. IDs and original metadata are retained rather than irreversibly deleted; a song with a locally saved favourite or edit is shown, so users do not lose their own work. No Ghanaian chart-only entries were found in this catalogue.
+
+Statistics: 899 underlying catalogue entries; 850 visible by default; 565 with at least one numbered section; 285 visible entries still needing progressions; 49 archived chart-only imports. All existing 899 IDs remain stable. The full catalogue is not misrepresented as 850 verified arrangements.
+
+Modern songs: publicly accessible discussion sites and chord-viewing sites do not necessarily grant rights to copy and redistribute full published transcriptions inside a premium platform. No unauthorised copied arrangements have been added. Public-domain hymn summaries are credited and sources linked.
+
+Audio: A user-owned ZIP containing MP3 songs can be inspected when actually attached. Each audio recording must be analysed separately for tempo, key, structural sections, and chord sequence, with uncertainty disclosed and manual checking before publishing. No paid RunPod jobs, song downloads or audio inference were run for this release.
+
+Testing: syntax and stable-ID checks, section notation validation, no-progressions archive count, saved favourite survival, and source-link metadata are recorded in tests/song_reference_curation_rc218.cjs. Offline asset cache name updated to rc218.
