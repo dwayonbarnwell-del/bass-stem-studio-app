@@ -21,7 +21,7 @@ const SEEDS=[
 ];
 let dialog=null,featured=null,tab='pending',pending=[],suggestions=[],dismissed=new Set();
 let cursor=0,visiblePending=30,visibleDiscover=30,searching=false,pausedUntil=0,requestSerial=0,networkController=null;
-let loadingPending=false,folderWarning=false,loadIssues=0,ready=false,loadToken=0;
+let loadingPending=false,pendingRefreshQueued=false,folderWarning=false,loadIssues=0,ready=false,loadToken=0,completedSaved=[],networkError='';
 const normal=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
 function titleKey(value){
  return normal(String(value||'').replace(/\.(mp3|m4a|wav|flac|aac|ogg|mp4|bassstudio)$/i,'').split(/\s+[-–]\s+/)[0]);
@@ -47,14 +47,15 @@ function elem(tag,cl,value){
  return node;
 }
 function active(){return !!dialog?.open&&tab==='discover'}
-function count(){return suggestions.filter(s=>!dismissed.has(trackKey(s))).length}
+function activeSuggestions(){const done=finishedTitleSet();return suggestions.filter(s=>!dismissed.has(trackKey(s))&&!done.has(titleKey(s.title))).slice(0,CAP);}
+function count(){return activeSuggestions().length}
 function displayStatus(s){const n=$('btStatus');if(n)n.textContent=s;}
 function finishedTitleSet(){
- const saved=window.__bassTaskCompleted||[];
+ const saved=completedSaved;
  return new Set(saved.flatMap(r=>[titleKey(r.title),titleKey(r.sourceName)].filter(Boolean)));
 }
 async function loadPending(){
- if(loadingPending)return;
+ if(loadingPending){pendingRefreshQueued=true;return;}
  const token=++loadToken;loadingPending=true;displayStatus('Checking saved songs…');
  try{
   const [inLibrary,missing]=await Promise.all([
@@ -64,7 +65,7 @@ async function loadPending(){
   folderWarning=inLibrary.reconnect;loadIssues=inLibrary.issues;
   const saved=inLibrary.songs||[];
   const complete=saved.filter(s=>s.hasChordAnalysis&&s.hasBassAnalysis);
-  window.__bassTaskCompleted=complete.map(s=>({title:s.title,sourceName:s.sourceName}));
+  completedSaved=complete.map(s=>({title:s.title,sourceName:s.sourceName}));
   const completedNames=finishedTitleSet();
   const rows=[];
   const unfinished=saved.filter(s=>!(s.hasChordAnalysis&&s.hasBassAnalysis));
@@ -90,7 +91,7 @@ async function loadPending(){
   visiblePending=30;
   render();
  }catch(err){displayStatus('Could not check your saved songs. Open Library to check folder access.');}
- finally{loadingPending=false;}
+ finally{loadingPending=false;if(pendingRefreshQueued){pendingRefreshQueued=false;void loadPending();}}
 }
 function buildCard(item){
  const li=elem('li');
@@ -151,8 +152,7 @@ function render(){
   else if(loadIssues)alert.textContent='Some saved files could not be read. Check Library.';
   displayStatus('');
  }else{
-  const analysed=finishedTitleSet();
-  const usable=suggestions.filter(s=>!dismissed.has(trackKey(s))&&!analysed.has(titleKey(s.title)));
+  const usable=activeSuggestions();
   const q=normal($('btDiscoverFilter').value);
   const filtered=usable.filter(s=>!q||normal([s.title,s.artist].join(' ')).includes(q));
   $('btDiscoverCount').textContent=usable.length+' of '+CAP+' suggestions';
@@ -163,14 +163,14 @@ function render(){
   $('btFindMore').disabled=searching||Date.now()<pausedUntil||cursor>=SEEDS.length;
   if(!searching)displayStatus(Date.now()<pausedUntil?'Song search is temporarily limited. Try again later.':
    !navigator.onLine?'Connect to the internet for more suggestions.':
-   cursor>=SEEDS.length&&usable.length<CAP?'No more different matches found for these searches.':'');
+   networkError||cursor>=SEEDS.length&&usable.length<CAP?'No more different matches found for these searches.':'');
  }
 }
 function wait(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
 async function fillSuggestions(){
  if(searching||!active()||count()>=CAP||Date.now()<pausedUntil||!navigator.onLine)return;
  searching=true;const gen=++requestSerial;
- let queries=0,usedFallback=false;
+ let queries=0;networkError='';
  try{
   while(active()&&gen===requestSerial&&count()<CAP&&cursor<SEEDS.length&&queries<17){
    const q=SEEDS[cursor++];queries++;saveState();
@@ -187,21 +187,22 @@ async function fillSuggestions(){
       response=await fetch('https://lrclib.net/api/search?q='+encodeURIComponent(q),{
        headers:{Accept:'application/json','Lrclib-Client':CLIENT},signal:networkController.signal,cache:'no-store'
       });
-      usedFallback=true;
+
+
     }
     if(response.status===429){
       const header=response.headers.get('Retry-After')||'120';
       let seconds=Number(header);
       if(!Number.isFinite(seconds))seconds=(Date.parse(header)-Date.now())/1000;
       seconds=Number.isFinite(seconds)?Math.min(3600,Math.max(10,seconds)):120;
-      pausedUntil=Date.now()+seconds*1000;saveState();
+      pausedUntil=Date.now()+seconds*1000;cursor=Math.max(0,cursor-1);saveState();
       break;
     }
-    if(!response.ok)continue;
+    if(!response.ok){if(response.status>=500){cursor=Math.max(0,cursor-1);networkError='Song search is unavailable. Please try again later.';break;}continue;}
     data=await response.json();
-   }catch(err){if(err?.name==='AbortError')break;}
+   }catch(err){cursor=Math.max(0,cursor-1);networkError='Could not reach the lyrics service. Please try again.';break;}
    finally{clearTimeout(abort);networkController=null;}
-   if(!Array.isArray(data))continue;
+   if(!Array.isArray(data)){cursor=Math.max(0,cursor-1);networkError='Unexpected song search reply. Please try again.';break;}
    const known=new Set(suggestions.map(trackKey));
    const done=finishedTitleSet();
    for(const record of data){
@@ -240,18 +241,18 @@ function setup(){
  pendingBtn.setAttribute('role','tab');discoverBtn.setAttribute('role','tab');
  tabs.setAttribute('role','tablist');tabs.append(pendingBtn,discoverBtn);
  const pendingPane=elem('section');pendingPane.id='btPendingPane';
- const instructions=elem('p','','Songs disappear from this list once the completed bass and chord results are saved.');
+ const instructions=elem('p','','Analyse and save each song once. Completed songs leave this list.');
  const control=elem('div','bt-controls'),filter=elem('input');filter.id='btFilter';filter.placeholder='Search songs';filter.type='search';filter.autocomplete='off';
  const refresh=elem('button','','Refresh list');refresh.type='button';refresh.onclick=()=>void loadPending();
  control.append(filter,refresh);
  const countBox=elem('p');countBox.id='btCount';
  const alert=elem('p','bt-muted');alert.id='btFolderAlert';alert.hidden=true;
  const list=elem('ul','bt-list');list.id='btPendingList';
- const empty=elem('p','','No songs need analysis in the available library.');empty.id='btEmptyPending';empty.hidden=true;
+ const empty=elem('p','','No unfinished songs found in the library checked.');empty.id='btEmptyPending';empty.hidden=true;
  const morePending=elem('button','','Show more');morePending.id='btShowPending';
  pendingPane.append(instructions,control,countBox,alert,list,empty,morePending);
  const explorePane=elem('section');explorePane.id='btDiscoverPane';explorePane.hidden=true;
- const explain=elem('p','','Songs found through LRCLIB searches. These are suggestions, not a popularity chart. LRCLIB supplies lyrics, not audio.');
+ const explain=elem('p','','Explore songs with lyrics on LRCLIB. Find recordings separately. This is not a ranked chart.');
  const controls=elem('div','bt-controls'),exploreFilter=elem('input');exploreFilter.type='search';exploreFilter.id='btDiscoverFilter';exploreFilter.placeholder='Search suggestions';exploreFilter.autocomplete='off';
  const refill=elem('button','','Find more');refill.id='btFindMore';refill.type='button';
  controls.append(exploreFilter,refill);
