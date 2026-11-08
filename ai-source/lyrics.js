@@ -61,7 +61,25 @@ window.BassLyrics=(()=>{
  }
  function exportData(){if(!api)return [];current();return words.map(w=>({...w}));}
  function restore(data){if(!api)return;const s=current();cancel();words=clean(data,s.buffer?.duration);render();}
- function init(hooks){
+ 
+ // RC225: Import user-selected LRCLIB timed lyric lines. Keep all previous words unless confirmed.
+ function songInfo(){
+  const s=current();
+  return {session:s.session,hasAudio:!!s.buffer,live:!!s.live,duration:s.buffer?.duration||0,title:String(s.title||''),artist:String(s.artist||'')};
+ }
+ function importTimedLines(items,expectedSession){
+  const s=current();
+  if(!s.buffer||s.live||busy||s.session!==expectedSession)return false;
+  const next=clean(items,s.buffer.duration);
+  if(!next.length)return false;
+  if(words.length&&!window.confirm('Replace the current words with these timed lyrics? Your existing word edits will be replaced.'))return false;
+  cancel();words=next;selected=-1;highlight=-1;
+  $('lyricsEdit').hidden=true;
+  render();api.changed?.();
+  status('Timed lines added. Chords are matched to line times, not exact words. Save the song project to keep the lyrics.');
+  return true;
+ }
+function init(hooks){
   api=hooks;
   $('openLyrics').onclick=()=>{current();render();$('lyricsEdit').hidden=true;$('lyricsDialog').showModal();$('lyricsDialog').scrollTop=0;status(!api.get().buffer?'Import audio first.':words.length?'Tap a word to check or edit.':'Choose a section, then Detect.');};
   $('lyricsDetect').onclick=detect;$('lyricsCancel').onclick=()=>{cancel();status('Stopped. Completed words kept.');};
@@ -72,5 +90,5 @@ window.BassLyrics=(()=>{
   $('lyricsPlay').onclick=()=>api.play();$('lyricsPause').onclick=()=>api.pause();
   window.addEventListener('pagehide',cancel);controls();
  }
- return {init,exportData,restore,clean,assign,cancel};
+ return {init,exportData,restore,clean,assign,cancel,songInfo,importTimedLines};
 })();

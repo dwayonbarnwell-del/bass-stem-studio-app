@@ -12531,7 +12531,25 @@ $('openIdeas').onclick=()=>{refresh();$('ideasDialog').showModal();$('ideasDialo
  }
  function exportData(){if(!api)return [];current();return words.map(w=>({...w}));}
  function restore(data){if(!api)return;const s=current();cancel();words=clean(data,s.buffer?.duration);render();}
- function init(hooks){
+ 
+ // RC225: Import user-selected LRCLIB timed lyric lines. Keep all previous words unless confirmed.
+ function songInfo(){
+  const s=current();
+  return {session:s.session,hasAudio:!!s.buffer,live:!!s.live,duration:s.buffer?.duration||0,title:String(s.title||''),artist:String(s.artist||'')};
+ }
+ function importTimedLines(items,expectedSession){
+  const s=current();
+  if(!s.buffer||s.live||busy||s.session!==expectedSession)return false;
+  const next=clean(items,s.buffer.duration);
+  if(!next.length)return false;
+  if(words.length&&!window.confirm('Replace the current words with these timed lyrics? Your existing word edits will be replaced.'))return false;
+  cancel();words=next;selected=-1;highlight=-1;
+  $('lyricsEdit').hidden=true;
+  render();api.changed?.();
+  status('Timed lines added. Chords are matched to line times, not exact words. Save the song project to keep the lyrics.');
+  return true;
+ }
+function init(hooks){
   api=hooks;
   $('openLyrics').onclick=()=>{current();render();$('lyricsEdit').hidden=true;$('lyricsDialog').showModal();$('lyricsDialog').scrollTop=0;status(!api.get().buffer?'Import audio first.':words.length?'Tap a word to check or edit.':'Choose a section, then Detect.');};
   $('lyricsDetect').onclick=detect;$('lyricsCancel').onclick=()=>{cancel();status('Stopped. Completed words kept.');};
@@ -12542,7 +12560,7 @@ $('openIdeas').onclick=()=>{refresh();$('ideasDialog').showModal();$('ideasDialo
   $('lyricsPlay').onclick=()=>api.play();$('lyricsPause').onclick=()=>api.pause();
   window.addEventListener('pagehide',cancel);controls();
  }
- return {init,exportData,restore,clean,assign,cancel};
+ return {init,exportData,restore,clean,assign,cancel,songInfo,importTimedLines};
 })();
 </script>
 <script id="rc171-recovery">/* Persistent, ordered recording chunks. A new take atomically replaces the old one. */
@@ -13477,6 +13495,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRo
 </style>
 <style id="rc209-live-focus">#liveAudioDialog #liveKey,#liveAudioDialog #coachPanel,#liveAudioDialog #livePractice{display:none!important}#liveAudioDialog #liveNotes[hidden]{display:none!important}</style>
 <link rel="stylesheet" href="./song-reference/chords.css">
+<link rel="stylesheet" href="./ai-source/lrclib.css">
 </head>
 <body>
 <div id="sectionCompatibility" style="display:none" aria-hidden="true">
@@ -19935,7 +19954,7 @@ window.BassBatch = (() => {
     const end=Math.min(buffer?.duration||0,start+30,scope==='section'&&section?section.end:Infinity);
     return {loaded:!!buffer,session:songSession,transpose:transposeSemitones,start,end,chords:detectedChordChanges.filter(reliableChord).map(c=>({...c,rootPc:((c.rootPc+transposeSemitones)%12+12)%12,bassPc:c.bassPc==null?null:((c.bassPc+transposeSemitones)%12+12)%12}))};
   }});
-  window.BassLyrics.init({get:()=>({buffer,session:songSession,time:displayTime(),live:document.getElementById('openLiveAudio').textContent!=='Live audio',chords:detectedChordChanges.filter(reliableChord).map(c=>({...c,label:chordDisplayLabel(c)}))}),pause,play,seek:seekTo,changed:updateProjectButtons});
+  window.BassLyrics.init({get:()=>({buffer,session:songSession,title:loadedProjectName||objectName||activeAudioFile?.name||'',artist:'',time:displayTime(),live:document.getElementById('openLiveAudio').textContent!=='Live audio',chords:detectedChordChanges.filter(reliableChord).map(c=>({...c,label:chordDisplayLabel(c)}))}),pause,play,seek:seekTo,changed:updateProjectButtons});
   setPracticeVisualMode('timeline');
   rebuildNoteSidebar();
   window.addEventListener('resize',()=>{
@@ -21663,6 +21682,7 @@ window.BassBillingLinks = Object.freeze({render:'https://dashboard.render.com/bi
 </script>
 <script defer src="./song-reference/data.js"></script>
 <script defer src="./song-reference/chords.js"></script>
+<script src="./ai-source/lrclib.js" defer></script>
 </body>
 </html>
 
