@@ -68,3 +68,46 @@
 #bsChordLibraryDialog .bs-ref-reference-text{white-space:pre-wrap;overflow-wrap:anywhere;margin:7px 0;font:700 14px/1.5 system-ui,sans-serif}
 #bsChordLibraryDialog .bs-ref-reference-part small{white-space:pre-wrap;overflow-wrap:anywhere}
 #bsChordLibraryDialog .bs-ref-reference-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:12px}
+
+/* RC217: read-first song sheets, with a full-size list and compact number chart. */
+#bsChordLibraryDialog[data-view="list"] .bs-ref-layout,
+#bsChordLibraryDialog[data-view="overview"] .bs-ref-layout,
+#bsChordLibraryDialog[data-view="edit"] .bs-ref-layout{display:block;min-height:0}
+#bsChordLibraryDialog[data-view="list"] #bsRefSongs{max-height:min(62dvh,650px)}
+#bsChordLibraryDialog[data-view="overview"] .bs-ref-detail-pane,
+#bsChordLibraryDialog[data-view="edit"] .bs-ref-detail-pane{max-height:none;overflow:visible}
+#bsChordLibraryDialog .bs-ref-header{position:sticky;top:-18px;z-index:4;padding:9px 0 10px;background:#101f30}
+#bsChordLibraryDialog .bs-ref-header #bsRefClose{min-width:86px}
+#bsChordLibraryDialog .bs-ref-detail-pane{padding:12px}
+#bsChordLibraryDialog .bs-ref-sheet-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+#bsChordLibraryDialog .bs-ref-sheet-head>div{flex:1;min-width:0}
+#bsChordLibraryDialog h3#bsRefOverviewTitle{font:800 20px/1.28 system-ui,sans-serif;color:#a9caff;overflow-wrap:anywhere}
+#bsChordLibraryDialog .bs-ref-sheet-meta{margin:5px 0 0;font:650 13px/1.35 system-ui,sans-serif;color:#d5dfe9}
+#bsChordLibraryDialog .bs-ref-sheet-status{margin:7px 0 10px;font:600 12px/1.35 system-ui,sans-serif;color:#acc5d5}
+#bsChordLibraryDialog .bs-ref-sheet-edit{min-width:130px;max-width:185px;background:#276e68;border-color:#65a59d}
+#bsChordLibraryDialog .bs-ref-sheet-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;max-width:950px}
+#bsChordLibraryDialog .bs-ref-sheet-section{min-width:0;padding:9px 11px;background:#152e42;border-left:3px solid #6096cc;border-radius:7px}
+#bsChordLibraryDialog .bs-ref-sheet-section.bs-ref-sheet-wide{grid-column:span 2}
+#bsChordLibraryDialog .bs-ref-sheet-section h4{margin:0 0 4px;font:800 14px/1.32 system-ui,sans-serif;color:#afceff;overflow-wrap:anywhere}
+#bsChordLibraryDialog .bs-ref-sheet-section .bs-ref-sheet-numbers{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font:750 15px/1.42 system-ui,sans-serif;color:#fff}
+#bsChordLibraryDialog .bs-ref-sheet-section .bs-ref-sheet-cue{margin:0 0 4px;white-space:pre-wrap;overflow-wrap:anywhere;font:600 13px/1.35 system-ui,sans-serif;color:#dae5ef}
+#bsChordLibraryDialog .bs-ref-sheet-key{display:block;margin-top:4px;color:#aecbdb;font:600 12px/1.4 system-ui,sans-serif}
+#bsChordLibraryDialog .bs-ref-sheet-missing{color:#b9c5d1!important}
+#bsChordLibraryDialog .bs-ref-sheet-empty{grid-column:1/-1;margin:8px 0;padding:12px;border:1px solid #456578;border-radius:8px;color:#c8d8e4}
+#bsChordLibraryDialog .bs-ref-sheet-arrangement{margin:10px 0;white-space:pre-wrap;font:600 13px/1.4 system-ui,sans-serif;color:#c1d7e6}
+#bsChordLibraryDialog .bs-ref-sheet-sources{display:flex;flex-wrap:wrap;gap:12px;margin:11px 0 2px}
+#bsChordLibraryDialog .bs-ref-sheet-link{font:700 12px/1.35 system-ui,sans-serif;color:#8ee8ff}
+#bsChordLibraryDialog #bsRefOverviewNotes{max-width:950px}
+@media(min-width:760px){
+ #bsChordLibraryDialog[data-view="list"] #bsRefSongs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-content:start;gap:8px}
+}
+@media(max-width:700px){
+ #bsChordLibraryDialog .bs-ref-header{top:-12px}
+ #bsChordLibraryDialog .bs-ref-sheet-head{flex-direction:column;gap:8px}
+ #bsChordLibraryDialog .bs-ref-sheet-edit{width:100%;max-width:none;min-height:40px}
+ #bsChordLibraryDialog[data-view="list"] #bsRefSongs{max-height:min(64dvh,640px)}
+}
+@media(max-width:350px){
+ #bsChordLibraryDialog .bs-ref-sheet-grid{grid-template-columns:minmax(0,1fr)}
+ #bsChordLibraryDialog .bs-ref-sheet-section.bs-ref-sheet-wide{grid-column:auto}
+}

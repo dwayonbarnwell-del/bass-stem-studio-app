@@ -1,0 +1,19 @@
+Bass Stem Studio RC217: read-first Song chords and clear navigation
+8 November 2026
+
+Baseline RC216: 899 catalogue songs, 559 with at least one progression, 340 still missing. The catalogue data, original notes, saved-song migration, audio engine and RunPod processing are unchanged.
+
+SONG CHORDS EXPERIENCE
+Tapping a song opens a read-only overview rather than an editing form. It shows the song title and artist, known key and section progressions in the existing number system, preserving the documented order and exact reminder words. Short sections form a compact two-column chart on normal phone widths. Longer sections span both columns rather than being cut off. On very narrow phones, the chart uses one column. Long songs may still need scrolling, because no progression is truncated.
+
+Original notes remain available in a collapsed panel; if no numbered progression exists, the overview says so and opens any original notes. Source and licence links remain available. No missing intro, verse, chorus or bridge is manufactured.
+
+The clearly labelled Edit progression button opens the existing editor. Save and view returns to the read-only sheet. The header Back control and the dialog's Android/Escape back route go from editor to overview, and from overview to the filtered song list. They exit Song chords only from the list itself. Edits are still saved on the device when leaving the editor, as in the previous release.
+
+The list now uses the available width rather than reserving a blank editing pane. Searches, filters, favourites, offline browsing, backup import/export and saved corrections remain supported. Changes to data or audio are out of scope.
+
+VALIDATION
+JS compiled successfully; 15 in-memory DOM/navigation checks passed before release, covering full sections, numbers and reminders, read-only mode, editing, Back behaviour, return to the list, source links and songs with no progression. These checks are simulations, not a real Android session. A browser or device inspection remains necessary before claiming every layout is verified.
+No billable CI, RunPod analysis or audio task was started.
+
+Implementation: song-reference/chords.js and chords.css; cache name advanced to bass-stem-studio-rc217.
