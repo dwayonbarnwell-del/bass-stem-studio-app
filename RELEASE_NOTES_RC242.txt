@@ -1,0 +1,14 @@
+RC242: piano view and melody reuse
+
+- Full current chord and melody note remain readable below the timeline.
+- Keyboard range changes less often; transposition keeps its range aligned.
+- Short notes keep exact timing, with full names in the readout and editor.
+- Practice controls fit within the screen, including small phones and landscape.
+- Melody analysis and corrections save automatically with the local song project.
+- Audio-content identity reuses completed melody jobs across renamed/reopened files.
+- Newer local melody corrections are recovered when an older JSON is reopened.
+- Completed analysis shows Melody ready. No paid work is triggered by playback or exports.
+- Bundled sampled grand piano and fingered electric bass replace the oscillator sound.
+- WAV exports use 44.1 kHz; MP3 uses 192 kbps. No external sound service required.
+
+Validation: simulated whole-song jobs, interrupted jobs, cached reopening, browser playback and editing, local project saving, phone/landscape layouts, export formats and sample audio checks. No paid RunPod jobs or reanalysis of the user's song were performed.

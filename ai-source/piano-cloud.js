@@ -2,9 +2,11 @@
     const session=songSession,file=activeAudioFile;
     if(!file||!buffer)throw Error('Import a song first');
     if(aiBusy||songImportBusy)throw Error('Wait for the current analysis to finish');
-    const signature=cloudFileSignature(file),cacheKey='piano-melody-v1:'+signature+':'+part.start;
-    const cached=await recoveryStore('results',s=>s.get(cacheKey)).catch(()=>null);
-    if(cached?.signature===signature&&cached.melodyJob)Object.assign(part.job,cached.melodyJob);
+    const legacySignature=cloudFileSignature(file),identity=await structureAudioIdentity(file);assertSongSession(session);
+    const signature=identity||legacySignature,cacheKey='piano-melody-v2:'+signature+':'+part.start;
+    let cached=await recoveryStore('results',s=>s.get(cacheKey)).catch(()=>null);
+    if(!cached){const old=await recoveryStore('results',s=>s.get('piano-melody-v1:'+legacySignature+':'+part.start)).catch(()=>null);if(old?.signature===legacySignature&&old.melodyJob)cached={...old,signature};}
+    if(!part.job.result?.ok&&cached?.signature===signature&&cached.melodyJob)Object.assign(part.job,cached.melodyJob);
     const job=part.job;
     const check=()=>{assertSongSession(session);if(cancelled())throw Error('Cancelled');};
     const checkpoint=async()=>{await recoveryStore('results',s=>s.put({id:cacheKey,signature,melodyJob:{...job},savedAt:Date.now()}));if(session===songSession)await saved();};
