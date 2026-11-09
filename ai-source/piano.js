@@ -21,15 +21,28 @@ window.BassPiano=(()=>{
  function restore(value){token++;busy=false;setSolo(false);data={version:2,jobs:value?.jobs&&typeof value.jobs==='object'?clone(value.jobs):{},notes:clean(value?.notes,api?.get().duration||Infinity),done:(Array.isArray(value?.done)?value.done:[]).filter(r=>Number.isFinite(r.start)&&Number.isFinite(r.end)&&r.start>=0&&r.end>r.start)};sound=value?.sound==='bass'?'bass':'piano';undo=null;signature='';if(api){$('pianoSound').value=sound;message('');$('pianoRollViewport').scrollLeft=0;render(true);}}
  function reset(){exportToken++;exporting=false;recordToken++;if(recording){void recording.close();recording=null;}take=null;stopping=false;$('pianoLiveDialog')?.close();$('pianoExportDialog')?.close();if(micURL){URL.revokeObjectURL(micURL);micURL=null;}restore(null);$('pianoEditor')?.close();}
  async function persist(){await api.changed();}
+ function unfinished(){const duration=state().duration;for(let start=0;start<duration;start+=180)if(!data.done.some(r=>r.start<=start+.001&&r.end>=Math.min(start+180,duration)-.001))return true;return false;}
+ function shortError(e){const t=String(e?.message||e);if(/key|401|403/i.test(t))return 'Check analysis key';if(/network|fetch|load failed|offline/i.test(t))return 'Connection interrupted';if(/repeat range/i.test(t))return 'Select repeat range';if(/No melody notes/i.test(t))return 'No melody notes';if(/cancel/i.test(t))return 'Melody paused';return 'Melody paused';}
+ async function passage(part,cancelled,progress){
+  for(let retry=0;;retry++){
+   if(cancelled())throw Error('Cancelled');
+   try{return await api.cloud(part,persist,cancelled,progress);}
+   catch(e){const transient=/network|fetch|load failed|timed? ?out|timeout|disconnect/i.test(String(e?.message))||e?.httpStatus===429||e?.httpStatus>=500;
+    if(cancelled()||!part.job.id||part.job.failed||!transient||retry>=2)throw e;
+    message('Reconnecting melody');await new Promise(r=>setTimeout(r,3000*(retry+1)));
+   }
+  }
+ }
  async function analyse(){
-  if(busy)return;const s=state();if(!s.buffer)return message('Import a song first.');if(s.busy)return message('Wait for the current analysis to finish.');
+  if(busy)return;const s=state();if(!s.buffer)return message('Import a song');if(s.busy)return message('Analysis in progress');
   api.pause();busy=true;const mine=++token,session=s.session;const cancelled=()=>mine!==token||state().session!==session;
   render(true);
   try{
-   for(let start=0;start<s.duration;start+=180){const end=Math.min(start+180,s.duration);if(data.done.some(r=>r.start<=start+.001&&r.end>=end-.001))continue;
+   for(let start=0;start<s.duration;start+=180){if(cancelled())return;const end=Math.min(start+180,s.duration);if(data.done.some(r=>r.start<=start+.001&&r.end>=end-.001))continue;
     const from=Math.max(0,start-.25),to=Math.min(s.duration,end+.25);
     const job=data.jobs[String(start)]??={};
-    const found=await api.cloud({start,end,from,to,job},persist,cancelled,message);
+    const progress=()=>message('Melody '+(Math.floor(start/180)+1)+'/'+Math.ceil(s.duration/180));progress();
+    const found=await passage({start,end,from,to,job},cancelled,progress);
     if(cancelled())return;
     const clipped=found.filter(n=>n.end>start&&n.start<end).map(n=>({...n,start:Math.max(start,n.start),end:Math.min(end,n.end),continuation:n.start<start}));
     // Retain manual corrections, including user deletions, when continuing later.
@@ -37,8 +50,8 @@ window.BassPiano=(()=>{
     data.notes=join(clean([...keep,...clipped.filter(n=>!keep.some(k=>k.manual&&k.start<n.end&&k.end>n.start))],s.duration));
     data.done.push({start,end});signature='';render(true);await persist();
    }
-   if(!cancelled())message(data.notes.length?'Melody ready · tap a note to correct it. Check dotted notes and choir passages.':'No clear lead melody found. You can add notes manually.');
-  }catch(e){if(!cancelled())message('Melody paused: '+(/load|fetch|network/i.test(e.message)?'The vocal model could not load. Check your connection and try again':e.message)+'. Completed passages are kept.');}
+   if(!cancelled())message(data.notes.length?'Melody ready':'No melody found');
+  }catch(e){if(!cancelled())message(shortError(e));}
   finally{if(mine===token){busy=false;render(true);}}
  }
 
@@ -65,7 +78,7 @@ window.BassPiano=(()=>{
  }
  function render(force=false){
   if(!api)return;const s=state(),panel=$('pianoViewPanel');
-  $('pianoAnalyse').disabled=!s.buffer||exporting||(s.busy&&!busy);$('pianoAnalyse').innerHTML=busy?'Pause<br>checking':'Find<br>melody';
+  $('pianoAnalyse').disabled=!s.buffer||exporting||(s.busy&&!busy);$('pianoAnalyse').innerHTML=busy?'Pause<br>checking':(data.done.length&&unfinished()?'Continue<br>melody':'Find<br>melody');
   $('pianoUndo').disabled=busy||!undo||exporting;
   $('pianoSolo').disabled=!data.notes.length;$('pianoSolo').setAttribute('aria-pressed',String(solo));$('pianoSolo').innerHTML=solo?'Hear<br>song':'Melody<br>only';
   for(const id of ['pianoPrint','pianoWav','pianoMp3','pianoMidi'])$(id).disabled=!data.notes.length||exporting||busy;
@@ -93,8 +106,8 @@ window.BassPiano=(()=>{
   $('pianoPlayhead').style.left=s.time*zoom+'px';view.scrollTop=0;ruler();
  }
  async function addAtPlayhead(displayPitch,chosenTime=null){
-  if(busy||exporting)return;const s=state();if(!s.buffer||!s.duration){void audition(displayPitch);return message('Import a song or record a melody first.');}
-  const midi=displayPitch-s.transpose;if(midi<21||midi>108)return message('Choose a note within the piano range.');
+  if(busy||exporting)return;const s=state();if(!s.buffer||!s.duration){void audition(displayPitch);return message('Import a song');}
+  const midi=displayPitch-s.transpose;if(midi<21||midi>108)return message('Choose another note');
   api.pause();const start=Math.min(chosenTime??s.time,Math.max(0,s.duration-.1)),existing=data.notes.findIndex(n=>n.midi===midi&&n.start<=start+.01&&n.end>start);
   if(existing>=0){void audition(displayPitch);edit(existing);return;}
   const next=data.notes.filter(n=>n.start>start+.025).reduce((t,n)=>Math.min(t,n.start),s.duration),end=Math.min(s.duration,next,start+.4);
@@ -107,10 +120,10 @@ window.BassPiano=(()=>{
   data.notes.forEach((n,i)=>{if(n.end<=s.time||n.start>s.time+.18*rate||scheduled.has(i))return;const age=Math.max(0,s.time-n.start)/rate,length=(n.end-n.start)/rate;scheduled.set(i,{end:n.end,voice:A().tone(voice,n.midi+s.transpose,now+Math.max(0,n.start-s.time)/rate,length,sound,age)});});
  }
  async function unlock(){voice??=new AudioContext();if(voice.state!=='running')await voice.resume();}
- function setSolo(on){solo=!!on;stopVoices();if(timer)clearInterval(timer);timer=null;api?.solo(solo);if(solo){void unlock().then(transport).catch(()=>{setSolo(false);message('Tap Melody only again to enable sound.');});timer=setInterval(transport,35);}if(api){$('pianoSolo').setAttribute('aria-pressed',String(solo));$('pianoSolo').innerHTML=solo?'Hear<br>song':'Melody<br>only';}}
+ function setSolo(on){solo=!!on;stopVoices();if(timer)clearInterval(timer);timer=null;api?.solo(solo);if(solo){void unlock().then(transport).catch(()=>{setSolo(false);message('Tap Melody only');});timer=setInterval(transport,35);}if(api){$('pianoSolo').setAttribute('aria-pressed',String(solo));$('pianoSolo').innerHTML=solo?'Hear<br>song':'Melody<br>only';}}
  async function audition(midi){await unlock();A().tone(voice,midi,voice.currentTime,.65,sound);}
- function edit(index=null){if(busy||exporting)return message('Pause melody analysis before editing notes.');api.pause();editing=index;const s=state(),n=index===null?{midi:60,start:Math.min(s.time,Math.max(0,s.duration-.1)),end:Math.min(s.duration,s.time+.4)}:data.notes[index];$('pianoPitch').value=n.midi+s.transpose;$('pianoStart').value=n.start.toFixed(3);$('pianoEnd').value=n.end.toFixed(3);$('pianoDelete').hidden=index===null;$('pianoEditError').textContent='';$('pianoEditor').showModal();}
- function commit(remove=false){const s=state(),midi=Number($('pianoPitch').value)-s.transpose,start=Number($('pianoStart').value),end=Number($('pianoEnd').value);if(!remove&&(!Number.isInteger(midi)||midi<21||midi>108||!Number.isFinite(start+end)||start<0||end<=start||end>s.duration+.001)){$('pianoEditError').textContent='Choose a valid note and times within the song.';return;}
+ function edit(index=null){if(busy||exporting)return message('Pause melody first');api.pause();editing=index;const s=state(),n=index===null?{midi:60,start:Math.min(s.time,Math.max(0,s.duration-.1)),end:Math.min(s.duration,s.time+.4)}:data.notes[index];$('pianoPitch').value=n.midi+s.transpose;$('pianoStart').value=n.start.toFixed(3);$('pianoEnd').value=n.end.toFixed(3);$('pianoDelete').hidden=index===null;$('pianoEditError').textContent='';$('pianoEditor').showModal();}
+ function commit(remove=false){const s=state(),midi=Number($('pianoPitch').value)-s.transpose,start=Number($('pianoStart').value),end=Number($('pianoEnd').value);if(!remove&&(!Number.isInteger(midi)||midi<21||midi>108||!Number.isFinite(start+end)||start<0||end<=start||end>s.duration+.001)){$('pianoEditError').textContent='Check note times';return;}
   undo=clone(data);if(editing!==null)data.notes.splice(editing,1);if(!remove)data.notes.push({midi,start,end,manual:true,confidence:1,source:'manual'});data.notes=clean(data.notes,s.duration);stopVoices();$('pianoEditor').close();signature='';render(true);void persist();
  }
  function exportRange(){
@@ -121,17 +134,17 @@ window.BassPiano=(()=>{
   return {notes,start:0,end:offset,selection};
  }
  function download(blob,extension){const name=(state().title||'Melody').replace(/\.[^.]+$/,'').replace(/[\\/:*?"<>|]/g,'_'),a=document.createElement('a'),url=URL.createObjectURL(blob);a.href=url;a.download=name+' - melody.'+extension;a.click();setTimeout(()=>URL.revokeObjectURL(url),60000);}
- async function exportFile(format){if(exporting)return;const s=state(),mine=++exportToken;try{const r=exportRange(),notes=clean(r.notes.map(n=>({...n,midi:n.midi+s.transpose})));if(!notes.some(n=>n.end>r.start&&n.start<r.end))throw Error('No melody notes in this range.');if(format==='mid'){download(A().midi(notes,r.start,r.end,sound),'mid');message('MIDI exported with melody timing and the displayed pitches.');return;}exporting=true;render(true);const blob=await A().exportAudio({notes,...r,sound,format,encoder:api.encoder,cancelled:()=>mine!==exportToken||s.session!==state().session,progress:p=>message('Preparing melody '+format.toUpperCase()+' · '+p+'%')});if(mine!==exportToken||s.session!==state().session)return;download(blob,format);message('Melody '+format.toUpperCase()+' exported at original speed with the displayed pitches.');}catch(e){if(mine===exportToken)message(e.message);}finally{if(mine===exportToken){exporting=false;render(true);}}}
- function printSheet(){try{const s=state(),r=exportRange(),selected=r.notes;if(!selected.length)throw Error('No melody notes in this range.');api.pause();$('pianoPrintSheet')?.remove();const sheet=document.createElement('section');sheet.id='pianoPrintSheet';const title=document.createElement('h1');title.textContent=(s.title||'Song')+' · Melody notes';const info=document.createElement('p');info.textContent=(r.selection?'Selected repeat':'Whole song')+' · original song timings. Displayed key; * means check this note. Timings are not rhythm notation.';const table=document.createElement('table'),thead=document.createElement('thead'),hr=document.createElement('tr');for(const text of ['Time','Note','Length','Chord']){const th=document.createElement('th');th.textContent=text;hr.append(th);}thead.append(hr);table.append(thead);const body=document.createElement('tbody');for(const n of selected){const a=Math.max(r.start,n.start),b=Math.min(r.end,n.end),tr=document.createElement('tr'),c=s.chords.find(c=>c.start<=n.originalStart&&c.end>n.originalStart);for(const text of [timecode(n.originalStart),label(n.midi+s.transpose)+(n.uncertain&&!n.manual?' *':''),(b-a).toFixed(2)+'s',c?.label||'—']){const td=document.createElement('td');td.textContent=text;tr.append(td);}body.append(tr);}table.append(body);sheet.append(title,info,table);document.body.append(sheet);window.addEventListener('afterprint',()=>sheet.remove(),{once:true});$('pianoExportDialog').close();window.print();}catch(e){message(e.message);}}
+ async function exportFile(format){if(exporting)return;const s=state(),mine=++exportToken;try{const r=exportRange(),notes=clean(r.notes.map(n=>({...n,midi:n.midi+s.transpose})));if(!notes.some(n=>n.end>r.start&&n.start<r.end))throw Error('No melody notes in this range.');if(format==='mid'){download(A().midi(notes,r.start,r.end,sound),'mid');message('MIDI exported');return;}exporting=true;render(true);const blob=await A().exportAudio({notes,...r,sound,format,encoder:api.encoder,cancelled:()=>mine!==exportToken||s.session!==state().session,progress:p=>message('Exporting '+format.toUpperCase()+' '+p+'%')});if(mine!==exportToken||s.session!==state().session)return;download(blob,format);message(format.toUpperCase()+' exported');}catch(e){if(mine===exportToken)message(shortError(e));}finally{if(mine===exportToken){exporting=false;render(true);}}}
+ function printSheet(){try{const s=state(),r=exportRange(),selected=r.notes;if(!selected.length)throw Error('No melody notes in this range.');api.pause();$('pianoPrintSheet')?.remove();const sheet=document.createElement('section');sheet.id='pianoPrintSheet';const title=document.createElement('h1');title.textContent=(s.title||'Song')+' · Melody notes';const info=document.createElement('p');info.textContent=(r.selection?'Selected repeat':'Whole song')+' · original song timings. Displayed key; * means check this note. Timings are not rhythm notation.';const table=document.createElement('table'),thead=document.createElement('thead'),hr=document.createElement('tr');for(const text of ['Time','Note','Length','Chord']){const th=document.createElement('th');th.textContent=text;hr.append(th);}thead.append(hr);table.append(thead);const body=document.createElement('tbody');for(const n of selected){const a=Math.max(r.start,n.start),b=Math.min(r.end,n.end),tr=document.createElement('tr'),c=s.chords.find(c=>c.start<=n.originalStart&&c.end>n.originalStart);for(const text of [timecode(n.originalStart),label(n.midi+s.transpose)+(n.uncertain&&!n.manual?' *':''),(b-a).toFixed(2)+'s',c?.label||'—']){const td=document.createElement('td');td.textContent=text;tr.append(td);}body.append(tr);}table.append(body);sheet.append(title,info,table);document.body.append(sheet);window.addEventListener('afterprint',()=>sheet.remove(),{once:true});$('pianoExportDialog').close();window.print();}catch(e){message(shortError(e));}}
  function micMessage(text){$('pianoLiveStatus').textContent=text;}
  function micButtons(active){$('pianoLiveStart').disabled=active;$('pianoLiveStop').disabled=!active;$('pianoLiveUse').disabled=active||!take?.notes.length;}
- async function startCapture(){if(recording||stopping)return;const mine=++recordToken;take=null;micButtons(true);micMessage('Allow microphone access, then sing, hum or play one note at a time.');if(micURL){URL.revokeObjectURL(micURL);micURL=null;}$('pianoLivePreview').removeAttribute('src');$('pianoLivePreview').hidden=true;
-  try{recording=await A().capture({cancelled:()=>mine!==recordToken,update:({time,pitch,notes,limit})=>{if(mine!==recordToken)return;$('pianoLiveNote').textContent=pitch?label(pitch.midi):'—';micMessage('Recording '+api.fmt(time)+' · '+notes.length+' notes · maximum 2 minutes');if(limit)void stopCapture();}});if(mine!==recordToken){await recording.close();recording=null;}}catch(e){if(mine===recordToken){micButtons(false);micMessage(e.name==='NotAllowedError'?'Microphone access was not allowed. You can enable it in your browser.':e.message);}}
+ async function startCapture(){if(recording||stopping)return;const mine=++recordToken;take=null;micButtons(true);micMessage('Allow microphone access');if(micURL){URL.revokeObjectURL(micURL);micURL=null;}$('pianoLivePreview').removeAttribute('src');$('pianoLivePreview').hidden=true;
+  try{recording=await A().capture({cancelled:()=>mine!==recordToken,update:({time,pitch,notes,limit})=>{if(mine!==recordToken)return;$('pianoLiveNote').textContent=pitch?label(pitch.midi):'—';micMessage('Recording '+api.fmt(time));if(limit)void stopCapture();}});if(mine!==recordToken){await recording.close();recording=null;}}catch(e){if(mine===recordToken){micButtons(false);micMessage(e.name==='NotAllowedError'?'Allow microphone access':'Recording paused');}}
  }
- async function stopCapture(){if(stopping)return;if(!recording){recordToken++;micButtons(false);return;}stopping=true;const active=recording;recording=null;try{take=await active.stop();micURL=URL.createObjectURL(take.blob);$('pianoLivePreview').src=micURL;$('pianoLivePreview').hidden=false;micMessage(take.notes.length?'Captured '+take.notes.length+' notes. Listen, then use this as a new song.':'No steady notes found. Try singing or humming closer to the microphone.');}finally{stopping=false;micButtons(false);}}
- async function useCapture(){if(!take?.notes.length||stopping)return;const chosen=take;$('pianoLiveUse').disabled=true;try{await api.openRecording(chosen,$('pianoLiveName').value.trim()||'Live melody');$('pianoLiveDialog').close();message('Live melody saved. Tap any note to correct it.');}catch(e){micMessage(e.message);$('pianoLiveUse').disabled=false;}}
+ async function stopCapture(){if(stopping)return;if(!recording){recordToken++;micButtons(false);return;}stopping=true;const active=recording;recording=null;try{take=await active.stop();micURL=URL.createObjectURL(take.blob);$('pianoLivePreview').src=micURL;$('pianoLivePreview').hidden=false;micMessage(take.notes.length?take.notes.length+' notes captured':'No melody found');}finally{stopping=false;micButtons(false);}}
+ async function useCapture(){if(!take?.notes.length||stopping)return;const chosen=take;$('pianoLiveUse').disabled=true;try{await api.openRecording(chosen,$('pianoLiveName').value.trim()||'Live melody');$('pianoLiveDialog').close();message('Melody saved');}catch(e){micMessage('Recording paused');$('pianoLiveUse').disabled=false;}}
  function init(hooks){api=hooks;const select=$('pianoPitch');for(let m=21;m<=108;m++){const o=document.createElement('option');o.value=m;o.textContent=label(m);select.append(o);}
-  $('pianoAnalyse').onclick=()=>{if(busy){token++;busy=false;message('Checking paused. Find melody resumes the same passage.');render(true);}else void analyse();};
+  $('pianoAnalyse').onclick=()=>{if(busy){token++;busy=false;message('Melody paused');render(true);}else return analyse();};
   $('pianoUndo').onclick=()=>{if(undo){data=undo;undo=null;stopVoices();$('pianoEditor').close();signature='';render(true);void persist();}};$('pianoSaveNote').onclick=()=>commit();$('pianoDelete').onclick=()=>commit(true);$('pianoCloseNote').onclick=()=>$('pianoEditor').close();
   $('pianoSolo').onclick=()=>{setSolo(!solo);};$('pianoSound').onchange=()=>{sound=$('pianoSound').value;stopVoices();void persist();};
   const view=$('pianoRollViewport');view.addEventListener('scroll',refresh,{passive:true});
@@ -144,6 +157,6 @@ window.BassPiano=(()=>{
   document.addEventListener('visibilitychange',()=>{if(document.hidden&&recording)void stopCapture();});window.addEventListener('pagehide',()=>{if(recording)void recording.close();setSolo(false);});window.addEventListener('resize',refresh);new ResizeObserver(refresh).observe(view);render(true);
  }
  function follow(){if(!api||$('pianoViewPanel').hidden)return;render(true);const {view,gridWidth,page}=metrics(),pages=Math.max(1,Math.ceil(state().duration/page));view.scrollLeft=Math.min((pages-1)*gridWidth,Math.floor(state().time/page)*gridWidth);signature='';render(true);}
- function leave(){const wasSolo=solo;setSolo(false);if(wasSolo)message('Original song sound restored.');}
+ function leave(){const wasSolo=solo;setSolo(false);if(wasSolo)message('Song sound restored');}
  return {init,render,reset,exportData,restore,range,keyCount,fitKeys,clean,join,isBusy:()=>busy||exporting,follow,transport,stopVoices,leave,isSolo:()=>solo,preparePlayback:()=>{if(solo)void unlock();}};
 })();

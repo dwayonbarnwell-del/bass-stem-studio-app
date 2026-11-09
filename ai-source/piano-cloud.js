@@ -19,7 +19,7 @@
     aiBusy=true;updateProjectButtons();
     try{
       if(!job.id){
-        await cacheAudioForRecovery(file);check();status('Preparing melody passage '+fmt(part.start)+' – '+fmt(part.end));
+        await cacheAudioForRecovery(file);check();status('Preparing melody');
         const upload=await prepareAnalysisPartUpload(file,{audioStart:part.from,audioEnd:part.to,coreStart:part.start,coreEnd:part.end,label:'Melody'},Math.ceil(buffer.duration/180),session);
         const b64=await fileToBase64(upload.file);check();
         job.submitting=true;await checkpoint();
@@ -28,7 +28,7 @@
         job.id=response.id;delete job.submitting;await checkpoint();check();
       }
       while(true){
-        check();status('Finding lead melody · '+fmt(part.start)+' – '+fmt(part.end));
+        check();status('Finding melody');
         let response;
         try{response=await runPodFetch(`https://api.runpod.ai/v2/${encodeURIComponent(RUNPOD_ENDPOINT)}/status/${encodeURIComponent(job.id)}`,key,{method:'GET'},8,session);}
         catch(e){if(e?.httpStatus===404){job.failed='EXPIRED';await checkpoint();}throw e;}
