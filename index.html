@@ -13540,51 +13540,63 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRo
 <link rel="stylesheet" href="./library-source/saved-audio-match.css">
 <link rel="stylesheet" href="./library-source/song-tasks.css">
 
-<style id="rc238-piano-style">html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel{display:flex!important;flex-direction:column!important;gap:6px!important;min-height:240px!important;flex:1!important;padding:5px!important;overflow:hidden!important;}
-html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel[hidden]{display:none!important;}
-html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel button,#pianoViewPanel select,#pianoViewPanel summary{box-sizing:border-box!important;position:relative!important;min-width:0!important;min-height:32px!important;max-height:none!important;width:auto!important;height:auto!important;margin:0!important;padding:5px 7px!important;font:14px/1.25 system-ui,sans-serif!important;border:1px solid #63899b!important;border-radius:6px!important;background:#17394b!important;color:#f5faff!important;}
-html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel button:disabled{opacity:.45!important;}
-html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel [hidden]{display:none!important;}
-html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel button[aria-pressed=true]{background:#3b4c76!important;border-color:#c1cbff!important;}
-html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel .piano-toolbar{display:flex!important;gap:5px!important;align-items:center!important;flex-wrap:wrap!important;flex:0 0 auto!important;}
-html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel .piano-primary{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:5px!important;}
-html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel .piano-primary button{width:100%!important;min-height:40px!important;}
-html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel #pianoStatus,#pianoViewPanel #pianoOutside{font:12px/1.35 system-ui,sans-serif!important;margin:0!important;}
-html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel #pianoOutside:empty{display:none!important;}
-html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel #pianoTools{flex:0 0 auto!important;max-height:210px!important;overflow:auto!important;}
-html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel #pianoTools summary{cursor:pointer!important;display:list-item!important;list-style:disclosure-closed inside!important;}
-html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel #pianoTools[open] summary{list-style:disclosure-open inside!important;margin-bottom:6px!important;}
-html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel #pianoTools label{font-size:13px!important;display:flex!important;align-items:center!important;gap:5px!important;}
-html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel #pianoTools p{font:12px/1.4 system-ui,sans-serif!important;margin:5px 0!important;}
-html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel #pianoRange{font:12px/1.3 system-ui,sans-serif!important;}
-html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel #pianoNow{margin-left:auto!important;color:#ffd28a!important;font-size:16px!important;}
-html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel #pianoRollViewport{position:relative!important;overflow:auto!important;overscroll-behaviour:contain!important;min-height:180px!important;flex:1 1 300px!important;max-width:100%!important;border:1px solid #54758a!important;border-radius:5px!important;touch-action:pan-x pan-y!important;scrollbar-width:thin!important;background:#0e1b2b!important;}
+<style id="rc239-piano-preview-style">.piano-action{display:none!important;}
+html body.piano-view-active #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot .simple-timeline-head .practice-view-head{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:6px!important;width:100%!important;align-items:stretch!important;}
+html body.piano-view-active #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #practiceViewCard,html body.piano-view-active #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot .piano-action{box-sizing:border-box!important;display:flex!important;align-items:center!important;justify-content:center!important;flex:none!important;width:100%!important;min-width:0!important;max-width:none!important;height:var(--rc120-control-h)!important;min-height:var(--rc120-control-h)!important;max-height:var(--rc120-control-h)!important;margin:0!important;padding:3px!important;border:1px solid #668997!important;border-radius:10px!important;background:#23485b!important;color:#f5faff!important;font:700 var(--ui-font-size,14px)/1.15 system-ui,sans-serif!important;text-align:center!important;white-space:normal!important;}
+html body.piano-view-active #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #practiceViewCard{background:#122c3d!important;}
+html body.piano-view-active #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #practiceViewCard .stacked-select-display{margin:0!important;gap:0!important;}
+html body.piano-view-active #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #timelinePartTabs{display:none!important;}
+html body.piano-view-active #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot .piano-action:disabled{opacity:.5!important;}
+html body.piano-view-active #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoSolo[aria-pressed=true]{background:#675091!important;border-color:#c6aceb!important;}
+html body.piano-view-active #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoExport{background:#22575e!important;}
+html body.piano-view-active #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoRecord{background:#573848!important;}
+html body.piano-view-active #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot .piano-action:focus-visible{outline:2px solid #89d4ff!important;outline-offset:2px!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel{position:relative!important;display:flex!important;flex-direction:column!important;gap:0!important;min-height:0!important;flex:1 1 0!important;padding:0!important;overflow:hidden!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel[hidden],#pianoViewPanel [hidden]{display:none!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel button{box-sizing:border-box!important;position:relative!important;min-width:0!important;min-height:0!important;max-height:none!important;width:auto!important;height:auto!important;margin:0!important;padding:0!important;font:12px/1.2 system-ui,sans-serif!important;border:1px solid #63899b!important;border-radius:0!important;background:#17394b!important;color:#f5faff!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel #pianoNotice{position:absolute!important;bottom:8px!important;left:8px!important;right:8px!important;z-index:40!important;display:flex;align-items:center!important;gap:8px!important;padding:8px 10px!important;background:#173649f5!important;border:1px solid #7db2c2!important;border-radius:8px!important;box-shadow:0 3px 12px #0006!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel #pianoStatus{font:13px/1.3 system-ui,sans-serif!important;flex:1!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel #pianoDismiss{flex:0 0 28px!important;height:28px!important;border:0!important;font-size:22px!important;background:transparent!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel #pianoRollViewport{position:relative!important;overflow-x:auto!important;overflow-y:hidden!important;overscroll-behavior:contain!important;min-height:0!important;flex:1 1 0!important;max-width:100%!important;border:0!important;border-radius:0!important;touch-action:pan-x!important;scrollbar-width:none!important;background:#0e1b2b!important;overflow-anchor:none!important;scroll-behavior:auto!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel #pianoRollViewport::-webkit-scrollbar{display:none!important;}
 html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel #pianoRollCanvas{position:relative!important;min-width:100%!important;}
-html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel #pianoRollHeader{position:sticky!important;top:0!important;height:48px!important;z-index:30!important;background:#0d1b2a!important;}
-html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel #pianoRollCorner{position:sticky!important;left:0!important;width:64px!important;height:48px!important;z-index:32!important;background:#142b3e!important;text-align:center!important;padding-top:12px!important;box-sizing:border-box!important;font-size:12px!important;}
-html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel #pianoTimeRuler{position:absolute!important;left:64px!important;top:0!important;height:25px!important;right:0!important;overflow:hidden!important;}
-html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel .piano-time{position:absolute!important;top:0!important;height:25px!important;min-height:25px!important;border-radius:0!important;padding:2px!important;font-size:12px!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel #pianoRollHeader{position:relative!important;height:52px!important;z-index:30!important;background:#0b1929!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel #pianoRollCorner{position:sticky!important;left:0!important;width:58px!important;height:52px!important;z-index:32!important;background:#142b3e!important;text-align:center!important;display:flex!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important;font:12px/1.2 system-ui,sans-serif!important;border-right:1px solid #648394!important;border-bottom:1px solid #395368!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel #pianoTimeRuler{position:absolute!important;left:58px!important;top:0!important;height:28px!important;right:0!important;overflow:hidden!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel .piano-time{position:absolute!important;top:0!important;height:28px!important;min-height:28px!important;border-radius:0!important;padding:2px!important;font-size:14px!important;font-weight:750!important;background:#0d1c2a!important;}
 html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel .piano-time.selected{background:#564b83!important;}
-html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel #pianoChordRuler{position:absolute!important;left:64px!important;top:25px!important;height:23px!important;right:0!important;overflow:hidden!important;}
-html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel .piano-chord{position:absolute!important;top:0!important;height:23px!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;color:#9ee2f2!important;border-right:1px solid #3d6276!important;text-align:left!important;padding-left:6px!important;font:12px/23px system-ui,sans-serif!important;box-sizing:border-box!important;}
-html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel #pianoKeyboard{position:sticky!important;left:0!important;width:64px!important;z-index:20!important;background:#203448!important;}
-html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel #pianoKeyboard .piano-key{position:absolute!important;left:0!important;height:20px!important;min-height:20px!important;max-height:20px!important;padding:0 5px!important;display:flex!important;align-items:center!important;justify-content:flex-end!important;border-radius:0 3px 3px 0!important;font-size:12px!important;}
-html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel #pianoKeyboard .white{width:64px!important;background:#f5f3e9!important;color:#162336!important;border:1px solid #72808f!important;}
-html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel #pianoKeyboard .black{width:48px!important;background:#172132!important;color:#fff!important;border:1px solid #405267!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel #pianoChordRuler{position:absolute!important;left:58px!important;top:28px!important;height:24px!important;right:0!important;overflow:hidden!important;border-bottom:1px solid #456579!important;box-sizing:border-box!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel .piano-chord{position:absolute!important;top:0!important;height:24px!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;color:#a9e6ed!important;border-right:1px solid #395368!important;text-align:left!important;padding-left:6px!important;font:600 12px/24px system-ui,sans-serif!important;box-sizing:border-box!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel #pianoKeyboard{position:sticky!important;left:0!important;width:58px!important;z-index:20!important;background:#203448!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel #pianoKeyboard .piano-key{position:absolute!important;left:0!important;height:var(--piano-row)!important;min-height:0!important;max-height:none!important;padding:0 6px!important;display:flex!important;align-items:center!important;justify-content:flex-end!important;border-radius:0 3px 3px 0!important;font-size:var(--piano-label,12px)!important;line-height:1!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel #pianoKeyboard .white{width:58px!important;background:#f3f1e7!important;color:#152438!important;border:1px solid #a2a9ad!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel #pianoKeyboard .black{width:44px!important;background:#162336!important;color:#fff!important;border:1px solid #43566b!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel #pianoKeyboard .pitch-gap{border-top:3px double #7d9cba!important;}
 html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel #pianoKeyboard .active{background:#ffc66d!important;color:#241806!important;box-shadow:inset 0 0 0 2px #ffedc6!important;}
-html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel #pianoTimeline{position:absolute!important;left:64px!important;top:48px!important;background-image:linear-gradient(to right,#3a4c63 1px,transparent 1px),linear-gradient(to bottom,#27384c 1px,transparent 1px)!important;}
-html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel .piano-note{position:absolute!important;min-height:18px!important;height:18px!important;max-height:18px!important;padding:0 3px!important;border:1px solid #7cabce!important;border-radius:4px!important;background:#315976!important;color:#fff!important;text-align:left!important;overflow:hidden!important;white-space:nowrap!important;font-size:12px!important;line-height:16px!important;z-index:2!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel #pianoTimeline{position:absolute!important;left:58px!important;top:52px!important;background-image:linear-gradient(to right,#3a4c63 1px,transparent 1px),linear-gradient(to bottom,#293b4f 1px,transparent 1px)!important;}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel .piano-note{position:absolute!important;min-height:0!important;height:calc(var(--piano-row) - 2px)!important;max-height:none!important;padding:0 3px!important;display:flex!important;align-items:center!important;border:1px solid #8dbdda!important;border-radius:4px!important;background:#315e7c!important;color:#fff!important;text-align:left!important;overflow:hidden!important;white-space:nowrap!important;font-size:var(--piano-label,12px)!important;line-height:1!important;z-index:2!important;}
 html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel .piano-note.uncertain{border:2px dotted #d5b5ef!important;}
 html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel .piano-note.active{background:#ffc66d!important;color:#241806!important;border-color:#fff0ca!important;box-shadow:0 0 0 1px #fff0ca!important;z-index:3!important;}
 html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel #pianoPlayhead{position:absolute!important;top:0!important;bottom:0!important;width:2px!important;background:#ffe3a6!important;pointer-events:none!important;z-index:4!important;}
-html body #pianoEditor,html body #pianoLiveDialog{box-sizing:border-box!important;width:min(440px,calc(100vw - 24px))!important;max-height:90dvh!important;overflow:auto!important;margin:auto!important;padding:18px!important;background:#0e2134!important;color:#fff!important;border:1px solid #8acbd7!important;border-radius:12px!important;font:16px/1.4 system-ui,sans-serif!important;}
-html body :is(#pianoEditor,#pianoLiveDialog) label{display:block!important;margin:10px 0!important;}
-html body :is(#pianoEditor,#pianoLiveDialog) :is(input,select,button){box-sizing:border-box!important;min-height:42px!important;padding:8px!important;font:16px/1.4 system-ui,sans-serif!important;color:#fff!important;background:#17394b!important;border:1px solid #63899b!important;border-radius:6px!important;}
-html body :is(#pianoEditor,#pianoLiveDialog) :is(input,select){width:100%!important;}
+html body #pianoExportDialog .piano-dialog-heading{display:flex!important;gap:12px!important;align-items:center!important;justify-content:space-between!important;}
+html body #pianoExportDialog h2{font:700 20px/1.3 system-ui,sans-serif!important;margin:0!important;}
+html body #pianoExportDialog #pianoExportClose{width:42px!important;min-width:42px!important;padding:0!important;font-size:24px!important;background:transparent!important;border:0!important;}
+html body #pianoExportDialog .piano-export-formats{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;margin-top:18px!important;}
+html body #pianoExportDialog .piano-export-formats button{width:100%!important;min-height:52px!important;}
+html body #pianoExportDialog #pianoExportStatus{font:14px/1.4 system-ui,sans-serif!important;}
+html body #pianoExportDialog #pianoExportStatus:empty{display:none!important;}
+html body #pianoExportDialog [hidden]{display:none!important;}
+
+html body #pianoEditor .piano-edit-actions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;margin-top:18px!important;}
+html body #pianoEditor .piano-edit-actions button{width:100%!important;min-width:0!important;min-height:52px!important;margin:0!important;text-align:center!important;}
+html body #pianoEditor,html body #pianoLiveDialog,html body #pianoExportDialog{box-sizing:border-box!important;width:min(440px,calc(100vw - 24px))!important;max-height:90dvh!important;overflow:auto!important;margin:auto!important;padding:18px!important;background:#0e2134!important;color:#fff!important;border:1px solid #8acbd7!important;border-radius:12px!important;font:16px/1.4 system-ui,sans-serif!important;}
+html body :is(#pianoEditor,#pianoLiveDialog,#pianoExportDialog) label{display:block!important;margin:10px 0!important;}
+html body :is(#pianoEditor,#pianoLiveDialog,#pianoExportDialog) :is(input,select,button){box-sizing:border-box!important;min-height:42px!important;padding:8px!important;font:16px/1.4 system-ui,sans-serif!important;color:#fff!important;background:#17394b!important;border:1px solid #63899b!important;border-radius:6px!important;}
+html body :is(#pianoEditor,#pianoLiveDialog,#pianoExportDialog) :is(input,select){width:100%!important;}
 html body #pianoLiveDialog audio{width:100%!important;}
 html body #pianoLiveDialog p{font-size:14px!important;}
 html body #pianoLiveNote{font-size:32px!important;color:#ffd28a!important;}
-html body :is(#pianoEditor,#pianoLiveDialog)::backdrop{background:#0009;}
+html body :is(#pianoEditor,#pianoLiveDialog,#pianoExportDialog)::backdrop{background:#0009;}
 #pianoPrintSheet{display:none;}
 @media print{html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot{display:none!important}html body>*{display:none!important}html body>#pianoPrintSheet{display:block!important;position:static!important;color:#000!important;background:#fff!important;font:11pt Arial,sans-serif!important;padding:0!important}#pianoPrintSheet h1{font-size:17pt}#pianoPrintSheet p{font-size:10pt}#pianoPrintSheet table{border-collapse:collapse;width:100%;color:#000;background:#fff}#pianoPrintSheet th,#pianoPrintSheet td{padding:5pt;border:1px solid #777;text-align:left}#pianoPrintSheet tr{break-inside:avoid}#pianoPrintSheet thead{display:table-header-group}html,html body{overflow:visible!important;height:auto!important;min-height:0!important;max-height:none!important;margin:0!important;padding:0!important;background:#fff!important}@page{margin:15mm}}
 </style>
@@ -13657,26 +13669,33 @@ window.BassPianoAudio=(()=>{
  }
  return {label,pcm,header,exportAudio,tone,midi,tracker,capture,envelope};
 })();
-</script><script id="rc238-piano">/* RC238: continuous melody piano roll and local practice tools. */
+</script><script id="rc239-piano-preview">/* RC239 preview: fitted piano timeline, automatic following and compact controls. */
 window.BassPiano=(()=>{
  'use strict';
  const $=id=>document.getElementById(id),A=()=>window.BassPianoAudio,names=['C','C♯','D','E♭','E','F','F♯','G','A♭','A','B♭','B'];
  const timecode=t=>{const n=Math.round(t*100);return Math.floor(n/6000)+':'+((n%6000)/100).toFixed(2).padStart(5,'0');};
  const label=m=>names[((m%12)+12)%12]+(Math.floor(m/12)-1),black=m=>[1,3,6,8,10].includes(((m%12)+12)%12),clone=x=>JSON.parse(JSON.stringify(x));
  let api,data={version:2,notes:[],done:[],jobs:{}},busy=false,token=0,signature='',editing=null,undo=null,voice=null;
- let lastCount=0,autoFollow=true,low=null,zoom=90,solo=false,sound='piano',timer=null,lastClock=null,scheduled=new Map(),exporting=false,exportToken=0,recording=null,recordToken=0,take=null,stopping=false,micURL=null;
- const state=()=>api.get(),message=s=>{$('pianoStatus').textContent=s;};
+ let zoom=90,noticeTimer=null,frame=0,solo=false,sound='piano',timer=null,lastClock=null,scheduled=new Map(),exporting=false,exportToken=0,recording=null,recordToken=0,take=null,stopping=false,micURL=null;
+ const state=()=>api.get();
+ function message(text){
+  clearTimeout(noticeTimer);
+  if($('pianoExportDialog')?.open){$('pianoExportStatus').textContent=text;return;}
+  $('pianoStatus').textContent=text;$('pianoNotice').hidden=!text;
+  if(text&&!busy)noticeTimer=setTimeout(()=>{$('pianoNotice').hidden=true;},6500);
+ }
+ const refresh=()=>{cancelAnimationFrame(frame);frame=requestAnimationFrame(()=>render());};
  function clean(raw,duration=Infinity){return (Array.isArray(raw)?raw:[]).filter(n=>Number.isFinite(n.midi)&&Number.isFinite(n.start)&&Number.isFinite(n.end)&&n.midi>=21&&n.midi<=108&&n.start>=0&&n.end>n.start&&n.start<duration).map(n=>({...n,midi:Math.round(n.midi),end:Math.min(duration,n.end)})).sort((a,b)=>a.start-b.start);}
  function range(notes,count){const values=notes.map(n=>n.midi).sort((a,b)=>a-b),middle=values.length?values[Math.floor(values.length/2)]:66;let bottom=Math.floor((middle-(count-1)/2)/12)*12;bottom=Math.max(21,Math.min(109-count,bottom));return {low:bottom,high:bottom+count-1};}
  function join(notes){const out=[];for(const n of notes){const prev=out.at(-1);if(n.continuation&&!n.manual&&prev&&!prev.manual&&prev.midi===n.midi&&Math.abs(prev.end-n.start)<.025){prev.end=n.end;prev.confidence=Math.min(prev.confidence,n.confidence);prev.uncertain=prev.uncertain||n.uncertain;}else out.push({...n});}return out;}
- function exportData(){return {...clone(data),sound,zoom};}
- function restore(value){token++;busy=false;setSolo(false);data={version:2,jobs:value?.jobs&&typeof value.jobs==='object'?clone(value.jobs):{},notes:clean(value?.notes,api?.get().duration||Infinity),done:(Array.isArray(value?.done)?value.done:[]).filter(r=>Number.isFinite(r.start)&&Number.isFinite(r.end)&&r.start>=0&&r.end>r.start)};sound=value?.sound==='bass'?'bass':'piano';zoom=[50,90,150].includes(value?.zoom)?value.zoom:90;undo=null;low=null;autoFollow=true;signature='';if(api){$('pianoSound').value=sound;$('pianoZoom').value=zoom;render(true);message(data.notes.length?'Saved melody. Tap a note to correct it. Swipe the roll to revisit any part.':'Choose Find melody, or record yourself singing or playing one note at a time.');}}
- function reset(){exportToken++;exporting=false;recordToken++;if(recording){void recording.close();recording=null;}take=null;stopping=false;$('pianoLiveDialog')?.close();if(micURL){URL.revokeObjectURL(micURL);micURL=null;}restore(null);$('pianoEditor')?.close();}
+ function exportData(){return {...clone(data),sound};}
+ function restore(value){token++;busy=false;setSolo(false);data={version:2,jobs:value?.jobs&&typeof value.jobs==='object'?clone(value.jobs):{},notes:clean(value?.notes,api?.get().duration||Infinity),done:(Array.isArray(value?.done)?value.done:[]).filter(r=>Number.isFinite(r.start)&&Number.isFinite(r.end)&&r.start>=0&&r.end>r.start)};sound=value?.sound==='bass'?'bass':'piano';undo=null;signature='';if(api){$('pianoSound').value=sound;message('');$('pianoRollViewport').scrollLeft=0;render(true);}}
+ function reset(){exportToken++;exporting=false;recordToken++;if(recording){void recording.close();recording=null;}take=null;stopping=false;$('pianoLiveDialog')?.close();$('pianoExportDialog')?.close();if(micURL){URL.revokeObjectURL(micURL);micURL=null;}restore(null);$('pianoEditor')?.close();}
  async function persist(){await api.changed();}
  async function analyse(){
   if(busy)return;const s=state();if(!s.buffer)return message('Import a song first.');if(s.busy)return message('Wait for the current analysis to finish.');
   api.pause();busy=true;const mine=++token,session=s.session;const cancelled=()=>mine!==token||state().session!==session;
-  $('pianoAnalyse').disabled=true;$('pianoCancel').hidden=false;
+  render(true);
   try{
    for(let start=0;start<s.duration;start+=180){const end=Math.min(start+180,s.duration);if(data.done.some(r=>r.start<=start+.001&&r.end>=end-.001))continue;
     const from=Math.max(0,start-.25),to=Math.min(s.duration,end+.25);
@@ -13691,35 +13710,66 @@ window.BassPiano=(()=>{
    }
    if(!cancelled())message(data.notes.length?'Melody ready · tap a note to correct it. Check dotted notes and choir passages.':'No clear lead melody found. You can add notes manually.');
   }catch(e){if(!cancelled())message('Melody paused: '+(/load|fetch|network/i.test(e.message)?'The vocal model could not load. Check your connection and try again':e.message)+'. Completed passages are kept.');}
-  finally{if(mine===token){busy=false;$('pianoCancel').hidden=true;render(true);}}
+  finally{if(mine===token){busy=false;render(true);}}
  }
 
  function keyCount(width){return width>=650?36:24;}
- function visibleRange(){const count=keyCount($('pianoViewPanel').clientWidth||340),display=data.notes.map(n=>({...n,midi:n.midi+state().transpose}));if(lastCount!==count){low=null;lastCount=count;}if(low===null)low=range(display,count).low;low=Math.max(21,Math.min(109-count,low));return {low,high:low+count-1,count};}
- function ruler(){if(!api)return;const s=state(),view=$('pianoRollViewport'),time=$('pianoTimeRuler'),chords=$('pianoChordRuler'),a=Math.max(0,view.scrollLeft/zoom-2),b=Math.min(s.duration,a+(view.clientWidth+64)/zoom+4),step=s.step||1;
-  const sig=[Math.floor(view.scrollLeft),Math.floor(a/step),Math.ceil(b/step),step,s.selection,zoom,JSON.stringify(s.chords)].join('|');if(time.dataset.signature===sig)return;time.dataset.signature=sig;time.replaceChildren();chords.replaceChildren();
-  for(let t=Math.floor(a/step)*step;t<s.duration&&t<=b;t+=step){const btn=document.createElement('button');btn.className='piano-time';btn.textContent=api.fmt(t);btn.title='Select this repeat interval';btn.style.setProperty('left',t*zoom+'px','important');btn.style.setProperty('width',Math.max(36,step*zoom)+'px','important');btn.classList.toggle('selected',api.selected(t));btn.onclick=()=>{api.select(t);ruler();};time.append(btn);}
-  for(const c of s.chords){if(c.end<a||c.start>b)continue;const el=document.createElement('div');el.className='piano-chord';el.textContent=c.label;const left=Math.max(c.start,view.scrollLeft/zoom);el.style.left=left*zoom+'px';el.style.width=Math.max(24,(Math.min(c.end,b)-left)*zoom)+'px';chords.append(el);}
+ // Prefer a stable chromatic keyboard. For a wide-ranging passage, spare rows
+ // go to neighbouring keys; every pitch in the visible passage is retained.
+ function fitKeys(notes,start,end,height,transpose=0){
+  const pitches=list=>[...new Set(list.map(n=>n.midi+transpose))].sort((a,b)=>a-b);
+  const all=pitches(notes),current=pitches(notes.filter(n=>n.end>start&&n.start<end));
+  const budget=24;
+  let use=all.length&&all.at(-1)-all[0]+1<=24?all:current;
+  if(!use.length){const near=notes.find(n=>n.end>start)||notes.at(-1);use=near?[near.midi+transpose]:[60,64,67];}
+  const lo=use[0],hi=use.at(-1),limit=Math.max(budget,Math.min(36,use.length));
+  if(hi-lo+1<=limit){let bottom=lo,top=hi;while(top-bottom+1<Math.min(limit,24)){if(bottom>21)bottom--;if(top-bottom+1<Math.min(limit,24)&&top<108)top++;if(bottom<=21&&top>=108)break;}return Array.from({length:top-bottom+1},(_,i)=>top-i);}
+  const shown=new Set(use);
+  for(let distance=1;shown.size<limit&&distance<12;distance++)for(const m of use)for(const neighbour of [m-distance,m+distance])if(shown.size<limit&&neighbour>=21&&neighbour<=108)shown.add(neighbour);
+  return [...shown].sort((a,b)=>b-a);
+ }
+ function metrics(){const s=state(),view=$('pianoRollViewport'),gridWidth=Math.max(60,view.clientWidth-58),step=s.step||1,columns=Math.max(1,Math.floor(gridWidth/70)),page=columns*step;return {view,gridWidth,step,page,scale:gridWidth/page,height:Math.max(1,view.clientHeight-52)};}
+ function ruler(){if(!api)return;const s=state(),{view,gridWidth,step}=metrics(),time=$('pianoTimeRuler'),chords=$('pianoChordRuler'),a=Math.max(0,view.scrollLeft/zoom),b=Math.min(s.duration,a+gridWidth/zoom);
+  const sig=[Math.round(view.scrollLeft),step,s.selection,zoom,JSON.stringify(s.chords)].join('|');if(time.dataset.signature===sig)return;time.dataset.signature=sig;time.replaceChildren();chords.replaceChildren();
+  for(let t=Math.floor(a/step)*step;t<s.duration&&t<=b;t+=step){const btn=document.createElement('button');btn.className='piano-time';btn.textContent=api.fmt(t);btn.title='Select this repeat interval';btn.style.setProperty('left',t*zoom+'px','important');btn.style.setProperty('width',step*zoom+'px','important');btn.classList.toggle('selected',api.selected(t));btn.onclick=()=>{api.select(t);ruler();};time.append(btn);}
+  for(const c of s.chords){if(c.end<=a||c.start>=b)continue;const el=document.createElement('div');el.className='piano-chord';el.textContent=c.label;const left=Math.max(c.start,a);el.style.left=left*zoom+'px';el.style.width=Math.max(0,(Math.min(c.end,b)-left)*zoom)+'px';chords.append(el);}
  }
  function render(force=false){
-  if(!api)return;const s=state(),panel=$('pianoViewPanel');if(panel.hidden&&!force)return;
-  const view=$('pianoRollViewport'),r=visibleRange(),width=Math.max(view.clientWidth-64,Math.max(s.duration,1)*zoom),row=20,display=data.notes.map(n=>({...n,midi:n.midi+s.transpose}));
-  const sig=[r.low,r.count,zoom,s.duration,s.transpose,data.notes.length,data.done.length].join('|');
-  $('pianoAnalyse').disabled=busy||!s.buffer||exporting;$('pianoCancel').hidden=!busy;$('pianoAdd').disabled=busy||!s.buffer||exporting;$('pianoUndo').disabled=busy||!undo||exporting;
-  $('pianoSolo').disabled=!data.notes.length;$('pianoSolo').setAttribute('aria-pressed',String(solo));$('pianoSolo').textContent=solo?'Hear song':'Melody only';$('pianoFollow').setAttribute('aria-pressed',String(autoFollow));
+  if(!api)return;const s=state(),panel=$('pianoViewPanel');
+  $('pianoAnalyse').disabled=!s.buffer||exporting||(s.busy&&!busy);$('pianoAnalyse').innerHTML=busy?'Pause<br>checking':'Find<br>melody';
+  $('pianoUndo').disabled=busy||!undo||exporting;
+  $('pianoSolo').disabled=!data.notes.length;$('pianoSolo').setAttribute('aria-pressed',String(solo));$('pianoSolo').innerHTML=solo?'Hear<br>song':'Melody<br>only';
   for(const id of ['pianoPrint','pianoWav','pianoMp3','pianoMidi'])$(id).disabled=!data.notes.length||exporting||busy;
   $('pianoRecord').disabled=busy||s.busy||exporting;$('pianoExportCancel').hidden=!exporting;
-  if(force||sig!==signature){signature=sig;const canvas=$('pianoRollCanvas'),grid=$('pianoTimeline'),keyboard=$('pianoKeyboard');canvas.style.width=(width+64)+'px';canvas.style.height=(48+r.count*row)+'px';grid.style.width=width+'px';grid.style.height=r.count*row+'px';grid.style.backgroundSize=zoom+'px '+row+'px';keyboard.style.height=r.count*row+'px';grid.replaceChildren();keyboard.replaceChildren();
-   for(let m=r.high;m>=r.low;m--){const k=document.createElement('button');k.className='piano-key '+(black(m)?'black':'white');k.dataset.midi=m;k.textContent=label(m);k.setAttribute('aria-label','Play '+label(m));k.style.setProperty('top',(r.high-m)*row+'px','important');k.onclick=()=>audition(m);keyboard.append(k);}
-   data.notes.forEach((n,index)=>{const midi=n.midi+s.transpose;if(midi<r.low||midi>r.high)return;const btn=document.createElement('button');btn.className='piano-note'+(n.uncertain&&!n.manual?' uncertain':'');btn.textContent=label(midi);btn.dataset.index=index;btn.dataset.start=n.start;btn.dataset.end=n.end;btn.style.setProperty('left',n.start*zoom+'px','important');btn.style.setProperty('top',(r.high-midi)*row+1+'px','important');btn.style.setProperty('width',Math.max(5,(n.end-n.start)*zoom)+'px','important');btn.title=`${label(midi)}, ${n.start.toFixed(2)} to ${n.end.toFixed(2)} seconds. Tap to correct`;btn.setAttribute('aria-label',btn.title);btn.onclick=()=>edit(index);grid.append(btn);});
+  if(panel.hidden)return;
+  const {view,gridWidth,page,scale,height,step}=metrics(),canvas=$('pianoRollCanvas'),grid=$('pianoTimeline'),keyboard=$('pianoKeyboard');
+  const oldStart=view.scrollLeft/zoom;zoom=scale;
+  const pages=Math.max(1,Math.ceil(s.duration/page)),width=pages*gridWidth;
+  canvas.style.width=(width+58)+'px';canvas.style.height=view.clientHeight+'px';
+  if(s.playing)view.scrollLeft=Math.min((pages-1)*gridWidth,Math.floor(s.time/page)*gridWidth);
+  else if(render.scale!==scale)view.scrollLeft=oldStart*scale;
+  render.scale=scale;
+  const start=view.scrollLeft/zoom,end=start+page,keys=fitKeys(data.notes,start,end,height,s.transpose),row=height/keys.length,visible=data.notes.map((n,index)=>({...n,index,midi:n.midi+s.transpose})).filter(n=>n.end>start&&n.start<end);
+  const sig=[keys.join(','),Math.round(height*100),zoom,s.duration,s.transpose,data.notes.length,data.done.length,visible.map(n=>n.index).join(',')].join('|');
+  panel.style.setProperty('--piano-row',row+'px');panel.style.setProperty('--piano-label',Math.min(14,Math.max(10,row-3))+'px');
+  if(force||sig!==signature){signature=sig;grid.style.width=width+'px';grid.style.height=height+'px';grid.style.backgroundSize=step*zoom+'px '+row+'px';keyboard.style.height=height+'px';grid.replaceChildren();keyboard.replaceChildren();
+   keys.forEach((m,i)=>{const k=document.createElement('button');k.className='piano-key '+(black(m)?'black':'white')+(i&&keys[i-1]-m>1?' pitch-gap':'');k.dataset.midi=m;k.textContent=label(m);k.setAttribute('aria-label','Add '+label(m)+' at the playhead');k.title='Add '+label(m)+' at '+api.fmt(s.time);k.style.setProperty('top',i*row+'px','important');k.disabled=busy||exporting;k.onclick=()=>addAtPlayhead(m);keyboard.append(k);});
+   visible.forEach(n=>{const index=keys.indexOf(n.midi);if(index<0)return;const btn=document.createElement('button');btn.className='piano-note'+(n.uncertain&&!n.manual?' uncertain':'');btn.textContent=label(n.midi);btn.dataset.index=n.index;btn.dataset.start=n.start;btn.dataset.end=n.end;btn.style.setProperty('left',n.start*zoom+'px','important');btn.style.setProperty('top',index*row+1+'px','important');btn.style.setProperty('width',Math.max(5,(n.end-n.start)*zoom)+'px','important');btn.title=`${label(n.midi)}, ${n.start.toFixed(2)} to ${n.end.toFixed(2)} seconds. Tap to correct`;btn.setAttribute('aria-label',btn.title);btn.onclick=()=>edit(n.index);grid.append(btn);});
+   grid.onclick=e=>{if(e.target!==grid)return;const box=grid.getBoundingClientRect(),pitch=keys[Math.min(keys.length-1,Math.floor((e.clientY-box.top)/row))],time=Math.max(0,Math.min(s.duration-.025,(e.clientX-box.left)/zoom));void addAtPlayhead(pitch,time);};
    const playhead=document.createElement('div');playhead.id='pianoPlayhead';playhead.setAttribute('aria-hidden','true');grid.append(playhead);
-   $('pianoRange').textContent=label(r.low)+' – '+label(r.high)+' · '+r.count+' keys';const outside=display.filter(n=>n.midi<r.low||n.midi>r.high).length;$('pianoOutside').textContent=outside?outside+' notes outside these keys. Use ↑ or ↓.':'';
-   $('pianoRangeDown').disabled=r.low===21;$('pianoRangeUp').disabled=r.high===108;$('pianoTimeRuler').dataset.signature='';ruler();
+   $('pianoTimeRuler').dataset.signature='';
   }
-  const active=display.find(n=>s.time>=n.start&&s.time<n.end);panel.querySelectorAll('.piano-note').forEach(el=>el.classList.toggle('active',s.time>=+el.dataset.start&&s.time<+el.dataset.end));panel.querySelectorAll('.piano-key').forEach(el=>el.classList.toggle('active',!!active&&+el.dataset.midi===active.midi));
-  $('pianoNow').textContent=active?label(active.midi):'—';$('pianoPlayhead').style.left=s.time*zoom+'px';
-  if(autoFollow&&s.playing){const x=s.time*zoom;if(x<view.scrollLeft||x>view.scrollLeft+(view.clientWidth-64)*.8)view.scrollLeft=Math.max(0,x-(view.clientWidth-64)*.2);if(active&&active.midi>=r.low&&active.midi<=r.high){const y=(r.high-active.midi)*row;if(y<view.scrollTop||y>view.scrollTop+view.clientHeight-88)view.scrollTop=Math.max(0,y-100);}}
-  if(!s.buffer)message('Import a song or choose Record melody.');ruler();
+  const active=new Set(data.notes.filter(n=>s.time>=n.start&&s.time<n.end).map(n=>n.midi+s.transpose));
+  panel.querySelectorAll('.piano-note').forEach(el=>el.classList.toggle('active',s.time>=+el.dataset.start&&s.time<+el.dataset.end));panel.querySelectorAll('.piano-key').forEach(el=>el.classList.toggle('active',active.has(+el.dataset.midi)));
+  $('pianoPlayhead').style.left=s.time*zoom+'px';view.scrollTop=0;ruler();
+ }
+ async function addAtPlayhead(displayPitch,chosenTime=null){
+  if(busy||exporting)return;const s=state();if(!s.buffer||!s.duration){void audition(displayPitch);return message('Import a song or record a melody first.');}
+  const midi=displayPitch-s.transpose;if(midi<21||midi>108)return message('Choose a note within the piano range.');
+  api.pause();const start=Math.min(chosenTime??s.time,Math.max(0,s.duration-.1)),existing=data.notes.findIndex(n=>n.midi===midi&&n.start<=start+.01&&n.end>start);
+  if(existing>=0){void audition(displayPitch);edit(existing);return;}
+  const next=data.notes.filter(n=>n.start>start+.025).reduce((t,n)=>Math.min(t,n.start),s.duration),end=Math.min(s.duration,next,start+.4);
+  undo=clone(data);data.notes=clean([...data.notes,{midi,start,end,manual:true,confidence:1,source:'manual'}],s.duration);stopVoices();signature='';render(true);void audition(displayPitch);await persist();
  }
  function stopVoices(){for(const n of scheduled.values())n.voice.stop();scheduled.clear();lastClock=null;}
  function transport(){if(!solo||!api)return;const s=state();if(!s.playing){stopVoices();return;}if(!voice||voice.state!=='running')return;
@@ -13728,16 +13778,22 @@ window.BassPiano=(()=>{
   data.notes.forEach((n,i)=>{if(n.end<=s.time||n.start>s.time+.18*rate||scheduled.has(i))return;const age=Math.max(0,s.time-n.start)/rate,length=(n.end-n.start)/rate;scheduled.set(i,{end:n.end,voice:A().tone(voice,n.midi+s.transpose,now+Math.max(0,n.start-s.time)/rate,length,sound,age)});});
  }
  async function unlock(){voice??=new AudioContext();if(voice.state!=='running')await voice.resume();}
- function setSolo(on){solo=!!on;stopVoices();if(timer)clearInterval(timer);timer=null;api?.solo(solo);if(solo){void unlock().then(transport).catch(()=>{setSolo(false);message('Tap Melody only again to enable sound.');});timer=setInterval(transport,35);}if(api){$('pianoSolo').setAttribute('aria-pressed',String(solo));$('pianoSolo').textContent=solo?'Hear song':'Melody only';}}
+ function setSolo(on){solo=!!on;stopVoices();if(timer)clearInterval(timer);timer=null;api?.solo(solo);if(solo){void unlock().then(transport).catch(()=>{setSolo(false);message('Tap Melody only again to enable sound.');});timer=setInterval(transport,35);}if(api){$('pianoSolo').setAttribute('aria-pressed',String(solo));$('pianoSolo').innerHTML=solo?'Hear<br>song':'Melody<br>only';}}
  async function audition(midi){await unlock();A().tone(voice,midi,voice.currentTime,.65,sound);}
  function edit(index=null){if(busy||exporting)return message('Pause melody analysis before editing notes.');api.pause();editing=index;const s=state(),n=index===null?{midi:60,start:Math.min(s.time,Math.max(0,s.duration-.1)),end:Math.min(s.duration,s.time+.4)}:data.notes[index];$('pianoPitch').value=n.midi+s.transpose;$('pianoStart').value=n.start.toFixed(3);$('pianoEnd').value=n.end.toFixed(3);$('pianoDelete').hidden=index===null;$('pianoEditError').textContent='';$('pianoEditor').showModal();}
  function commit(remove=false){const s=state(),midi=Number($('pianoPitch').value)-s.transpose,start=Number($('pianoStart').value),end=Number($('pianoEnd').value);if(!remove&&(!Number.isInteger(midi)||midi<21||midi>108||!Number.isFinite(start+end)||start<0||end<=start||end>s.duration+.001)){$('pianoEditError').textContent='Choose a valid note and times within the song.';return;}
   undo=clone(data);if(editing!==null)data.notes.splice(editing,1);if(!remove)data.notes.push({midi,start,end,manual:true,confidence:1,source:'manual'});data.notes=clean(data.notes,s.duration);stopVoices();$('pianoEditor').close();signature='';render(true);void persist();
  }
- function exportRange(){const s=state();if($('pianoExportScope').value==='selection'){if(!(s.loopEnd>s.loopStart))throw Error('Select a repeat range using the existing controls first.');return {start:s.loopStart,end:s.loopEnd};}return {start:0,end:s.duration};}
+ function exportRange(){
+  const s=state(),selection=$('pianoExportScope').value==='selection',ranges=(selection?s.repeatRanges||[]:[{start:0,end:s.duration}]).filter(r=>Number.isFinite(r.start+r.end)&&r.end>r.start).map(r=>({start:Math.max(0,r.start),end:Math.min(s.duration,r.end)})).filter(r=>r.end>r.start);
+  if(!ranges.length)throw Error('Select a repeat range using the existing controls first.');
+  const notes=[];let offset=0;
+  for(const r of ranges){for(const n of data.notes){if(n.end<=r.start||n.start>=r.end)continue;const a=Math.max(r.start,n.start),b=Math.min(r.end,n.end);notes.push({...n,start:offset+a-r.start,end:offset+b-r.start,originalStart:a});}offset+=r.end-r.start;}
+  return {notes,start:0,end:offset,selection};
+ }
  function download(blob,extension){const name=(state().title||'Melody').replace(/\.[^.]+$/,'').replace(/[\\/:*?"<>|]/g,'_'),a=document.createElement('a'),url=URL.createObjectURL(blob);a.href=url;a.download=name+' - melody.'+extension;a.click();setTimeout(()=>URL.revokeObjectURL(url),60000);}
- async function exportFile(format){if(exporting)return;const s=state(),mine=++exportToken;try{const r=exportRange(),notes=clean(data.notes.map(n=>({...n,midi:n.midi+s.transpose})));if(!notes.some(n=>n.end>r.start&&n.start<r.end))throw Error('No melody notes in this range.');if(format==='mid'){download(A().midi(notes,r.start,r.end,sound),'mid');message('MIDI exported with melody timing and the displayed pitches.');return;}exporting=true;render(true);const blob=await A().exportAudio({notes,...r,sound,format,encoder:api.encoder,cancelled:()=>mine!==exportToken||s.session!==state().session,progress:p=>message('Preparing melody '+format.toUpperCase()+' · '+p+'%')});if(mine!==exportToken||s.session!==state().session)return;download(blob,format);message('Melody '+format.toUpperCase()+' exported at original speed with the displayed pitches.');}catch(e){if(mine===exportToken)message(e.message);}finally{if(mine===exportToken){exporting=false;render(true);}}}
- function printSheet(){try{const s=state(),r=exportRange(),selected=data.notes.filter(n=>n.end>r.start&&n.start<r.end);if(!selected.length)throw Error('No melody notes in this range.');api.pause();$('pianoPrintSheet')?.remove();const sheet=document.createElement('section');sheet.id='pianoPrintSheet';const title=document.createElement('h1');title.textContent=(s.title||'Song')+' · Melody notes';const info=document.createElement('p');info.textContent='Note names and timings · '+api.fmt(r.start)+' to '+api.fmt(r.end)+'. Displayed key; * means check this note. Timings are not rhythm notation.';const table=document.createElement('table'),thead=document.createElement('thead'),hr=document.createElement('tr');for(const text of ['Time','Note','Length','Chord']){const th=document.createElement('th');th.textContent=text;hr.append(th);}thead.append(hr);table.append(thead);const body=document.createElement('tbody');for(const n of selected){const a=Math.max(r.start,n.start),b=Math.min(r.end,n.end),tr=document.createElement('tr'),c=s.chords.find(c=>c.start<=a&&c.end>a);for(const text of [timecode(a),label(n.midi+s.transpose)+(n.uncertain&&!n.manual?' *':''),(b-a).toFixed(2)+'s',c?.label||'—']){const td=document.createElement('td');td.textContent=text;tr.append(td);}body.append(tr);}table.append(body);sheet.append(title,info,table);document.body.append(sheet);window.addEventListener('afterprint',()=>sheet.remove(),{once:true});window.print();}catch(e){message(e.message);}}
+ async function exportFile(format){if(exporting)return;const s=state(),mine=++exportToken;try{const r=exportRange(),notes=clean(r.notes.map(n=>({...n,midi:n.midi+s.transpose})));if(!notes.some(n=>n.end>r.start&&n.start<r.end))throw Error('No melody notes in this range.');if(format==='mid'){download(A().midi(notes,r.start,r.end,sound),'mid');message('MIDI exported with melody timing and the displayed pitches.');return;}exporting=true;render(true);const blob=await A().exportAudio({notes,...r,sound,format,encoder:api.encoder,cancelled:()=>mine!==exportToken||s.session!==state().session,progress:p=>message('Preparing melody '+format.toUpperCase()+' · '+p+'%')});if(mine!==exportToken||s.session!==state().session)return;download(blob,format);message('Melody '+format.toUpperCase()+' exported at original speed with the displayed pitches.');}catch(e){if(mine===exportToken)message(e.message);}finally{if(mine===exportToken){exporting=false;render(true);}}}
+ function printSheet(){try{const s=state(),r=exportRange(),selected=r.notes;if(!selected.length)throw Error('No melody notes in this range.');api.pause();$('pianoPrintSheet')?.remove();const sheet=document.createElement('section');sheet.id='pianoPrintSheet';const title=document.createElement('h1');title.textContent=(s.title||'Song')+' · Melody notes';const info=document.createElement('p');info.textContent=(r.selection?'Selected repeat':'Whole song')+' · original song timings. Displayed key; * means check this note. Timings are not rhythm notation.';const table=document.createElement('table'),thead=document.createElement('thead'),hr=document.createElement('tr');for(const text of ['Time','Note','Length','Chord']){const th=document.createElement('th');th.textContent=text;hr.append(th);}thead.append(hr);table.append(thead);const body=document.createElement('tbody');for(const n of selected){const a=Math.max(r.start,n.start),b=Math.min(r.end,n.end),tr=document.createElement('tr'),c=s.chords.find(c=>c.start<=n.originalStart&&c.end>n.originalStart);for(const text of [timecode(n.originalStart),label(n.midi+s.transpose)+(n.uncertain&&!n.manual?' *':''),(b-a).toFixed(2)+'s',c?.label||'—']){const td=document.createElement('td');td.textContent=text;tr.append(td);}body.append(tr);}table.append(body);sheet.append(title,info,table);document.body.append(sheet);window.addEventListener('afterprint',()=>sheet.remove(),{once:true});$('pianoExportDialog').close();window.print();}catch(e){message(e.message);}}
  function micMessage(text){$('pianoLiveStatus').textContent=text;}
  function micButtons(active){$('pianoLiveStart').disabled=active;$('pianoLiveStop').disabled=!active;$('pianoLiveUse').disabled=active||!take?.notes.length;}
  async function startCapture(){if(recording||stopping)return;const mine=++recordToken;take=null;micButtons(true);micMessage('Allow microphone access, then sing, hum or play one note at a time.');if(micURL){URL.revokeObjectURL(micURL);micURL=null;}$('pianoLivePreview').removeAttribute('src');$('pianoLivePreview').hidden=true;
@@ -13746,21 +13802,21 @@ window.BassPiano=(()=>{
  async function stopCapture(){if(stopping)return;if(!recording){recordToken++;micButtons(false);return;}stopping=true;const active=recording;recording=null;try{take=await active.stop();micURL=URL.createObjectURL(take.blob);$('pianoLivePreview').src=micURL;$('pianoLivePreview').hidden=false;micMessage(take.notes.length?'Captured '+take.notes.length+' notes. Listen, then use this as a new song.':'No steady notes found. Try singing or humming closer to the microphone.');}finally{stopping=false;micButtons(false);}}
  async function useCapture(){if(!take?.notes.length||stopping)return;const chosen=take;$('pianoLiveUse').disabled=true;try{await api.openRecording(chosen,$('pianoLiveName').value.trim()||'Live melody');$('pianoLiveDialog').close();message('Live melody saved. Tap any note to correct it.');}catch(e){micMessage(e.message);$('pianoLiveUse').disabled=false;}}
  function init(hooks){api=hooks;const select=$('pianoPitch');for(let m=21;m<=108;m++){const o=document.createElement('option');o.value=m;o.textContent=label(m);select.append(o);}
-  $('pianoAnalyse').onclick=analyse;$('pianoCancel').onclick=()=>{token++;busy=false;message('Paused checking. The submitted passage continues on the server. Find melody resumes it.');render(true);};
-  $('pianoAdd').onclick=()=>edit();$('pianoUndo').onclick=()=>{if(undo){data=undo;undo=null;stopVoices();signature='';render(true);void persist();}};$('pianoSaveNote').onclick=()=>commit();$('pianoDelete').onclick=()=>commit(true);$('pianoCloseNote').onclick=()=>$('pianoEditor').close();
-  $('pianoSolo').onclick=()=>{setSolo(!solo);message(solo?'Melody only: the detected notes play with the selected sound. Use the main Play control.':'Original song sound restored.');};$('pianoSound').onchange=()=>{sound=$('pianoSound').value;stopVoices();void persist();};
-  $('pianoZoom').onchange=()=>{const view=$('pianoRollViewport'),t=view.scrollLeft/zoom;zoom=Number($('pianoZoom').value);signature='';render(true);view.scrollLeft=t*zoom;};
-  const view=$('pianoRollViewport');view.addEventListener('scroll',ruler,{passive:true});const browse=()=>{autoFollow=false;$('pianoFollow').setAttribute('aria-pressed','false');};view.addEventListener('wheel',browse,{passive:true});view.addEventListener('touchstart',browse,{passive:true});view.addEventListener('pointerdown',e=>{if(e.target===view)browse();});
-  $('pianoPrevious').onclick=()=>{browse();view.scrollLeft-=Math.max(100,view.clientWidth-64);};$('pianoNext').onclick=()=>{browse();view.scrollLeft+=Math.max(100,view.clientWidth-64);};$('pianoFollow').onclick=()=>{autoFollow=!autoFollow;if(autoFollow)follow();else render();};
-  $('pianoRangeDown').onclick=()=>{low=Math.max(21,visibleRange().low-12);signature='';render(true);};$('pianoRangeUp').onclick=()=>{const r=visibleRange();low=Math.min(109-r.count,r.low+12);signature='';render(true);};
+  $('pianoAnalyse').onclick=()=>{if(busy){token++;busy=false;message('Checking paused. Find melody resumes the same passage.');render(true);}else void analyse();};
+  $('pianoUndo').onclick=()=>{if(undo){data=undo;undo=null;stopVoices();$('pianoEditor').close();signature='';render(true);void persist();}};$('pianoSaveNote').onclick=()=>commit();$('pianoDelete').onclick=()=>commit(true);$('pianoCloseNote').onclick=()=>$('pianoEditor').close();
+  $('pianoSolo').onclick=()=>{setSolo(!solo);};$('pianoSound').onchange=()=>{sound=$('pianoSound').value;stopVoices();void persist();};
+  const view=$('pianoRollViewport');view.addEventListener('scroll',refresh,{passive:true});
+  $('pianoDismiss').onclick=()=>$('pianoNotice').hidden=true;
+  $('pianoExport').onclick=()=>{$('pianoExportStatus').textContent='';$('pianoNotice').hidden=true;$('pianoExportDialog').showModal();render();};
+  const closeExport=()=>{if(exporting){exportToken++;exporting=false;render();}$('pianoExportDialog').close();};$('pianoExportClose').onclick=closeExport;$('pianoExportDialog').oncancel=e=>{e.preventDefault();closeExport();};
   $('pianoPrint').onclick=printSheet;$('pianoWav').onclick=()=>exportFile('wav');$('pianoMp3').onclick=()=>exportFile('mp3');$('pianoMidi').onclick=()=>exportFile('mid');$('pianoExportCancel').onclick=()=>{exportToken++;exporting=false;message('Export cancelled.');render(true);};
   $('pianoRecord').onclick=()=>{if(state().busy||busy)return;api.pause();setSolo(false);$('pianoLiveDialog').showModal();micButtons(!!recording);};$('pianoLiveStart').onclick=startCapture;$('pianoLiveStop').onclick=stopCapture;$('pianoLiveUse').onclick=useCapture;
   const closeMic=async()=>{await stopCapture();recordToken++;$('pianoLivePreview').pause();$('pianoLiveDialog').close();};$('pianoLiveClose').onclick=closeMic;$('pianoLiveDialog').oncancel=e=>{e.preventDefault();void closeMic();};
-  document.addEventListener('visibilitychange',()=>{if(document.hidden&&recording)void stopCapture();});window.addEventListener('pagehide',()=>{if(recording)void recording.close();setSolo(false);});window.addEventListener('resize',()=>{signature='';if(autoFollow)follow();else render();});render(true);
+  document.addEventListener('visibilitychange',()=>{if(document.hidden&&recording)void stopCapture();});window.addEventListener('pagehide',()=>{if(recording)void recording.close();setSolo(false);});window.addEventListener('resize',refresh);new ResizeObserver(refresh).observe(view);render(true);
  }
- function follow(){autoFollow=true;signature='';render(true);const view=$('pianoRollViewport');view.scrollLeft=Math.max(0,state().time*zoom-(view.clientWidth-64)*.25);const s=state(),r=visibleRange(),n=data.notes.find(n=>n.start<=s.time&&n.end>s.time)||data.notes[Math.floor(data.notes.length/2)];if(n)view.scrollTop=Math.max(0,(r.high-n.midi-s.transpose)*20-view.clientHeight/2+48);}
+ function follow(){if(!api||$('pianoViewPanel').hidden)return;render(true);const {view,gridWidth,page}=metrics(),pages=Math.max(1,Math.ceil(state().duration/page));view.scrollLeft=Math.min((pages-1)*gridWidth,Math.floor(state().time/page)*gridWidth);signature='';render(true);}
  function leave(){const wasSolo=solo;setSolo(false);if(wasSolo)message('Original song sound restored.');}
- return {init,render,reset,exportData,restore,range,keyCount,clean,join,isBusy:()=>busy||exporting,follow,transport,stopVoices,leave,isSolo:()=>solo,preparePlayback:()=>{if(solo)void unlock();}};
+ return {init,render,reset,exportData,restore,range,keyCount,fitKeys,clean,join,isBusy:()=>busy||exporting,follow,transport,stopVoices,leave,isSolo:()=>solo,preparePlayback:()=>{if(solo)void unlock();}};
 })();
 </script>
 </head>
@@ -13887,7 +13943,11 @@ window.BassPiano=(()=>{
           <span class="stacked-select-display" aria-hidden="true"><strong id="practiceViewDisplayValue">Notes</strong><span>View</span></span>
         </div>
 
-        <div class="timeline-part-tabs" id="timelinePartTabs" hidden aria-label="Song parts"></div>
+        <button class="piano-action" id="pianoAnalyse" type="button">Find<br>melody</button>
+<button class="piano-action" id="pianoSolo" type="button" aria-pressed="false">Melody<br>only</button>
+<button class="piano-action" id="pianoExport" type="button" aria-haspopup="dialog">Export</button>
+<button class="piano-action" id="pianoRecord" type="button" aria-haspopup="dialog">Record</button>
+<div class="timeline-part-tabs" id="timelinePartTabs" hidden aria-label="Song parts"></div>
 
 
       </div>
@@ -13898,17 +13958,8 @@ window.BassPiano=(()=>{
 
 
 <div id="pianoViewPanel" hidden aria-label="Lead melody piano practice">
- <div class="piano-primary"><button id="pianoAnalyse" type="button">Find melody</button><button id="pianoSolo" type="button" aria-pressed="false">Melody only</button><button id="pianoRecord" type="button">Record melody</button></div>
- <div class="piano-toolbar"><button id="pianoCancel" type="button" hidden>Pause checking</button><strong id="pianoNow" aria-label="Current melody note">—</strong></div>
- <p id="pianoStatus" role="status">Find melody uses the analysis service. Saved passages are reused.</p>
- <details id="pianoTools"><summary>Melody tools</summary>
-  <div class="piano-toolbar"><label>Sound <select id="pianoSound"><option value="piano">Piano</option><option value="bass">Bass</option></select></label><label>Zoom <select id="pianoZoom"><option value="50">Wide</option><option value="90" selected>Normal</option><option value="150">Close</option></select></label><button id="pianoAdd" type="button">Add note</button><button id="pianoUndo" type="button" disabled>Undo</button></div>
-  <div class="piano-toolbar"><label>Export <select id="pianoExportScope"><option value="whole">Whole song</option><option value="selection">Repeat range</option></select></label><button id="pianoPrint" type="button">Print / PDF</button><button id="pianoWav" type="button">WAV</button><button id="pianoMp3" type="button">MP3</button><button id="pianoMidi" type="button">MIDI</button><button id="pianoExportCancel" type="button" hidden>Cancel export</button></div>
-  <p>Solo and audio exports play the detected notes using the selected instrument sound. Exports keep the original timing and displayed key.</p>
- </details>
- <div class="piano-toolbar"><button id="pianoPrevious" type="button" aria-label="Scroll to earlier melody">‹</button><button id="pianoNext" type="button" aria-label="Scroll to later melody">›</button><button id="pianoFollow" type="button" aria-pressed="true">Follow</button><button id="pianoRangeDown" type="button" aria-label="Lower keyboard octave">↓</button><button id="pianoRangeUp" type="button" aria-label="Raise keyboard octave">↑</button><span id="pianoRange"></span></div>
- <p id="pianoOutside"></p>
- <div id="pianoRollViewport" tabindex="0" aria-label="Scrollable melody history. Swipe left or right to review notes."><div id="pianoRollCanvas"><div id="pianoRollHeader"><div id="pianoRollCorner">Notes</div><div id="pianoTimeRuler"></div><div id="pianoChordRuler"></div></div><div id="pianoKeyboard" aria-label="Vertical piano keyboard"></div><div id="pianoTimeline" aria-label="Melody notes along the complete song timeline"></div></div></div>
+ <div id="pianoNotice" hidden><span id="pianoStatus" role="status"></span><button id="pianoDismiss" type="button" aria-label="Dismiss message">×</button></div>
+ <div id="pianoRollViewport" tabindex="0" aria-label="Melody timeline. Follows playback automatically. Swipe horizontally when paused to review notes."><div id="pianoRollCanvas"><div id="pianoRollHeader"><div id="pianoRollCorner">Notes</div><div id="pianoTimeRuler"></div><div id="pianoChordRuler"></div></div><div id="pianoKeyboard" aria-label="Vertical piano keyboard. Tap a key to add a note at the playhead."></div><div id="pianoTimeline" aria-label="Melody notes along the song timeline"></div></div></div>
 </div>
 
     <div class="bass-view-panel" id="bassViewPanel" hidden aria-label="Live bass guitar fretboard">
@@ -15313,12 +15364,20 @@ window.BassBatch = (() => {
 
 <dialog id="pianoLiveDialog" aria-labelledby="pianoLiveTitle"><h2 id="pianoLiveTitle">Record a melody</h2><p>Sing, hum or play one clear note at a time. Speech may not form steady musical notes. Your microphone stays on this device.</p><label>Recording name<input id="pianoLiveName" value="Live melody" maxlength="80"></label><strong id="pianoLiveNote">—</strong><p id="pianoLiveStatus" role="status">Up to 2 minutes. The song is paused to keep its sound out of the recording.</p><audio id="pianoLivePreview" controls hidden></audio><div class="piano-live-actions"><button id="pianoLiveStart" type="button">Record</button><button id="pianoLiveStop" type="button" disabled>Stop</button><button id="pianoLiveUse" type="button" disabled>Save as new song</button><button id="pianoLiveClose" type="button">Close</button></div><p>Save as new song keeps this recording in your song library and opens its notes in Piano View. Save any changes to your current song first.</p></dialog>
 
-<dialog id="pianoEditor" aria-labelledby="pianoEditTitle"><h2 id="pianoEditTitle">Correct melody note</h2><label>Note<select id="pianoPitch"></select></label><label>Start (seconds)<input id="pianoStart" type="number" min="0" step="0.01"></label><label>End (seconds)<input id="pianoEnd" type="number" min="0" step="0.01"></label><p id="pianoEditError" role="alert"></p><button id="pianoSaveNote" type="button">Save note</button> <button id="pianoDelete" type="button">Delete note</button> <button id="pianoCloseNote" type="button">Cancel</button></dialog>
+<dialog id="pianoExportDialog" aria-labelledby="pianoExportTitle">
+ <div class="piano-dialog-heading"><h2 id="pianoExportTitle">Export melody</h2><button id="pianoExportClose" type="button" aria-label="Close export options">×</button></div>
+ <label>Include<select id="pianoExportScope"><option value="whole">Whole song</option><option value="selection">Repeat range</option></select></label>
+ <label>Instrument<select id="pianoSound"><option value="piano">Piano</option><option value="bass">Bass guitar</option></select></label>
+ <div class="piano-export-formats"><button id="pianoPrint" type="button">Print / PDF</button><button id="pianoMp3" type="button">MP3</button><button id="pianoWav" type="button">WAV</button><button id="pianoMidi" type="button">MIDI</button></div>
+ <p id="pianoExportStatus" role="status"></p><button id="pianoExportCancel" type="button" hidden>Cancel export</button>
+</dialog>
+
+<dialog id="pianoEditor" aria-labelledby="pianoEditTitle"><h2 id="pianoEditTitle">Correct melody note</h2><label>Note<select id="pianoPitch"></select></label><label>Start (seconds)<input id="pianoStart" type="number" min="0" step="0.01"></label><label>End (seconds)<input id="pianoEnd" type="number" min="0" step="0.01"></label><p id="pianoEditError" role="alert"></p><div class="piano-edit-actions"><button id="pianoSaveNote" type="button">Save note</button> <button id="pianoDelete" type="button">Delete note</button> <button id="pianoUndo" type="button" disabled>Undo last change</button> <button id="pianoCloseNote" type="button">Close</button></div></dialog>
 <script src="./chord-source/recovery.js"></script>
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC238';
+  const APP_VERSION='RC239b';
   const PROJECT_SCHEMA_VERSION=2;
   // RC125: compact practice-view and string selectors preserve space for P1/P2/P3; all RC124 audio, analysis, repeat, project and practice logic preserved.
 
@@ -20494,7 +20553,7 @@ window.BassBatch = (() => {
 
   window.BassUXContext=studySong;
   window.BassPiano.init({
-    get:()=>({buffer,session:songSession,busy:aiBusy||songImportBusy,time:currentTime(),duration:buffer?.duration||0,playing,transpose:transposeSemitones,speed:Number(tempo.value),title:loadedProjectName||objectName||'Song',loopStart:loopEnabled?loopStart:null,loopEnd:loopEnabled?loopEnd:null,step:TIMELINE_CELL_SECONDS,selection:[...selectedTimeframes].join(','),chords:detectedChordChanges.filter(reliableChord).map(c=>({...c,label:chordDisplayLabel(c)}))}),
+    get:()=>({buffer,session:songSession,busy:aiBusy||songImportBusy,time:currentTime(),duration:buffer?.duration||0,playing,transpose:transposeSemitones,speed:Number(tempo.value),title:loadedProjectName||objectName||'Song',repeatRanges:(timeframeLoopMode?timeframeQueue:multiSectionMode?sectionQueue:loopEnabled?[{start:loopStart,end:loopEnd}]:[]).map(r=>({start:r.start,end:r.end})),loopStart:loopEnabled?loopStart:null,loopEnd:loopEnabled?loopEnd:null,step:TIMELINE_CELL_SECONDS,selection:[...selectedTimeframes].join(','),chords:detectedChordChanges.filter(reliableChord).map(c=>({...c,label:chordDisplayLabel(c)}))}),
     pause,cloud:analysePianoPassage,fmt,select:toggleTimeframeSelection,selected:a=>selectedTimeframes.has(a),
     solo:on=>{melodySolo=on;updateAudioParams();},encoder:ensureLargeSongEncoder,
     openRecording:async(take,name)=>{
