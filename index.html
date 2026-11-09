@@ -13723,7 +13723,7 @@ window.BassPiano=(()=>{
   let use=all.length&&all.at(-1)-all[0]+1<=24?all:current;
   if(!use.length){const near=notes.find(n=>n.end>start)||notes.at(-1);use=near?[near.midi+transpose]:[60,64,67];}
   const lo=use[0],hi=use.at(-1),limit=Math.max(budget,Math.min(36,use.length));
-  if(hi-lo+1<=limit){let bottom=lo,top=hi;while(top-bottom+1<Math.min(limit,24)){if(bottom>21)bottom--;if(top-bottom+1<Math.min(limit,24)&&top<108)top++;if(bottom<=21&&top>=108)break;}return Array.from({length:top-bottom+1},(_,i)=>top-i);}
+  if(hi-lo+1<=limit){let bottom=lo,top=hi;while(top-bottom+1<Math.min(limit,12)){if(bottom>21)bottom--;if(top-bottom+1<Math.min(limit,12)&&top<108)top++;if(bottom<=21&&top>=108)break;}return Array.from({length:top-bottom+1},(_,i)=>top-i);}
   const shown=new Set(use);
   for(let distance=1;shown.size<limit&&distance<12;distance++)for(const m of use)for(const neighbour of [m-distance,m+distance])if(shown.size<limit&&neighbour>=21&&neighbour<=108)shown.add(neighbour);
   return [...shown].sort((a,b)=>b-a);
@@ -13751,7 +13751,7 @@ window.BassPiano=(()=>{
   render.scale=scale;
   const start=view.scrollLeft/zoom,end=start+page,keys=fitKeys(data.notes,start,end,height,s.transpose),row=height/keys.length,visible=data.notes.map((n,index)=>({...n,index,midi:n.midi+s.transpose})).filter(n=>n.end>start&&n.start<end);
   const sig=[keys.join(','),Math.round(height*100),zoom,s.duration,s.transpose,data.notes.length,data.done.length,visible.map(n=>n.index).join(',')].join('|');
-  panel.style.setProperty('--piano-row',row+'px');panel.style.setProperty('--piano-label',Math.min(14,Math.max(10,row-3))+'px');
+  $('pianoRollCorner').textContent=keys.length+' keys';panel.style.setProperty('--piano-row',row+'px');panel.style.setProperty('--piano-label',Math.min(14,Math.max(10,row-3))+'px');
   if(force||sig!==signature){signature=sig;grid.style.width=width+'px';grid.style.height=height+'px';grid.style.backgroundSize=step*zoom+'px '+row+'px';keyboard.style.height=height+'px';grid.replaceChildren();keyboard.replaceChildren();
    keys.forEach((m,i)=>{const k=document.createElement('button');k.className='piano-key '+(black(m)?'black':'white')+(i&&keys[i-1]-m>1?' pitch-gap':'');k.dataset.midi=m;k.textContent=label(m);k.setAttribute('aria-label','Add '+label(m)+' at the playhead');k.title='Add '+label(m)+' at '+api.fmt(s.time);k.style.setProperty('top',i*row+'px','important');k.disabled=busy||exporting;k.onclick=()=>addAtPlayhead(m);keyboard.append(k);});
    visible.forEach(n=>{const index=keys.indexOf(n.midi);if(index<0)return;const btn=document.createElement('button');btn.className='piano-note'+(n.uncertain&&!n.manual?' uncertain':'');btn.textContent=label(n.midi);btn.dataset.index=n.index;btn.dataset.start=n.start;btn.dataset.end=n.end;btn.style.setProperty('left',n.start*zoom+'px','important');btn.style.setProperty('top',index*row+1+'px','important');btn.style.setProperty('width',Math.max(5,(n.end-n.start)*zoom)+'px','important');btn.title=`${label(n.midi)}, ${n.start.toFixed(2)} to ${n.end.toFixed(2)} seconds. Tap to correct`;btn.setAttribute('aria-label',btn.title);btn.onclick=()=>edit(n.index);grid.append(btn);});
@@ -13819,7 +13819,7 @@ window.BassPiano=(()=>{
  return {init,render,reset,exportData,restore,range,keyCount,fitKeys,clean,join,isBusy:()=>busy||exporting,follow,transport,stopVoices,leave,isSolo:()=>solo,preparePlayback:()=>{if(solo)void unlock();}};
 })();
 </script>
-</head>
+<style id="rc240-spacing">html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot .progress-row-premium .progress-track{display:flex!important;align-items:center!important;height:24px!important;padding:0!important;margin:0!important;transform:none!important;}html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot .progress-row-premium input{margin:0!important;transform:none!important;align-self:center!important;}html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot .progress-row-premium{box-sizing:border-box!important;height:40px!important;min-height:40px!important;padding:8px 0!important;margin:0!important;align-items:center!important;}html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #importBtn svg{width:32px!important;height:32px!important;min-width:32px!important;max-width:32px!important;}</style></head>
 <body>
 <div id="sectionCompatibility" style="display:none" aria-hidden="true">
 <div id="sectionGrid"></div><button id="playSelected"></button><button id="clearSelected"></button><span id="selectedSummary"></span>
@@ -13846,14 +13846,7 @@ window.BassPiano=(()=>{
   <div class="transport-row transport-main">
     <div class="transport-actions">
       <button class="btn primary icon-control import-audio-btn" id="importBtn" type="button" aria-label="Import audio or video" title="Import audio or video">
-        <svg class="control-icon import-audio-icon" viewBox="0 0 72 72" aria-hidden="true" focusable="false">
-          <!-- RC118: audio-file + upload symbol based on the user's supplied reference. -->
-          <path class="import-file" d="M13 7h30l12 12v35H13z"/>
-          <path class="import-fold" d="M43 7v12h12"/>
-          <path class="import-note" d="M37 24v19.5c0 4.2-3.7 7.5-8.2 7.5S21 48.4 21 44.8s3.3-6.2 7.7-6.2c1.4 0 2.7.3 3.8.8V27.8l14-3.5v6.2z"/>
-          <circle class="import-upload-badge" cx="53" cy="52" r="15"/>
-          <path class="import-upload-arrow" d="M53 61V44m0 0-7 7m7-7 7 7"/>
-        </svg>
+        <svg class="control-icon" viewBox="0 0 64 64" aria-hidden="true"><path d="M12 38v14h40V38M32 42V12m0 0L20 24m12-12 12 12" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
       <input class="fileinput" id="fileInput" type="file" accept="audio/*,video/*,.mp3,.wav,.wave,.m4a,.m4b,.aac,.aif,.aiff,.aifc,.caf,.flac,.ogg,.oga,.opus,.wma,.mp4,.m4v,.mov,.webm,.mkv,.avi,.mpeg,.mpg,.3gp,.3g2,.ogv,.wmv">
       <button class="btn good icon-control" id="playBtn" type="button" disabled aria-label="Play" title="Play">
@@ -15377,7 +15370,7 @@ window.BassBatch = (() => {
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC239b';
+  const APP_VERSION='RC240';
   const PROJECT_SCHEMA_VERSION=2;
   // RC125: compact practice-view and string selectors preserve space for P1/P2/P3; all RC124 audio, analysis, repeat, project and practice logic preserved.
 

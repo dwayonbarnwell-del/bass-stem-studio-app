@@ -52,7 +52,7 @@ window.BassPiano=(()=>{
   let use=all.length&&all.at(-1)-all[0]+1<=24?all:current;
   if(!use.length){const near=notes.find(n=>n.end>start)||notes.at(-1);use=near?[near.midi+transpose]:[60,64,67];}
   const lo=use[0],hi=use.at(-1),limit=Math.max(budget,Math.min(36,use.length));
-  if(hi-lo+1<=limit){let bottom=lo,top=hi;while(top-bottom+1<Math.min(limit,24)){if(bottom>21)bottom--;if(top-bottom+1<Math.min(limit,24)&&top<108)top++;if(bottom<=21&&top>=108)break;}return Array.from({length:top-bottom+1},(_,i)=>top-i);}
+  if(hi-lo+1<=limit){let bottom=lo,top=hi;while(top-bottom+1<Math.min(limit,12)){if(bottom>21)bottom--;if(top-bottom+1<Math.min(limit,12)&&top<108)top++;if(bottom<=21&&top>=108)break;}return Array.from({length:top-bottom+1},(_,i)=>top-i);}
   const shown=new Set(use);
   for(let distance=1;shown.size<limit&&distance<12;distance++)for(const m of use)for(const neighbour of [m-distance,m+distance])if(shown.size<limit&&neighbour>=21&&neighbour<=108)shown.add(neighbour);
   return [...shown].sort((a,b)=>b-a);
@@ -80,7 +80,7 @@ window.BassPiano=(()=>{
   render.scale=scale;
   const start=view.scrollLeft/zoom,end=start+page,keys=fitKeys(data.notes,start,end,height,s.transpose),row=height/keys.length,visible=data.notes.map((n,index)=>({...n,index,midi:n.midi+s.transpose})).filter(n=>n.end>start&&n.start<end);
   const sig=[keys.join(','),Math.round(height*100),zoom,s.duration,s.transpose,data.notes.length,data.done.length,visible.map(n=>n.index).join(',')].join('|');
-  panel.style.setProperty('--piano-row',row+'px');panel.style.setProperty('--piano-label',Math.min(14,Math.max(10,row-3))+'px');
+  $('pianoRollCorner').textContent=keys.length+' keys';panel.style.setProperty('--piano-row',row+'px');panel.style.setProperty('--piano-label',Math.min(14,Math.max(10,row-3))+'px');
   if(force||sig!==signature){signature=sig;grid.style.width=width+'px';grid.style.height=height+'px';grid.style.backgroundSize=step*zoom+'px '+row+'px';keyboard.style.height=height+'px';grid.replaceChildren();keyboard.replaceChildren();
    keys.forEach((m,i)=>{const k=document.createElement('button');k.className='piano-key '+(black(m)?'black':'white')+(i&&keys[i-1]-m>1?' pitch-gap':'');k.dataset.midi=m;k.textContent=label(m);k.setAttribute('aria-label','Add '+label(m)+' at the playhead');k.title='Add '+label(m)+' at '+api.fmt(s.time);k.style.setProperty('top',i*row+'px','important');k.disabled=busy||exporting;k.onclick=()=>addAtPlayhead(m);keyboard.append(k);});
    visible.forEach(n=>{const index=keys.indexOf(n.midi);if(index<0)return;const btn=document.createElement('button');btn.className='piano-note'+(n.uncertain&&!n.manual?' uncertain':'');btn.textContent=label(n.midi);btn.dataset.index=n.index;btn.dataset.start=n.start;btn.dataset.end=n.end;btn.style.setProperty('left',n.start*zoom+'px','important');btn.style.setProperty('top',index*row+1+'px','important');btn.style.setProperty('width',Math.max(5,(n.end-n.start)*zoom)+'px','important');btn.title=`${label(n.midi)}, ${n.start.toFixed(2)} to ${n.end.toFixed(2)} seconds. Tap to correct`;btn.setAttribute('aria-label',btn.title);btn.onclick=()=>edit(n.index);grid.append(btn);});
