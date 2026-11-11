@@ -17993,12 +17993,12 @@ window.BassBatch = (() => {
     catch(err){lameEncoderLoadPromise=null;throw err}
   }
 
-  function chooseAnalysisMp3Bitrate(durationSeconds,targetBytes=RUNPOD_RUNSYNC_RAW_SAFE_BYTES){
+  function chooseAnalysisMp3Bitrate(durationSeconds,targetBytes=RUNPOD_RUNSYNC_RAW_SAFE_BYTES,minimumKbps=64){
     const duration=Math.max(1,Number(durationSeconds)||0);
     // Leave a little room for MP3 frame/header overhead.
     const maxKbps=Math.floor((targetBytes*.99*8)/(duration*1000));
-    const rates=[192,160,144,128,112,96,80,64];
-    return rates.find(k=>k<=maxKbps)||null;
+    const rates=[192,160,144,128,112,96,80,64,56,48,40,32];
+    return rates.find(k=>k>=minimumKbps&&k<=maxKbps)||null;
   }
 
   function pcmFloatToInt16(value){
@@ -21147,10 +21147,12 @@ window.BassBatch = (() => {
           // recoverable job ID and has a much shorter result retention window.
           let upload=file;
           if(file.size>RUNPOD_RUN_RAW_SAFE_BYTES){
-            const bitrate=chooseAnalysisMp3Bitrate(audioBuffer.duration,RUNPOD_RUN_RAW_SAFE_BYTES);
+            // Section detection needs the full arrangement in one request.
+            // Use a smaller temporary upload; keep saved audio and bass quality unchanged.
+            const bitrate=chooseAnalysisMp3Bitrate(audioBuffer.duration,RUNPOD_RUN_RAW_SAFE_BYTES,32);
             if(!bitrate)throw new Error('This song is too long for one safe sections request. Shorten it or split the recording.');
             setStructureStage('Preparing audio…');
-            const rates=[192,160,144,128,112,96,80,64];
+            const rates=[192,160,144,128,112,96,80,64,56,48,40,32];
             for(const rate of rates.slice(rates.indexOf(bitrate))){
               upload=await encodeAudioBufferForAnalysis(audioBuffer,rate,0,null,'',session);
               assertSongSession(session);
