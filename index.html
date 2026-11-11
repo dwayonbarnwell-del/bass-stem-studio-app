@@ -3,6 +3,7 @@
 <head>
 <meta name="referrer" content="no-referrer">
 <meta charset="utf-8">
+<script src="./library-source/navigation.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bass Stem Studio | Bass Practice, Stem Separation and Song Chords</title>
 <meta name="description" content="Bass Stem Studio helps musicians practise with song stems, review chord progressions and sections, and keep a personal music library.">
@@ -14811,7 +14812,7 @@ window.BassLibrary=(()=>{
     el('libraryChoose').onclick=()=>run(chooseFolder);el('libraryDevice').onclick=()=>run(useDevice);
     el('libraryRefresh').onclick=()=>run(refresh);el('libraryReconnect').onclick=()=>run(reconnect);
     el('libraryAdd').onclick=()=>{el('libraryFiles').value='';el('libraryFiles').click();};
-    el('libraryBatch').onclick=()=>{dialog.close();window.BassBatch?.show();};
+    el('libraryBatch').onclick=()=>{window.BassBatch?.show();};
     el('libraryFiles').onchange=e=>{const files=Array.from(e.target.files||[]);e.target.value='';void run(()=>addFiles(files));};
   }
   async function show(){
@@ -15532,7 +15533,7 @@ window.BassBatch = (() => {
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC242';
+  const APP_VERSION='RC243';
   const PROJECT_SCHEMA_VERSION=2;
   // RC125: compact practice-view and string selectors preserve space for P1/P2/P3; all RC124 audio, analysis, repeat, project and practice logic preserved.
 
@@ -20257,7 +20258,7 @@ window.BassBatch = (() => {
       const label=document.createElement('button');
       label.className='chord-detail-name'+(e.chord.uncertain?' tentative':'');label.textContent=chordDisplayLabel(e.chord);
       {label.type='button';label.setAttribute('aria-label',`Correct ${label.textContent} at ${fmtShort(e.start)}`);
-        label.onclick=()=>{$('chordDetailsDialog').close();openAnalysisEditor('chord',detectedChordChanges[e.index]);};}
+        label.onclick=()=>{openAnalysisEditor('chord',detectedChordChanges[e.index]);};}
       row.append(time,label);list.append(row);
     }
     if(!list.childElementCount)list.textContent='No clear chord detected.';
@@ -22210,6 +22211,43 @@ window.BassBatch = (() => {
     }
   });
   let analysisStartPending=false;
+  let taskAnalysisBusy=false;
+  async function analyseTaskSong(open){
+    if(taskAnalysisBusy||aiBusy||songImportBusy||projectSaveBusy||pendingResumeBusy||analysisStartPending)
+      throw Error('Wait for current analysis');
+    taskAnalysisBusy=true;
+    try{
+      if(!await open())return false;
+      const session=songSession;
+      analysisStartPending=true;
+      const complete=offlineAnalysisReady&&notes.length&&detectedChordChanges.length;
+      if(!complete){
+        if(offlineAnalysisReady&&notes.length){
+          if(!await BassDialog.confirm('Bass notes are saved, but chords are missing. Analysing again may cost money.',{title:'Complete song analysis',accept:'Analyse again'}))return false;
+        }
+        if(session!==songSession||!await reviewInterruptedUploads('analysis')||session!==songSession)return false;
+        const result=await analyseBassWithAI();
+        if(!result||session!==songSession)return false;
+      }
+      if(session!==songSession)return false;
+      const project=await captureStudyProject();
+      if(!project||session!==songSession)return false;
+      await window.BassLibrary.saveMelodyProject(project);
+      aiStatus('Song saved',100);return true;
+    }finally{taskAnalysisBusy=false;analysisStartPending=false;}
+  }
+  window.BassTaskAnalysis={
+    saved:(location,id)=>analyseTaskSong(()=>window.BassLibrary.openForAnalysis(location,id)),
+    file:file=>analyseTaskSong(()=>importAudioCheckingLibrary(file)),
+    pick:receive=>{
+      if(taskAnalysisBusy||aiBusy||songImportBusy)return;
+      const input=document.createElement('input');input.type='file';input.accept=fileInput.accept;input.hidden=true;
+      input.oncancel=()=>input.remove();
+      input.onchange=()=>{const file=input.files?.[0];input.remove();if(file)void receive(file);};
+      document.body.append(input);input.click();
+    }
+  };
+
   aiAnalyse?.addEventListener('click',async()=>{
     if(analysisStartPending||aiBusy||pendingResumeBusy||songImportBusy)return;
     analysisStartPending=true;

@@ -414,7 +414,7 @@ window.BassLibrary=(()=>{
     el('libraryChoose').onclick=()=>run(chooseFolder);el('libraryDevice').onclick=()=>run(useDevice);
     el('libraryRefresh').onclick=()=>run(refresh);el('libraryReconnect').onclick=()=>run(reconnect);
     el('libraryAdd').onclick=()=>{el('libraryFiles').value='';el('libraryFiles').click();};
-    el('libraryBatch').onclick=()=>{dialog.close();window.BassBatch?.show();};
+    el('libraryBatch').onclick=()=>{window.BassBatch?.show();};
     el('libraryFiles').onchange=e=>{const files=Array.from(e.target.files||[]);e.target.value='';void run(()=>addFiles(files));};
   }
   async function show(){
@@ -469,5 +469,24 @@ window.BassLibrary=(()=>{
           quality:c.quality,confidence:c.confidence,uncertain:c.uncertain,manual:c.manual}))},
       settings:{sections:project.settings?.sections||{}}};
   }
-  return {init,show,prepareSave,save,hasProject,ensureBatchAccess,errorText,chartProjects,chartProject,checkAudioImport,analysisSummary,openForAnalysis};
+  // Update the exact saved song, without a naming prompt or new analysis.
+  // A same-named project with different audio is never overwritten.
+  async function saveMelodyProject(project){
+    await ready;
+    let filename=String(project.projectName||'Song').replace(/[\\/:*?"<>|]+/g,'_').trim().slice(0,100)+'.bassstudio';
+    let dir=folder&&await permission(folder,'readwrite')?folder:null;
+    for(let i=0;i<100;i++){
+      const id=filename.toLocaleLowerCase();let existing=null;
+      if(dir){try{existing=await (await dir.getFileHandle(filename)).getFile();}catch(e){if(e.name!=='NotFoundError')throw e;}}
+      else existing=(await store('songs','readonly',s=>s.get(id)))?.blob;
+      if(existing){
+        let previous;try{previous=JSON.parse(await existing.text());}catch{}
+        if(!previous?.source?.audioBase64||previous.source.audioBase64!==project.source.audioBase64){filename=String(project.projectName||'Song').replace(/[\\/:*?"<>|]+/g,'_').slice(0,84)+' - melody '+(i+1)+'.bassstudio';continue;}
+      }
+      await save(project,new Blob([JSON.stringify(project)],{type:'application/json'}),{dir,filename,id});
+      return dir?'folder':'device';
+    }
+    throw Error('Save melody manually');
+  }
+  return {init,show,prepareSave,save,saveMelodyProject,hasProject,ensureBatchAccess,errorText,chartProjects,chartProject,checkAudioImport,analysisSummary,openForAnalysis};
 })();

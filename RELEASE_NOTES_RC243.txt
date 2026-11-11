@@ -1,0 +1,25 @@
+RC243: song discovery, analysis actions and Back navigation
+
+Explore excludes every visible playlist/chart entry and saved audio project,
+including unfinished songs, aliases and common live/version title suffixes.
+Suggestions wait for the playlist check and update when songs are saved.
+Unavailable saved folders are reported because their songs cannot be checked.
+
+To analyse now offers Analyse & save for saved audio, and Import & analyse
+for chart-only entries. Choosing an audio file starts the existing analysis
+and saves its result. Completed bass/chord results are reused; partial saved
+bass requires confirmation before another chargeable analysis. Existing job
+recovery safeguards remain active. Discovery never starts paid processing.
+Recordings cannot be downloaded from a song title or lyrics search alone.
+
+Android/browser Back stays inside open dialogs. Song charts opened from the
+worklist return to that worklist; edit returns to overview first. Library to
+Song chords/Batch ZIP and chord details to editor retain their parent dialog.
+Explore Back restores the preceding tab. Parent searches and scroll positions
+are retained because the parent stays open.
+
+Validation: Node workflow tests cover nested Back navigation and modal cleanup,
+playlist exclusion, cached reuse, cancellation, failed analysis, saving and
+duplicate clicks. Existing song-task integration and piano recovery tests pass.
+All inline JavaScript parses. No paid RunPod requests were made.
+Fresh Chromium visual testing was blocked by the environment's socket policy.

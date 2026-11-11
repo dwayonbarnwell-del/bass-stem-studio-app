@@ -1,4 +1,4 @@
-/* RC228: saved-song worklist and LRCLIB discovery. No audio upload or paid analysis. */
+/* RC228: saved-song worklist and LRCLIB discovery. Discovery never starts analysis. Analysis requires an explicit song action. */
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
@@ -19,12 +19,13 @@ const SEEDS=[
  'worship','gospel','praise','Holy Spirit','Hallelujah','Hosanna',
  'grace','Jesus','God is good','The Lord','glory'
 ];
+let playlistNames=new Set(),playlistReady=false,actionBusy=false,tabHistory=[];
 let dialog=null,featured=null,tab='pending',pending=[],suggestions=[],dismissed=new Set();
 let cursor=0,visiblePending=30,visibleDiscover=30,searching=false,pausedUntil=0,requestSerial=0,networkController=null;
 let loadingPending=false,pendingRefreshQueued=false,folderWarning=false,loadIssues=0,ready=false,loadToken=0,completedSaved=[],networkError='';
 const normal=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
 function titleKey(value){
- return normal(String(value||'').replace(/\.(mp3|m4a|wav|flac|aac|ogg|mp4|bassstudio)$/i,'').split(/\s+[-–]\s+/)[0]);
+ return normal(String(value||'').replace(/\.(mp3|m4a|wav|flac|aac|ogg|mp4|bassstudio|bssproject|json)$/i,'').replace(/\s*[([](?:live(?:\s+[^)\]]*)?|official(?:\s+[^)\]]*)?|remaster(?:ed)?(?:\s+[^)\]]*)?|lyrics?|audio|video)[)\]]/gi,'').split(/\s+[-–]\s+/)[0]);
 }
 const trackKey=s=>normal(s.title)+'|'+normal(s.artist);
 function saveState(){
@@ -47,7 +48,7 @@ function elem(tag,cl,value){
  return node;
 }
 function active(){return !!dialog?.open&&tab==='discover'}
-function activeSuggestions(){const done=finishedTitleSet();return suggestions.filter(s=>!dismissed.has(trackKey(s))&&!done.has(titleKey(s.title))).slice(0,CAP);}
+function activeSuggestions(){if(!playlistReady)return [];return suggestions.filter(s=>!dismissed.has(trackKey(s))&&!playlistNames.has(titleKey(s.title))).slice(0,CAP);}
 function count(){return activeSuggestions().length}
 function displayStatus(s){const n=$('btStatus');if(n)n.textContent=s;}
 function finishedTitleSet(){
@@ -58,12 +59,14 @@ async function loadPending(){
  if(loadingPending){pendingRefreshQueued=true;return;}
  const token=++loadToken;loadingPending=true;displayStatus('Checking saved songs…');
  try{
-  const [inLibrary,missing]=await Promise.all([
-   window.BassLibrary.analysisSummary(),window.BassChordLibrary.missingProgressions()
+  const [inLibrary,missing,playlist]=await Promise.all([
+   window.BassLibrary.analysisSummary(),window.BassChordLibrary.missingProgressions(),window.BassChordLibrary.playlistSongs()
   ]);
   if(token!==loadToken)return;
   folderWarning=inLibrary.reconnect;loadIssues=inLibrary.issues;
   const saved=inLibrary.songs||[];
+  playlistNames=new Set([...saved,...playlist].flatMap(s=>[s.title,s.sourceName,...(s.aliases||[])].filter(Boolean).map(titleKey)));
+  playlistReady=true;
   const complete=saved.filter(s=>s.hasChordAnalysis&&s.hasBassAnalysis);
   completedSaved=complete.map(s=>({title:s.title,sourceName:s.sourceName}));
   const completedNames=finishedTitleSet();
@@ -89,9 +92,15 @@ async function loadPending(){
   }
   pending=rows.sort((a,b)=>a.title.localeCompare(b.title,'en'));
   visiblePending=30;
-  render();
+  render();if(active())void fillSuggestions();
  }catch(err){displayStatus('Could not check your saved songs. Open Library to check folder access.');}
  finally{loadingPending=false;if(pendingRefreshQueued){pendingRefreshQueued=false;void loadPending();}}
+}
+async function runSongAction(button,action){
+ if(actionBusy)return;actionBusy=true;button.disabled=true;const label=button.textContent;button.textContent='Analysing song';
+ try{const result=await action();await loadPending();displayStatus(result?'Song saved':'Analysis paused');}
+ catch(error){displayStatus(error.message||'Could not analyse');}
+ finally{actionBusy=false;button.disabled=false;button.textContent=label;}
 }
 function buildCard(item){
  const li=elem('li');
@@ -100,22 +109,14 @@ function buildCard(item){
  detail.append(name,desc);
  const actions=elem('div','bt-actions');
  if(item.kind==='saved'){
-  const open=elem('button','bt-primary','Open saved');
-  open.onclick=async()=>{
-   if(!dialog?.open)return;
-   dialog.close();
-   try{await window.BassLibrary.openForAnalysis(item.location,item.filename);}
-   catch(e){window.alert('Could not open this saved song. Open Library to check its location.');}
-  };
+  const open=elem('button','bt-primary','Analyse & save');
+  open.onclick=()=>void runSongAction(open,()=>window.BassTaskAnalysis.saved(item.location,item.filename));
   actions.append(open);
  }else{
-  const importAudio=elem('button','bt-primary','Import audio');
-  importAudio.onclick=()=>{
-   dialog.close();
-   $('importBtn')?.click();
-  };
+  const importAudio=elem('button','bt-primary','Import & analyse');
+  importAudio.onclick=()=>window.BassTaskAnalysis.pick(file=>runSongAction(importAudio,()=>window.BassTaskAnalysis.file(file)));
   const openChart=elem('button','','Open chart');
-  openChart.onclick=()=>{dialog.close();void window.BassChordLibrary.openSongById(item.refId);};
+  openChart.onclick=()=>{void window.BassChordLibrary.openSongById(item.refId);};
   actions.append(importAudio,openChart);
  }
  li.append(detail,actions);return li;
@@ -161,7 +162,7 @@ function render(){
   $('btShowDiscover').hidden=filtered.length<=visibleDiscover;
   $('btDiscoverEmpty').hidden=filtered.length>0;
   $('btFindMore').disabled=searching||count()>=CAP||Date.now()<pausedUntil||cursor>=SEEDS.length;
-  if(!searching)displayStatus(Date.now()<pausedUntil?'Song search is temporarily limited. Try again later.':
+  if(!searching)displayStatus(folderWarning?'Reconnect your saved folder to exclude all its songs.':loadIssues?'Some saved files could not be checked.':Date.now()<pausedUntil?'Song search is temporarily limited. Try again later.':
    !navigator.onLine?'Connect to the internet for more suggestions.':
    networkError?networkError:
    cursor>=SEEDS.length&&usable.length<CAP?'No more different matches found for these searches.':'');
@@ -169,7 +170,7 @@ function render(){
 }
 function wait(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
 async function fillSuggestions(){
- if(searching||!active()||count()>=CAP||Date.now()<pausedUntil||!navigator.onLine)return;
+ if(!playlistReady||searching||!active()||count()>=CAP||Date.now()<pausedUntil||!navigator.onLine)return;
  searching=true;const gen=++requestSerial;
  let queries=0;networkError='';
  try{
@@ -205,7 +206,7 @@ async function fillSuggestions(){
    finally{clearTimeout(abort);networkController=null;}
    if(!Array.isArray(data)){cursor=Math.max(0,cursor-1);networkError='Unexpected song search reply. Please try again.';break;}
    const known=new Set(suggestions.map(trackKey));
-   const done=finishedTitleSet();
+   const done=playlistNames;
    for(const record of data){
     const title=String(record?.trackName||'').trim().slice(0,180);
     const artist=String(record?.artistName||'').trim().slice(0,160);
@@ -227,7 +228,8 @@ async function fillSuggestions(){
   if(gen===requestSerial){searching=false;networkController=null;saveState();render();}
  }
 }
-function setTab(name){
+function setTab(name,back=false){
+ if(name!==tab&&!back)tabHistory.push(tab);
  tab=name;render();
  if(tab==='pending')void loadPending();
  else void fillSuggestions();
@@ -242,7 +244,7 @@ function setup(){
  pendingBtn.setAttribute('role','tab');discoverBtn.setAttribute('role','tab');
  tabs.setAttribute('role','tablist');tabs.append(pendingBtn,discoverBtn);
  const pendingPane=elem('section');pendingPane.id='btPendingPane';
- const instructions=elem('p','','Analyse and save each song once. Completed songs leave this list.');
+ const instructions=elem('p','','Tap Analyse & save for saved audio. Otherwise choose an audio file with Import & analyse. New cloud analysis uses your RunPod balance.');
  const control=elem('div','bt-controls'),filter=elem('input');filter.id='btFilter';filter.placeholder='Search songs';filter.type='search';filter.autocomplete='off';
  const refresh=elem('button','','Refresh list');refresh.type='button';refresh.onclick=()=>void loadPending();
  control.append(filter,refresh);
@@ -253,7 +255,7 @@ function setup(){
  const morePending=elem('button','','Show more');morePending.id='btShowPending';
  pendingPane.append(instructions,control,countBox,alert,list,empty,morePending);
  const explorePane=elem('section');explorePane.id='btDiscoverPane';explorePane.hidden=true;
- const explain=elem('p','','Explore songs with lyrics on LRCLIB. Find recordings separately. This is not a ranked chart.');
+ const explain=elem('p','','Discover songs outside your playlist. LRCLIB supplies lyrics, not audio. Find recordings separately.');
  const controls=elem('div','bt-controls'),exploreFilter=elem('input');exploreFilter.type='search';exploreFilter.id='btDiscoverFilter';exploreFilter.placeholder='Search suggestions';exploreFilter.autocomplete='off';
  const refill=elem('button','','Find more');refill.id='btFindMore';refill.type='button';
  controls.append(exploreFilter,refill);
@@ -274,11 +276,11 @@ function setup(){
  dialog.addEventListener('close',()=>{
   if(networkController){requestSerial++;networkController.abort();networkController=null;searching=false;}
  });
- dialog.addEventListener('cancel',()=>{});
+ dialog.addEventListener('cancel',e=>{if(tabHistory.length){e.preventDefault();setTab(tabHistory.pop(),true);}});
 }
 function open(){
  setup();if(!dialog.open)dialog.showModal();
- tab='pending';render();void loadPending();
+ tab='pending';tabHistory=[];playlistReady=false;render();void loadPending();
 }
 function install(){
  const host=$('moreTools'),tools=$('extraTools'),chords=$('openSongChords'),lyrics=$('openLyrics');
