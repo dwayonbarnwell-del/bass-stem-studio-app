@@ -15452,6 +15452,7 @@ window.BassBatch = (() => {
       if(typeof setInterval==='function')ticker=setInterval(updateElapsed,1000);
       await recoverLocalRows(selectedForRun);
       if(!stopAfterCurrent)await recoverHeldRows(selectedForRun);
+      if(!stopAfterCurrent)await recoverSectionRows(selectedForRun);
       for(const item of selectedForRun){
         if(stopAfterCurrent)break;
         if(!unfinished(item)||heldFor(item))continue;
@@ -15459,6 +15460,7 @@ window.BassBatch = (() => {
         catch(err){preserveFailure(item,err);}
         // Completed results can expire: collect earlier jobs between songs as well.
         if(!stopAfterCurrent)await recoverHeldRows(selectedForRun,{throttled:true});
+        if(!stopAfterCurrent)await recoverSectionRows(selectedForRun);
       }
       if(!stopAfterCurrent){
         for(const item of selectedForRun.filter(item=>unfinished(item)&&!heldFor(item))){
@@ -21193,13 +21195,15 @@ window.BassBatch = (() => {
           setStructureStage(result.status==='IN_QUEUE'?'Waiting for a GPU…':'Finding song sections…');
           result=null;
         }
-        throw new Error('Sections are still processing. Tap Check progress to continue.');
+        const waiting=new Error('Sections are still processing. Tap Check progress to continue.');
+        waiting.sectionStillProcessing=true;throw waiting;
       }catch(error){
         if(session!==songSession||error?.name==='AbortError')return false;
         if(error?.httpStatus===404)storeStructureJob(null,pending?.id);
         const uncertain=!!pendingStructureJob()?.unconfirmed;
         const resumable=!uncertain&&matchesStructureJob(pendingStructureJob());
         structureError=uncertain?'The upload has no confirmed reply. Tap Find sections to review it before retrying.':error?.httpStatus===401?'The analysis key was rejected. Update it and try again.':
+          error?.sectionStillProcessing?error.message:
           resumable?'Connection interrupted. Tap Check progress to continue.':
           error?.sectionTimeout?'The connection timed out. Tap Find sections to try again.':
           error?.httpStatus?'Sections are temporarily unavailable. Please try again.':String(error?.message||'Could not find sections.');

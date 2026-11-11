@@ -557,6 +557,7 @@ window.BassBatch = (() => {
       if(typeof setInterval==='function')ticker=setInterval(updateElapsed,1000);
       await recoverLocalRows(selectedForRun);
       if(!stopAfterCurrent)await recoverHeldRows(selectedForRun);
+      if(!stopAfterCurrent)await recoverSectionRows(selectedForRun);
       for(const item of selectedForRun){
         if(stopAfterCurrent)break;
         if(!unfinished(item)||heldFor(item))continue;
@@ -564,6 +565,7 @@ window.BassBatch = (() => {
         catch(err){preserveFailure(item,err);}
         // Completed results can expire: collect earlier jobs between songs as well.
         if(!stopAfterCurrent)await recoverHeldRows(selectedForRun,{throttled:true});
+        if(!stopAfterCurrent)await recoverSectionRows(selectedForRun);
       }
       if(!stopAfterCurrent){
         for(const item of selectedForRun.filter(item=>unfinished(item)&&!heldFor(item))){

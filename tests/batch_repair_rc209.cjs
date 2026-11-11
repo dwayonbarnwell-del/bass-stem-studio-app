@@ -74,6 +74,16 @@ test('Persistently running sections do not cause extra paid requests',async()=>{
  const h=harness({completeSong:async()=>false,sectionStatus:()=>({state:'pending'})});await h.batch.choose(zip(['A.mp3']));await h.batch.run();
  assert.equal(h.saved.size,0);assert.equal(calls(h,'analyse').length,1);assert.equal(calls(h,'sections').filter(e=>e[2].allowNewSections).length,1);assert.equal(calls(h,'restart').length,0);
 });
+test('Completed section results are collected before starting the next song',async()=>{
+ let checks=0;
+ const h=harness({completeSong:async(options,api)=>api.current!=='A.mp3'||++checks>=2,sectionStatus:()=>({state:'pending'})});
+ await h.batch.choose(zip(['A.mp3','B.mp3']));await h.batch.run();
+ const saveA=h.events.findIndex(e=>e[0]==='save'&&e[1]==='A');
+ const loadB=h.events.findIndex(e=>e[0]==='load'&&e[1]==='B.mp3');
+ assert(saveA>=0&&saveA<loadB);
+ assert.equal(calls(h,'analyse').filter(e=>e[1]==='A.mp3').length,1);
+ assert.equal(calls(h,'sections').filter(e=>e[1]==='A.mp3'&&e[2].allowNewSections).length,1);
+});
 test('Refused extra charge keeps unfinished song and saved bass',async()=>{
  const h=harness({completeSong:async()=>false,confirm:msg=>!msg.includes('cost more')});await h.batch.choose(zip(['A.mp3']));await h.batch.run();
  assert.equal(h.saved.size,0);assert.equal(calls(h,'analyse').length,1);assert.equal(calls(h,'restart').length,0);assert(h.cache.has('A.mp3'));
