@@ -1,0 +1,12 @@
+const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict');
+let songs=[{title:'Way Maker',hasBassAnalysis:false},{title:'Artist — Goodness of God',artist:'Artist'},{title:'Other',filename:'03 - Great Are You Lord.mp3'},{title:'Known',aliases:['Alternative Title']}], reconnect=false,issues=0,fail=false,release;
+const window={BassLibrary:{analysisSummary:async()=>{if(release)await new Promise(r=>release=r);if(fail)throw Error('failed');return {songs,reconnect,issues}}},BassChordLibrary:{missingProgressions:async()=>[],playlistSongs:async()=>[{title:'Unfinished chart'}]}};
+const c={window,document:{getElementById:()=>null,readyState:'loading',addEventListener(){}},localStorage:{getItem:()=>null},setTimeout,clearTimeout};vm.createContext(c);
+vm.runInContext(fs.readFileSync(require('path').join(__dirname,'../library-source/song-tasks.js'),'utf8').replace('window.BassSongTasks={','window.test={loadPending,activeSuggestions,discoveryKeys,setSuggestions:s=>suggestions=s};window.BassSongTasks={'),c);
+const t=window.test;t.setSuggestions(['Way Maker (Live)','Goodness of God','Great Are You Lord','Alternative Title','Unfinished chart','New song'].map(title=>({title,artist:'Artist'})));
+(async()=>{assert.equal(t.activeSuggestions().length,0);await t.loadPending();assert.deepEqual(Array.from(t.activeSuggestions(),s=>s.title),['New song']);
+reconnect=true;await t.loadPending();assert.equal(t.activeSuggestions().length,0);reconnect=false;issues=1;await t.loadPending();assert.equal(t.activeSuggestions().length,0);issues=0;await t.loadPending();assert.equal(t.activeSuggestions().length,1);
+fail=true;await t.loadPending();assert.equal(t.activeSuggestions().length,0);fail=false;await t.loadPending();assert.equal(t.activeSuggestions().length,1);
+release=true;const waiting=t.loadPending();assert.equal(t.activeSuggestions().length,0);release();release=null;await waiting;assert.equal(t.activeSuggestions().length,1);
+songs.push({title:'New song'});await t.loadPending();assert.equal(t.activeSuggestions().length,0);
+console.log('PASS: saved and unfinished songs, aliases, artist prefixes, track filenames, live versions; blocked until check completes; inaccessible folder, unreadable files and failures; recovery and newly saved songs.');})().catch(e=>{console.error(e);process.exitCode=1});

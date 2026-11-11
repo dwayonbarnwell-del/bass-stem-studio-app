@@ -19,7 +19,7 @@ const SEEDS=[
  'worship','gospel','praise','Holy Spirit','Hallelujah','Hosanna',
  'grace','Jesus','God is good','The Lord','glory'
 ];
-let playlistNames=new Set(),playlistReady=false,actionBusy=false,tabHistory=[];
+let playlistNames=new Set(),playlistReady=false,scanError=false,actionBusy=false,tabHistory=[];
 let dialog=null,featured=null,tab='pending',pending=[],suggestions=[],dismissed=new Set();
 let cursor=0,visiblePending=30,visibleDiscover=30,searching=false,pausedUntil=0,requestSerial=0,networkController=null;
 let loadingPending=false,pendingRefreshQueued=false,folderWarning=false,loadIssues=0,ready=false,loadToken=0,completedSaved=[],networkError='';
@@ -27,6 +27,27 @@ const normal=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').to
 function titleKey(value){
  return normal(String(value||'').replace(/\.(mp3|m4a|wav|flac|aac|ogg|mp4|bassstudio|bssproject|json)$/i,'').replace(/\s*[([](?:live(?:\s+[^)\]]*)?|official(?:\s+[^)\]]*)?|remaster(?:ed)?(?:\s+[^)\]]*)?|lyrics?|audio|video)[)\]]/gi,'').split(/\s+[-–]\s+/)[0]);
 }
+// Discovery compares titles, aliases and filenames independently of analysis status.
+function discoveryKeys(song){
+ const keys=new Set(),artist=normal(song.artist);
+ for(const value of [song.title,song.sourceName,song.filename,...(song.aliases||[])]){
+  if(!value)continue;
+  const name=String(value).split(/[\\/]/).pop()
+   .replace(/\.(mp3|m4a|wav|flac|aac|ogg|opus|webm|mov|mp4|bassstudio|bssproject|json)$/i,'')
+   .replace(/^\s*\d{1,3}[.\s_-]+/,'')
+   .replace(/\s*[([](?:live(?:\s+[^)\]]*)?|official(?:\s+[^)\]]*)?|remaster(?:ed)?(?:\s+[^)\]]*)?|lyrics?|audio|video|feat\.?\s+[^)\]]*|ft\.?\s+[^)\]]*)[)\]]/gi,'');
+  const parts=name.split(/\s+[-–—|]\s+/);
+  for(const part of [name,...parts]){
+   let key=normal(part).replace(/\s+(?:feat|ft|featuring)\s+.*$/,'')
+    .replace(/\s+(?:(?:official\s+)?(?:music\s+)?(?:audio|video|lyrics?)|live(?:\s+at\s+.*)?|remastered(?:\s+\d{4})?)$/,'').trim();
+   if(artist&&key.startsWith(artist+' '))key=key.slice(artist.length+1);
+   if(key&&key!==artist)keys.add(key);
+  }
+ }
+ return [...keys];
+}
+function inPlaylist(song){return discoveryKeys(song).some(key=>playlistNames.has(key));}
+
 const trackKey=s=>normal(s.title)+'|'+normal(s.artist);
 function saveState(){
  try{localStorage.setItem(STORE,JSON.stringify({
@@ -48,7 +69,7 @@ function elem(tag,cl,value){
  return node;
 }
 function active(){return !!dialog?.open&&tab==='discover'}
-function activeSuggestions(){if(!playlistReady)return [];return suggestions.filter(s=>!dismissed.has(trackKey(s))&&!playlistNames.has(titleKey(s.title))).slice(0,CAP);}
+function activeSuggestions(){if(!playlistReady)return [];return suggestions.filter(s=>!dismissed.has(trackKey(s))&&!inPlaylist(s)).slice(0,CAP);}
 function count(){return activeSuggestions().length}
 function displayStatus(s){const n=$('btStatus');if(n)n.textContent=s;}
 function finishedTitleSet(){
@@ -57,7 +78,7 @@ function finishedTitleSet(){
 }
 async function loadPending(){
  if(loadingPending){pendingRefreshQueued=true;return;}
- const token=++loadToken;loadingPending=true;displayStatus('Checking saved songs…');
+ const token=++loadToken;loadingPending=true;playlistReady=false;scanError=false;render();displayStatus('Checking library');
  try{
   const [inLibrary,missing,playlist]=await Promise.all([
    window.BassLibrary.analysisSummary(),window.BassChordLibrary.missingProgressions(),window.BassChordLibrary.playlistSongs()
@@ -65,8 +86,8 @@ async function loadPending(){
   if(token!==loadToken)return;
   folderWarning=inLibrary.reconnect;loadIssues=inLibrary.issues;
   const saved=inLibrary.songs||[];
-  playlistNames=new Set([...saved,...playlist].flatMap(s=>[s.title,s.sourceName,...(s.aliases||[])].filter(Boolean).map(titleKey)));
-  playlistReady=true;
+  playlistNames=new Set([...saved,...playlist].flatMap(discoveryKeys));
+  playlistReady=!folderWarning&&!loadIssues&&!pendingRefreshQueued;
   const complete=saved.filter(s=>s.hasChordAnalysis&&s.hasBassAnalysis);
   completedSaved=complete.map(s=>({title:s.title,sourceName:s.sourceName}));
   const completedNames=finishedTitleSet();
@@ -93,8 +114,8 @@ async function loadPending(){
   pending=rows.sort((a,b)=>a.title.localeCompare(b.title,'en'));
   visiblePending=30;
   render();if(active())void fillSuggestions();
- }catch(err){displayStatus('Could not check your saved songs. Open Library to check folder access.');}
- finally{loadingPending=false;if(pendingRefreshQueued){pendingRefreshQueued=false;void loadPending();}}
+ }catch(err){playlistReady=false;scanError=true;render();displayStatus('Library check failed');}
+ finally{loadingPending=false;render();if(pendingRefreshQueued){pendingRefreshQueued=false;void loadPending();}}
 }
 async function runSongAction(button,action){
  if(actionBusy)return;actionBusy=true;button.disabled=true;const label=button.textContent;button.textContent='Analysing song';
@@ -161,7 +182,8 @@ function render(){
   for(const song of filtered.slice(0,visibleDiscover))root.append(suggestionCard(song));
   $('btShowDiscover').hidden=filtered.length<=visibleDiscover;
   $('btDiscoverEmpty').hidden=filtered.length>0;
-  $('btFindMore').disabled=searching||count()>=CAP||Date.now()<pausedUntil||cursor>=SEEDS.length;
+  $('btFindMore').disabled=loadingPending||searching||count()>=CAP||Date.now()<pausedUntil||cursor>=SEEDS.length;
+  if(!playlistReady){displayStatus(folderWarning?'Reconnect library folder':loadIssues?'Check unreadable files':scanError?'Library check failed':'Checking library');return;}
   if(!searching)displayStatus(folderWarning?'Reconnect your saved folder to exclude all its songs.':loadIssues?'Some saved files could not be checked.':Date.now()<pausedUntil?'Song search is temporarily limited. Try again later.':
    !navigator.onLine?'Connect to the internet for more suggestions.':
    networkError?networkError:
@@ -174,7 +196,7 @@ async function fillSuggestions(){
  searching=true;const gen=++requestSerial;
  let queries=0;networkError='';
  try{
-  while(active()&&gen===requestSerial&&count()<CAP&&cursor<SEEDS.length&&queries<17){
+  while(playlistReady&&active()&&gen===requestSerial&&count()<CAP&&cursor<SEEDS.length&&queries<17){
    const q=SEEDS[cursor++];queries++;saveState();
    displayStatus('Finding songs… '+count()+' of '+CAP);
    networkController=new AbortController();
@@ -206,7 +228,7 @@ async function fillSuggestions(){
    finally{clearTimeout(abort);networkController=null;}
    if(!Array.isArray(data)){cursor=Math.max(0,cursor-1);networkError='Unexpected song search reply. Please try again.';break;}
    const known=new Set(suggestions.map(trackKey));
-   const done=playlistNames;
+   
    for(const record of data){
     const title=String(record?.trackName||'').trim().slice(0,180);
     const artist=String(record?.artistName||'').trim().slice(0,160);
@@ -216,7 +238,7 @@ async function fillSuggestions(){
     if(!synced&&!plain)continue;
     const item={id:Number(record.id)||0,title,artist,synced};
     const key=trackKey(item);
-    if(known.has(key)||dismissed.has(key)||done.has(titleKey(title)))continue;
+    if(known.has(key)||dismissed.has(key)||inPlaylist(item))continue;
     known.add(key);suggestions.push(item);
    }
    // Preserve a small reserve for future removals; never download audio/lyrics here.
@@ -231,8 +253,7 @@ async function fillSuggestions(){
 function setTab(name,back=false){
  if(name!==tab&&!back)tabHistory.push(tab);
  tab=name;render();
- if(tab==='pending')void loadPending();
- else void fillSuggestions();
+ void loadPending();
 }
 function setup(){
  if(dialog)return;
@@ -255,7 +276,7 @@ function setup(){
  const morePending=elem('button','','Show more');morePending.id='btShowPending';
  pendingPane.append(instructions,control,countBox,alert,list,empty,morePending);
  const explorePane=elem('section');explorePane.id='btDiscoverPane';explorePane.hidden=true;
- const explain=elem('p','','Discover songs outside your playlist. LRCLIB supplies lyrics, not audio. Find recordings separately.');
+ const explain=elem('p','','Your library is checked first. Songs already saved are excluded. LRCLIB supplies lyrics, not audio.');
  const controls=elem('div','bt-controls'),exploreFilter=elem('input');exploreFilter.type='search';exploreFilter.id='btDiscoverFilter';exploreFilter.placeholder='Search suggestions';exploreFilter.autocomplete='off';
  const refill=elem('button','','Find more');refill.id='btFindMore';refill.type='button';
  controls.append(exploreFilter,refill);
@@ -272,7 +293,7 @@ function setup(){
  exploreFilter.oninput=()=>{visibleDiscover=30;render();};
  morePending.onclick=()=>{visiblePending+=30;render();};
  moreNext.onclick=()=>{visibleDiscover+=30;render();};
- refill.onclick=()=>void fillSuggestions();
+ refill.onclick=()=>void loadPending();
  dialog.addEventListener('close',()=>{
   if(networkController){requestSerial++;networkController.abort();networkController=null;searching=false;}
  });
