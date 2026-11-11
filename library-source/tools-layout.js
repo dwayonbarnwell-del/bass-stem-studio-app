@@ -1,4 +1,4 @@
-/* RC244: two equal featured cards; existing other-tool rows preserved. */
+/* RC244: two featured cards and two rows of three distinct tools. */
 (()=>{
 const $=id=>document.getElementById(id);
 let featured;
@@ -10,12 +10,14 @@ function install(){
  featured.setAttribute('aria-label','Featured music tools');
  featured.append(chords,lyrics);
  host.insertBefore(featured,tools);
- // Seven remaining tools, arranged in three balanced rows (2 + 2 + 3).
+ $('bassHelpShare')?.remove();
+ // Sound check takes the first position; six tools form two equal rows.
  // Move existing buttons; never clone or replace their event handlers.
- const remaining=Array.from(tools.children).filter(el=>el.tagName==='BUTTON');
+ const order=['openSoundCheck','openTrash','openPatterns','openLoopShare','openIdeas','openRhythm'];
+ const remaining=order.map($).filter(Boolean);
  const otherNodes=Array.from(tools.children).filter(el=>el.tagName!=='BUTTON');
- if(remaining.length===7){
-  const sizes=[2,2,3],rows=[];let pos=0;
+ if(remaining.length===6){
+  const sizes=[3,3],rows=[];let pos=0;
   for(const size of sizes){
    const row=elem('div','bs-other-row');
    for(const button of remaining.slice(pos,pos+size))row.append(button);

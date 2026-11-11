@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bass-stem-studio-rc244';
+const CACHE_NAME = 'bass-stem-studio-rc244-cards';
 const APP_SHELL = ['./','./index.html','./guide.html','./manifest.webmanifest','./ai-assets-rc201.js','./song-reference/data.js','./song-reference/chords.js','./song-reference/chords.css','./chord-source/recovery.js','./ai-source/lrclib.js','./ai-source/lrclib.css','./ai-source/lyrics-ux.css','./library-source/saved-audio-match.css','./library-source/tools-layout.js','./library-source/navigation.js','./library-source/tools-layout.css','./icons/icon-192.png','./icons/icon-512.png'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)).then(()=>self.skipWaiting()));
