@@ -13733,16 +13733,16 @@ window.BassPiano=(()=>{
    }
   }
  }
- async function analyse(){
+ async function analyse({automatic=false}={}){
   if(busy)return;const s=state();if(!s.buffer)return message('Import a song');if(s.busy)return message('Analysis in progress');
-  api.pause();busy=true;const mine=++token,session=s.session;const cancelled=()=>mine!==token||state().session!==session;
+  if(!automatic)api.pause();busy=true;const mine=++token,session=s.session;const cancelled=()=>mine!==token||state().session!==session;
   render(true);
   try{
    for(let start=0;start<s.duration;start+=180){if(cancelled())return;const end=Math.min(start+180,s.duration);if(data.done.some(r=>r.start<=start+.001&&r.end>=end-.001))continue;
     const from=Math.max(0,start-.25),to=Math.min(s.duration,end+.25);
     const job=data.jobs[String(start)]??={};
     const progress=()=>message('Melody '+(Math.floor(start/180)+1)+'/'+Math.ceil(s.duration/180));progress();
-    const found=await passage({start,end,from,to,job},cancelled,progress);
+    const found=await passage({start,end,from,to,job,automatic},cancelled,progress);
     if(cancelled())return;
     const clipped=found.filter(n=>n.end>start&&n.start<end).map(n=>({...n,start:Math.max(start,n.start),end:Math.min(end,n.end),continuation:n.start<start}));
     // Retain manual corrections, including user deletions, when continuing later.
@@ -13870,7 +13870,7 @@ window.BassPiano=(()=>{
  }
  function follow(){if(!api||$('pianoViewPanel').hidden)return;render(true);const {view,gridWidth,page}=metrics(),pages=Math.max(1,Math.ceil(state().duration/page));view.scrollLeft=Math.min((pages-1)*gridWidth,Math.floor(state().time/page)*gridWidth);signature='';render(true);}
  function leave(){const wasSolo=solo;setSolo(false);if(wasSolo)message('Song sound restored');}
- return {init,render,message,reset,exportData,restore,range,keyCount,fitKeys,clean,join,isBusy:()=>busy||exporting,follow,transport,stopVoices,leave,isSolo:()=>solo,preparePlayback:()=>{if(solo)void unlock();}};
+ return {init,render,message,reset,analyse,unfinished,exportData,restore,range,keyCount,fitKeys,clean,join,isBusy:()=>busy||exporting,follow,transport,stopVoices,leave,isSolo:()=>solo,preparePlayback:()=>{if(solo)void unlock();}};
 })();
 </script>
 <style id="rc240-spacing">html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot .progress-row-premium .progress-track{display:flex!important;align-items:center!important;height:24px!important;min-height:24px!important;max-height:24px!important;padding:0!important;margin:0!important;transform:none!important;}html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot .progress-row-premium input{margin:0!important;transform:none!important;align-self:center!important;}html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot .progress-row-premium{box-sizing:border-box!important;height:40px!important;min-height:40px!important;grid-template-rows:24px!important;padding:8px 0!important;margin:0!important;align-items:center!important;}html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #importBtn svg{width:32px!important;height:32px!important;min-width:32px!important;max-width:32px!important;}</style>
@@ -14398,8 +14398,7 @@ html body #bassLibraryDialog .library-song-actions button:first-child{background
 html body #bassLibraryDialog [hidden]{display:none!important}
 @media(max-width:540px){html body dialog#bassLibraryDialog{padding:16px!important}#bassLibraryDialog .library-filters{grid-template-columns:1fr}#bassLibraryDialog li{flex-direction:column;align-items:stretch;gap:12px}#bassLibraryDialog .library-song-actions{display:grid;grid-template-columns:1fr 1fr}#bassLibraryDialog .library-toolbar{display:grid;grid-template-columns:1fr 1fr}html body #bassLibraryDialog .library-toolbar button{min-width:0!important}#bassLibraryDialog .library-summary{display:block}#bassLibraryDialog #libraryStatus{display:block;margin-top:6px}}
 </style>
-<script id="rc195-library">
-/* RC195: local saved-project library. No audio or index is sent to a server. */
+<script id="rc195-library">/* RC195: local saved-project library. No audio or index is sent to a server. */
 window.BassLibrary=(()=>{
   const DB='bass-studio-library-v1',SUPPORTED=/\.(bassstudio|bssproject|json)$/i;
   let dbPromise,ready,folder=null,index={},rows=[],hooks={},dialog,busy=false,scan=0,downloadURLs=[],folderAccess='unknown';
@@ -14435,6 +14434,34 @@ window.BassLibrary=(()=>{
       sourceName:clean(p.source?.name),sourceSize:Number(p.source?.size)||0,
       hasChordAnalysis:Array.isArray(p.analysis?.chords)&&p.analysis.chords.length>0,
       hasBassAnalysis:Array.isArray(p.analysis?.notes)&&p.analysis.notes.length>0};
+  }
+  async function audioIdentity(project){
+    const bytes=new TextEncoder().encode(project.source.audioBase64);
+    const digest=await crypto.subtle.digest('SHA-256',bytes);
+    return Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
+  }
+  async function indexedMetadata(project,file){
+    return {...metadata(project,file),audioId:await audioIdentity(project)};
+  }
+  function uniqueSongs(list){
+    const seen=new Map();
+    for(const row of list){
+      // Never merge different recordings merely because their titles match.
+      const key=row.audioId||row.storageLabel+':'+(row.id||row.filename);
+      if(!seen.has(key))seen.set(key,row);
+    }
+    return [...seen.values()];
+  }
+  async function matchingTarget(project){
+    await refresh();
+    const identity=await audioIdentity(project);
+    const row=rows.find(r=>r.audioId===identity);
+    if(!row)return null;
+    if(row.handle){
+      if(!await permission(folder,'readwrite'))throw Error('Reconnect save folder');
+      return {dir:folder,filename:row.filename,handle:row.handle};
+    }
+    return {dir:null,filename:row.filename,id:row.id};
   }
   function errorText(e){
     if(e?.name==='QuotaExceededError')return 'Device storage is full. Choose a folder or free some space, then save again.';
@@ -14495,12 +14522,19 @@ window.BassLibrary=(()=>{
     const deviceRows=(await store('songs','readonly',s=>s.getAll())||[])
       .filter(r=>r?.filename&&SUPPORTED.test(r.filename))
       .map(r=>({...r,storageLabel:'In app'}));
+    for(let i=0;i<deviceRows.length;i++){
+      if(deviceRows[i].audioId)continue;
+      try{const row=deviceRows[i],file=new File([row.blob],row.filename,{type:'application/json'});
+        deviceRows[i]={...row,...await indexedMetadata(JSON.parse(await file.text()),file)};
+        await store('songs','readwrite',s=>s.put(deviceRows[i]));
+      }catch{}
+    }
     if(token!==scan)return;
-    if(!folder){rows=deviceRows;status('');render();return;}
+    if(!folder){rows=uniqueSongs(deviceRows);status('');render();return;}
     const dir=folder;
     try{
       if(!await permission(dir,'read')){
-        folderAccess='reconnect';rows=deviceRows;
+        folderAccess='reconnect';rows=uniqueSongs(deviceRows);
         status('Tap Reconnect folder to see saved songs there.');render();return;
       }
       folderAccess='ready';
@@ -14510,19 +14544,19 @@ window.BassLibrary=(()=>{
         if(handle.kind!=='file'||!SUPPORTED.test(name))continue;
         try{
           const file=await handle.getFile(),cached=index[name];
-          const meta=cached&&cached.size===file.size&&cached.modified===file.lastModified
-            ?cached:metadata(JSON.parse(await file.text()),file);
+          const meta=cached&&cached.audioId&&cached.size===file.size&&cached.modified===file.lastModified
+            ?cached:await indexedMetadata(JSON.parse(await file.text()),file);
           next[name]=meta;found.push({...meta,handle,file,storageLabel:'Save folder'});
         }catch{skipped++;}
       }
       if(token!==scan||dir!==folder)return;
-      rows=[...found,...deviceRows];index=next;
+      rows=uniqueSongs([...found,...deviceRows]);index=next;
       await put('index',index).catch(()=>{});
       status(skipped?skipped+' unreadable saved '+(skipped===1?'file':'files')+' skipped.':'');
       render();
     }catch(error){
       if(token!==scan||dir!==folder)return;
-      folderAccess='reconnect';rows=deviceRows;
+      folderAccess='reconnect';rows=uniqueSongs(deviceRows);
       status('Could not read the save folder. Tap Reconnect folder. Your saved songs remain available.');
       render();
     }
@@ -14582,7 +14616,21 @@ window.BassLibrary=(()=>{
     return {dir:null,filename,id};
   }
   async function save(project,blob,target){
-    const f=new File([blob],target.filename,{type:'application/json',lastModified:Date.now()}),meta=metadata(project,f);
+    const match=await matchingTarget(project);
+    if(match)target=match;
+    // Protect an unrelated recording with the same title.
+    let existing;
+    if(target.dir){try{existing=await (await target.dir.getFileHandle(target.filename)).getFile();}catch(e){if(e.name!=='NotFoundError')throw e;}}
+    else existing=(await store('songs','readonly',s=>s.get(target.id)))?.blob;
+    if(existing&&!match){
+      const previous=JSON.parse(await existing.text());
+      if(await audioIdentity(previous)!==await audioIdentity(project)){
+        const suffix=(await audioIdentity(project)).slice(0,12);
+        target={...target,filename:target.filename.replace(SUPPORTED,'')+' - '+suffix+'.bassstudio'};
+        target.id=target.filename.toLocaleLowerCase();
+      }
+    }
+    const f=new File([blob],target.filename,{type:'application/json',lastModified:Date.now()}),meta=await indexedMetadata(project,f);
     if(target.dir){
       const handle=await target.dir.getFileHandle(target.filename,{create:true});
       const stream=await handle.createWritable();
@@ -14610,16 +14658,17 @@ window.BassLibrary=(()=>{
     if(ok){dialog.close();return;}status('The song could not be opened. Check the message on the main screen.');
   }
   async function addFiles(files){
-    let added=0,failed=0,cancelled=0;
+    let added=0,failed=0,cancelled=0,duplicates=0;
     for(const file of files){
       try{
         status('Adding '+file.name+'…');
         const p=JSON.parse(await file.text());metadata(p,file);
+        if(await matchingTarget(p)){duplicates++;continue;}
         const target=await prepareSave(clean(p.projectName)||file.name.replace(SUPPORTED,''));
         await save(p,file,target);added++;
       }catch(e){if(e?.name==='AbortError')cancelled++;else failed++;}
     }
-    await refresh();status(added+' added'+(cancelled?' · '+cancelled+' cancelled':'')+(failed?' · '+failed+' could not be added; check the file format, folder access and free space.':'.'));
+    await refresh();status(added+' added'+(duplicates?' · '+duplicates+' already saved':'')+(cancelled?' · '+cancelled+' cancelled':'')+(failed?' · '+failed+' could not be added; check the file format, folder access and free space.':'.'));
   }
 
   /* RC227: Reuse saved analysed songs before loading audio or creating a paid job. */
@@ -14874,21 +14923,22 @@ window.BassLibrary=(()=>{
   // A same-named project with different audio is never overwritten.
   async function saveMelodyProject(project){
     await ready;
-    let filename=String(project.projectName||'Song').replace(/[\\/:*?"<>|]+/g,'_').trim().slice(0,100)+'.bassstudio';
-    let dir=folder&&await permission(folder,'readwrite')?folder:null;
-    for(let i=0;i<100;i++){
-      const id=filename.toLocaleLowerCase();let existing=null;
-      if(dir){try{existing=await (await dir.getFileHandle(filename)).getFile();}catch(e){if(e.name!=='NotFoundError')throw e;}}
-      else existing=(await store('songs','readonly',s=>s.get(id)))?.blob;
-      if(existing){
-        let previous;try{previous=JSON.parse(await existing.text());}catch{}
-        if(!previous?.source?.audioBase64||previous.source.audioBase64!==project.source.audioBase64){filename=String(project.projectName||'Song').replace(/[\\/:*?"<>|]+/g,'_').slice(0,84)+' - melody '+(i+1)+'.bassstudio';continue;}
-      }
-      await save(project,new Blob([JSON.stringify(project)],{type:'application/json'}),{dir,filename,id});
-      return dir?'folder':'device';
+    if(folder&&!await permission(folder,'readwrite'))throw Error('Reconnect save folder');
+    const match=await matchingTarget(project);
+    let target=match;
+    if(match){
+      const file=match.handle?await match.handle.getFile():(await store('songs','readonly',s=>s.get(match.id))).blob;
+      const previous=JSON.parse(await file.text());
+      // Melody updates preserve all original bass, chords, sections and edits.
+      project={...previous,savedAt:project.savedAt,analysis:{...previous.analysis,melody:project.analysis.melody}};
+    }else{
+      const filename=String(project.projectName||'Song').replace(/[\\/:*?"<>|]+/g,'_').trim().slice(0,100)+'.bassstudio';
+      target={dir:folder,filename,id:filename.toLocaleLowerCase()};
     }
-    throw Error('Save melody manually');
+    await save(project,new Blob([JSON.stringify(project)],{type:'application/json'}),target);
+    return target.dir?'folder':'device';
   }
+
   return {init,show,prepareSave,save,saveMelodyProject,hasProject,ensureBatchAccess,errorText,chartProjects,chartProject,checkAudioImport,analysisSummary,openForAnalysis};
 })();
 </script>
@@ -15538,7 +15588,7 @@ window.BassBatch = (() => {
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC244';
+  const APP_VERSION='RC245';
   const PROJECT_SCHEMA_VERSION=2;
   // RC125: compact practice-view and string selectors preserve space for P1/P2/P3; all RC124 audio, analysis, repeat, project and practice logic preserved.
 
@@ -16256,7 +16306,7 @@ window.BassBatch = (() => {
 
   async function captureStudyProject(){
     if(songImportBusy||aiBusy||projectSaveBusy)throw Error('Wait for analysis to finish.');
-    if(!buffer||!activeAudioFile||(!(offlineAnalysisReady&&notes.length)&&!detectedChordChanges.length&&!window.BassLyrics?.exportData().length&&!window.BassPiano?.exportData().notes.length&&!songStructure))throw Error('Analyse or transcribe this song first.');
+    if(!buffer||!activeAudioFile||(!(offlineAnalysisReady&&notes.length)&&!detectedChordChanges.length&&!window.BassLyrics?.exportData().length&&!window.BassPiano?.exportData().notes.length&&!window.BassPiano?.exportData().done.length&&!songStructure))throw Error('Analyse or transcribe this song first.');
     const session=songSession,projectName=safeProjectFilename(loadedProjectName||objectName||'Song');
     projectSaveBusy=true;updateProjectButtons();
     try{if(structureBusy&&structurePromise){await structurePromise;if(session!==songSession)return;if(!songStructure)throw Error('Wait for song sections, then try again.');}
@@ -16615,6 +16665,7 @@ window.BassBatch = (() => {
         if(projectFileInput)projectFileInput.value='';
         setSongImportBusy(false);updatePracticeLayoutState(true);
         if(importSucceeded&&findSections)startImportedSongSections();
+        if(importSucceeded)queueAutomaticMelody();
       }
     }
   }
@@ -17165,7 +17216,7 @@ window.BassBatch = (() => {
       return false;
     }finally{if(request===songLoadRequest){
       if(!recoveryRestore)setSongImportBusy(false);
-      if(importSucceeded&&!batchImport&&!recoveryRestore)startImportedSongSections({allowNewJob:false});
+      if(importSucceeded&&!batchImport&&!recoveryRestore){startImportedSongSections({allowNewJob:false});queueAutomaticMelody();}
     }}
   }
 
@@ -20699,6 +20750,7 @@ window.BassBatch = (() => {
     if(job.result?.ok)return job.result.notes.map(n=>({...n,start:n.start+part.from,end:n.end+part.from}));
     check();
     if(job.failed||(job.submitting&&!job.id)){
+      if(part.automatic)throw Error('Review melody retry');
       const known=!!job.failed;
       if(!await BassDialog.confirm(known?'This melody passage failed. Retry only this passage?': 'The melody upload had no confirmed reply. Check RunPod before retrying because another job may already be running or charged.',{title:'Review melody upload',accept:'Retry passage'}))throw Error('Retry cancelled');
       check();delete job.failed;delete job.submitting;delete job.id;await checkpoint();
@@ -20732,6 +20784,23 @@ window.BassBatch = (() => {
     }finally{if(session===songSession){aiBusy=false;updateProjectButtons();}}
   }
 
+  let automaticMelodyTimer=0;
+  function queueAutomaticMelody(){
+    clearTimeout(automaticMelodyTimer);
+    const session=songSession;
+    const start=async()=>{
+      if(session!==songSession||!buffer||!activeAudioFile)return;
+      if(songImportBusy||aiBusy||structureBusy||projectSaveBusy||window.BassBatch?.isRunning()){
+        automaticMelodyTimer=setTimeout(start,1200);return;
+      }
+      if(window.BassPiano.isBusy())return;
+      if(!window.BassPiano.unfinished()){queueMelodyProjectSave();return;}
+      if(!storedRunPodKey()){window.BassPiano.message('Connect melody analysis');return;}
+      await window.BassPiano.analyse({automatic:true});
+      if(session===songSession)queueMelodyProjectSave();
+    };
+    automaticMelodyTimer=setTimeout(start,1000);
+  }
   let melodySaveTimer=0,melodySaveVersion=0;
   async function saveMelodyRecovery(){
     const session=songSession,file=activeAudioFile,melody=window.BassPiano.exportData();

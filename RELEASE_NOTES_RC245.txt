@@ -1,0 +1,7 @@
+RC245
+
+Library displays one entry per exact original audio across folder and app copies. Imports skip recordings already saved. Saves reuse existing filenames, including JSON files; different recordings with the same title are protected. Existing duplicate files are retained.
+
+Opening audio or a saved project automatically completes missing melody passages after other analysis finishes. Saved melody and pending jobs are reused. Melody updates preserve the existing project and are saved automatically. An authorised writable folder is required to update its files. Uncertain or failed paid jobs still require review.
+
+Validation: duplicate folder/device copies, renamed imports, same-title different audio, JSON updates preserving edits, auto-start sequencing and full-song melody recovery tests.

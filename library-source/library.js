@@ -35,6 +35,34 @@ window.BassLibrary=(()=>{
       hasChordAnalysis:Array.isArray(p.analysis?.chords)&&p.analysis.chords.length>0,
       hasBassAnalysis:Array.isArray(p.analysis?.notes)&&p.analysis.notes.length>0};
   }
+  async function audioIdentity(project){
+    const bytes=new TextEncoder().encode(project.source.audioBase64);
+    const digest=await crypto.subtle.digest('SHA-256',bytes);
+    return Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
+  }
+  async function indexedMetadata(project,file){
+    return {...metadata(project,file),audioId:await audioIdentity(project)};
+  }
+  function uniqueSongs(list){
+    const seen=new Map();
+    for(const row of list){
+      // Never merge different recordings merely because their titles match.
+      const key=row.audioId||row.storageLabel+':'+(row.id||row.filename);
+      if(!seen.has(key))seen.set(key,row);
+    }
+    return [...seen.values()];
+  }
+  async function matchingTarget(project){
+    await refresh();
+    const identity=await audioIdentity(project);
+    const row=rows.find(r=>r.audioId===identity);
+    if(!row)return null;
+    if(row.handle){
+      if(!await permission(folder,'readwrite'))throw Error('Reconnect save folder');
+      return {dir:folder,filename:row.filename,handle:row.handle};
+    }
+    return {dir:null,filename:row.filename,id:row.id};
+  }
   function errorText(e){
     if(e?.name==='QuotaExceededError')return 'Device storage is full. Choose a folder or free some space, then save again.';
     if(e?.name==='NotAllowedError'||e?.name==='SecurityError')return 'Folder access is needed. Select Reconnect folder and allow access.';
@@ -94,12 +122,19 @@ window.BassLibrary=(()=>{
     const deviceRows=(await store('songs','readonly',s=>s.getAll())||[])
       .filter(r=>r?.filename&&SUPPORTED.test(r.filename))
       .map(r=>({...r,storageLabel:'In app'}));
+    for(let i=0;i<deviceRows.length;i++){
+      if(deviceRows[i].audioId)continue;
+      try{const row=deviceRows[i],file=new File([row.blob],row.filename,{type:'application/json'});
+        deviceRows[i]={...row,...await indexedMetadata(JSON.parse(await file.text()),file)};
+        await store('songs','readwrite',s=>s.put(deviceRows[i]));
+      }catch{}
+    }
     if(token!==scan)return;
-    if(!folder){rows=deviceRows;status('');render();return;}
+    if(!folder){rows=uniqueSongs(deviceRows);status('');render();return;}
     const dir=folder;
     try{
       if(!await permission(dir,'read')){
-        folderAccess='reconnect';rows=deviceRows;
+        folderAccess='reconnect';rows=uniqueSongs(deviceRows);
         status('Tap Reconnect folder to see saved songs there.');render();return;
       }
       folderAccess='ready';
@@ -109,19 +144,19 @@ window.BassLibrary=(()=>{
         if(handle.kind!=='file'||!SUPPORTED.test(name))continue;
         try{
           const file=await handle.getFile(),cached=index[name];
-          const meta=cached&&cached.size===file.size&&cached.modified===file.lastModified
-            ?cached:metadata(JSON.parse(await file.text()),file);
+          const meta=cached&&cached.audioId&&cached.size===file.size&&cached.modified===file.lastModified
+            ?cached:await indexedMetadata(JSON.parse(await file.text()),file);
           next[name]=meta;found.push({...meta,handle,file,storageLabel:'Save folder'});
         }catch{skipped++;}
       }
       if(token!==scan||dir!==folder)return;
-      rows=[...found,...deviceRows];index=next;
+      rows=uniqueSongs([...found,...deviceRows]);index=next;
       await put('index',index).catch(()=>{});
       status(skipped?skipped+' unreadable saved '+(skipped===1?'file':'files')+' skipped.':'');
       render();
     }catch(error){
       if(token!==scan||dir!==folder)return;
-      folderAccess='reconnect';rows=deviceRows;
+      folderAccess='reconnect';rows=uniqueSongs(deviceRows);
       status('Could not read the save folder. Tap Reconnect folder. Your saved songs remain available.');
       render();
     }
@@ -181,7 +216,21 @@ window.BassLibrary=(()=>{
     return {dir:null,filename,id};
   }
   async function save(project,blob,target){
-    const f=new File([blob],target.filename,{type:'application/json',lastModified:Date.now()}),meta=metadata(project,f);
+    const match=await matchingTarget(project);
+    if(match)target=match;
+    // Protect an unrelated recording with the same title.
+    let existing;
+    if(target.dir){try{existing=await (await target.dir.getFileHandle(target.filename)).getFile();}catch(e){if(e.name!=='NotFoundError')throw e;}}
+    else existing=(await store('songs','readonly',s=>s.get(target.id)))?.blob;
+    if(existing&&!match){
+      const previous=JSON.parse(await existing.text());
+      if(await audioIdentity(previous)!==await audioIdentity(project)){
+        const suffix=(await audioIdentity(project)).slice(0,12);
+        target={...target,filename:target.filename.replace(SUPPORTED,'')+' - '+suffix+'.bassstudio'};
+        target.id=target.filename.toLocaleLowerCase();
+      }
+    }
+    const f=new File([blob],target.filename,{type:'application/json',lastModified:Date.now()}),meta=await indexedMetadata(project,f);
     if(target.dir){
       const handle=await target.dir.getFileHandle(target.filename,{create:true});
       const stream=await handle.createWritable();
@@ -209,16 +258,17 @@ window.BassLibrary=(()=>{
     if(ok){dialog.close();return;}status('The song could not be opened. Check the message on the main screen.');
   }
   async function addFiles(files){
-    let added=0,failed=0,cancelled=0;
+    let added=0,failed=0,cancelled=0,duplicates=0;
     for(const file of files){
       try{
         status('Adding '+file.name+'…');
         const p=JSON.parse(await file.text());metadata(p,file);
+        if(await matchingTarget(p)){duplicates++;continue;}
         const target=await prepareSave(clean(p.projectName)||file.name.replace(SUPPORTED,''));
         await save(p,file,target);added++;
       }catch(e){if(e?.name==='AbortError')cancelled++;else failed++;}
     }
-    await refresh();status(added+' added'+(cancelled?' · '+cancelled+' cancelled':'')+(failed?' · '+failed+' could not be added; check the file format, folder access and free space.':'.'));
+    await refresh();status(added+' added'+(duplicates?' · '+duplicates+' already saved':'')+(cancelled?' · '+cancelled+' cancelled':'')+(failed?' · '+failed+' could not be added; check the file format, folder access and free space.':'.'));
   }
 
   /* RC227: Reuse saved analysed songs before loading audio or creating a paid job. */
@@ -473,20 +523,21 @@ window.BassLibrary=(()=>{
   // A same-named project with different audio is never overwritten.
   async function saveMelodyProject(project){
     await ready;
-    let filename=String(project.projectName||'Song').replace(/[\\/:*?"<>|]+/g,'_').trim().slice(0,100)+'.bassstudio';
-    let dir=folder&&await permission(folder,'readwrite')?folder:null;
-    for(let i=0;i<100;i++){
-      const id=filename.toLocaleLowerCase();let existing=null;
-      if(dir){try{existing=await (await dir.getFileHandle(filename)).getFile();}catch(e){if(e.name!=='NotFoundError')throw e;}}
-      else existing=(await store('songs','readonly',s=>s.get(id)))?.blob;
-      if(existing){
-        let previous;try{previous=JSON.parse(await existing.text());}catch{}
-        if(!previous?.source?.audioBase64||previous.source.audioBase64!==project.source.audioBase64){filename=String(project.projectName||'Song').replace(/[\\/:*?"<>|]+/g,'_').slice(0,84)+' - melody '+(i+1)+'.bassstudio';continue;}
-      }
-      await save(project,new Blob([JSON.stringify(project)],{type:'application/json'}),{dir,filename,id});
-      return dir?'folder':'device';
+    if(folder&&!await permission(folder,'readwrite'))throw Error('Reconnect save folder');
+    const match=await matchingTarget(project);
+    let target=match;
+    if(match){
+      const file=match.handle?await match.handle.getFile():(await store('songs','readonly',s=>s.get(match.id))).blob;
+      const previous=JSON.parse(await file.text());
+      // Melody updates preserve all original bass, chords, sections and edits.
+      project={...previous,savedAt:project.savedAt,analysis:{...previous.analysis,melody:project.analysis.melody}};
+    }else{
+      const filename=String(project.projectName||'Song').replace(/[\\/:*?"<>|]+/g,'_').trim().slice(0,100)+'.bassstudio';
+      target={dir:folder,filename,id:filename.toLocaleLowerCase()};
     }
-    throw Error('Save melody manually');
+    await save(project,new Blob([JSON.stringify(project)],{type:'application/json'}),target);
+    return target.dir?'folder':'device';
   }
+
   return {init,show,prepareSave,save,saveMelodyProject,hasProject,ensureBatchAccess,errorText,chartProjects,chartProject,checkAudioImport,analysisSummary,openForAnalysis};
 })();

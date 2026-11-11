@@ -13,6 +13,7 @@
     if(job.result?.ok)return job.result.notes.map(n=>({...n,start:n.start+part.from,end:n.end+part.from}));
     check();
     if(job.failed||(job.submitting&&!job.id)){
+      if(part.automatic)throw Error('Review melody retry');
       const known=!!job.failed;
       if(!await BassDialog.confirm(known?'This melody passage failed. Retry only this passage?': 'The melody upload had no confirmed reply. Check RunPod before retrying because another job may already be running or charged.',{title:'Review melody upload',accept:'Retry passage'}))throw Error('Retry cancelled');
       check();delete job.failed;delete job.submitting;delete job.id;await checkpoint();

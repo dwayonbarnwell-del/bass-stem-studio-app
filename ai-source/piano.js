@@ -34,16 +34,16 @@ window.BassPiano=(()=>{
    }
   }
  }
- async function analyse(){
+ async function analyse({automatic=false}={}){
   if(busy)return;const s=state();if(!s.buffer)return message('Import a song');if(s.busy)return message('Analysis in progress');
-  api.pause();busy=true;const mine=++token,session=s.session;const cancelled=()=>mine!==token||state().session!==session;
+  if(!automatic)api.pause();busy=true;const mine=++token,session=s.session;const cancelled=()=>mine!==token||state().session!==session;
   render(true);
   try{
    for(let start=0;start<s.duration;start+=180){if(cancelled())return;const end=Math.min(start+180,s.duration);if(data.done.some(r=>r.start<=start+.001&&r.end>=end-.001))continue;
     const from=Math.max(0,start-.25),to=Math.min(s.duration,end+.25);
     const job=data.jobs[String(start)]??={};
     const progress=()=>message('Melody '+(Math.floor(start/180)+1)+'/'+Math.ceil(s.duration/180));progress();
-    const found=await passage({start,end,from,to,job},cancelled,progress);
+    const found=await passage({start,end,from,to,job,automatic},cancelled,progress);
     if(cancelled())return;
     const clipped=found.filter(n=>n.end>start&&n.start<end).map(n=>({...n,start:Math.max(start,n.start),end:Math.min(end,n.end),continuation:n.start<start}));
     // Retain manual corrections, including user deletions, when continuing later.
@@ -171,5 +171,5 @@ window.BassPiano=(()=>{
  }
  function follow(){if(!api||$('pianoViewPanel').hidden)return;render(true);const {view,gridWidth,page}=metrics(),pages=Math.max(1,Math.ceil(state().duration/page));view.scrollLeft=Math.min((pages-1)*gridWidth,Math.floor(state().time/page)*gridWidth);signature='';render(true);}
  function leave(){const wasSolo=solo;setSolo(false);if(wasSolo)message('Song sound restored');}
- return {init,render,message,reset,exportData,restore,range,keyCount,fitKeys,clean,join,isBusy:()=>busy||exporting,follow,transport,stopVoices,leave,isSolo:()=>solo,preparePlayback:()=>{if(solo)void unlock();}};
+ return {init,render,message,reset,analyse,unfinished,exportData,restore,range,keyCount,fitKeys,clean,join,isBusy:()=>busy||exporting,follow,transport,stopVoices,leave,isSolo:()=>solo,preparePlayback:()=>{if(solo)void unlock();}};
 })();
