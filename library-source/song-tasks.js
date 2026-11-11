@@ -36,11 +36,12 @@ function discoveryKeys(song){
    .replace(/\.(mp3|m4a|wav|flac|aac|ogg|opus|webm|mov|mp4|bassstudio|bssproject|json)$/i,'')
    .replace(/^\s*\d{1,3}[.\s_-]+/,'')
    .replace(/\s*[([](?:live(?:\s+[^)\]]*)?|official(?:\s+[^)\]]*)?|remaster(?:ed)?(?:\s+[^)\]]*)?|lyrics?|audio|video|feat\.?\s+[^)\]]*|ft\.?\s+[^)\]]*)[)\]]/gi,'');
-  const parts=name.split(/\s+[-–—|]\s+/);
+  const parts=name.split(/\s*[:|–—]\s*|\s+-\s*|\s*-\s+/);
   for(const part of [name,...parts]){
    let key=normal(part).replace(/\s+(?:feat|ft|featuring)\s+.*$/,'')
     .replace(/\s+(?:(?:official\s+)?(?:music\s+)?(?:audio|video|lyrics?)|live(?:\s+at\s+.*)?|remastered(?:\s+\d{4})?)$/,'').trim();
    if(artist&&key.startsWith(artist+' '))key=key.slice(artist.length+1);
+   if(artist&&key.endsWith(' '+artist))key=key.slice(0,-artist.length-1);
    if(key&&key!==artist)keys.add(key);
   }
  }
