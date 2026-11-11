@@ -12489,7 +12489,7 @@ $('openIdeas').onclick=()=>{refresh();$('ideasDialog').showModal();$('ideasDialo
  function controls(){
   const s=api.get(),chords=Array.isArray(s.chords)?s.chords:[];
   $('lyricsDetect').disabled=busy||!s.buffer;
-  $('lyricsPlay').disabled=!s.buffer;
+  $('lyricsPlay').disabled=window.BassLRCLIB?.isBrowsing?.()?!window.BassLRCLIB.hasSelection():!s.buffer;
   $('lyricsPause').disabled=!s.buffer;
   $('lyricsCancel').disabled=!busy;
   $('lyricsExport').disabled=!words.length;
@@ -12601,7 +12601,10 @@ function init(hooks){
   };
   window.addEventListener('pagehide',cancel);controls();
  }
- return {init,exportData,restore,clean,assign,cancel,songInfo,importTimedLines};
+ return {init,exportData,restore,clean,assign,cancel,songInfo,importTimedLines,
+  pause:()=>api?.pause(),
+  play:expected=>{if(current().session!==expected)return false;api.play();return true;},
+  loadAudio:file=>api.importAudio(file),refreshControls:controls};
 })();
 </script>
 <script id="rc171-recovery">/* Persistent, ordered recording chunks. A new take atomically replaces the old one. */
@@ -13539,7 +13542,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRo
 <link rel="stylesheet" href="./ai-source/lrclib.css">
 <link rel="stylesheet" href="./ai-source/lyrics-ux.css">
 <link rel="stylesheet" href="./library-source/saved-audio-match.css">
-<link rel="stylesheet" href="./library-source/song-tasks.css">
+<link rel="stylesheet" href="./library-source/tools-layout.css">
 
 <style id="rc239-piano-preview-style">.piano-action{display:none!important;}
 html body.piano-view-active #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot .simple-timeline-head .practice-view-head{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:6px!important;width:100%!important;align-items:stretch!important;}
@@ -15533,7 +15536,7 @@ window.BassBatch = (() => {
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC243';
+  const APP_VERSION='RC244';
   const PROJECT_SCHEMA_VERSION=2;
   // RC125: compact practice-view and string selectors preserve space for P1/P2/P3; all RC124 audio, analysis, repeat, project and practice logic preserved.
 
@@ -20784,7 +20787,7 @@ window.BassBatch = (() => {
     const end=Math.min(buffer?.duration||0,start+30,scope==='section'&&section?section.end:Infinity);
     return {loaded:!!buffer,session:songSession,transpose:transposeSemitones,start,end,chords:detectedChordChanges.filter(reliableChord).map(c=>({...c,rootPc:((c.rootPc+transposeSemitones)%12+12)%12,bassPc:c.bassPc==null?null:((c.bassPc+transposeSemitones)%12+12)%12}))};
   }});
-  window.BassLyrics.init({get:()=>({buffer,session:songSession,title:loadedProjectName||objectName||activeAudioFile?.name||'',artist:'',time:displayTime(),live:document.getElementById('openLiveAudio').textContent!=='Live audio',chords:detectedChordChanges.filter(reliableChord).map(c=>({...c,label:chordDisplayLabel(c)}))}),pause,play,seek:seekTo,changed:updateProjectButtons});
+  window.BassLyrics.init({importAudio:importAudioCheckingLibrary,get:()=>({buffer,session:songSession,title:loadedProjectName||objectName||activeAudioFile?.name||'',artist:'',time:displayTime(),live:document.getElementById('openLiveAudio').textContent!=='Live audio',chords:detectedChordChanges.filter(reliableChord).map(c=>({...c,label:chordDisplayLabel(c)}))}),pause,play,seek:seekTo,changed:updateProjectButtons});
   setPracticeVisualMode('timeline');
   rebuildNoteSidebar();
   window.addEventListener('resize',()=>{
@@ -22211,43 +22214,6 @@ window.BassBatch = (() => {
     }
   });
   let analysisStartPending=false;
-  let taskAnalysisBusy=false;
-  async function analyseTaskSong(open){
-    if(taskAnalysisBusy||aiBusy||songImportBusy||projectSaveBusy||pendingResumeBusy||analysisStartPending)
-      throw Error('Wait for current analysis');
-    taskAnalysisBusy=true;
-    try{
-      if(!await open())return false;
-      const session=songSession;
-      analysisStartPending=true;
-      const complete=offlineAnalysisReady&&notes.length&&detectedChordChanges.length;
-      if(!complete){
-        if(offlineAnalysisReady&&notes.length){
-          if(!await BassDialog.confirm('Bass notes are saved, but chords are missing. Analysing again may cost money.',{title:'Complete song analysis',accept:'Analyse again'}))return false;
-        }
-        if(session!==songSession||!await reviewInterruptedUploads('analysis')||session!==songSession)return false;
-        const result=await analyseBassWithAI();
-        if(!result||session!==songSession)return false;
-      }
-      if(session!==songSession)return false;
-      const project=await captureStudyProject();
-      if(!project||session!==songSession)return false;
-      await window.BassLibrary.saveMelodyProject(project);
-      aiStatus('Song saved',100);return true;
-    }finally{taskAnalysisBusy=false;analysisStartPending=false;}
-  }
-  window.BassTaskAnalysis={
-    saved:(location,id)=>analyseTaskSong(()=>window.BassLibrary.openForAnalysis(location,id)),
-    file:file=>analyseTaskSong(()=>importAudioCheckingLibrary(file)),
-    pick:receive=>{
-      if(taskAnalysisBusy||aiBusy||songImportBusy)return;
-      const input=document.createElement('input');input.type='file';input.accept=fileInput.accept;input.hidden=true;
-      input.oncancel=()=>input.remove();
-      input.onchange=()=>{const file=input.files?.[0];input.remove();if(file)void receive(file);};
-      document.body.append(input);input.click();
-    }
-  };
-
   aiAnalyse?.addEventListener('click',async()=>{
     if(analysisStartPending||aiBusy||pendingResumeBusy||songImportBusy)return;
     analysisStartPending=true;
@@ -22650,7 +22616,7 @@ window.BassBillingLinks = Object.freeze({render:'https://dashboard.render.com/bi
 <script defer src="./song-reference/data.js"></script>
 <script defer src="./song-reference/chords.js"></script>
 <script src="./ai-source/lrclib.js" defer></script>
-<script defer src="./library-source/song-tasks.js"></script>
+<script defer src="./library-source/tools-layout.js"></script>
 </body>
 </html>
 

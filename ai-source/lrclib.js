@@ -5,6 +5,7 @@ const API='https://lrclib.net/api/search';
 const CLIENT='Bass Stem Studio RC225 (https://bass-stem-studio-app-z5ja.onrender.com)';
 const $=id=>document.getElementById(id);
 let panel,notice,results,titleInput,artistInput,searchButton,lastSession=null;
+let browsing=false,selection=null,linkBusy=false,selectionToken=0,preview,loadButton,loadedButton;
 let requestId=0,lastRequest=0,nextAllowed=0,controller=null,searching=false;
 const getInfo=()=>window.BassLyrics?.songInfo?.()||null;
 const stamp=n=>{
@@ -49,22 +50,113 @@ function stopRequest(){
  searching=false;
  if(searchButton)searchButton.disabled=false;
 }
+const normal=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+function titleKeys(value,artist=''){
+ const name=String(value||'').replace(/\.(?:bassstudio|bssproject|json|mp3|m4a|wav|aac|flac|ogg|opus|mp4|mov|webm)$/i,'')
+  .replace(/\s*[([](?:official[^)\]]*|lyrics?|audio|video)[)\]]/gi,'');
+ const performer=normal(artist);
+ return [name,...name.split(/\s*[:|–—]\s*|\s+-\s*|\s*-\s+/)].map(normal).map(k=>{
+  if(performer&&k.startsWith(performer+' '))k=k.slice(performer.length+1);
+  if(performer&&k.endsWith(' '+performer))k=k.slice(0,-performer.length-1);
+  return k;
+ }).filter(k=>k&&k!==performer);
+}
+function sameTitle(record,audio){
+ const wanted=titleKeys(record.trackName,record.artistName);
+ const actual=[audio.title,audio.sourceName,audio.filename].flatMap(v=>titleKeys(v,audio.artist));
+ return wanted.some(k=>actual.includes(k));
+}
+function matchingRecording(record,audio){
+ if(!sameTitle(record,audio))return false;
+ if(record.artistName&&audio.artist&&normal(record.artistName)!==normal(audio.artist))return false;
+ const length=Number(record.duration),duration=Number(audio.duration);
+ return length>0&&duration>0&&Math.abs(length-duration)<=Math.max(6,length*.025);
+}
+function updateView(){
+ const dialog=$('lyricsDialog');if(!dialog)return;
+ dialog.classList.toggle('lyrics-browsing',browsing);
+ const info=getInfo();
+ if(loadedButton)loadedButton.hidden=!browsing||!info?.hasAudio;
+ if(loadButton){loadButton.hidden=!selection;loadButton.disabled=linkBusy;}
+ window.BassLyrics?.refreshControls?.();
+}
+function showPreview(item){
+ selection=item;browsing=true;selectionToken++;window.BassLyrics.cancel();window.BassLyrics.pause();
+ preview.replaceChildren();
+ const name=document.createElement('h3');name.textContent=item.trackName+' · '+item.artistName;preview.append(name);
+ for(const line of parseTimed(item.syncedLyrics,Number(item.duration))){
+  const p=document.createElement('p');p.textContent=line.text;preview.append(p);
+ }
+ preview.hidden=false;updateView();setNotice('Matching audio needed');
+}
+function resetPreview(){
+ browsing=false;selection=null;selectionToken++;if(preview){preview.replaceChildren();preview.hidden=true;}updateView();
+}
 function prepare(){
  const info=getInfo();if(!info)return;
  if(lastSession!==info.session){
-  lastSession=info.session;stopRequest();clearResults();
+  lastSession=info.session;stopRequest();clearResults();resetPreview();
   const proposed=String(info.title||'').replace(/\.(mp3|wav|m4a|aac|flac|ogg|opus|mp4|mov|webm|bassstudio)$/i,'').replace(/[_]+/g,' ').trim();
-  titleInput.value=proposed.split(/\s+[-–]\s+/)[0].trim()||proposed;
+  titleInput.value=proposed.split(/\s+[-–]\s*/)[0].trim()||proposed;
   artistInput.value=String(info.artist||'').trim();
-  setNotice(info.hasAudio?'Search for timed lyrics from the version you are playing.':'Import an audio file first.');
  }
- searchButton.disabled=!info.hasAudio;
+ searchButton.disabled=false;updateView();
+ setNotice(info.hasAudio?'Loaded: '+info.title:'Find a song');
+}
+async function bindAndPlay(item,token){
+ const current=getInfo();
+ if(token!==selectionToken||!current?.hasAudio||!matchingRecording(item,current))return false;
+ const lines=parseTimed(item.syncedLyrics,current.duration);
+ if(!lines.length||!window.BassLyrics.importTimedLines(lines,current.session)){setNotice('Playback cancelled');return false;}
+ if(token!==selectionToken||getInfo()?.session!==current.session)return false;
+ resetPreview();clearResults();lastSession=current.session;
+ setNotice('Playing matching audio');window.BassLyrics.play(current.session);return true;
+}
+async function playSelection(){
+ if(linkBusy||!selection)return;
+ const item=selection,token=selectionToken,initial=getInfo()?.session;
+ linkBusy=true;updateView();window.BassLyrics.pause();
+ try{
+  if(matchingRecording(item,getInfo()||{})){await bindAndPlay(item,token);return;}
+  setNotice('Checking saved audio');
+  const library=await window.BassLibrary.analysisSummary();
+  if(token!==selectionToken||getInfo()?.session!==initial)return;
+  const candidates=(library.songs||[]).filter(song=>matchingRecording(item,song));
+  // Never guess between recordings with the same title and similar duration.
+  if(candidates.length===1){
+   if(await window.BassLibrary.openForAnalysis(candidates[0].location,candidates[0].id)){
+    if(await bindAndPlay(item,token))return;
+   }
+  }
+  setNotice(candidates.length>1?'Choose matching audio':library.reconnect?'Reconnect library folder':'Load matching audio');
+ }catch{setNotice('Load matching audio');}
+ finally{linkBusy=false;updateView();}
+}
+function pickAudio(){
+ if(linkBusy||!selection)return;
+ const item=selection,token=selectionToken;
+ const input=document.createElement('input');input.type='file';input.accept='audio/*,video/*';input.hidden=true;
+ input.oncancel=()=>input.remove();
+ input.onchange=async()=>{
+  const file=input.files?.[0];input.remove();if(!file||token!==selectionToken)return;
+  if(!sameTitle(item,{title:file.name})){setNotice('Song name differs');return;}
+  linkBusy=true;updateView();window.BassLyrics.pause();
+  try{
+   if(await window.BassLyrics.loadAudio(file)){
+    if(token!==selectionToken)return;
+    if(!matchingRecording(item,getInfo()||{})){setNotice('Recording length differs');return;}
+    await bindAndPlay(item,token);
+   }
+  }catch{setNotice('Could not load');}
+  finally{linkBusy=false;updateView();}
+ };
+ document.body.append(input);input.click();
 }
 function showChoices(songs,sessionId,sourceDuration){
  clearResults();
  const matches=songs.filter(r=>r&&typeof r.syncedLyrics==='string'&&r.syncedLyrics.trim()&&!r.instrumental&&Number.isFinite(Number(r.duration)));
  matches.sort((a,b)=>Math.abs(Number(a.duration)-sourceDuration)-Math.abs(Number(b.duration)-sourceDuration));
- if(!matches.length){setNotice('No matching lyrics found. Choose Find all words below.');return;}
+ if(!matches.length){setNotice('No lyrics found');return;}
  for(const item of matches.slice(0,12)){
   const button=document.createElement('button');button.type='button';button.className='lrclib-result';
   const name=document.createElement('strong');name.textContent=String(item.trackName||'Untitled recording').slice(0,160);
@@ -73,18 +165,7 @@ function showChoices(songs,sessionId,sourceDuration){
   const compare=difference<=Math.max(6,sourceDuration*.025)?' · close timing match':' · check recording length';
   details.textContent=[String(item.artistName||'Artist not listed').slice(0,160),stamp(item.duration)].join(' · ')+compare;
   button.append(name,details);
-  button.onclick=()=>{
-   const current=getInfo();
-   if(!current?.hasAudio||current.session!==sessionId){setNotice('This song has changed. Search again.');clearResults();return;}
-   const gap=Math.abs(Number(item.duration)-current.duration);
-   if(gap>Math.max(12,current.duration*.05)&&!window.confirm('This version is a different length from your audio. Lyrics may not line up. Use it anyway?'))return;
-   const parsed=parseTimed(item.syncedLyrics,current.duration);
-   if(!parsed.length){setNotice('This result has no usable timed lyric lines for your audio.');return;}
-   if(window.BassLyrics?.importTimedLines?.(parsed,sessionId)){
-    clearResults();
-    setNotice('Added '+parsed.length+' timed lyric lines. Check the words and chord positions below, then save your song project.');
-   }else setNotice('No changes made. Your previous words are still saved.');
-  };
+  button.onclick=()=>{showPreview(item);clearResults();};
   results.append(button);
  }
  results.hidden=false;
@@ -92,7 +173,6 @@ function showChoices(songs,sessionId,sourceDuration){
 }
 async function search(){
  const info=getInfo();
- if(!info?.hasAudio){setNotice('Import an audio file first.');return;}
  if(info.live){setNotice('Stop live audio first.');return;}
  const name=titleInput.value.trim().slice(0,150),artist=artistInput.value.trim().slice(0,150);
  if(!name){setNotice('Enter a song title to search.');return;}
@@ -101,6 +181,7 @@ async function search(){
  const now=Date.now();
  if(now<nextAllowed){setNotice('Please try again in '+Math.ceil((nextAllowed-now)/1000)+' seconds.');return;}
  if(now-lastRequest<1800){setNotice('Please try again in a moment.');return;}
+ window.BassLyrics.pause();browsing=true;selection=null;selectionToken++;preview.hidden=true;updateView();
  const token=++requestId,sessionId=info.session;
  lastRequest=now;searching=true;searchButton.disabled=true;clearResults();setNotice('Searching timed lyrics…');
  controller=new AbortController();
@@ -138,8 +219,8 @@ function install(){
  const dialog=$('lyricsDialog'),open=$('openLyrics');
  if(!dialog||!open||$('lrclibPanel'))return;
  panel=document.createElement('details');panel.id='lrclibPanel';panel.className='lrclib-panel';
- const heading=document.createElement('summary');heading.textContent='Find song lyrics (free)';
- const explanation=document.createElement('p');explanation.textContent='Choose a version that matches your song.';
+ const heading=document.createElement('summary');heading.textContent='Find song lyrics';
+ const explanation=document.createElement('p');explanation.textContent='Play uses a matching recording from your library or an audio file you load. Lyrics search does not supply audio.';
  const fields=document.createElement('div');fields.className='lrclib-fields';
  const song=document.createElement('label');song.textContent='Song title';
  titleInput=document.createElement('input');titleInput.id='lrclibTitle';titleInput.maxLength=150;titleInput.autocomplete='off';song.append(titleInput);
@@ -152,15 +233,27 @@ function install(){
  const credit=document.createElement('p');credit.className='lrclib-credit';
  credit.append('Lyrics provided by ');
  const source=document.createElement('a');source.href='https://lrclib.net';source.target='_blank';source.rel='noopener noreferrer';source.textContent='LRCLIB';
- credit.append(source,'. Check that the words match your recording.');
- panel.append(heading,explanation,fields,searchButton,notice,results,credit);
+ credit.append(source,'. Choose the same recording for matching timings.');
+ preview=document.createElement('div');preview.id='lyricsSearchPreview';preview.hidden=true;
+ loadButton=document.createElement('button');loadButton.type='button';loadButton.textContent='Load audio';loadButton.hidden=true;loadButton.onclick=pickAudio;
+ loadedButton=document.createElement('button');loadedButton.type='button';loadedButton.textContent='Loaded song';loadedButton.hidden=true;
+ loadedButton.onclick=()=>{resetPreview();clearResults();setNotice('Loaded: '+(getInfo()?.title||''));};
+ panel.append(heading,explanation,fields,searchButton,notice,results,loadButton,loadedButton,credit);
+ $('lyricsWords').before(preview);
+ const editing=()=>{stopRequest();browsing=true;selection=null;selectionToken++;preview.hidden=true;clearResults();window.BassLyrics.pause();updateView();setNotice('Choose a song');};
+ titleInput.addEventListener('input',editing);artistInput.addEventListener('input',editing);
+ $('lyricsPlay').addEventListener('click',event=>{
+  if(!browsing)return;
+  event.preventDefault();event.stopImmediatePropagation();void playSelection();
+ },true);
+ dialog.addEventListener('close',()=>{stopRequest();selectionToken++;});
  ($('lyricsSticky')||$('lyricsStatus')).after(panel);
  searchButton.addEventListener('click',()=>void search());
  open.addEventListener('click',prepare);
  $('lyricsClose').addEventListener('click',stopRequest);
  dialog.addEventListener('cancel',stopRequest);
 }
-window.BassLRCLIB={parseTimed};
+window.BassLRCLIB={parseTimed,isBrowsing:()=>browsing,hasSelection:()=>!!selection&&!linkBusy};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});
 else install();
 })();

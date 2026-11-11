@@ -1,0 +1,6 @@
+/* RC228: two equally sized featured tools. */
+html body #appRoot .bs-featured-tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:4px 0 12px}
+html body #appRoot .bs-featured-tools button{box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:0;width:100%;height:74px;min-height:74px;max-height:74px;margin:0;padding:8px 5px;border-radius:12px;border:1px solid #7caebc;color:#f7fcff;font:800 14px/1.25 system-ui,sans-serif;text-align:center;white-space:normal;cursor:pointer}
+html body #appRoot .bs-featured-tools #openSongChords{background:#205e68;border-color:#71bec7}
+html body #appRoot .bs-featured-tools #openLyrics{background:#3c4c86;border-color:#96a6e0}
+html body #appRoot .bs-featured-tools button:focus-visible{outline:2px solid #b3edf3;outline-offset:2px}

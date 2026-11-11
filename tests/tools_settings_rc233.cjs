@@ -1,6 +1,6 @@
 const fs=require('node:fs'),assert=require('node:assert/strict'),vm=require('node:vm'),path=require('node:path');
 const root=path.join(__dirname,'..'),html=fs.readFileSync(path.join(root,'index.html'),'utf8');
-const tasks=fs.readFileSync(path.join(root,'library-source/song-tasks.js'),'utf8');
+const tasks=fs.readFileSync(path.join(root,'library-source/tools-layout.js'),'utf8');
 const lib=fs.readFileSync(path.join(root,'library-source/library.js'),'utf8');
 const embedded=html.match(/<script id="rc195-library">([\s\S]*?)<\/script>/)?.[1];
 assert.equal(embedded.trim(),lib.trim());new vm.Script(tasks);

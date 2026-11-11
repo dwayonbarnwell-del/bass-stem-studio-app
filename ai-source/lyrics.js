@@ -18,7 +18,7 @@ window.BassLyrics=(()=>{
  function controls(){
   const s=api.get(),chords=Array.isArray(s.chords)?s.chords:[];
   $('lyricsDetect').disabled=busy||!s.buffer;
-  $('lyricsPlay').disabled=!s.buffer;
+  $('lyricsPlay').disabled=window.BassLRCLIB?.isBrowsing?.()?!window.BassLRCLIB.hasSelection():!s.buffer;
   $('lyricsPause').disabled=!s.buffer;
   $('lyricsCancel').disabled=!busy;
   $('lyricsExport').disabled=!words.length;
@@ -130,5 +130,8 @@ function init(hooks){
   };
   window.addEventListener('pagehide',cancel);controls();
  }
- return {init,exportData,restore,clean,assign,cancel,songInfo,importTimedLines};
+ return {init,exportData,restore,clean,assign,cancel,songInfo,importTimedLines,
+  pause:()=>api?.pause(),
+  play:expected=>{if(current().session!==expected)return false;api.play();return true;},
+  loadAudio:file=>api.importAudio(file),refreshControls:controls};
 })();

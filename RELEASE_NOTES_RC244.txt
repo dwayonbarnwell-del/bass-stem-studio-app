@@ -1,0 +1,21 @@
+RC244: match lyrics playback to the selected recording; remove To import & analyse
+
+The complete worklist/discovery feature, its card and its analysis adapter are removed.
+Song chords and Lyrics now share a two-column row of equal-height cards.
+The other tool rows, ordinary import, batch analysis and Back navigation are retained.
+
+Lyrics search now previews the selected song separately from loaded lyrics/chords.
+Play checks the title and recording duration, plus artist metadata where available.
+It uses matching loaded audio or a single matching saved project. Ambiguous or missing
+recordings require the user to load the audio. Mismatched titles/durations are blocked.
+Searching works without audio already loaded. LRCLIB supplies no audio stream.
+Choosing lyrics does not overwrite the loaded song's words. Replacement is confirmed
+only after matching audio is loaded. Closing/changing the selection cancels pending playback.
+No new analysis job is submitted by lyric search or playback.
+
+Validation: RC244 playback regression tests, LRCLIB parsing/integration, lyric controls,
+tool layout, nested Back navigation, inline script syntax and whitespace checks passed.
+Two historical tests also fail on the unchanged baseline: lyrics_rc169 expects an old
+audio graph; save_import_rc164 omits the newer importAudioCheckingLibrary test stub.
+Chromium launch is blocked by the environment's socket policy; no visual/audio browser
+verification or paid RunPod job was performed.

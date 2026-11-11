@@ -19,3 +19,13 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot #lyricsDialog #lyricsWords .l
 html body #appRoot#appRoot#appRoot#appRoot#appRoot #lyricsDialog #lyricsWords .lyric-word strong{font-size:12px!important;line-height:1.2!important;min-height:1.25em!important}
 html body #appRoot#appRoot#appRoot#appRoot#appRoot #lyricsDialog #lyricsWords .lyric-word span{white-space:normal!important;overflow-wrap:anywhere!important}
 @media(max-width:410px){html body #appRoot#appRoot#appRoot#appRoot#appRoot #lyricsDialog .lyrics-sticky{padding:12px 14px 9px!important;margin:-18px -18px 10px!important}html body #appRoot#appRoot#appRoot#appRoot#appRoot #lyricsDialog .lyrics-playback{gap:6px!important}}
+
+/* A searched song is separate from the previously loaded recording. */
+html body #appRoot#appRoot#appRoot#appRoot#appRoot #lyricsDialog.lyrics-browsing #lyricsWords,
+html body #appRoot#appRoot#appRoot#appRoot#appRoot #lyricsDialog.lyrics-browsing #lyricsChordSummary,
+html body #appRoot#appRoot#appRoot#appRoot#appRoot #lyricsDialog.lyrics-browsing #lyricsStatus,
+html body #appRoot#appRoot#appRoot#appRoot#appRoot #lyricsDialog.lyrics-browsing .lyrics-action-bar,
+html body #appRoot#appRoot#appRoot#appRoot#appRoot #lyricsDialog.lyrics-browsing .lyrics-save-tools,
+html body #appRoot#appRoot#appRoot#appRoot#appRoot #lyricsDialog.lyrics-browsing #lyricsEdit{display:none!important}
+#lyricsSearchPreview[hidden],#lrclibPanel button[hidden]{display:none!important}
+#lyricsSearchPreview p{padding:10px;background:#11283a;border:1px solid #355c71;border-radius:10px;white-space:pre-wrap}
