@@ -22,3 +22,15 @@ await test('section modulation and manual key correction retain priority',async(
 await test('next song cannot inherit previous song key',async()=>{await fresh();updateSectionKey(1);check(songScale.textContent==='—'&&scaleSelect.disabled,'previous key leaked');});
 await test('no duplicate page element IDs',()=>{const ids=[...document.querySelectorAll('[id]')].map(e=>e.id);check(new Set(ids).size===ids.length,'duplicate element ID');});
 await test('main page fits its viewport',()=>check(document.documentElement.scrollWidth<=innerWidth+2,'page wider than viewport'));
+for(const [id,label] of [['openLiveAudio','Live audio'],['openEar','Ear training'],['openReview','Review chords'],['openTrash','Recently deleted'],['openPatterns','Scales and arpeggios'],['openLoopShare','Share loop'],['openLyrics','Lyrics'],['openIdeas','Ideas'],['openRhythm','Rhythm practice'],['openSoundCheck','Sound check'],['openSettings','Settings'],['importProjectBtn','Library']])await test(label+' opens its controls',async()=>{
+ await fresh();const button=$(id);check(button&&!button.disabled,'control unavailable');button.click();await wait(80);check(document.querySelector('dialog[open]'),'no panel opened');
+});
+for(const mode of ['bass','piano','timeline'])await test(mode+' practice view works',async()=>{
+ await fresh();$('practiceViewSelect').value=mode;$('practiceViewSelect').dispatchEvent(new Event('change'));
+ check(practiceVisualMode===mode,'view did not change');check(document.documentElement.scrollWidth<=innerWidth+2,'view overflows');
+});
+for(const size of [11,14,22])await test('text size '+size+' fits viewport',async()=>{
+ $('fontSizeInput').value=String(size);$('fontSizeInput').dispatchEvent(new Event('change'));await wait(30);
+ check(document.documentElement.scrollWidth<=innerWidth+2,'page overflows');
+});
+$('fontSizeInput').value='11';$('fontSizeInput').dispatchEvent(new Event('change'));
