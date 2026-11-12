@@ -31,7 +31,7 @@ html = re.sub(r'<title>.*?</title>', '<title>TEST ONLY | Bass Stem Studio</title
 html = re.sub(r'<link rel="canonical"[^>]*>', '', html)
 html = re.sub(r'<meta property="og:url"[^>]*>', '', html)
 banner = '''<style>html{border-top:44px solid #7c3aed!important}#test-environment-banner{position:fixed;top:0;left:0;right:0;z-index:2147483647;min-height:44px;box-sizing:border-box;background:#7c3aed;color:white;text-align:center;font:700 14px/20px system-ui;padding:2px 8px}#test-environment-banner small{display:block;font-size:11px;line-height:16px}</style><aside id="test-environment-banner" role="status">TEST ONLY · Bass Stem Studio<small>Separate library · Online analysis disabled</small></aside>'''
-html = re.sub(r'(<body\b[^>]*>)', lambda m: m[0] + banner, html, count=1)
+html = re.sub(r'^(<body\b[^>]*>)', lambda m: m[0] + banner, html, count=1, flags=re.M)
 (OUT / 'index.html').write_text(html)
 manifest_path = OUT / 'manifest.webmanifest'
 manifest = json.loads(manifest_path.read_text())

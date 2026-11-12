@@ -2,7 +2,9 @@
 
 Production: branch `main`, https://bass-stem-studio-app-z5ja.onrender.com/.
 Test: branch `staging-test`, proposed Render static site `bass-stem-studio-test-only`.
-Render workspace and URL are pending confirmation. No hosted test site exists yet.
+Render workspace: Dwayon’s Production.
+Test URL: https://bass-stem-studio-test-only.onrender.com/
+Render service: srv-dbqlsstg1s2s73eo6rpg.
 
 Build command: `BASS_ENVIRONMENT=test python3 scripts/build_test_site.py`
 Publish directory: `test-dist`
