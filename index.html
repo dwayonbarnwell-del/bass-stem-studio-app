@@ -15619,7 +15619,7 @@ window.BassBatch = (() => {
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC251';
+  const APP_VERSION='RC252';
   const PROJECT_SCHEMA_VERSION=2;
   // RC125: compact practice-view and string selectors preserve space for P1/P2/P3; all RC124 audio, analysis, repeat, project and practice logic preserved.
 
@@ -16258,7 +16258,7 @@ window.BassBatch = (() => {
           history:analysisHistory,manualCorrections,keyCorrections,
           keySections:audioKeySections,keyReady:audioKeyReady,baseScale:detectedBaseScale,
           noteCount:savedNotes.length,
-          scale:String(detectedScaleContext?.scaleText||songScale?.textContent||'—'),
+          scale:String(detectedBaseScale?.scaleText||detectedScaleContext?.scaleText||'—'),
           tempoBpm:currentTempoBpm(),
           displayMode:noteDisplayMode,
           numberingConvention,
@@ -16376,7 +16376,7 @@ window.BassBatch = (() => {
           history:analysisHistory,manualCorrections,keyCorrections,
           keySections:audioKeySections,keyReady:audioKeyReady,baseScale:detectedBaseScale,
           noteCount:savedNotes.length,
-          scale:String(detectedScaleContext?.scaleText||songScale?.textContent||'—'),
+          scale:String(detectedBaseScale?.scaleText||detectedScaleContext?.scaleText||'—'),
           tempoBpm:currentTempoBpm(),
           displayMode:noteDisplayMode,
           numberingConvention,
@@ -16538,10 +16538,10 @@ window.BassBatch = (() => {
       noteDisplayMode=project.analysis.displayMode==='numbers'?'numbers':'notes';
       numberingConvention=project.analysis.numberingConvention==='key'?'key':project.analysis.numberingConvention==='relative-major'?'relative-major':noteDisplayMode==='numbers'?'relative-major':'key';
       resetSongContext();
-      const scale=String(project.analysis.scale||'').trim();
+      const savedScale=savedSongScaleContext(project.analysis);
       const tempoBpm=Number(project.analysis.tempoBpm);
       applySongContext({
-        song_scale:(scale&&scale!=='—')?scale:'',
+        song_scale:savedScale?.scaleText||'',
         tempo_bpm:Number.isFinite(tempoBpm)?tempoBpm:null,
         beat_times:Array.isArray(project.analysis.beatTimes)?project.analysis.beatTimes:[],
         beats_per_bar:Number(project.analysis.beatsPerBar)||4,
@@ -16553,7 +16553,6 @@ window.BassBatch = (() => {
       analysisHistory=(Array.isArray(project.analysis.history)?project.analysis.history:[]).slice(-5);
       manualCorrections=Array.isArray(project.analysis.manualCorrections)?project.analysis.manualCorrections:[];
       keyCorrections=Array.isArray(project.analysis.keyCorrections)?project.analysis.keyCorrections:[];
-      detectedBaseScale=project.analysis.baseScale||detectedBaseScale;
       if(Array.isArray(project.analysis.keySections)&&project.analysis.keyReady){audioKeySections=project.analysis.keySections;audioKeyReady=true;audioKeyBuffer=buffer;}
       renderAnalysisHistory();
       noteDisplayMode=project.analysis.displayMode==='numbers'?'numbers':'notes';refreshNoteNumberToggle();
@@ -18971,19 +18970,29 @@ window.BassBatch = (() => {
     }).catch(error=>{if(buffer===audio&&run===audioKeyRun){audioKeyReady=true;audioKeySections=[];updateSectionKey(currentTime());}console.warn('Section key analysis unavailable',error);});
   }
 
+  function savedSongScaleContext(analysis){
+    const base=analysis?.baseScale;
+    if(Number.isInteger(base?.rootPc)&&base.rootPc>=0&&base.rootPc<12&&
+       ['major','minor','dorian','phrygian','lydian','mixolydian','locrian'].includes(base.mode))
+      return parseSongScaleContext(scaleTextFor(base.rootPc,base.mode));
+    return parseSongScaleContext(base?.scaleText)||parseSongScaleContext(analysis?.scale);
+  }
+
   function updateSectionKey(t){
     const section=audioKeyReady&&audioKeyBuffer===buffer?audioKeySections.find((s,i)=>t>=s.start&&(t<s.end||(i===audioKeySections.length-1&&t<=s.end))):null;
     const corrected=keyCorrections.slice().reverse().find(s=>t>=s.start&&(t<s.end||t===buffer?.duration&&t===s.end));
-    const detected=corrected?parseSongScaleContext(corrected.scaleText):
-      section?.scale?parseSongScaleContext(section.scale):audioKeyReady&&audioKeyBuffer===buffer?null:detectedBaseScale||detectedScaleContext;
+    const correctedKey=corrected?parseSongScaleContext(corrected.scaleText):null;
+    const sectionKey=section?.scale?parseSongScaleContext(section.scale):null;
+    const detected=correctedKey||sectionKey||detectedBaseScale;
     const shifted=detected?{...detected,rootPc:(detected.rootPc+transposeSemitones+120)%12}:null;
     if(shifted)shifted.scaleText=scaleTextFor(shifted.rootPc,shifted.mode);
+    if(songScaleWrap)songScaleWrap.title=detected?`${correctedKey?'Corrected':sectionKey?'Estimated section':'Estimated song'} key: ${detected.scaleText}${transposeSemitones?` · transpose ${transposeSemitones>0?'+':''}${transposeSemitones}`:''}`:'Song key uncertain';
     if((detectedScaleContext?.scaleText||'')===(detected?.scaleText||'')&&
        (currentScaleContext?.scaleText||'')===(shifted?.scaleText||''))return;
     detectedScaleContext=detected;currentScaleContext=shifted;
     populateScaleSelect(shifted);refreshNoteNumberToggle();rebuildSimpleTimeline._sig='';
     if(songScale)songScale.textContent=shifted?.scaleText||'—';
-    if(songScaleWrap){songScaleWrap.classList.toggle('context-ready',!!shifted);songScaleWrap.title=detected?`${corrected?'Corrected':'Estimated section'} key: ${detected.scaleText}${transposeSemitones?` · transpose ${transposeSemitones>0?'+':''}${transposeSemitones}`:''}`:'Section key uncertain';}
+    if(songScaleWrap)songScaleWrap.classList.toggle('context-ready',!!shifted);
   }
 
   function populateScaleSelect(ctxInfo){
@@ -22758,7 +22767,7 @@ window.BassBillingLinks = Object.freeze({render:'https://dashboard.render.com/bi
  close.before(section);
 })();
 </script>
-<style id="rc206-settings-rows">
+<style id="rc206-settings-row-styles">
 /* Keep the five working settings controls in two separate, equally sized rows. */
 #settingsDialog #displaySizeControl{
  display:flex!important;flex-direction:column!important;align-items:stretch!important;
