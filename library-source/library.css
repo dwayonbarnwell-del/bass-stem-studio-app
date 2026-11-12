@@ -5,7 +5,7 @@ html body dialog#bassLibraryDialog{box-sizing:border-box!important;width:min(780
 #bassLibraryDialog h2{font-size:23px!important;line-height:1.2!important;margin:0 0 6px!important;color:#fff!important;text-align:left!important}
 #bassLibraryDialog p{margin:0;color:#bdcdd8;overflow-wrap:anywhere}
 #bassLibraryDialog #libraryHint{font-size:13px;margin:12px 0 20px}
-#bassLibraryDialog .library-toolbar{display:flex;flex-wrap:wrap;gap:8px}
+#bassLibraryDialog .library-toolbar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:1fr;gap:8px}
 html body #bassLibraryDialog button,html body #bassLibraryDialog a.library-download{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;box-sizing:border-box!important;width:auto!important;min-width:90px!important;min-height:44px!important;height:auto!important;padding:10px 14px!important;margin:0!important;border:1px solid #486578!important;border-radius:10px!important;background:#203544!important;color:#fff!important;font:700 14px/1.3 system-ui,sans-serif!important;text-align:center!important;cursor:pointer}
 #bassLibraryDialog button:disabled{opacity:.5;cursor:wait}
 #bassLibraryDialog .library-filters{display:grid;grid-template-columns:minmax(0,1fr) 170px;gap:12px}
@@ -25,3 +25,8 @@ html body #bassLibraryDialog .library-song-actions button:first-child{background
 #bassLibraryDialog :focus-visible{outline:2px solid #a7e8d2;outline-offset:3px}
 html body #bassLibraryDialog [hidden]{display:none!important}
 @media(max-width:540px){html body dialog#bassLibraryDialog{padding:16px!important}#bassLibraryDialog .library-filters{grid-template-columns:1fr}#bassLibraryDialog li{flex-direction:column;align-items:stretch;gap:12px}#bassLibraryDialog .library-song-actions{display:grid;grid-template-columns:1fr 1fr}#bassLibraryDialog .library-toolbar{display:grid;grid-template-columns:1fr 1fr}html body #bassLibraryDialog .library-toolbar button{min-width:0!important}#bassLibraryDialog .library-summary{display:block}#bassLibraryDialog #libraryStatus{display:block;margin-top:6px}}
+
+html body #bassLibraryDialog .library-toolbar button{width:100%!important;min-width:0!important;min-height:52px!important;height:100%!important;overflow-wrap:anywhere}
+html body #bassLibraryDialog #libraryClose{background:#413042!important;border-color:#886780!important}
+#bassLibraryDialog .library-heading>div{min-width:0;flex:1}
+#bassLibraryDialog #libraryClose{flex-shrink:0}

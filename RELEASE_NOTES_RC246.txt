@@ -1,0 +1,1 @@
+RC246: clearer playback cues and Library layout; lower note-grid overhead; truthful disconnected and interrupted-batch states. See AUDIT_RC246.md for validation and limits.

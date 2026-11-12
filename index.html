@@ -13783,10 +13783,18 @@ window.BassPiano=(()=>{
   $('pianoCurrentChord').setAttribute('aria-label',chord?'Current chord '+chord.label:'No confirmed chord');
   $('pianoCurrentNote').textContent=pitch?label(pitch.midi+s.transpose):'—';
  }
+ function highlightChord(time){
+  for(const el of $('pianoChordRuler').children){
+   const current=time>=Number(el.dataset.start)&&time<Number(el.dataset.end);
+   el.classList.toggle('current-chord',current);
+   if(current)el.setAttribute('aria-current','true');else el.removeAttribute('aria-current');
+  }
+ }
  function ruler(){if(!api)return;const s=state(),{view,gridWidth,step}=metrics(),time=$('pianoTimeRuler'),chords=$('pianoChordRuler'),a=Math.max(0,view.scrollLeft/zoom),b=Math.min(s.duration,a+gridWidth/zoom);
-  updateReadout();const sig=[Math.round(view.scrollLeft),step,s.selection,zoom,JSON.stringify(s.chords)].join('|');if(time.dataset.signature===sig)return;time.dataset.signature=sig;time.replaceChildren();chords.replaceChildren();
+  updateReadout();const sig=[Math.round(view.scrollLeft),step,s.selection,zoom,JSON.stringify(s.chords)].join('|');if(time.dataset.signature===sig){highlightChord(s.time);return;}time.dataset.signature=sig;time.replaceChildren();chords.replaceChildren();
   for(let t=Math.floor(a/step)*step;t<s.duration&&t<=b;t+=step){const btn=document.createElement('button');btn.className='piano-time';btn.textContent=api.fmt(t);btn.title='Select this repeat interval';btn.style.setProperty('left',t*zoom+'px','important');btn.style.setProperty('width',step*zoom+'px','important');btn.classList.toggle('selected',api.selected(t));btn.onclick=()=>{api.select(t);ruler();};time.append(btn);}
-  for(const c of s.chords){if(c.end<=a||c.start>=b)continue;const el=document.createElement('div');el.className='piano-chord';el.textContent=c.label;el.title=c.label;el.setAttribute('aria-label',c.label);const left=Math.max(c.start,a);el.style.left=left*zoom+'px';el.style.width=Math.max(0,(Math.min(c.end,b)-left)*zoom)+'px';chords.append(el);}
+  for(const c of s.chords){if(c.end<=a||c.start>=b)continue;const el=document.createElement('div');el.className='piano-chord';el.dataset.start=c.start;el.dataset.end=c.end;el.textContent=c.label;el.title=c.label;el.setAttribute('aria-label',c.label);const left=Math.max(c.start,a);el.style.left=left*zoom+'px';el.style.width=Math.max(0,(Math.min(c.end,b)-left)*zoom)+'px';chords.append(el);}
+  highlightChord(s.time);
  }
  function render(force=false){
   if(!api)return;const s=state(),panel=$('pianoViewPanel');
@@ -13966,6 +13974,10 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 
  -->
+<style id="rc246-playback-cues">
+html body #appRoot #songTempoWrap.on-beat{box-shadow:inset 0 0 0 3px #b9f3da!important}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel .piano-chord.current-chord{background:#a7e8d2!important;color:#102b25!important;font-weight:800!important;box-shadow:inset 0 -3px #fff!important}
+</style>
 </head>
 <body>
 <div id="sectionCompatibility" style="display:none" aria-hidden="true">
@@ -14377,7 +14389,7 @@ html body dialog#bassLibraryDialog{box-sizing:border-box!important;width:min(780
 #bassLibraryDialog h2{font-size:23px!important;line-height:1.2!important;margin:0 0 6px!important;color:#fff!important;text-align:left!important}
 #bassLibraryDialog p{margin:0;color:#bdcdd8;overflow-wrap:anywhere}
 #bassLibraryDialog #libraryHint{font-size:13px;margin:12px 0 20px}
-#bassLibraryDialog .library-toolbar{display:flex;flex-wrap:wrap;gap:8px}
+#bassLibraryDialog .library-toolbar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:1fr;gap:8px}
 html body #bassLibraryDialog button,html body #bassLibraryDialog a.library-download{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;box-sizing:border-box!important;width:auto!important;min-width:90px!important;min-height:44px!important;height:auto!important;padding:10px 14px!important;margin:0!important;border:1px solid #486578!important;border-radius:10px!important;background:#203544!important;color:#fff!important;font:700 14px/1.3 system-ui,sans-serif!important;text-align:center!important;cursor:pointer}
 #bassLibraryDialog button:disabled{opacity:.5;cursor:wait}
 #bassLibraryDialog .library-filters{display:grid;grid-template-columns:minmax(0,1fr) 170px;gap:12px}
@@ -14397,6 +14409,11 @@ html body #bassLibraryDialog .library-song-actions button:first-child{background
 #bassLibraryDialog :focus-visible{outline:2px solid #a7e8d2;outline-offset:3px}
 html body #bassLibraryDialog [hidden]{display:none!important}
 @media(max-width:540px){html body dialog#bassLibraryDialog{padding:16px!important}#bassLibraryDialog .library-filters{grid-template-columns:1fr}#bassLibraryDialog li{flex-direction:column;align-items:stretch;gap:12px}#bassLibraryDialog .library-song-actions{display:grid;grid-template-columns:1fr 1fr}#bassLibraryDialog .library-toolbar{display:grid;grid-template-columns:1fr 1fr}html body #bassLibraryDialog .library-toolbar button{min-width:0!important}#bassLibraryDialog .library-summary{display:block}#bassLibraryDialog #libraryStatus{display:block;margin-top:6px}}
+
+html body #bassLibraryDialog .library-toolbar button{width:100%!important;min-width:0!important;min-height:52px!important;height:100%!important;overflow-wrap:anywhere}
+html body #bassLibraryDialog #libraryClose{background:#413042!important;border-color:#886780!important}
+#bassLibraryDialog .library-heading>div{min-width:0;flex:1}
+#bassLibraryDialog #libraryClose{flex-shrink:0}
 </style>
 <script id="rc195-library">/* RC195: local saved-project library. No audio or index is sent to a server. */
 window.BassLibrary=(()=>{
@@ -14492,8 +14509,8 @@ window.BassLibrary=(()=>{
     const oldURLs=downloadURLs;downloadURLs=[];setTimeout(()=>oldURLs.forEach(url=>URL.revokeObjectURL(url)),60000);
     list.replaceChildren();
     const shown=filterRows(rows,el('librarySearch').value,el('librarySort').value);
-    el('libraryCount').textContent=shown.length+' '+(shown.length===1?'song':'songs');
-    if(!shown.length){const p=document.createElement('p');p.className='library-empty';p.textContent=rows.length?'No songs match your search.':'No saved songs here yet. Add saved files, or analyse a song and select Save.';list.append(p);}
+    el('libraryCount').textContent=folderAccess==='reconnect'&&!shown.length?'Folder not connected':shown.length+' '+(shown.length===1?'song':'songs');
+    if(!shown.length){const p=document.createElement('p');p.className='library-empty';p.textContent=rows.length?'No matching songs.':folderAccess==='reconnect'?'Reconnect to view songs.':busy?'Checking songs…':'Import saved songs to begin.';list.append(p);}
     for(const row of shown){
       const item=document.createElement('li'),info=document.createElement('div'),title=document.createElement('strong'),details=document.createElement('span'),actions=document.createElement('div');
       title.textContent=row.title;
@@ -14518,7 +14535,7 @@ window.BassLibrary=(()=>{
     return request&&await handle.requestPermission({mode})==='granted';
   }
   async function refresh(){
-    const token=++scan;await ready;rows=[];render();status('Checking saved songs…');
+    const token=++scan;await ready;rows=[];render();status('Checking songs…');
     const deviceRows=(await store('songs','readonly',s=>s.getAll())||[])
       .filter(r=>r?.filename&&SUPPORTED.test(r.filename))
       .map(r=>({...r,storageLabel:'In app'}));
@@ -15539,6 +15556,11 @@ window.BassBatch = (() => {
       const review=entries.filter(i=>i.status==='Needs review').length;
       tell((stopAfterCurrent?'Stopped after this song. ':'Batch finished. ')+saved+' saved; '+left+' left'+(waiting?'; '+waiting+' still running':'')+(review?'; '+review+' need help':'')+(left?'. All earlier work is kept.':'.'));
     }catch(err){
+      // A stopped worker must not leave an entry looking actively in progress.
+      // Preserve pending-job state so Continue can collect the same paid job.
+      for(const item of entries)if(item.status==='Analysing'){
+        item.status='Needs review';item.reason=errorMessage(err);
+      }
       tell('Batch paused: '+errorMessage(err)+'. Saved songs and recovery records are kept.');
     }finally{
       starting=false;working=false;
@@ -15588,7 +15610,7 @@ window.BassBatch = (() => {
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC245';
+  const APP_VERSION='RC246';
   const PROJECT_SCHEMA_VERSION=2;
   // RC125: compact practice-view and string selectors preserve space for P1/P2/P3; all RC124 audio, analysis, repeat, project and practice logic preserved.
 
@@ -20147,7 +20169,7 @@ window.BassBatch = (() => {
     waveCacheDirty=false;
   }
   function drawWaveform(){
-    if(!buffer)return;
+    if(!buffer||!wave?.getClientRects().length)return;
     const {w,h}=resizeCanvas(wave,16384),g=wave.getContext('2d');
     if(waveCacheDirty||waveCache.width!==w||waveCache.height!==h)rebuildWaveCache(w,h);
     g.clearRect(0,0,w,h);g.drawImage(waveCache,0,0);
@@ -20155,7 +20177,7 @@ window.BassBatch = (() => {
   }
 
   function drawRoll(){
-    if(!roll)return;
+    if(!roll?.getClientRects().length)return;
     const {w,h}=resizeCanvas(roll), g=roll.getContext('2d');
     g.clearRect(0,0,w,h); g.fillStyle='#081321'; g.fillRect(0,0,w,h);
     if(!buffer) return;
@@ -20509,27 +20531,25 @@ window.BassBatch = (() => {
       timelineCurrentNote.textContent=n?displayNoteLabel(n.midi,n.scaleNumber):'—';
     }
     if(noteLane){
-      noteLane.querySelectorAll('.note-time-cell.active,.note-token.active').forEach(x=>x.classList.remove('active'));
-
-      // RC113: highlight notes only in the selected interval where their attack
-      // is written. A sustained note can continue sounding beyond the cell,
-      // but it is not relisted or highlighted as a new note in the next cell.
-      const cells=[...noteLane.querySelectorAll('.note-time-cell')];
-      const atSongEnd=!!buffer && Math.abs(Number(t)-Number(buffer.duration))<.002;
-      const cell=cells.find(x=>{
-        const s=Number(x.dataset.start),e=Number(x.dataset.end);
-        return Number(t)>=s && (Number(t)<e || (atSongEnd && Number(t)<=e+.002));
-      });
-      if(cell){
-        cell.classList.add('active');
-        const matches=[...cell.querySelectorAll('.note-token')].filter(x=>
-          Number(t)>=Number(x.dataset.start) && Number(t)<=Number(x.dataset.end)+.001
-        );
-        // Bass is monophonic, but if two candidates overlap at a transition,
-        // prefer the one whose attack is closest to the current time.
-        matches.sort((a,b)=>Number(b.dataset.start)-Number(a.dataset.start));
-        if(matches[0]){matches[0].classList.add('active');if(!inlineNoteEditor)keepPracticeItemVisible(matches[0]);}
+      const atSongEnd=!!buffer&&Math.abs(t-buffer.duration)<.002;
+      const index=Math.min(noteLane.children.length-1,Math.floor(Math.max(0,t)/TIMELINE_CELL_SECONDS));
+      const candidate=noteLane.children[index];
+      const cell=candidate&&t>=Number(candidate.dataset.start)&&
+        (t<Number(candidate.dataset.end)||(atSongEnd&&t<=Number(candidate.dataset.end)+.002))?candidate:null;
+      let active=null;
+      if(cell)for(const item of cell.querySelectorAll('.note-token')){
+        if(t>=Number(item.dataset.start)&&t<Number(item.dataset.end)&&
+          (!active||Number(item.dataset.start)>Number(active.dataset.start)))active=item;
       }
+      for(const [key,next] of [['cell',cell],['note',active]]){
+        const previous=updateSimpleTimeline[key];
+        if(previous!==next){
+          previous?.classList.remove('active');
+          next?.classList.add('active');
+          updateSimpleTimeline[key]=next;
+        }
+      }
+      if(active&&!inlineNoteEditor)keepPracticeItemVisible(active);
     }
     if(timelinePlayhead&&buffer){
       timelinePlayhead.classList.add('show');
@@ -20580,7 +20600,27 @@ window.BassBatch = (() => {
     return best;
   }
 
+  function updatePlaybackBeat(t){
+    const badge=$('songTempoWrap');if(!badge)return;
+    let on=false;
+    if(playing&&buffer&&t<buffer.duration){
+      const beats=detectedBeatTimes||[];
+      let start=-Infinity;
+      if(beats.length){
+        let lo=0,hi=beats.length;
+        while(lo<hi){const mid=(lo+hi)>>>1;if(beats[mid]<=t)lo=mid+1;else hi=mid;}
+        if(lo)start=beats[lo-1];
+      }else{
+        const bpm=currentTempoBpm();
+        if(Number.isFinite(bpm)&&bpm>0){const step=60/bpm;start=Math.floor(t/step)*step;}
+      }
+      on=t>=start&&t-start<.12;
+    }
+    badge.classList.toggle('on-beat',on);
+  }
+
   function updateSongInfo(t){
+    updatePlaybackBeat(t);
     if(practiceVisualMode==='piano'&&!playing&&updateSongInfo._pianoTime!==t)window.BassPiano.follow();
     updateSongInfo._pianoTime=t;
     updateSectionKey(t);

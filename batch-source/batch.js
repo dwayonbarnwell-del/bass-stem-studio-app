@@ -594,6 +594,11 @@ window.BassBatch = (() => {
       const review=entries.filter(i=>i.status==='Needs review').length;
       tell((stopAfterCurrent?'Stopped after this song. ':'Batch finished. ')+saved+' saved; '+left+' left'+(waiting?'; '+waiting+' still running':'')+(review?'; '+review+' need help':'')+(left?'. All earlier work is kept.':'.'));
     }catch(err){
+      // A stopped worker must not leave an entry looking actively in progress.
+      // Preserve pending-job state so Continue can collect the same paid job.
+      for(const item of entries)if(item.status==='Analysing'){
+        item.status='Needs review';item.reason=errorMessage(err);
+      }
       tell('Batch paused: '+errorMessage(err)+'. Saved songs and recovery records are kept.');
     }finally{
       starting=false;working=false;

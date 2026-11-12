@@ -92,8 +92,8 @@ window.BassLibrary=(()=>{
     const oldURLs=downloadURLs;downloadURLs=[];setTimeout(()=>oldURLs.forEach(url=>URL.revokeObjectURL(url)),60000);
     list.replaceChildren();
     const shown=filterRows(rows,el('librarySearch').value,el('librarySort').value);
-    el('libraryCount').textContent=shown.length+' '+(shown.length===1?'song':'songs');
-    if(!shown.length){const p=document.createElement('p');p.className='library-empty';p.textContent=rows.length?'No songs match your search.':'No saved songs here yet. Add saved files, or analyse a song and select Save.';list.append(p);}
+    el('libraryCount').textContent=folderAccess==='reconnect'&&!shown.length?'Folder not connected':shown.length+' '+(shown.length===1?'song':'songs');
+    if(!shown.length){const p=document.createElement('p');p.className='library-empty';p.textContent=rows.length?'No matching songs.':folderAccess==='reconnect'?'Reconnect to view songs.':busy?'Checking songs…':'Import saved songs to begin.';list.append(p);}
     for(const row of shown){
       const item=document.createElement('li'),info=document.createElement('div'),title=document.createElement('strong'),details=document.createElement('span'),actions=document.createElement('div');
       title.textContent=row.title;
@@ -118,7 +118,7 @@ window.BassLibrary=(()=>{
     return request&&await handle.requestPermission({mode})==='granted';
   }
   async function refresh(){
-    const token=++scan;await ready;rows=[];render();status('Checking saved songs…');
+    const token=++scan;await ready;rows=[];render();status('Checking songs…');
     const deviceRows=(await store('songs','readonly',s=>s.getAll())||[])
       .filter(r=>r?.filename&&SUPPORTED.test(r.filename))
       .map(r=>({...r,storageLabel:'In app'}));
