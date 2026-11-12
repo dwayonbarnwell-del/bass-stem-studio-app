@@ -374,7 +374,8 @@ window.BassLibrary=(()=>{
       }
       return 'audio';
     }
-    const choice=await chooseSavedVersion(file,found.matches);
+    const exact=found.matches.filter(match=>match.score>=75);
+    const choice=exact.length===1?{action:'open',index:found.matches.indexOf(exact[0])}:await chooseSavedVersion(file,found.matches);
     if(choice.action!=='open')return choice.action;
     const match=found.matches[choice.index];
     if(!match)return 'cancel';
@@ -521,6 +522,14 @@ window.BassLibrary=(()=>{
   }
   // Update the exact saved song, without a naming prompt or new analysis.
   // A same-named project with different audio is never overwritten.
+  async function saveAnalysisProject(project){
+    await ready;
+    if(folder&&!await permission(folder,'readwrite'))throw Error('Reconnect save folder');
+    const filename=String(project.projectName||'Song').replace(/[\\/:*?"<>|]+/g,'_').trim().slice(0,100)+'.bassstudio';
+    const target=await matchingTarget(project)||{dir:folder,filename,id:filename.toLocaleLowerCase()};
+    return save(project,new Blob([JSON.stringify(project)],{type:'application/json'}),target);
+  }
+
   async function saveMelodyProject(project){
     await ready;
     if(folder&&!await permission(folder,'readwrite'))throw Error('Reconnect save folder');
@@ -539,5 +548,5 @@ window.BassLibrary=(()=>{
     return target.dir?'folder':'device';
   }
 
-  return {init,show,prepareSave,save,saveMelodyProject,hasProject,ensureBatchAccess,errorText,chartProjects,chartProject,checkAudioImport,analysisSummary,openForAnalysis};
+  return {init,show,prepareSave,save,saveAnalysisProject,saveMelodyProject,hasProject,ensureBatchAccess,errorText,chartProjects,chartProject,checkAudioImport,analysisSummary,openForAnalysis};
 })();

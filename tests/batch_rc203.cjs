@@ -105,7 +105,7 @@ test('failure to preserve an active job stops the next song',async()=>{
 function provider(opts={}){
  let pending=structuredClone(opts.job||job()),held=[],posts=0,reads=0;
  const ctx={RUNPOD_ENDPOINT:'test-only',songSession:1,Error,Number,String,encodeURIComponent,
-  readPendingRunPodJob:()=>structuredClone(pending),storedRunPodKey:()=> 'mock-not-a-real-key',
+  recoveryStore:async()=>opts.cached||null,readPendingRunPodJob:()=>structuredClone(pending),storedRunPodKey:()=> 'mock-not-a-real-key',
   batchHeldJobs:()=>structuredClone(held),savePendingRunPodJob:v=>{if(opts.storageFail)throw Error('Storage full');pending=structuredClone(v)},
   rememberBatchHeldJob:v=>{held=[structuredClone(v)]},
   runPodFetch:async(url,key,request,attempts)=>{
@@ -137,9 +137,13 @@ test('completed result clears stale local failure without re-running',async()=>{
 test('provider storage failure prevents retry POST',async()=>{
  const p=provider({storageFail:true});await p.ctx.retryVerifiedBatchJob();assert.equal(p.posts,0);
 });
+test('Unsent parts resume without replacing cached completed jobs',async()=>{
+ const p=provider({job:job('A.mp3',{parts:[{id:'existing'},{index:1,label:'P2'}]}),cached:{signature:job().signature,data:{status:'COMPLETED'}}});
+ const r=await p.ctx.inspectBatchPending();assert.equal(r.state,'partial');assert.equal(p.reads,0);assert.equal(p.posts,0);
+});
 test('RC202 interface, original full-save gate and background recovery exclusion retained',async()=>{
  for(const text of ['rc202-uniform-actions','rc202-share-platform','ai-assets-rc201.js','saveBassStudioProject({batchName:name})',"document.visibilityState==='visible'&&!window.BassBatch?.isRunning()"])
   assert(html.includes(text),text);
- assert(fs.readFileSync('sw.js','utf8').includes('bass-stem-studio-rc207'));
+ assert(fs.readFileSync('sw.js','utf8').includes('bass-stem-studio-rc249'));
 });
 (async()=>{for(const [name,fn] of tests){await fn();console.log('PASS '+name)}console.log(`PASS ${tests.length} RC203 mocked scenarios. No live audio or paid analysis requests.`)})().catch(err=>{console.error(err);process.exitCode=1});
