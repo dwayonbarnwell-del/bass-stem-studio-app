@@ -15619,7 +15619,7 @@ window.BassBatch = (() => {
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC250';
+  const APP_VERSION='RC251';
   const PROJECT_SCHEMA_VERSION=2;
   // RC125: compact practice-view and string selectors preserve space for P1/P2/P3; all RC124 audio, analysis, repeat, project and practice logic preserved.
 
@@ -16701,7 +16701,15 @@ window.BassBatch = (() => {
   async function importAudioCheckingLibrary(file){
     if(!file)return false;
     const choice=await window.BassLibrary.checkAudioImport(file);
-    if(choice==='opened')return true;
+    if(choice==='opened'){
+      // A saved draft can contain audio without finished bass analysis.
+      // Keep its saved content and use the normal guarded automatic runner.
+      if(!offlineAnalysisReady&&!notes.length){
+        aiStatus('Finishing saved analysis',0);
+        queueAutomaticAudioAnalysis();
+      }
+      return true;
+    }
     if(choice==='audio')return loadAudioFile(file);
     return false;
   }
