@@ -2,7 +2,7 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
 const html=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8');
 function fn(name){const m=new RegExp('  (?:async )?function '+name+'\\(').exec(html);assert(m,name);return html.slice(m.index,html.indexOf('\n  }',m.index)+4);}
 const store=new Map(),c={console,AbortController,JSON,Date,Error,songSession:1,assertSongSession:()=>{},aiStatus:()=>{},cloudSleep:async()=>{},setTimeout:()=>1,clearTimeout:()=>{},RUNPOD_PENDING_JOB:'pending',RUNPOD_ENDPOINT:'test',localStorage:{getItem:k=>store.get(k),setItem:(k,v)=>store.set(k,v)},cacheAudioForRecovery:async()=>{},prepareAnalysisPartUpload:async()=>({file:{name:'test.wav'},bitrate:192}),fileToBase64:async()=> 'fake'};
-vm.createContext(c);for(const n of ['runPodFetch','savePendingRunPodJob','submitPendingAnalysisParts'])vm.runInContext(fn(n),c);
+vm.createContext(c);for(const n of ['analysisFailureDetail','validateAnalysisPartResult','runPodFetch','savePendingRunPodJob','submitPendingAnalysisParts'])vm.runInContext(fn(n),c);
 (async()=>{
  let calls=0;c.fetch=async()=>{calls++;throw Error('Failed to fetch')};
  await assert.rejects(c.runPodFetch('https://test/run','key',{method:'POST'},8));assert.equal(calls,1,'POST retried');

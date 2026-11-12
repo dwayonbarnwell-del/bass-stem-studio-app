@@ -14,7 +14,7 @@ function pipeline(){
   runPodFetch:async(url,key,opt)=>{if(opt.method==='POST'){const p=JSON.parse(opt.body).input;events.push('POST '+p.filename);return {id:p.filename,status:'IN_QUEUE'}}const id=url.split('/').pop();events.push('GET '+id);return {id,status:'COMPLETED',output:{ok:true,notes:[{midi:36,start:0,end:1}],chords:[{root_pc:0,quality:'maj',start:0,end:1}]}}},
   applySegmentedRunPodResults:async(p,rows)=>{assert.equal(rows.length,2);assert(rows.every(x=>x.output.notes.length&&x.output.chords.length));c.offlineAnalysisReady=true;return {count:2,partCount:2,bassStemReady:true}}
  };
- vm.createContext(c);for(const n of ['selectSongAnalysisJob','submitPendingAnalysisParts','collectPendingAnalysisParts','analyseBassWithAI'])vm.runInContext(fn(n),c);
+ vm.createContext(c);for(const n of ['analysisFailureDetail','validateAnalysisPartResult','selectSongAnalysisJob','submitPendingAnalysisParts','collectPendingAnalysisParts','analyseBassWithAI'])vm.runInContext(fn(n),c);
  return {c,events,results,held,set pending(v){pending=v},get pending(){return pending}};
 }
 (async()=>{

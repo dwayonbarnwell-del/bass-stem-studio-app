@@ -15619,7 +15619,7 @@ window.BassBatch = (() => {
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC249';
+  const APP_VERSION='RC250';
   const PROJECT_SCHEMA_VERSION=2;
   // RC125: compact practice-view and string selectors preserve space for P1/P2/P3; all RC124 audio, analysis, repeat, project and practice logic preserved.
 
@@ -15803,7 +15803,8 @@ window.BassBatch = (() => {
         if(saved.noBassBase64)await loadNoBassFromBase64(saved.noBassBase64,saved.noBassMime);}
       if(session!==songSession||request!==songLoadRequest)return false;
       currentRehearsalVersion=saved.rehearsalVersion||'';updateAudioParams();refreshEditedAnalysis();
-      toolsMessage('Saved analysis restored.');return true;
+      const hasMusic=!!(notes.length||detectedChordChanges.length||window.BassPiano?.exportData()?.notes?.length);
+      toolsMessage(hasMusic?'Saved analysis restored.':'Audio restored. Analysis is unfinished.');return hasMusic;
     }catch(error){console.warn('Device analysis recovery unavailable',error);return false;}
   }
   async function restoreLatestSession(){
@@ -18013,7 +18014,7 @@ window.BassBatch = (() => {
     if(!parts.length&&!jobs.length)return true;
     if(!await BassDialog.confirm('An upload may already be running or charged. Check your RunPod job history before retrying. Only retry if no job was created, or you accept another charge.',{title:'Review upload',accept:'Retry upload'}))return false;
     if(reviewSession!==songSession||songImportBusy||aiBusy||pendingResumeBusy)return false;
-    for(const part of parts){delete part.submitting;if(part.failedStatus){delete part.id;delete part.failedStatus;}}
+    for(const part of parts){delete part.submitting;if(part.failedStatus){delete part.id;delete part.failedStatus;delete part.failureMessage;}}
     if(parts.length)savePendingRunPodJob(pending,true);
     for(const job of jobs)storeStructureJob(null,job.id);
     structureError='';renderRepeatChooser();
@@ -19194,7 +19195,7 @@ window.BassBatch = (() => {
     for(let i=0;i<total;i++){
       const part=pending.parts[i];
       if(onlyIndex!==null&&part.index!==onlyIndex)continue;
-      if(part.failedStatus)throw new Error(`${part.label} did not finish (${part.failedStatus}). Tap Analyse Bass to review and retry this part.`);
+      if(part.failedStatus)throw new Error(`${part.label}: ${part.failureMessage||'Analysis did not finish'} (${part.failedStatus}). Tap Analyse Bass to review and retry this part.`);
       if(part.id)continue;
       if(part.submitting)throw new Error('An upload has no confirmed reply. Tap Analyse Bass to review it before retrying.');
 
@@ -19231,12 +19232,11 @@ window.BassBatch = (() => {
       if(submitted?.id){part.id=submitted.id;delete part.submitting;savePendingRunPodJob(pending);}
       assertSongSession(session);
       const immediate=String(submitted?.status||'UNKNOWN').toUpperCase();
-      if(['FAILED','CANCELLED','TIMED_OUT'].includes(immediate)){part.failedStatus=immediate;delete part.submitting;savePendingRunPodJob(pending);
-        throw new Error(`${part.label} did not finish (${immediate}). Tap Analyse Bass to review and retry this part.`);}
+      if(['FAILED','CANCELLED','TIMED_OUT'].includes(immediate)){delete part.submitting;validateAnalysisPartResult(submitted,part,pending);}
       if(!submitted?.id)
         throw new Error(`${part.label} did not receive an analysis job number.`);
 
-      if(immediate==='COMPLETED')await recoveryStore('results',s=>s.put({id:part.id,signature:pending.signature,savedAt:Date.now(),data:submitted}));
+      if(immediate==='COMPLETED'){validateAnalysisPartResult(submitted,part,pending);await recoveryStore('results',s=>s.put({id:part.id,signature:pending.signature,savedAt:Date.now(),data:submitted}));}
       part.id=submitted.id;
       part.uploadBitrate=upload.bitrate;
       part.submittedAt=Date.now();
@@ -19261,7 +19261,9 @@ window.BassBatch = (() => {
 
       const cached=await recoveryStore('results',s=>s.get(part.id)).catch(()=>null);
       assertSongSession(session);
-      if(cached?.signature===pending.signature&&cached?.data?.status==='COMPLETED'){results.push(cached.data);continue;}
+      if(cached?.signature===pending.signature&&cached?.data?.status==='COMPLETED'){
+        validateAnalysisPartResult(cached.data,part,pending);results.push(cached.data);continue;
+      }
       let current;try{current=await runPodFetch(
         `https://api.runpod.ai/v2/${encodeURIComponent(RUNPOD_ENDPOINT)}/status/${encodeURIComponent(part.id)}`,
         key,{method:'GET'},8,session
@@ -19273,13 +19275,31 @@ window.BassBatch = (() => {
         assertSongSession(session);
         st=String(current?.status||'UNKNOWN').toUpperCase();
       }
-      if(st!=='COMPLETED'){part.failedStatus=st;savePendingRunPodJob(pending);
-        throw new Error(`${part.label} analysis finished with status ${st}. Tap Analyse Bass to review and retry this part.`);}
+      validateAnalysisPartResult(current,part,pending);
       await recoveryStore('results',s=>s.put({id:part.id,signature:pending.signature,savedAt:Date.now(),data:current})).catch(()=>{if(session===songSession)toolsMessage('Part backup unavailable. Keep the app open until analysis finishes.');});
       assertSongSession(session);
       results.push(current);
     }
     return results;
+  }
+
+  function analysisFailureDetail(data){
+    let value=data?.error||data?.output?.error||data?.output?.warning;
+    if(typeof value==='string'){try{value=JSON.parse(value);}catch{}}
+    const text=typeof value==='string'?value:(value?.error_message||value?.message||value?.error||'');
+    // Keep errors useful without echoing credentials, audio data or signed URLs.
+    return String(text).replace(/https?:\/\/\S+/g,'[service URL]')
+      .replace(/\b(?:rpa_|rps_|Bearer\s+)[A-Za-z0-9_.-]+/gi,'[redacted]')
+      .replace(/[A-Za-z0-9+/=]{120,}/g,'[data]').replace(/\s+/g,' ').trim().slice(0,400);
+  }
+
+  function validateAnalysisPartResult(data,part,pending){
+    const status=String(data?.status||'UNKNOWN').toUpperCase(),out=data?.output;
+    if(status==='COMPLETED'&&out?.ok&&Array.isArray(out.notes))return true;
+    part.failedStatus=status==='COMPLETED'?'INVALID_RESULT':status;
+    part.failureMessage=analysisFailureDetail(data)||'The service returned no usable analysis.';
+    savePendingRunPodJob(pending);
+    throw new Error(`${part.label}: ${part.failureMessage} (${part.failedStatus}). Tap Analyse Bass to review and retry.`);
   }
 
   function round3(v){return Math.round(Number(v)*1000)/1000;}
@@ -19509,7 +19529,11 @@ window.BassBatch = (() => {
     });
 
     const cleanMergedNotes=dedupeSegmentBoundaryNotes(mergedNotes);
-    if(!cleanMergedNotes.length)throw new Error('Analysis completed but no reliable bass notes were returned.');
+    if(!cleanMergedNotes.length){
+      for(const part of pending.parts){part.failedStatus='NO_NOTES';part.failureMessage='No reliable bass notes were returned.';}
+      savePendingRunPodJob(pending);
+      throw new Error('Analysis completed but no reliable bass notes were returned. Tap Analyse Bass to review.');
+    }
 
     rememberAnalysis('Before reanalysis');
     const keepTranspose=transposeSemitones;applySongContext(nextContext);transposeSemitones=keepTranspose;updateSectionKey(currentTime());updateAudioParams();
@@ -19648,6 +19672,8 @@ window.BassBatch = (() => {
         aiStatus('The analysis service API key was rejected. Tap Analyse Bass and paste your current key again.',0);
       }else if(err?.httpStatus===404||/job\s+not\s+found|not\s+found/i.test(String(err?.message||''))){
         aiStatus('An analysis part has expired. Tap Analyse Bass to review it. Finished parts are kept.',0);
+      }else if(pending?.parts?.some(part=>part.failedStatus)){
+        aiStatus('Analysis error: '+String(err?.message||err),0);
       }else{
         aiStatus('Analysis is still saved. It will check again when you return.',14);
       }
@@ -22156,14 +22182,17 @@ window.BassBatch = (() => {
         const cached=await recoveryStore('results',s=>s.get(part.id)).catch(()=>null);
         const result=cached?.signature===pending.signature&&cached?.data?.status==='COMPLETED'?cached.data:
           await runPodFetch('https://api.runpod.ai/v2/'+encodeURIComponent(RUNPOD_ENDPOINT)+'/status/'+encodeURIComponent(part.id),key,{method:'GET'},1,songSession);
-        statuses.push(String(result?.status||'UNKNOWN').toUpperCase());
+        let status=String(result?.status||'UNKNOWN').toUpperCase();
+        if(status==='COMPLETED'&&(!result?.output?.ok||!Array.isArray(result?.output?.notes)))status='INVALID_RESULT';
+        if(['FAILED','CANCELLED','TIMED_OUT','INVALID_RESULT'].includes(status))part.failureMessage=analysisFailureDetail(result)||part.failureMessage||'No usable result returned.';
+        statuses.push(status);
       }
       if(readPendingRunPodJob()?.signature!==pending.signature)throw Error('The active recovery job changed.');
       parts.forEach((part,index)=>{
         const status=statuses[index];part.lastBatchStatus=status;
         if(['COMPLETED','IN_QUEUE','IN_PROGRESS','RUNNING'].includes(status)){
           delete part.failedStatus;delete part.batchRetrySubmitting;
-        }else if(['FAILED','TIMED_OUT'].includes(status))part.failedStatus=status;
+        }else if(['FAILED','TIMED_OUT','CANCELLED','INVALID_RESULT'].includes(status))part.failedStatus=status;
       });
       savePendingRunPodJob(pending,true);
       if(batchHeldJobs().some(job=>job.signature===pending.signature))rememberBatchHeldJob(pending,pending.batchEntryName||pending.name);
