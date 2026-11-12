@@ -15610,7 +15610,7 @@ window.BassBatch = (() => {
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC246';
+  const APP_VERSION='RC248';
   const PROJECT_SCHEMA_VERSION=2;
   // RC125: compact practice-view and string selectors preserve space for P1/P2/P3; all RC124 audio, analysis, repeat, project and practice logic preserved.
 
@@ -17238,7 +17238,7 @@ window.BassBatch = (() => {
       return false;
     }finally{if(request===songLoadRequest){
       if(!recoveryRestore)setSongImportBusy(false);
-      if(importSucceeded&&!batchImport&&!recoveryRestore){startImportedSongSections({allowNewJob:false});queueAutomaticMelody();}
+      if(importSucceeded&&!batchImport&&!recoveryRestore){startImportedSongSections({allowNewJob:false});queueAutomaticAudioAnalysis();}
     }}
   }
 
@@ -18037,10 +18037,18 @@ window.BassBatch = (() => {
   function loadExternalScript(src){
     return new Promise((resolve,reject)=>{
       const s=document.createElement('script');
+      let settled=false;
+      const finish=(error)=>{
+        if(settled)return;
+        settled=true;clearTimeout(timer);s.onload=null;s.onerror=null;
+        if(error){try{s.remove()}catch(e){};reject(error);}
+        else resolve(true);
+      };
+      const timer=setTimeout(()=>finish(new Error('Audio preparation timed out. Check your connection and try again.')),30000);
       s.src=src;s.async=true;
-      s.onload=()=>resolve(true);
-      s.onerror=()=>{try{s.remove()}catch(e){};reject(new Error('Could not load the large-song audio encoder.'));};
-      document.head.appendChild(s);
+      s.onload=()=>finish();
+      s.onerror=()=>finish(new Error('Could not load the large-song audio encoder. Check your connection and try again.'));
+      try{document.head.appendChild(s);}catch(error){finish(error);}
     });
   }
 
@@ -20822,6 +20830,40 @@ window.BassBatch = (() => {
         await new Promise(r=>setTimeout(r,3000));
       }
     }finally{if(session===songSession){aiBusy=false;updateProjectButtons();}}
+  }
+
+  // Imported audio owns one automatic sequence; batch and recovery keep their own runners.
+  let automaticAudioTimer=0;
+  function queueAutomaticAudioAnalysis(){
+    clearTimeout(automaticAudioTimer);
+    clearTimeout(automaticMelodyTimer);
+    const session=songSession;
+    const start=async()=>{
+      if(session!==songSession||!buffer||!activeAudioFile)return;
+      if(window.BassBatch?.isRunning())return;
+      if(songImportBusy||aiBusy||structureBusy||projectSaveBusy||pendingResumeBusy||analysisStartPending||window.BassPiano.isBusy()){
+        automaticAudioTimer=setTimeout(start,1200);return;
+      }
+      // Restored results, including edited notes, must never trigger a fresh paid run.
+      if(offlineAnalysisReady||notes.length){queueAutomaticMelody();return;}
+      if(!storedRunPodKey()){aiStatus('Connect analysis first',0);return;}
+      const pending=readPendingRunPodJob();
+      if(pending&&pending.signature!==cloudFileSignature(activeAudioFile)){
+        aiStatus('Previous upload needs review',0);return;
+      }
+      if(pending?.parts?.some(part=>part.failedStatus||part.submitting)){
+        aiStatus('Analysis needs review. Tap Analyse Bass.',0);return;
+      }
+      analysisStartPending=true;
+      try{
+        // Reuses matching pending jobs. Never clears a failed job or approves a paid retry.
+        const result=await analyseBassWithAI();
+        if(session===songSession&&result&&offlineAnalysisReady)queueAutomaticMelody();
+      }catch(error){
+        if(session===songSession)aiStatus('Analysis needs review. Tap Analyse Bass.',0);
+      }finally{analysisStartPending=false;}
+    };
+    automaticAudioTimer=setTimeout(start,250);
   }
 
   let automaticMelodyTimer=0;
