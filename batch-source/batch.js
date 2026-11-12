@@ -304,8 +304,8 @@ window.BassBatch = (() => {
       item.submittedThisRun=true;
       const result=await hooks.analyse();
       item.timing.analyseMs=Date.now()-analysisStart;
-      if (!result || !result.count || !result.partCount || !result.bassStemReady) {
-        throw Error('Full bass analysis was not confirmed. No incomplete project was saved.');
+      if (!result || !result.count || !result.partCount) {
+        throw Error(hooks.analysisError?.()||'Bass analysis did not return a usable result.');
       }
       item.bassReady=true;
     }
@@ -334,7 +334,7 @@ window.BassBatch = (() => {
     if (!saved?.noteCount) throw Error('The saved project was not confirmed.');
     item.timing.totalMs=Date.now()-item.startedAt;
     item.startedAt=null;
-    item.status='Saved';item.reason='';item.analysisStarted=true;storeRetryState(item);
+    item.status='Saved';item.reason=saved.warning||'';item.analysisStarted=true;storeRetryState(item);
     completed.add(item.name+'|'+item.size+'|'+item.crc);
     try {localStorage.setItem(storageKey,JSON.stringify([...completed]));}catch {}
     const held=heldFor(item);
@@ -406,7 +406,7 @@ window.BassBatch = (() => {
       if(!unfinished(item)||!job)continue;
       if(throttled&&item.lastCheckedAt&&Date.now()-item.lastCheckedAt<15000)continue;
       item.waitingForResult=false;
-      if(!job.parts?.length||!job.parts.every(part=>part.id&&!part.submitting)){
+      if(!job.parts?.length||!job.parts.every(part=>!part.submitting)){
         item.lastCheckState='unconfirmed';
         item.status='Needs review';
         item.reason='Old upload could not be checked. No second upload was sent. After checking, you can approve a fresh try; it may cost more.';
@@ -426,7 +426,7 @@ window.BassBatch = (() => {
           checked=await hooks.retryFailed();
           item.lastCheckState=checked?.state||'needs-review';
         }
-        if(checked?.state==='completed'){
+        if(['completed','partial'].includes(checked?.state)){
           if(await hooks.resumeVerified?.()){
             await saveRecovered(job);
           }else{

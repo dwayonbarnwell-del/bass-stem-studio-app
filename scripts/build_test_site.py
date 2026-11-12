@@ -14,7 +14,7 @@ if OUT.exists():
     shutil.rmtree(OUT)
 OUT.mkdir()
 folders = {'icons', 'licenses', 'ai-source', 'batch-source', 'billing-source',
-           'chord-source', 'library-source', 'media-source', 'song-reference'}
+           'chord-source', 'library-source', 'media-source', 'song-reference', 'vendor'}
 files = {'index.html', 'guide.html', 'manifest.webmanifest', 'sw.js', 'ai-assets-rc201.js', 'SOUND_CREDITS.txt'}
 for name in subprocess.check_output(['git', 'ls-files'], cwd=ROOT, text=True).splitlines():
     p = Path(name)
@@ -38,6 +38,17 @@ manifest = json.loads(manifest_path.read_text())
 manifest.update(name='TEST ONLY | Bass Stem Studio', short_name='Bass TEST', id='/bass-test', theme_color='#7c3aed')
 manifest_path.write_text(json.dumps(manifest, indent=2))
 (OUT / 'robots.txt').write_text('User-agent: *\nDisallow: /\n')
+# Disposable synthetic tests are built only on the isolated test origin.
+isolation=(ROOT / 'tests/isolate_rc179.js').read_text()
+audit_html=html.replace('<head>', '<head><script>'+isolation+'</script>', 1)
+marker="  setPracticeVisualMode('timeline');\n  rebuildNoteSidebar();"
+assert marker in audit_html
+fixture=(ROOT / 'tests/destructive_browser_rc179.js').read_text()
+fixture=fixture.replace("await fresh();out.textContent+='DONE '", (ROOT / 'tests/browser_key_rc252.js').read_text()+"\nawait fresh();out.textContent+='DONE '")
+fixture=fixture.replace('top:0;left:0;z-index:999999','top:48px;left:0;z-index:999999').replace('top:45px;left:0','top:88px;left:0')
+(OUT / 'audit.html').write_text(audit_html.replace(marker,fixture+'\n'+marker))
+for width in [360,430,800,1280]:
+    (OUT / f'audit{width}.html').write_text(f'<!doctype html><title>TEST ONLY | {width}px</title><iframe title="Isolated audit" src="audit.html" style="width:{width}px;height:900px;border:0"></iframe>')
 # Render static site headers also apply to workers; prevent outbound API jobs.
 (OUT / '_headers').write_text('/*\n  X-Robots-Tag: noindex, nofollow\n  Content-Security-Policy: ' + policy + '\n')
 print('Built isolated TEST ONLY site in test-dist; online analysis disabled.')

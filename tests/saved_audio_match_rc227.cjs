@@ -5,7 +5,7 @@ assert.equal(embedded.trim(),source.trim());
 assert(html.includes('await importAudioCheckingLibrary(f);'));
 assert(html.includes("if(kind==='audio')await importAudioCheckingLibrary(file)"));
 assert(html.includes('startImportedSongSections({allowNewJob:false});'));
-assert(html.includes('ensureSongStructure({importReady:true,allowNewJob:false})'));
+assert(html.includes('ensureSongStructure({importReady:true,allowNewJob:false,maxChecks:2,pollMs:500})'));
 assert(html.includes('async function importBassStudioProject(file,{findSections=false}={})'));
 assert(html.includes("open:file=>importBassStudioProject(file,{findSections:false})"));
 assert(html.includes("aiAnalyse?.addEventListener('click'"));

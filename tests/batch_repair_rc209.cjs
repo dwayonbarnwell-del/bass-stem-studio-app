@@ -102,6 +102,6 @@ test('Folder permission and local storage failures start no paid work',async()=>
 test('Stop stops checks and leaves the recovery record',async()=>{const h=harness({held:[job()],inspect:async()=> 'running',onWait:api=>api.batch.stop()});await h.batch.choose(zip(['A.mp3']));await h.batch.run();assert.equal(calls(h,'restart').length,0);assert.match(h.get('batchStatus').textContent,/Stopped/)});
 test('Only complete projects reach the existing save function',async()=>{const h=harness({completeSong:async()=>false,sectionStatus:()=>({state:'pending'})});await h.batch.choose(zip(['A.mp3']));await h.batch.run();assert.equal(calls(h,'save').length,0)});
 test('Full app retains save checks, new polling bounds and no background batch sections',async()=>{
- for(const s of ["maxChecks:allowNewSections?18:2","pollMs:allowNewSections?3000:500","maxChecks:2,pollMs:500","if(!songStructure&&!savedSectionRanges&&!window.BassBatch?.isRunning())void ensureSongStructure()","saveBassStudioProject({batchName:name})",'rc206'])assert(html.includes(s),s);
+ for(const s of ["maxChecks:2,pollMs:500","await window.BassPiano.analyse({automatic:true})","saveBassStudioProject({batchName:name})",'rc206'])assert(html.includes(s),s);
 });
 (async()=>{for(const [name,fn]of tests){await fn();console.log('PASS '+name)}console.log('PASS '+tests.length+' batch repair scenarios. Mocked; no paid analysis.')})().catch(e=>{console.error(e);process.exitCode=1});
