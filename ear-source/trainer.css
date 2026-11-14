@@ -1,6 +1,6 @@
 /* Layered important rules isolate the trainer from legacy global control styles. */
-@layer bass-ear-259 {
-#earTrainerDialog{box-sizing:border-box!important;width:min(560px,calc(100vw - 16px))!important;max-width:560px!important;max-height:calc(100dvh - 16px)!important;padding:12px!important;margin:auto!important;border:1px solid #557487!important;border-radius:16px!important;background:#101f2d!important;color:#f4f8fb!important;overflow:auto!important;font:14px/1.35 system-ui,sans-serif!important;overscroll-behavior:contain!important}
+@layer bass-ear-260 {
+#earTrainerDialog{box-sizing:border-box!important;width:min(560px,calc(100vw - 16px))!important;max-width:560px!important;max-height:calc(100dvh - 16px)!important;padding:12px!important;margin:12px auto auto!important;top:0!important;bottom:auto!important;border:1px solid #557487!important;border-radius:16px!important;background:#101f2d!important;color:#f4f8fb!important;overflow:auto!important;font:14px/1.35 system-ui,sans-serif!important;overscroll-behavior:contain!important}
 #earTrainerDialog *{box-sizing:border-box!important;min-width:0!important;font-family:system-ui,sans-serif!important}
 #earTrainerDialog section{margin:0!important;padding:0!important;border:0!important;background:transparent!important}
 #earTrainerDialog#earTrainerDialog [hidden]{display:none!important}
@@ -8,7 +8,7 @@
 #earTrainerDialog h3{font-size:14px!important;line-height:1.35!important;margin:0!important;padding:0!important;text-align:left!important}
 #earTrainerDialog p{font-size:13px!important;line-height:1.35!important;margin:6px 0!important;padding:0!important}
 #earTrainerDialog button,#earTrainerDialog select{box-sizing:border-box!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;flex-direction:row!important;gap:0!important;font:650 13px/1.2 system-ui,sans-serif!important;min-height:38px!important;height:38px!important;max-height:none!important;min-width:0!important;width:auto!important;max-width:100%!important;border-radius:9px!important;border:1px solid #6d8b9e!important;color:#f5f9fc!important;background:#243e50!important;padding:6px 8px!important;margin:0!important;white-space:nowrap!important;word-break:normal!important;overflow-wrap:normal!important;letter-spacing:normal!important;text-align:center!important;cursor:pointer!important;touch-action:manipulation!important}
-#earTrainerDialog select{display:block!important;width:100%!important;text-align:left!important;padding:6px 22px 6px 8px!important;background:#102b3d!important;appearance:auto!important}
+#earTrainerDialog select{display:block!important;width:100%!important;text-align:center!important;text-align-last:center!important;padding:6px 20px!important;background:#102b3d!important;appearance:auto!important}
 #earTrainerDialog button:disabled,#earTrainerDialog select:disabled{opacity:.5!important;cursor:default!important}
 #earTrainerDialog button:focus-visible,#earTrainerDialog select:focus-visible{outline:2px solid #8ce2ff!important;outline-offset:2px!important}
 #earTrainerDialog .ear-header{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;margin:0 0 10px!important;padding:0!important;position:sticky!important;top:-12px!important;z-index:5!important;background:#101f2d!important;min-height:40px!important}
@@ -43,8 +43,8 @@
 #earTrainerDialog .ear-answers button.review{background:#63472e!important;border-color:#d8b78c!important;opacity:1!important}
 #earTrainerDialog #earKeyboard{position:relative!important;display:block!important;height:96px!important;min-height:96px!important;max-height:96px!important;width:100%!important;margin:10px 0 0!important;padding:0!important;isolation:isolate!important;border-radius:5px!important;background:#0b1621!important;overflow:hidden!important}
 #earTrainerDialog #earKeyboard button{position:absolute!important;display:flex!important;top:0!important;bottom:auto!important;min-width:0!important;max-width:none!important;min-height:0!important;max-height:none!important;align-items:flex-end!important;justify-content:center!important;padding:0 0 7px!important;margin:0!important;border:1px solid #687b89!important;border-radius:0 0 5px 5px!important;white-space:nowrap!important;word-break:normal!important;overflow-wrap:normal!important;font-size:11px!important;line-height:1!important;letter-spacing:-.2px!important;opacity:1!important;box-shadow:none!important;transform:none!important;filter:none!important}
-#earTrainerDialog #earKeyboard .ear-white{width:12.5%!important;height:96px!important;min-height:96px!important;background:#ecf0f3!important;color:#13232d!important;z-index:1!important}
-#earTrainerDialog #earKeyboard .ear-black{width:6.8%!important;height:58px!important;min-height:58px!important;background:#18222e!important;color:#fff!important;z-index:2!important;padding-bottom:6px!important;font-size:9px!important;border-color:#405263!important}
+#earTrainerDialog #earKeyboard .ear-white{width:14.285714%!important;height:96px!important;min-height:96px!important;background:#ecf0f3!important;color:#13232d!important;z-index:1!important}
+#earTrainerDialog #earKeyboard .ear-black{width:8%!important;height:58px!important;min-height:58px!important;background:#18222e!important;color:#fff!important;z-index:2!important;padding-bottom:6px!important;font-size:9px!important;border-color:#405263!important}
 #earTrainerDialog #earKeyboard button:disabled{opacity:1!important;cursor:default!important}
 #earTrainerDialog #earKeyboard button:active{background:#7fcabb!important;color:#10251f!important}
 #earTrainerDialog #earEntered{font-size:12px!important;line-height:1.25!important;text-align:center!important;min-height:15px!important;color:#c7e9e2!important;margin:6px 0!important;font-weight:650!important}
@@ -63,4 +63,20 @@
 #earTrainerDialog .ear-progress ul{padding:0 0 0 18px!important;margin:4px 0!important;font-size:12px!important}
 #earTrainerDialog .ear-progress li{margin:2px 0!important}
 #earTrainerDialog #earStorageNote{font-size:11px!important}
+#earTrainerDialog #earKeyboard button.ear-correct,#earTrainerDialog #earKeyboard button.ear-playing{background:#248bd1!important;color:#fff!important;border-color:#9bd8ff!important;box-shadow:inset 0 0 0 1px #b7e4ff!important}
+#earTrainerDialog #earKeyboard button.ear-correct::after{content:attr(data-order)!important;position:absolute!important;top:5px!important;left:0!important;right:0!important;font-size:10px!important;text-align:center!important;color:#fff!important}
+#earTrainerDialog #earCheckNotes{display:none!important}
+#earTrainerDialog .ear-note-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+#earTrainerDialog .ear-answer-sound{display:flex!important;gap:6px!important;margin:6px 0!important}
+#earTrainerDialog #earAnswerSound{background:#245b82!important;border-color:#8cbfde!important;width:100%!important}
+#earTrainerDialog .fill-settings{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important;margin:8px 0!important}
+#earTrainerDialog .fill-actions{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:5px!important;margin:8px 0!important}
+#earTrainerDialog .fill-actions button{width:100%!important;padding:4px!important;font-size:11px!important}
+#earTrainerDialog #fillPlay{background:#245651!important}#earTrainerDialog #fillRepeat{background:#514370!important}#earTrainerDialog #fillNext{background:#345583!important}#earTrainerDialog #fillBacking{background:#664c31!important}
+#earTrainerDialog #fillRepeat[aria-pressed=true]{background:#8063a7!important;border-color:#e2d2f7!important}
+#earTrainerDialog #fillNotes{display:flex!important;flex-wrap:wrap!important;gap:5px!important;margin:8px 0!important}
+#earTrainerDialog #fillNotes button{font-size:12px!important;min-width:42px!important;flex:1!important;height:36px!important;min-height:36px!important}
+#earTrainerDialog #fillNotes .landing{border:2px solid #59b7f3!important}
+#earTrainerDialog #fillNotes .sounding{background:#248bd1!important;color:white!important}
+#earTrainerDialog #fillTip,#earTrainerDialog #fillStatus{font-size:12px!important}
 }

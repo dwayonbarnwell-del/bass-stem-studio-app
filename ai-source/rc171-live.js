@@ -1,47 +1,4 @@
 /* RC168: AI-assisted local live audio. No microphone audio is uploaded by this module. */
-window.BassLiveDSP = (()=>{
-  const names=['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B'];
-  const templates=[['',[0,4,7]],['m',[0,3,7]],['7',[0,4,7,10]],['maj7',[0,4,7,11]],['m7',[0,3,7,10]],['sus2',[0,2,7]],['sus4',[0,5,7]],['dim',[0,3,6]],['aug',[0,4,8]]];
-  function spectrumChroma(db,sampleRate,fftSize){
-    const peaks=[],chroma=new Float64Array(12),step=sampleRate/fftSize;
-    let max=-Infinity;for(let i=1;i<db.length;i++)if(i*step>=65&&i*step<=2200)max=Math.max(max,db[i]);
-    if(!Number.isFinite(max)||max < -85)return chroma;
-    for(let i=Math.max(2,Math.floor(65/step));i<Math.min(db.length-1,Math.ceil(2200/step));i++){
-      const v=db[i];if(v<max-32||v<-85||v<=db[i-1]||v<db[i+1])continue;
-      const denom=db[i-1]-2*v+db[i+1];
-      const offset=Number.isFinite(denom)&&denom!==0?Math.max(-.5,Math.min(.5,.5*(db[i-1]-db[i+1])/denom)):0;
-      const freq=(i+offset)*step,midi=69+12*Math.log2(freq/440),rounded=Math.round(midi);
-      if(Math.abs(midi-rounded)>.42)continue;
-      peaks.push({freq,midi:rounded,raw:Math.pow(10,(v-max)/20),weight:Math.exp(-.5*Math.pow((midi-rounded)/.25,2))});
-    }
-    // Discount upper partials to reduce false thirds/fifths from a single note.
-    for(const p of peaks){let harmonic=0;for(const lower of peaks){if(lower.freq>=p.freq*.75)break;const ratio=p.freq/lower.freq,h=Math.round(ratio);if(h>=2&&h<=6&&Math.abs(12*Math.log2(ratio/h))<.35)harmonic=Math.max(harmonic,lower.raw/h);}
-      const amplitude=Math.max(0,p.raw-1.25*harmonic)*p.weight;
-      chroma[((p.midi%12)+12)%12]+=amplitude;
-    }
-    return chroma;
-  }
-  function classify(chroma){
-    const total=chroma.reduce((a,b)=>a+b,0),peak=Math.max(...chroma);
-    if(total<=1e-8||peak<=1e-8)return {label:'—',kind:'quiet'};
-    const strong=Array.from(chroma).filter(v=>v>=peak*.18).length;
-    if(strong<3)return {label:'—',kind:'notes'};
-    const candidates=[];
-    for(let root=0;root<12;root++)for(const [suffix,intervals] of templates){
-      const values=intervals.map(i=>chroma[(root+i)%12]);
-      if(Math.min(...values)<peak*.16)continue;
-      const inside=values.reduce((a,b)=>a+b,0)/total;
-      const score=inside-.3*(1-inside)-.012*(intervals.length-3);
-      candidates.push({label:names[root]+suffix,score,inside});
-    }
-    candidates.sort((a,b)=>b.score-a.score);
-    if(!candidates.length||candidates[0].inside<.78)return {label:'—',kind:'unclear'};
-    const best=candidates[0],margin=best.score-(candidates[1]?.score??0);
-    if(margin<.025)return {label:'—',kind:'unclear'};
-    return {label:best.label,kind:'chord',strength:best.inside};
-  }
-  return Object.freeze({spectrumChroma,classify});
-})();
 window.BassLiveAudio = (()=>{
   let restoreSaved;
   function init({loadRecording,pausePlayer,isBusy,exportMP3}){
@@ -127,7 +84,7 @@ window.BassLiveAudio = (()=>{
       elapsed.textContent=clock((now-(recording()?recordStart:listenStart))/1000);
       if(recording()&&now-recordStart>=3600000)void stop('One-hour recording complete. Save it before starting another.');
     }
-    function releaseMic(){window.BassCoach?.stop();
+    function releaseMic(){
       clearInterval(timer);timer=null;ai?.stop();ai=null;worshipFollow.clear();chordFollow.clear();lastLead=null;leadSeen=-Infinity;$('liveAIState').textContent='Stopped';
       if(stream){for(const track of stream.getTracks()){track.onended=null;track.stop();}stream=null;}
       try{source?.disconnect();analyser?.disconnect();}catch(_){}

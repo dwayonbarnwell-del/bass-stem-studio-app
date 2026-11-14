@@ -104,3 +104,11 @@ fixture259=(ROOT / 'tests/browser_ear_rc259.js').read_text()
 for width in [360,430,800,1280]:
     for name,source in [('ui','index.html'),('audit','audit-rc259.html')]:
         (OUT / f'{name}-rc259-{width}.html').write_text(f'<!doctype html><title>TEST ONLY | {width}px</title><iframe title="Bass Studio {width}px" src="{source}?release=rc259" allow="autoplay" style="width:{width}px;height:740px;border:0"></iframe>')
+
+# RC260: actual answer, keyboard, fill and piano audition interactions.
+fixture260=(ROOT / 'tests/browser_training_rc260.js').read_text()
+training260=html.replace('<head>', '<head><script>'+isolation+'</script>',1)
+(OUT / 'audit-rc260.html').write_text(training260.replace(marker,fixture260+'\n'+marker))
+for width in [360,430,800,1280]:
+    for name,source in [('ui','index.html'),('audit','audit-rc260.html')]:
+        (OUT / f'{name}-rc260-{width}.html').write_text(f'<!doctype html><title>TEST ONLY | {width}px</title><iframe title="Bass Studio {width}px" src="{source}?release=rc260" allow="autoplay" style="width:{width}px;height:740px;border:0"></iframe>')
