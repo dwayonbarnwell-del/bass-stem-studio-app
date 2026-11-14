@@ -194,7 +194,6 @@ window.BassLiveAudio = (()=>{
         const recoveryError=()=>{$('liveRecovery').textContent='Recovery unavailable. Save this take.';};
         const takeName='Bass_Studio_Live_'+new Date().toISOString().replace(/[:.]/g,'-');
         const recordToken=generation;pending=true;sync();
-        const previousTake=await BassRecovery.restore();if(previousTake)await BassTrash.add('recording',previousTake.name,previousTake);
         if(recordToken!==generation||!stream){pending=false;sync();return;}
         await window.BassRecovery.begin({name:takeName,mime:next.mimeType,complete:false}).catch(recoveryError);
         if(recordToken!==generation||!stream){pending=false;sync();return;}pending=false;
@@ -248,8 +247,8 @@ window.BassLiveAudio = (()=>{
     $('livePracticeKey').onchange=()=>{feedbackTotal=feedbackMatch=0;$('liveFeedback').textContent='';};
     $('liveForget').onclick=async()=>{
       if(stream||pending||finishing||importing||recovering||exporting)return;
-      if(!await BassDialog.confirm('You can restore it from Recently deleted.',{title:'Delete recording',accept:'Delete take',danger:true}))return;recovering=true;sync();
-      try{const saved=await BassRecovery.restore();if(saved)await BassTrash.add('recording',saved.name,saved);else if(audioBlob)await BassTrash.add('recording',recordName,{name:recordName,blob:audioBlob,mime:audioBlob.type,events,humNotes,complete:true,duration:Number(player.duration)||0});await window.BassRecovery.clear();audioBlob=null;humNotes=[];events=[];player.pause();player.removeAttribute('src');if(audioURL)URL.revokeObjectURL(audioURL);audioURL='';downloaded=true;state.textContent='Saved take deleted.';sync();}catch(e){state.textContent='Could not delete the saved take.';}finally{recovering=false;sync();}
+      if(!await BassDialog.confirm('Delete this saved take from this browser? Save a copy first if you need it.',{title:'Delete recording',accept:'Delete take',danger:true}))return;recovering=true;sync();
+      try{await window.BassRecovery.clear();audioBlob=null;humNotes=[];events=[];player.pause();player.removeAttribute('src');if(audioURL)URL.revokeObjectURL(audioURL);audioURL='';downloaded=true;state.textContent='Saved take deleted.';sync();}catch(e){state.textContent='Could not delete the saved take.';}finally{recovering=false;sync();}
     };
     $('liveSaveChords').onclick=()=>{
       const rows=['Start seconds,End seconds,Chord,Notes,Key,Status',...events.map(e=>[e.start.toFixed(3),e.end.toFixed(3),e.chord==='—'?'Unclear':e.chord,e.notes||'',e.key||'','Provisional'].join(','))];
@@ -281,7 +280,7 @@ window.BassLiveAudio = (()=>{
     restoreSaved=async saved=>{
       if(stream||pending||finishing||importing||recovering||exporting)throw Error('Stop live audio first.');
       if(!(saved.blob instanceof Blob)||!saved.blob.size)throw Error('No audio in this recovery copy.');
-      recovering=true;sync();try{const current=await BassRecovery.restore();if(current)await BassTrash.add('recording',current.name,current);
+      recovering=true;sync();try{
         const {blob,...meta}=saved;await BassRecovery.replace(meta,blob);
         player.pause();if(audioURL)URL.revokeObjectURL(audioURL);audioBlob=blob;recordName=saved.name;events=saved.events||[];humNotes=saved.humNotes||[];audioURL=URL.createObjectURL(blob);player.src=audioURL;player.load();downloaded=false;elapsed.textContent=clock(saved.duration||0);state.textContent='Recording restored. Open Live audio to play or save.';
       }finally{recovering=false;sync();}

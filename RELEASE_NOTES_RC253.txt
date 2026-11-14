@@ -1,0 +1,12 @@
+RC253: Settings colours and tool removal
+
+Settings cards now use teal, purple, green, amber and blue backgrounds.
+Payments & Billing and Share Bass Stem Studio have separate colours.
+Removed Scales & arpeggios, Recently deleted, Ear training and Share loop.
+Removed Find song lyrics online search. Saved lyrics and local transcription remain available.
+Retained tools fill one equal-width row. The main controls use four equal columns.
+Previously saved loop projects still open through the normal project importer.
+Existing recovery and ear-training records are not erased from device storage.
+
+Validation: all inline JavaScript and changed scripts parse; targeted import,
+playback, song-key, live-audio, lyrics, navigation, layout and offline checks pass.
