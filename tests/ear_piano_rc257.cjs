@@ -1,5 +1,5 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),crypto=require('node:crypto');
-const env={window:{},console,Math};vm.createContext(env);vm.runInContext(fs.readFileSync('ear-source/core.js','utf8'),env);const C=env.window.BassEarTrainingCore;let seed=7;const rng=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};let count=0;
+const env={window:{},console,Math};vm.createContext(env);vm.runInContext(fs.readFileSync('ear-source/core-rc260.js','utf8'),env);const C=env.window.BassEarTrainingCore;let seed=7;const rng=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};let count=0;
 for(const mode of C.modes)for(let level=1;level<=3;level++)for(const sound of ['piano','bass'])for(let i=0;i<80;i++){
  const q=C.make(mode,level,{rng,sound});assert(C.grade(q,q.answer).correct);assert(!C.grade(q,null).correct);assert.equal(q.level,level);
  for(const n of [...q.events,...(q.reference||[])]){assert(n.midi>=21&&n.midi<=108);assert(n.end>n.start&&n.start>=0);assert(n.velocity>0&&n.velocity<=127);}
