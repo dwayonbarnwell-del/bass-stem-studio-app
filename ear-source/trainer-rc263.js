@@ -5,7 +5,8 @@ window.BassEarTrainer=(()=>{
  const titles={notes:'Notes by ear',intervals:'Intervals',chords:'Chords',progressions:'Worship progressions',rhythm:'Rhythm'};
  const hints={notes:'Hear the notes, then play them back.',intervals:'Name the distance between two notes.',chords:'Recognise the chord sound.',progressions:'Identify the chord sequence. Home chord is optional.',rhythm:'Copy the taps. No microphone needed.'};
  const storageKey='bass-ear-training-v1';let api,dialog,context,voices=[],timers=[],token=0,phase='idle',question=null,round=null,entered=[],taps=[],heard=false,answered=false,progress=C.empty(),storageOK=true;
- let looping=false,repeatQuestion=false,exampleHistory={};
+ let looping=false,repeatQuestion=false,exampleHistory={},section='notes';
+ const selectedMode=()=>section==='notes'?$('earMode').value:section;
  let viewportFrame=0;
  function fitViewport(){
   cancelAnimationFrame(viewportFrame);
@@ -26,12 +27,15 @@ window.BassEarTrainer=(()=>{
   const list=$('earProgressList');list.replaceChildren();for(const mode of C.modes){const s=progress.modes[mode],li=document.createElement('li');li.textContent=titles[mode]+': '+(s?.total?s.correct+'/'+s.total+' correct':'Not started');list.append(li);}
   text('earStorageNote',storageOK?'Progress stays on this device.':'Progress cannot be saved in this browser.');
  }
- function options(){return {mode:$('earMode').value,level:Number($('earLevel').value),sound:$('earSound').value,count:Number($('earCount').value),playback:$('earPlayback').value};}
+ function options(){return {mode:selectedMode(),level:Number($('earLevel').value),sound:$('earSound').value,count:Number($('earCount').value),playback:$('earPlayback').value};}
  function controls(){
-  const busy=phase==='loading'||phase==='playing',active=!!round&&phase!=='summary',fills=$('earMode').value==='fills';dialog.dataset.lesson=$('earMode').value;
-  $('earFillStudy').hidden=!fills; $('earLevel').parentElement.hidden=fills; $('earSound').parentElement.hidden=fills||$('earMode').value==='rhythm';
+  const busy=phase==='loading'||phase==='playing',active=!!round&&phase!=='summary',mode=selectedMode(),fills=mode==='fills';dialog.dataset.lesson=mode;
+  $('earSections').hidden=active;
+  for(const b of $('earSections').querySelectorAll('button')){b.disabled=active;b.setAttribute('aria-pressed',String(b.dataset.section===section));}
+  $('earMode').parentElement.hidden=section!=='notes';
+  $('earFillStudy').hidden=!fills; $('earLevel').parentElement.hidden=fills; $('earSound').parentElement.hidden=fills||mode==='rhythm';
   $('earStartRow').hidden=fills;$('earStatus').hidden=fills;$('earSummary').hidden=fills||phase!=='summary';
-  $('earSetup').hidden=active;$('earPlaybackChoices').hidden=active||fills;$('earHint').hidden=active||fills;$('earSession').hidden=!active;
+  $('earSetup').hidden=active||fills;$('earPlaybackChoices').hidden=active||fills;$('earHint').hidden=active||fills;$('earSession').hidden=!active;
   if(active)text('earSession',titles[round.mode]+' · Level '+round.level+(round.mode==='rhythm'?'':' · '+(round.sound==='bass'?'Bass':'Piano')));
   for(const b of $('earPlaybackChoices').querySelectorAll('button')){b.disabled=active;b.setAttribute('aria-pressed',String(b.dataset.playback===$('earPlayback').value));}
   for(const id of ['earMode','earLevel','earSound','earCount','earPlayback'])$(id).disabled=active;
@@ -64,7 +68,7 @@ window.BassEarTrainer=(()=>{
     b.onclick=()=>enterNote(m);keys.append(b);
    });text('earEntered','Choose '+question.answer.length+' notes.');
   }
-  if(question.mode==='rhythm'){text('earTapCount','0 taps · '+question.bpm+' BPM');text('earTap','Tap rhythm');}
+  if(question.mode==='rhythm'){text('earTapCount','0/'+question.answer.length+' taps · '+question.bpm+' BPM');text('earTap','Tap rhythm');}
   if(listening())text('earFeedback',question.explanation);
   controls();
  }
@@ -152,15 +156,17 @@ window.BassEarTrainer=(()=>{
   text('earSummaryText',nextLevel?'Ready for the next level.':total?'Practise again to strengthen your listening.':'Your earlier progress is kept.');
   $('earAdvance').hidden=!nextLevel;updateProgress();controls();
  }
- function resetQuestion(){if(answered)return;entered=[];taps=[];text('earEntered','Choose '+question.answer.length+' notes.');text('earTapCount','0 taps · '+question.bpm+' BPM');controls();}
+ function resetQuestion(){if(answered)return;entered=[];taps=[];text('earEntered','Choose '+question.answer.length+' notes.');if(question.mode==='rhythm')text('earTapCount','0/'+question.answer.length+' taps · '+question.bpm+' BPM');controls();}
  function close(){window.BassFillTrainer?.stop();repeatQuestion=false;stopSound();phase='idle';answered=false;question=null;round=null;if(context?.state==='running')void context.suspend();}
- function modeChanged(){window.BassFillTrainer?.stop();const mode=$('earMode').value;text('earHint',hints[mode]||'');$('earLevel').value=String(progress.modes[mode]?.level||1);controls();}
+ function modeChanged(){window.BassFillTrainer?.stop();const mode=selectedMode();text('earHint',hints[mode]||'');$('earLevel').value=String(progress.modes[mode]?.level||1);controls();}
+ function selectSection(nextSection){if(section===nextSection)return;close();section=nextSection;modeChanged();status('No song needed');dialog.scrollTop=0;}
  function init(hooks){
   api=hooks;if(dialog)return;
   const wrap=document.createElement('div');wrap.innerHTML=`<dialog id="earTrainerDialog" aria-labelledby="earTitle">
 <header class="ear-header"><h2 id="earTitle">Ear training</h2><button id="earClose" type="button">Close</button></header>
+<div id="earSections" role="group" aria-label="Ear training sections"><button id="earSectionNotes" type="button" data-section="notes" aria-pressed="true">Notes</button><button id="earSectionRhythm" type="button" data-section="rhythm" aria-pressed="false">Rhythm</button><button id="earSectionFills" type="button" data-section="fills" aria-pressed="false">Bass fills</button></div>
 <div id="earSetup" class="ear-settings">
-<label><select id="earMode" aria-label="Select lesson" title="Select lesson"><option value="notes">Notes</option><option value="intervals">Intervals</option><option value="chords">Chords</option><option value="progressions">Progressions</option><option value="rhythm">Rhythm</option><option value="fills">Bass fills</option></select></label>
+<label><select id="earMode" aria-label="Select lesson" title="Select lesson"><option value="notes">Notes</option><option value="intervals">Intervals</option><option value="chords">Chords</option><option value="progressions">Progressions</option></select></label>
 <label><select id="earLevel" aria-label="Select level" title="Select level"><option value="1">Level 1</option><option value="2">Level 2</option><option value="3">Level 3</option><option value="4">Level 4</option><option value="5">Level 5</option></select></label>
 <label><select id="earSound" aria-label="Select sound" title="Select sound"><option value="piano">Piano</option><option value="bass">Bass</option></select></label>
 <label><button id="earCount" type="button" value="5" aria-label="Change question count">5 questions</button></label>
@@ -174,7 +180,7 @@ window.BassEarTrainer=(()=>{
 <div class="ear-actions"><button id="earListen" type="button">Play</button><button id="earRepeat" type="button" aria-pressed="false" title="Repeat this example">Repeat</button><button id="earReveal" type="button" aria-label="Show answer">Answer</button><button id="earNext" type="button" disabled>Next</button></div>
 <div id="earAnswers" class="ear-answers"></div>
 <div id="earNotes" hidden><div id="earKeyboard" aria-label="Answer piano keyboard"></div><p id="earEntered" aria-live="polite"></p><div class="ear-note-actions"><button id="earUndoNote" type="button">Undo</button><button id="earClearNotes" type="button">Clear</button><button id="earCheckNotes" type="button">Check</button></div></div>
-<div id="earRhythm" hidden><button id="earTap" type="button">Tap rhythm</button><p id="earTapCount" aria-live="polite"></p><div class="ear-note-actions"><button id="earResetTaps" type="button">Reset taps</button><button id="earCheckRhythm" type="button">Check taps</button></div></div>
+<div id="earRhythm" hidden><button id="earTap" type="button">Tap rhythm</button><p id="earTapCount" aria-live="polite" aria-atomic="true"></p><div class="ear-note-actions"><button id="earResetTaps" type="button">Reset taps</button><button id="earCheckRhythm" type="button">Check taps</button></div></div>
 <p id="earFeedback" class="ear-feedback" aria-live="polite"></p><div id="earAnswerSoundRow" class="ear-answer-sound" hidden><button id="earAnswerSound" type="button">Hear answer</button></div></section>
 <section id="earFillStudy" hidden></section>
 <section id="earSummary" hidden><h3 id="earSummaryTitle"></h3><p id="earSummaryText"></p><button id="earAdvance" type="button" hidden>Next level</button></section>
@@ -183,6 +189,7 @@ window.BassEarTrainer=(()=>{
   window.addEventListener('resize',fitViewport);window.visualViewport?.addEventListener('resize',fitViewport);window.visualViewport?.addEventListener('scroll',fitViewport);screen.orientation?.addEventListener('change',fitViewport);fitViewport();
   $('openEarTraining').onclick=()=>{if(api?.busy?.())return;api?.pause?.();close();$('earSummary').hidden=true;dialog.showModal();dialog.scrollTop=0;fitViewport();status('No song needed');controls();};
   window.BassFillTrainer.init($('earFillStudy'),hooks);$('earAnswerSound').onclick=()=>void listen(true);
+  for(const b of $('earSections').querySelectorAll('button'))b.onclick=()=>selectSection(b.dataset.section);
   $('earClose').onclick=()=>{close();dialog.close();};dialog.addEventListener('close',()=>{if(!dialog.open)close();});dialog.addEventListener('cancel',close);
   $('earMode').onchange=modeChanged;$('earCount').onclick=()=>{$('earCount').value=$('earCount').value==='5'?'10':'5';$('earCount').textContent=$('earCount').value+' questions';};for(const b of $('earPlaybackChoices').querySelectorAll('button'))b.onclick=()=>{$('earPlayback').value=b.dataset.playback;controls();};$('earRepeat').onclick=repeat;$('earPlayback').onchange=controls;$('earHome').onclick=home;$('earStart').onclick=start;$('earFinish').onclick=finish;$('earListen').onclick=listen;$('earNext').onclick=()=>{next();if(listening())void listen(true);};$('earReveal').onclick=()=>submit(null,true);
   $('earCheckNotes').onclick=()=>submit(entered);$('earUndoNote').onclick=()=>{entered.pop();text('earEntered',entered.length?entered.map(C.note).join(' → '):'Choose '+question.answer.length+' notes.');controls();};$('earClearNotes').onclick=resetQuestion;

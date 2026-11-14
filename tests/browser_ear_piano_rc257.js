@@ -5,7 +5,7 @@
  const out=$('rc257Results'),say=s=>{out.textContent+='\n'+s;},check=(ok,label)=>{if(!ok)throw Error(label);say('PASS '+label);};let current;
  const original=window.BassEarTrainingCore.make;window.BassEarTrainingCore.make=(...args)=>current=original(...args);
  async function until(fn,ms=20000){const start=performance.now();while(!fn()){if(performance.now()-start>ms)throw Error('Timed out: '+$('earStatus')?.textContent);await sleep(30);}}
- async function startMode(mode,level=1){if($('earTrainerDialog').open){$('earClose').click();await sleep(40);}$('openEarTraining').click();$('earMode').value=mode;$('earMode').dispatchEvent(new Event('change'));$('earLevel').value=level;$('earStart').click();await until(()=>!$('earQuestion').hidden);}
+ async function startMode(mode,level=1){if($('earTrainerDialog').open){$('earClose').click();await sleep(40);}$('openEarTraining').click();$(mode==='rhythm'?'earSectionRhythm':'earSectionNotes').click();if(mode!=='rhythm'){$('earMode').value=mode;$('earMode').dispatchEvent(new Event('change'));}$('earLevel').value=level;$('earStart').click();await until(()=>!$('earQuestion').hidden);}
  async function listen(){ $('earListen').click();await until(()=>!$('earReveal').disabled||$('earStatus').textContent==='Replay complete',30000);}
  function answer(correct=true){if(current.mode==='notes'){for(const m of current.answer)$('earKeyboard').querySelector('[data-midi="'+m+'"]').click();$('earCheckNotes').click();}else{const value=correct?current.answer:current.options.find(x=>x!==current.answer);[...$('earAnswers').children].find(b=>b.textContent===value).click();}}
  $('rc257Run').onclick=async()=>{
