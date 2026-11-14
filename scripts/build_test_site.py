@@ -92,3 +92,10 @@ fixture258=(ROOT / 'tests/browser_ear_rc258.js').read_text()
 (OUT / 'audit-rc258.html').write_text(html.replace('</body>','<script>'+fixture258+'</script></body>'))
 for width in [360,430,800,1280]:
     (OUT / f'ui-rc258-{width}.html').write_text(f'<!doctype html><title>TEST ONLY | {width}px</title><iframe title="Bass Studio {width}px" src="index.html?release=rc258" allow="autoplay" style="width:{width}px;height:900px;border:0"></iframe>')
+
+# RC259: compact trainer and keyboard geometry at phone widths.
+fixture259=(ROOT / 'tests/browser_ear_rc259.js').read_text()
+(OUT / 'audit-rc259.html').write_text(html.replace('</body>','<script>'+fixture259+'</script></body>'))
+for width in [360,430,800,1280]:
+    for name,source in [('ui','index.html'),('audit','audit-rc259.html')]:
+        (OUT / f'{name}-rc259-{width}.html').write_text(f'<!doctype html><title>TEST ONLY | {width}px</title><iframe title="Bass Studio {width}px" src="{source}?release=rc259" allow="autoplay" style="width:{width}px;height:740px;border:0"></iframe>')
