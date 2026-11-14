@@ -28,7 +28,7 @@ window.BassEarTrainer=(()=>{
  }
  function options(){return {mode:$('earMode').value,level:Number($('earLevel').value),sound:$('earSound').value,count:Number($('earCount').value),playback:$('earPlayback').value};}
  function controls(){
-  const busy=phase==='loading'||phase==='playing',active=!!round&&phase!=='summary',fills=$('earMode').value==='fills';
+  const busy=phase==='loading'||phase==='playing',active=!!round&&phase!=='summary',fills=$('earMode').value==='fills';dialog.dataset.lesson=$('earMode').value;
   $('earFillStudy').hidden=!fills; $('earLevel').parentElement.hidden=fills; $('earSound').parentElement.hidden=fills||$('earMode').value==='rhythm';
   $('earStartRow').hidden=fills;$('earStatus').hidden=fills;$('earSummary').hidden=fills||phase!=='summary';
   $('earSetup').hidden=active;$('earPlaybackChoices').hidden=active||fills;$('earHint').hidden=active||fills;$('earSession').hidden=!active;
@@ -162,7 +162,7 @@ window.BassEarTrainer=(()=>{
 <div id="earSetup" class="ear-settings">
 <label><select id="earMode" aria-label="Select lesson" title="Select lesson"><option value="notes">Notes</option><option value="intervals">Intervals</option><option value="chords">Chords</option><option value="progressions">Progressions</option><option value="rhythm">Rhythm</option><option value="fills">Bass fills</option></select></label>
 <label><select id="earLevel" aria-label="Select level" title="Select level"><option value="1">Level 1</option><option value="2">Level 2</option><option value="3">Level 3</option><option value="4">Level 4</option><option value="5">Level 5</option></select></label>
-<label><select id="earSound" aria-label="Select sound" title="Select sound"><option value="piano">Sound: Piano</option><option value="bass">Sound: Bass</option></select></label>
+<label><select id="earSound" aria-label="Select sound" title="Select sound"><option value="piano">Piano</option><option value="bass">Bass</option></select></label>
 <label><button id="earCount" type="button" value="5" aria-label="Change question count">5 questions</button></label>
 </div>
 <input id="earPlayback" type="hidden" value="questions">
@@ -181,7 +181,7 @@ window.BassEarTrainer=(()=>{
 <details class="ear-progress"><summary>Your progress</summary><ul id="earProgressList"></ul><small id="earStorageNote"></small></details></dialog>`;
   dialog=wrap.firstElementChild;$('appRoot').append(dialog);readProgress();modeChanged();updateProgress();
   window.addEventListener('resize',fitViewport);window.visualViewport?.addEventListener('resize',fitViewport);window.visualViewport?.addEventListener('scroll',fitViewport);screen.orientation?.addEventListener('change',fitViewport);fitViewport();
-  $('openEarTraining').onclick=()=>{if(api?.busy?.())return;api?.pause?.();close();$('earSummary').hidden=true;dialog.showModal();fitViewport();status('No song needed');controls();};
+  $('openEarTraining').onclick=()=>{if(api?.busy?.())return;api?.pause?.();close();$('earSummary').hidden=true;dialog.showModal();dialog.scrollTop=0;fitViewport();status('No song needed');controls();};
   window.BassFillTrainer.init($('earFillStudy'),hooks);$('earAnswerSound').onclick=()=>void listen(true);
   $('earClose').onclick=()=>{close();dialog.close();};dialog.addEventListener('close',()=>{if(!dialog.open)close();});dialog.addEventListener('cancel',close);
   $('earMode').onchange=modeChanged;$('earCount').onclick=()=>{$('earCount').value=$('earCount').value==='5'?'10':'5';$('earCount').textContent=$('earCount').value+' questions';};for(const b of $('earPlaybackChoices').querySelectorAll('button'))b.onclick=()=>{$('earPlayback').value=b.dataset.playback;controls();};$('earRepeat').onclick=repeat;$('earPlayback').onchange=controls;$('earHome').onclick=home;$('earStart').onclick=start;$('earFinish').onclick=finish;$('earListen').onclick=listen;$('earNext').onclick=()=>{next();if(listening())void listen(true);};$('earReveal').onclick=()=>submit(null,true);
