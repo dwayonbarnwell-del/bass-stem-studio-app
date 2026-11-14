@@ -13410,7 +13410,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRo
 <link rel="stylesheet" href="./song-reference/chords.css">
 <link rel="stylesheet" href="./ai-source/lyrics-ux.css">
 <link rel="stylesheet" href="./library-source/saved-audio-match.css">
-<link rel="stylesheet" href="./library-source/tools-layout.css?v=rc257">
+<link rel="stylesheet" href="./library-source/tools-layout.css?v=rc258">
 
 <style id="rc239-piano-preview-style">.piano-action{display:none!important;}
 html body.piano-view-active #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot .simple-timeline-head .practice-view-head{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:6px!important;width:100%!important;align-items:stretch!important;}
@@ -13850,7 +13850,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 html body #appRoot #songTempoWrap.on-beat{box-shadow:inset 0 0 0 3px #b9f3da!important}
 html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel .piano-chord.current-chord{background:#a7e8d2!important;color:#102b25!important;font-weight:800!important;box-shadow:inset 0 -3px #fff!important}
 </style>
-<link rel="stylesheet" href="./ear-source/trainer.css?v=rc257">
+<link rel="stylesheet" href="./ear-source/trainer.css?v=rc258">
 </head>
 <body>
 <div id="sectionCompatibility" style="display:none" aria-hidden="true">
@@ -14060,7 +14060,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPan
       </div>
       </div>
 
-<section id="liveAudioEntry" aria-label="Practice controls"><button id="openLiveAudio" type="button" aria-label="Live audio"><span>Live</span> <span>audio</span></button><button id="openReview" type="button" aria-label="Review chords"><span>Review</span> <span>chords</span></button><button id="openMoreTools" type="button" aria-label="More tools" aria-expanded="false" aria-controls="moreTools"><span>More</span> <span>tools</span></button></section><div id="moreTools" hidden><div class="more-tools-select-row"><label for="moreToolsView" class="more-tools-select-label">Show tools</label><select id="moreToolsView" aria-label="More tools display"><option value="open">Tools open</option><option value="close">Close tools</option></select></div><div id="extraTools"><button id="openEarTraining" type="button">Ear training</button><button id="openLyrics" type="button">Lyrics</button><button id="openRhythm" type="button">Rhythm / practice</button><button id="openSoundCheck" type="button">Sound check</button></div></div><div id="practiceComfort"><label title="Short fades soften loop joins"><input id="smoothLoops" type="checkbox" checked>Smooth loops</label><label><input id="keepAwake" type="checkbox" checked>Keep awake</label><small id="awakeStatus" role="status"></small></div>
+<section id="liveAudioEntry" aria-label="Practice controls"><button id="openLiveAudio" type="button" aria-label="Live audio"><span>Live</span> <span>audio</span></button><button id="openEarTraining" type="button">Ear training</button><button id="openReview" type="button" aria-label="Review chords"><span>Review</span> <span>chords</span></button><button id="openMoreTools" type="button" aria-label="More tools" aria-expanded="false" aria-controls="moreTools"><span>More</span> <span>tools</span></button></section><div id="moreTools" hidden><div class="more-tools-select-row"><label for="moreToolsView" class="more-tools-select-label">Show tools</label><select id="moreToolsView" aria-label="More tools display"><option value="open">Tools open</option><option value="close">Close tools</option></select></div><div id="extraTools"><button id="openLyrics" type="button">Lyrics</button><button id="openRhythm" type="button">Rhythm / practice</button><button id="openSoundCheck" type="button">Sound check</button></div></div><div id="practiceComfort"><label title="Short fades soften loop joins"><input id="smoothLoops" type="checkbox" checked>Smooth loops</label><label><input id="keepAwake" type="checkbox" checked>Keep awake</label><small id="awakeStatus" role="status"></small></div>
 <dialog id="soundCheckDialog" aria-labelledby="soundCheckTitle"><h2 id="soundCheckTitle">Sound check</h2><p id="checkStatus" role="status">Check the room, then your playing level.</p><div class="check-buttons"><button id="checkQuiet">1. Quiet room</button><button id="checkLevel" disabled>2. Playing level</button></div><div id="checkResults" aria-live="polite"></div><small>Each check takes 3 seconds. No audio is saved. This checks input levels, not every cause of distortion.</small><div class="check-buttons"><button id="checkCancel" disabled>Stop check</button><button id="checkClose">Back</button></div></dialog>
 <dialog id="reviewDialog" aria-labelledby="reviewTitle"><h2 id="reviewTitle">Review chords</h2><p id="reviewCount"></p><h3 id="reviewChord">—</h3><p id="reviewTime"></p><p id="reviewStatus" role="status"></p><div class="review-buttons"><button id="reviewHear">Hear passage</button><button id="reviewStop" disabled>Stop audio</button><button id="reviewEdit">Check / correct</button><button id="reviewPrev">Previous</button><button id="reviewNext">Next</button><button id="reviewClose">Close</button></div><small>Save the correct chord to remove it from this queue. Use Save song to keep your corrections.</small></dialog>
 
@@ -15493,12 +15493,12 @@ window.BassBatch = (() => {
 
 <dialog id="pianoEditor" aria-labelledby="pianoEditTitle"><h2 id="pianoEditTitle">Correct melody note</h2><label>Note<select id="pianoPitch"></select></label><label>Start (seconds)<input id="pianoStart" type="number" min="0" step="0.01"></label><label>End (seconds)<input id="pianoEnd" type="number" min="0" step="0.01"></label><p id="pianoEditError" role="alert"></p><div class="piano-edit-actions"><button id="pianoSaveNote" type="button">Save note</button> <button id="pianoDelete" type="button">Delete note</button> <button id="pianoUndo" type="button" disabled>Undo last change</button> <button id="pianoCloseNote" type="button">Close</button></div></dialog>
 <script src="./chord-source/recovery.js?v=rc254"></script>
-<script src="./ear-source/core.js?v=rc257"></script>
-<script src="./ear-source/trainer.js?v=rc257"></script>
+<script src="./ear-source/core.js?v=rc258"></script>
+<script src="./ear-source/trainer.js?v=rc258"></script>
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC257';
+  const APP_VERSION='RC258';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;
@@ -22810,7 +22810,8 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #sourceCard #sourceFi
 </style>
 <script defer src="./song-reference/data.js?v=rc255"></script>
 <script defer src="./song-reference/chords.js?v=rc255"></script>
-<script defer src="./library-source/tools-layout.js?v=rc257"></script>
+<script defer src="./library-source/tools-layout.js?v=rc258"></script>
+<script defer src="./library-source/practice-icons.js?v=rc258"></script>
 </body>
 </html>
 
