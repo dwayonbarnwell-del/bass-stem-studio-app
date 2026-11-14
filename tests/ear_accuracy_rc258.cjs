@@ -24,6 +24,6 @@ for(const mode of C.modes)for(let level=1;level<=3;level++)for(const sound of ['
   assert(C.grade(q,q.answer).correct);checked++;
  }
  assert(keys.size>3,'insufficient variety');if(mode==='chords')assert(sameAnswerDifferentNotes>5,'answers must not alternate predictably');
- if(mode==='notes')assert.equal(tonics.size,5);if(mode==='progressions')assert.equal(tonics.size,level===1?3:12);
+ if(mode==='notes')assert.equal(tonics.size,1);if(mode==='progressions')assert.equal(tonics.size,level===1?3:12);
 }
 console.log('PASS',checked,'independently checked examples: chord pitch classes, low roots, intervals, rhythm, both instruments, all levels, varied keys and no last-three duplicates.');

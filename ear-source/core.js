@@ -20,9 +20,9 @@ window.BassEarTrainingCore=(()=>{
    const bass=sound==='bass',base=bass?(['chords','progressions'].includes(mode)?48:36):60;
    q={mode,level,sound:bass?'bass':'piano',events:[],answer:null,options:[],key:'',explanation:'',prompt:''};
    if(mode==='notes'){
-    const tonic=base+pick([0,2,5,7,9],rng),pool=(level===1?[0,2,4,7,9,12]:level===2?[0,2,4,5,7,9,11,12]:Array.from({length:13},(_,i)=>i)).map(n=>tonic+n),count=level+1;
-    const result=[level===1?tonic:pick(pool,rng)];while(result.length<count){const candidate=pick(pool.filter(n=>n!==result.at(-1)),rng);result.push(candidate);}
-    q.answer=result;q.keyboard=Array.from({length:13},(_,i)=>tonic+i);q.events=result.map((m,i)=>event(m,i*.9,.65));q.prompt='First note: '+note(result[0])+'. Repeat all '+count+' notes.';q.explanation=result.map(note).join(' → ');q.key=result.slice(1).map((m,i)=>m-result[i]).join(',');
+    const tonic=base,pool=(level===1?[0,2,4,7,9]:level===2?[0,2,4,5,7,9,11]:Array.from({length:12},(_,i)=>i)).map(n=>tonic+n),count=level+1;
+    const result=[pick(pool,rng)];while(result.length<count){const candidate=pick(pool.filter(n=>n!==result.at(-1)),rng);result.push(candidate);}
+    q.answer=result;q.keyboard=Array.from({length:12},(_,i)=>tonic+i);q.events=result.map((m,i)=>event(m,i*.9,.65));q.prompt='First note: '+note(result[0])+'. Repeat all '+count+' notes.';q.explanation=result.map(note).join(' → ');q.key=result.slice(1).map((m,i)=>m-result[i]).join(',');
    }else if(mode==='intervals'){
     const pool=level===1?[2,4,5,7]:level===2?[1,2,3,4,5,7,8,9,12]:[1,2,3,4,5,6,7,8,9,10,11,12],gap=pick(pool,rng),root=base+pick([0,2,4,5,7],rng),direction=level===3&&rng()<.5?-1:1,harmonic=level===3&&rng()<.35;
     const other=root+gap*direction;q.answer=intervals[gap];q.options=choices(q.answer,pool.map(n=>intervals[n]),rng);q.events=[event(root,0,.8),event(other,harmonic?0:1,.8)];q.prompt=harmonic?'Name the interval heard together.':'Name the distance between the notes.';q.explanation=note(root)+' to '+note(other)+': '+q.answer+' ('+gap+' semitones).';q.key=String(gap);
