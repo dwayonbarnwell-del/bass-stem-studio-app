@@ -31,7 +31,7 @@ const buffer={duration:12,sampleRate,length,numberOfChannels:1,getChannelData:()
  assert(app.includes('window.BassChordRecovery?.init'));
  assert(app.includes("c.evidenceVersion==='local-chord-v1'"));
  const sw=fs.readFileSync(path.join(root,'sw.js'),'utf8');
- assert(sw.includes("bass-stem-studio-rc236"));
+ assert(sw.includes("bass-stem-studio-rc254"));
  assert(sw.includes("'./chord-source/recovery.js'"));
  console.log('PASS RC236: four synthetic chords, manual protection, repeat scan, cancellation, no paid network and app integration.');
 })().catch(e=>{console.error(e);process.exitCode=1;});

@@ -1,4 +1,4 @@
-/* RC236: voluntary, on-device missing-chord suggestions. Never contacts RunPod. */
+/* RC254: automatic, on-device missing-chord suggestions. Never contacts RunPod. */
 (()=>{
 'use strict';
 const FFT_SIZE=8192, SAMPLE_RATE=11025, STEP=.5, SOURCE='on-device-chord-recovery-v1';
@@ -118,7 +118,7 @@ function addOnlyMissing(candidateRanges,savedChords,duration){
    if(part.end-part.start<.75)continue;
    const quality=candidate.quality,rootPc=candidate.rootPc;
    added.push({start:Number(part.start.toFixed(3)),end:Number(part.end.toFixed(3)),rootPc,quality,
-     label:NAMES[rootPc]+(quality==='min'?'m':''),confidence:Number(Math.min(.86,Math.max(.71,.66+.6*candidate.score)).toFixed(3)),
+     label:NAMES[rootPc]+(quality==='min'?'m':''),confidence:Number(Math.min(.86,Math.max(.71,Number.isFinite(candidate.score)?.66+.6*candidate.score:Number(candidate.confidence)||.71)).toFixed(3)),
      evidenceVersion:'local-chord-v1',uncertain:true,manual:false,bassPc:null,source:SOURCE});
   }
  }
@@ -149,33 +149,41 @@ async function scan(buffer,{progress=()=>{},stillCurrent=()=>true,existing=[]}={
  const pieces=intervalsFromVotes(classify(evidence));
  return addOnlyMissing(pieces,existing,buffer.duration);
 }
-function init({getContext,apply}={}){
- const panel=document.getElementById('aiPanel');if(!panel||typeof getContext!=='function'||typeof apply!=='function')return;
- if(document.getElementById('findMissingChords'))return;
- const row=document.createElement('div');row.className='local-chord-row';
- const button=document.createElement('button');button.type='button';button.id='findMissingChords';button.className='btn';button.textContent='Find missing chords (free)';
- const notice=document.createElement('div');notice.className='local-chord-result';notice.setAttribute('role','status');
- row.append(button,notice);panel.append(row);
- const style=document.createElement('style');style.textContent='.local-chord-row{border-top:1px solid var(--line, #385265);margin-top:12px;padding-top:12px;display:grid;gap:9px}.local-chord-row>.btn{width:100%;min-height:44px;font-weight:700;border-radius:12px}.local-chord-result{font-size:13px;color:var(--muted,#9fb3c5);line-height:1.45;text-align:center;white-space:normal}';
- document.head.append(style);
- let running=false;
- button.addEventListener('click',async()=>{
-  if(running)return;
-  const context=getContext();
-  if(!context?.buffer){notice.textContent='Open a saved song with audio first.';return;}
-  if(context.busy){notice.textContent='Finish the current import or analysis first.';return;}
-  running=true;button.disabled=true;button.textContent='Checking chords…';notice.textContent='Scanning this song on your device. No RunPod charge.';
-  try{
-   const result=await scan(context.buffer,{existing:context.chords,stillCurrent:()=>getContext()?.session===context.session,
-    progress:p=>{notice.textContent='Checking chords on your device · '+p+'% · no RunPod charge';}});
-   if(!result.added.length){notice.textContent='No confident additional chord spans found. Saved chords and bass unchanged.';return;}
-   const added=await apply(context.session,result);
-   notice.textContent=added?added+' tentative chord spans added. Review the ? labels, then tap Save to export a new project. Bass notes are unchanged.':'No new chords were added.';
-  }catch(err){notice.textContent=String(err?.message||err);}
-  finally{running=false;button.disabled=false;button.textContent='Find missing chords (free)';}
- });
+let hooks=null,timer=0,running=false,completedSession=null,queuedSession=null;
+function queue(){
+ const context=hooks?.getContext();
+ if(!context?.buffer||context.session===completedSession)return;
+ queuedSession=context.session;
+ clearTimeout(timer);timer=setTimeout(runAutomatic,1500);
 }
-const api={init,scan,addOnlyMissing};
+async function runAutomatic(){
+ const context=hooks?.getContext();
+ if(!context?.buffer||context.session!==queuedSession||context.session===completedSession)return;
+ if(context.busy||running){timer=setTimeout(runAutomatic,1200);return;}
+ running=true;
+ try{
+  const result=await scan(context.buffer,{existing:context.chords,
+   stillCurrent:()=>{const now=hooks?.getContext();return now?.session===context.session&&!now.busy;}});
+  const now=hooks?.getContext();
+  if(now?.session!==context.session)return;
+  if(now.busy){queue();return;}
+  if(result.added.length)await hooks.apply(context.session,result);
+  const after=hooks?.getContext();
+  if(after?.session===context.session){if(after.busy)queue();else completedSession=context.session;}
+ }catch(error){
+  const now=hooks?.getContext();
+  if(now?.session===context.session&&now.busy)queue();
+  else if(now?.session===context.session)console.warn('Automatic chord check unavailable',error);
+ }finally{
+  running=false;
+  if(queuedSession!==context.session)queue();
+ }
+}
+function init({getContext,apply}={}){
+ if(typeof getContext!=='function'||typeof apply!=='function')return;
+ hooks={getContext,apply};queue();
+}
+const api={init,queue,scan,addOnlyMissing};
 if(typeof window!=='undefined')window.BassChordRecovery=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })();

@@ -56,3 +56,10 @@ print('Built isolated TEST ONLY site in test-dist; online analysis disabled.')
 # Responsive UI inspection pages for the current settings and retained tools.
 for width in [360,430,800]:
     (OUT / f'ui-rc253-{width}.html').write_text(f'<!doctype html><title>TEST ONLY | {width}px</title><iframe title="Bass Studio {width}px" src="index.html" style="width:{width}px;height:900px;border:0"></iframe>')
+
+# RC254: exercise real browser storage and last-song recovery on the test origin.
+fixture254=(ROOT / 'tests/browser_session_rc254.js').read_text()
+(OUT / 'audit-rc254-session.html').write_text(html.replace(marker,fixture254+'\n'+marker))
+for width in [360,430,800,1280]:
+    (OUT / f'ui-rc254-{width}.html').write_text(f'<!doctype html><title>TEST ONLY | {width}px</title><iframe title="Bass Studio {width}px" src="index.html" style="width:{width}px;height:900px;border:0"></iframe>')
+    (OUT / f'audit-rc254-session-{width}.html').write_text(f'<!doctype html><title>TEST ONLY | {width}px</title><iframe title="Refresh test {width}px" src="audit-rc254-session.html" style="width:{width}px;height:900px;border:0"></iframe>')
