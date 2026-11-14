@@ -3,7 +3,7 @@
 #earTrainerDialog{box-sizing:border-box!important;width:min(560px,calc(100vw - 16px))!important;max-width:560px!important;max-height:calc(100dvh - 16px)!important;padding:12px!important;margin:auto!important;border:1px solid #557487!important;border-radius:16px!important;background:#101f2d!important;color:#f4f8fb!important;overflow:auto!important;font:14px/1.35 system-ui,sans-serif!important;overscroll-behavior:contain!important}
 #earTrainerDialog *{box-sizing:border-box!important;min-width:0!important;font-family:system-ui,sans-serif!important}
 #earTrainerDialog section{margin:0!important;padding:0!important;border:0!important;background:transparent!important}
-#earTrainerDialog [hidden]{display:none!important}
+#earTrainerDialog#earTrainerDialog [hidden]{display:none!important}
 #earTrainerDialog h2{font-size:20px!important;line-height:1.2!important;margin:0!important;padding:0!important;text-align:left!important}
 #earTrainerDialog h3{font-size:14px!important;line-height:1.35!important;margin:0!important;padding:0!important;text-align:left!important}
 #earTrainerDialog p{font-size:13px!important;line-height:1.35!important;margin:6px 0!important;padding:0!important}
