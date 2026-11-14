@@ -9,25 +9,36 @@ window.BassFillCore=(()=>{
   ['Gospel triplets','Six triplets curl around the landing note.'],
   ['Chromatic turn','Short outside notes resolve to the next root.'],
   ['Syncopated pocket','Space, offbeats and a sixteenth-note pickup.'],
-  ['Broken-chord lift','Wide chord tones descend into the new root.']
+  ['Broken-chord lift','Wide chord tones descend into the new root.'],
+  ['Jazz fill','Swung chord tones and a chromatic enclosure.'],
+  ['Blues fill','Blue notes and triplets resolve into the next root.'],
+  ['Pentatonic fill','A five-note scale run between the two chord roots.'],
+  ['Contemporary worship','Open fifths, an octave lift and a gentle pickup.']
  ];
  const pc=m=>(m%12+12)%12, note=m=>names[pc(m)]+(Math.floor(m/12)-1);
  function make({key=0,mode='major',from=1,to=4,idea=0,bpm=80}={}){
   key=pc(Math.round(Number(key)||0));mode=mode==='minor'?'minor':'major';
   from=Math.max(1,Math.min(7,Math.round(Number(from)||1)));to=Math.max(1,Math.min(7,Math.round(Number(to)||4)));
-  if(from===to)to=from%7+1;idea=Math.max(0,Math.min(5,Math.round(Number(idea)||0)));bpm=Math.max(40,Math.min(160,Number(bpm)||80));
+  if(from===to)to=from%7+1;idea=Math.max(0,Math.min(styles.length-1,Math.round(Number(idea)||0)));bpm=Math.max(40,Math.min(160,Number(bpm)||80));
   const scale=scales[mode],tonic=36+key-(key+scale[from-1]>=12?12:0),degree=n=>tonic+scale[(n%7+7)%7]+12*Math.floor(n/7),source=degree(from-1);
   let targetIndex=to-1;
   while(degree(targetIndex)-source>6)targetIndex-=7;
   while(degree(targetIndex)-source< -6)targetIndex+=7;
   const target=degree(targetIndex),third=degree(from+1),fifth=degree(from+3),octave=source+12;
+  const minorThird=third-source===3,blues=minorThird?[0,3,5,6,7,10]:[0,2,3,4,7,9];
+  const pentatonic=mode==='minor'?[0,3,5,7,10]:[0,2,4,7,9];
+  const pentRun=Array.from({length:72},(_,i)=>24+i).filter(m=>m>target&&pentatonic.includes(pc(m-tonic))).slice(0,4).reverse();
   const lines=[
    [[0,source,1.4],[1.5,fifth,.4],[2,degree(targetIndex-3),.4],[2.5,degree(targetIndex-2),.4],[3,degree(targetIndex-1),.85]],
    [[0,source,.8],[1.5,octave,.4],[2.25,fifth,.35],[2.75,third,.35],[3.25,source,.3],[3.75,target-1,.2]],
    [[0,source,1.4],[2,third,.27],[2+1/3,fifth,.27],[2+2/3,octave,.27],[3,target+2,.27],[3+1/3,target-1,.27],[3+2/3,target+1,.27]],
    [[0,source,1.2],[1.5,fifth,.6],[2.5,target+2,.2],[2.75,target+1,.2],[3.25,target-2,.2],[3.5,target-1,.4]],
    [[0,source,.6],[1.25,octave,.35],[2,third,.4],[2.75,fifth,.35],[3.25,degree(targetIndex-1),.35],[3.75,target-1,.2]],
-   [[0,source,.8],[1,third+12,.4],[1.5,octave,.4],[2.25,fifth,.35],[2.75,third,.35],[3.25,target+2,.35],[3.75,target+1,.2]]
+   [[0,source,.8],[1,third+12,.4],[1.5,octave,.4],[2.25,fifth,.35],[2.75,third,.35],[3.25,target+2,.35],[3.75,target+1,.2]],
+   [[0,source,.85],[1,third,.58],[1+2/3,fifth,.25],[2,target+2,.58],[2+2/3,target-1,.25],[3,target+1,.58],[3+2/3,target-1,.25]],
+   [[0,source,.85],[1,source+blues[2],.27],[1+1/3,source+blues[3],.27],[1+2/3,source+blues[4],.27],[2,source+blues[5],.4],[2.5,source+blues[4],.4],[3,target-2,.4],[3.5,target-1,.4]],
+   [[0,source,1.2],[1.5,pentRun[0],.4],[2,pentRun[1],.4],[2.5,pentRun[2],.4],[3,pentRun[3],.85]],
+   [[0,source,1.35],[1.5,fifth,.4],[2,octave,.8],[3,degree(targetIndex-1),.4],[3.5,target,.35]]
   ];
   const bass=lines[idea].map(([beat,midi,length],i)=>({midi,beat,length,velocity:i===0?88:78+(i%3)*4,role:'bass'}));
   bass.push({midi:target,beat:4,length:2.9,velocity:94,role:'landing'});
@@ -85,7 +96,7 @@ window.BassFillTrainer=(()=>{
   F.names.forEach((n,i)=>option('fillKey',i,'Key: '+n));F.styles.forEach((s,i)=>option('fillIdea',i,(i+1)+'. '+s[0]));[40,50,60,70,80,90,100,110,120,140,160].forEach(n=>option('fillTempo',n,n+' BPM'));$('fillTempo').value='80';
   for(const id of ['fillFrom','fillTo','fillKey','fillMode','fillIdea','fillTempo'])$(id).onchange=draw;
   $('fillPlay').onclick=()=>void play();$('fillRepeat').onclick=()=>{if(repeating){stop();$('fillStatus').textContent='Repeat stopped';}else{repeating=true;if(!playing)void play();else state();}};
-  $('fillNext').onclick=()=>{$('fillIdea').value=String((Number($('fillIdea').value)+1)%6);draw();void play();};
+  $('fillNext').onclick=()=>{$('fillIdea').value=String((Number($('fillIdea').value)+1)%F.styles.length);draw();void play();};
   $('fillBacking').onclick=()=>{backing=!backing;const resume=playing;stop();state();if(resume)void play();};
   document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();});window.addEventListener('pagehide',stop);draw();
  }

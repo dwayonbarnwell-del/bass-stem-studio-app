@@ -1,0 +1,7 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="robots" content="noindex,nofollow"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RC262 layout check</title>
+<style>body{margin:16px;background:#e8edf2;color:#162431;font:14px system-ui}label{display:inline-flex;gap:8px;align-items:center;margin:0 16px 12px 0}select{font:inherit;padding:8px}iframe{display:block;border:0;background:#071322}p{max-width:650px}</style>
+<label>Test size <select id="size"><option value="360,700">Phone 360 × 700</option><option value="390,844">Phone 390 × 844</option><option value="430,932">Phone 430 × 932</option><option value="320,568">Small phone 320 × 568</option><option value="844,390">Landscape 844 × 390</option><option value="1280,900">Desktop 1280 × 900</option></select></label>
+<p>Layout check using the live app. Choose a size, open Ear training and change lessons. The frame resizes without reloading the app.</p>
+<iframe title="Bass Stem layout preview" src="../" width="360" height="700" allow="autoplay"></iframe>
+<script>document.getElementById('size').onchange=e=>{const [w,h]=e.target.value.split(',');const frame=document.querySelector('iframe');frame.width=w;frame.height=h;};</script></html>
