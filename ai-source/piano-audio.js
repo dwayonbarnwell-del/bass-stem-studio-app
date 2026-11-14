@@ -8,7 +8,8 @@ window.BassPianoAudio=(()=>{
  let decoder;
  const valid=notes=>notes.filter(n=>Number.isFinite(n.start+n.end+n.midi)&&n.end>n.start&&n.midi>=21&&n.midi<=108);
  const envelope=(age,length)=>Math.min(1,Math.max(0,age)/.006)*Math.min(1,Math.max(0,length-age)/.035);
- async function prepare(sound='piano',context){
+ async function prepare(sound='piano',context,options){
+  if(sound==='piano'&&window.BassGrandPiano)return window.BassGrandPiano.prepare(sound,context,options);
   if(banks.has(sound))return banks.get(sound);
   if(loads.has(sound))return loads.get(sound);
   const task=(async()=>{
@@ -38,6 +39,7 @@ window.BassPianoAudio=(()=>{
  function int16(x){const out=new Int16Array(x.length);for(let i=0;i<x.length;i++){const v=clamp(x[i],-1,1);out[i]=Math.round(v*(v<0?32768:32767));}return out;}
  function littleEndian(x){const b=new ArrayBuffer(x.length*2),v=new DataView(b);for(let i=0;i<x.length;i++)v.setInt16(i*2,x[i],true);return b;}
  async function exportAudio({notes,start=0,end,sound='piano',format='wav',encoder,progress=()=>{},cancelled=()=>false}){
+  if(sound==='piano'&&window.BassGrandPiano)return window.BassGrandPiano.exportAudio({notes,start,end,format,encoder,progress,cancelled});
   await prepare(sound);if(cancelled())throw Error('Export cancelled');
   const rate=44100,total=Math.ceil((end-start)*rate);if(!Number.isFinite(total)||total<=0||total>rate*7200)throw Error('Choose a melody up to two hours long.');
   const parts=format==='wav'?[header(total,rate)]:[],mp3=format==='mp3'?new (await encoder()).Mp3Encoder(1,rate,192):null;
@@ -46,16 +48,17 @@ window.BassPianoAudio=(()=>{
    progress(Math.round(Math.min(total,offset+x.length)/total*100));await new Promise(r=>setTimeout(r,0));
   }if(mp3){const tail=mp3.flush();if(tail.length)parts.push(new Uint8Array(tail));}return new Blob(parts,{type:mp3?'audio/mpeg':'audio/wav'});
  }
- function tone(context,midi,when,length,sound='piano',age=0){
+ function tone(context,midi,when,length,sound='piano',age=0,velocity=80,level=1){
+  if(sound==='piano'&&window.BassGrandPiano)return window.BassGrandPiano.tone(context,midi,when,length,sound,age,velocity,level);
   const s=sample(midi,sound),remaining=Math.max(.015,length-age),start=Math.max(context.currentTime,when),o=context.createBufferSource(),g=context.createGain(),ratio=2**((midi-s.midi)/12);
   o.buffer=s.buffer;o.playbackRate.value=ratio;
   const offset=age*ratio;if(offset>=s.buffer.duration)return {stop(){}};
-  const release=Math.min(.035,remaining/3);g.gain.setValueAtTime(0,start);g.gain.linearRampToValueAtTime(1,start+Math.min(.006,remaining/3));g.gain.setValueAtTime(1,start+remaining-release);g.gain.linearRampToValueAtTime(0,start+remaining);
+  const release=Math.min(.035,remaining/3);g.gain.setValueAtTime(0,start);g.gain.linearRampToValueAtTime(level,start+Math.min(.006,remaining/3));g.gain.setValueAtTime(level,start+remaining-release);g.gain.linearRampToValueAtTime(0,start+remaining);
   o.connect(g).connect(context.destination);o.start(start,offset);o.stop(start+remaining+.01);o.onended=()=>{o.disconnect();g.disconnect();};return {stop(){try{g.gain.cancelScheduledValues(context.currentTime);g.gain.setValueAtTime(g.gain.value,context.currentTime);g.gain.linearRampToValueAtTime(0,context.currentTime+.008);o.stop(context.currentTime+.01);}catch{}}};
  }
  function vlq(value){let n=Math.max(0,Math.round(value)),out=[n&127];while((n>>=7)>0)out.unshift((n&127)|128);return out;}
  function midi(notes,start=0,end=Infinity,sound='piano'){
-  const events=[];for(const n of valid(notes)){if(n.end<=start||n.start>=end)continue;const a=Math.max(start,n.start),b=Math.min(end,n.end);events.push({t:Math.round((a-start)*960),bytes:[0x90,Math.round(n.midi),92],off:1},{t:Math.max(Math.round((a-start)*960)+1,Math.round((b-start)*960)),bytes:[0x80,Math.round(n.midi),0],off:0});}
+  const events=[];for(const n of valid(notes)){if(n.end<=start||n.start>=end)continue;const a=Math.max(start,n.start),b=Math.min(end,n.end);events.push({t:Math.round((a-start)*960),bytes:[0x90,Math.round(n.midi),clamp(Math.round(n.velocity||80),1,127)],off:1},{t:Math.max(Math.round((a-start)*960)+1,Math.round((b-start)*960)),bytes:[0x80,Math.round(n.midi),0],off:0});}
   events.sort((a,b)=>a.t-b.t||a.off-b.off);const track=[0,0xff,0x51,3,7,0xa1,0x20,0,0xc0,sound==='bass'?33:0];let prev=0;for(const e of events){track.push(...vlq(e.t-prev),...e.bytes);prev=e.t;}track.push(0,0xff,0x2f,0);
   const n=track.length;return new Blob([new Uint8Array([77,84,104,100,0,0,0,6,0,0,0,1,1,224,77,84,114,107,(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255,...track])],{type:'audio/midi'});
  }
