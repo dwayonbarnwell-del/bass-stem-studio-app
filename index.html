@@ -12310,89 +12310,6 @@ window.BassAwake=(()=>{let api,lock=null,pending=false,blocked=false,wasActive=f
  }
  return {start,stop:()=>stopCurrent()};
 })();
-</script><script id="rc170-ideas">window.BassIdeas=(()=>{
- const names=['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
- const tones={maj:[0,4,7],min:[0,3,7],sus2:[0,2,7],sus4:[0,5,7],dim:[0,3,6],aug:[0,4,8],'7':[0,4,7,10],maj7:[0,4,7,11],min7:[0,3,7,10],'6':[0,4,7,9],min6:[0,3,7,9],add9:[0,4,7,14],minadd9:[0,3,7,14],'9':[0,4,7,10,14],maj9:[0,4,7,11,14],min9:[0,3,7,10,14],'11':[0,4,7,10,14,17],min11:[0,3,7,10,14,17],'13':[0,4,7,10,14,21],min13:[0,3,7,10,14,21],'7sus4':[0,5,7,10],dim7:[0,3,6,9],min7b5:[0,3,6,10],'7b9':[0,4,7,10,13],'7#9':[0,4,7,10,15]};
- const suffix={maj:'',min:'m',maj7:'maj7',min7:'m7',min6:'m6',minadd9:'m(add9)',maj9:'maj9',min9:'m9',min11:'m11',min13:'m13',min7b5:'m7b5'};
- const pc=n=>((n%12)+12)%12, note=m=>names[pc(m)]+(Math.floor(m/12)-1);
- const label=c=>names[pc(c.rootPc)]+(suffix[c.quality]??c.quality)+(c.bassPc!=null&&pc(c.bassPc)!==pc(c.rootPc)?'/'+names[pc(c.bassPc)]:'');
- function collect(chords,start,end){const out=[];for(const c of [...chords].sort((a,b)=>a.start-b.start)){
-  if(!Number.isFinite(c.rootPc)||!tones[c.quality]||!Number.isFinite(c.start)||!Number.isFinite(c.end)||c.end<=start||c.start>=end||c.end<=c.start)continue;
-  const next={...c,start:Math.max(start,c.start),end:Math.min(end,c.end)},last=out.at(-1);
-  if(last&&last.rootPc===next.rootPc&&last.quality===next.quality&&(last.bassPc??null)===(next.bassPc??null)&&next.start<=last.end+.03)last.end=Math.max(last.end,next.end);else out.push(next);
- }return out.slice(0,8);}
- function bassMidi(root,near=36){return Array.from({length:28},(_,i)=>28+i).filter(n=>pc(n)===pc(root)).sort((a,b)=>Math.abs(a-near)-Math.abs(b-near))[0];}
- function approachBass(root){const target=bassMidi(root);return target>28?target-1:target+1;}
- function generate(chords,style='jazz',bold=false,melody=[]){const coloured=chords.map((original,i)=>{
-  const next=chords[i+1],c={...original};let reason='Keep the chord';
-  const dominant=next&&pc(original.rootPc-next.rootPc)===7;
-  if(['jazz','gospel','soul'].includes(style)){
-   if(c.quality==='maj'){c.quality=dominant?'9':style==='gospel'?'add9':style==='soul'?'maj9':'maj7';reason=dominant?'Dominant colour':'Add chord colour';}
-   else if(c.quality==='min'){c.quality=style==='jazz'?'min7':'min9';reason='Add chord colour';}
-   else if(c.quality==='7'){c.quality='9';reason='Add the ninth';}
-   if(bold&&style==='jazz'&&dominant&&['7','9','13','7b9','7#9'].includes(original.quality)&&original.bassPc==null){c.rootPc=pc(original.rootPc+6);c.quality='7';reason='Tritone substitute';}
-  }
-  const evidence=melody.filter(n=>n.end>original.start&&n.start<original.end&&Number.isFinite(n.midi));
-  if(evidence.length){
-   const hist=new Array(12).fill(0);for(const n of evidence)hist[pc(n.midi)]+=Math.max(0,Math.min(n.end,original.end)-Math.max(n.start,original.start));
-   const total=hist.reduce((a,b)=>a+b,0),salient=hist.map((v,i)=>({pc:i,weight:v/total})).filter(n=>n.weight>=.18);
-   const risk=ch=>{const pcs=tones[ch.quality].map(n=>pc(ch.rootPc+n));return salient.reduce((sum,n)=>sum+(pcs.includes(n.pc)?0:pcs.some(p=>[1,11].includes(pc(n.pc-p)))?n.weight:n.weight*.25),0);};
-   if(salient.length&&risk(c)>risk(original)+.08){Object.assign(c,original);reason='Melody check: keep original';}
-   else if(salient.length)reason+=' · melody checked';
-  }
-  return {original,chord:c,reason};
- });return coloured.map(({original,chord:c,reason},i)=>{
-  const next=coloured[i+1]?.chord;
-  const root=bassMidi(c.bassPc??c.rootPc),quality=tones[c.quality],third=quality[1],fifth=quality.find(x=>[6,7,8].includes(x))??7;
-  const fit=n=>n>55?n-12:n<28?n+12:n;
-  let bass=[root,fit(bassMidi(c.rootPc)+fifth),root,fit(root+12)],beats=[0,.25,.5,.75];
-  if(style==='jazz')bass=[root,fit(bassMidi(c.rootPc)+third),fit(bassMidi(c.rootPc)+fifth),next?approachBass(next.bassPc??next.rootPc):root];
-  if(style==='gospel')bass=[root,fit(bassMidi(c.rootPc)+fifth),fit(root+12),next?approachBass(next.bassPc??next.rootPc):root];
-  if(style==='reggae'){bass=[root,root,fit(bassMidi(c.rootPc)+fifth)];beats=[0,.375,.75];}
-  if(style==='funk'){bass=[root,fit(root+12),root,fit(bassMidi(c.rootPc)+fifth),root];beats=[0,.1875,.375,.625,.875];}
-  if(style==='soul')bass=[root,fit(bassMidi(c.rootPc)+fifth),fit(root+12),root];
-  return {original:{...original},chord:c,label:label(c),before:label(original),bass,beats,reason};
- });}
- let melody=[],melodyKey='',melodyToken=0,melodyBusy=false;
- let api,items=[],snapshot=null,context=null,active=[],timer=null,playing=false;
- const $=id=>document.getElementById(id),clock=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
- function stop(){clearTimeout(timer);for(const n of active)try{n.stop();}catch{}active=[];const old=context;context=null;if(old&&old.state!=='closed')void old.close();playing=false;if(api)$('ideasStop').disabled=true;}
- function refresh(){stop();const jazz=$('ideasStyle').value==='jazz';$('ideasColour').disabled=!jazz;if(!jazz)$('ideasColour').value='light';const s=api.get($('ideasScope').value);snapshot=s;const key=[s.session,s.start,s.end,s.transpose].join(':');if(key!==melodyKey){melody=[];melodyKey=key;}items=generate(collect(s.chords,s.start,s.end),$('ideasStyle').value,$('ideasColour').value==='bold',melody);$('ideasMelody').disabled=melodyBusy||!s.loaded||!items.length;$('ideasMelodyState').textContent=melody.length?'Melody checked: '+melody.length+' notes.':'Melody not checked.';
-  $('ideasStatus').textContent=!s.loaded?'Import and analyse a song.':!items.length?'No clear chords here. Analyse or choose another part.':clock(items[0].chord.start)+'–'+clock(items.at(-1).chord.end)+' · '+items.length+' changes';
-  const area=$('ideasRows');area.replaceChildren();
-  items.forEach(x=>{const card=document.createElement('article');card.className='idea-card';const head=document.createElement('strong');head.textContent=x.before+' → '+x.label;const bass=document.createElement('p');bass.textContent='Bass: '+x.bass.map(note).join(' · ');const why=document.createElement('small');why.textContent=x.reason;card.append(head,bass,why);area.append(card);});
-  const tips={jazz:'Walking bass. Check the melody.',gospel:'Root, fifth and passing notes. Leave room for vocals.',reggae:'Space between notes. Hold the low notes.',funk:'Short notes and octave jumps.',soul:'Smooth chord colour and steady bass.',pop:'Simple roots and fifths.'};$('ideasTip').textContent=tips[$('ideasStyle').value];
-  for(const id of ['ideasOriginal','ideasPreview','ideasSave'])$(id).disabled=!items.length;
- }
- async function preview(alternative){
-  stop();if(!items.length)return;
-  if(api.get($('ideasScope').value).session!==snapshot.session){refresh();return;}
-  api.pause();const ctx=new (window.AudioContext||window.webkitAudioContext)();context=ctx;playing=true;$('ideasStop').disabled=false;
-  try{await ctx.resume();if(context!==ctx)return;const volume=ctx.createGain(),guard=ctx.createDynamicsCompressor();volume.gain.value=.4;guard.threshold.value=-12;guard.ratio.value=12;volume.connect(guard).connect(ctx.destination);
-   const start=ctx.currentTime+.05,origin=items[0].chord.start;let end=start;
-   function tone(midi,time,duration,bass){const osc=ctx.createOscillator(),g=ctx.createGain();osc.type=bass?'triangle':'sine';osc.frequency.value=440*Math.pow(2,(midi-69)/12);g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(bass?.18:.045,time+.015);g.gain.setTargetAtTime(0,time+Math.max(.02,duration-.07),.025);osc.connect(g).connect(volume);osc.start(time);osc.stop(time+duration+.1);active.push(osc);}
-   for(const item of items){const c=alternative?item.chord:item.original,t=start+c.start-origin,d=Math.max(.08,c.end-c.start);end=Math.max(end,t+d);
-    for(const interval of tones[c.quality])tone(48+pc(c.rootPc)+interval,t,d,false);
-    const bass=alternative?item.bass:[bassMidi(c.bassPc??c.rootPc)],beats=alternative?item.beats:[0];
-    bass.forEach((m,i)=>tone(m,t+beats[i]*d,Math.max(.04,((beats[i+1]??1)-beats[i])*d*.8),true));
-   }
-   $('ideasStatus').textContent=alternative?'Playing idea…':'Playing chord guide…';timer=setTimeout(()=>{stop();$('ideasStatus').textContent='Preview finished.';},Math.max(0,(end-ctx.currentTime+.2)*1000));
-  }catch{stop();$('ideasStatus').textContent='Preview unavailable. Try again.';}
- }
- function init(hooks){api=hooks;
-  $('ideasMelody').onclick=async()=>{if(melodyBusy)return;api.pause();refresh();if(!items.length)return;const s=snapshot,key=melodyKey,mine=++melodyToken;melodyBusy=true;$('ideasMelody').disabled=true;$('ideasMelodyState').textContent='Separating vocals…';
-   try{api.pause();const vocal=await api.vocal(s.start,s.end,p=>{$('ideasMelodyState').textContent='Checking melody: '+p+'%';},()=>mine!==melodyToken);const result=await BassPracticeDSP.melody(vocal,s.start,()=>mine!==melodyToken);if(mine!==melodyToken||api.get($('ideasScope').value).session!==s.session)return;melody=result.map(n=>({...n,midi:n.midi+(s.transpose||0)}));melodyKey=key;refresh();if(!melody.length)$('ideasMelodyState').textContent='No clear melody found. Suggestions remain unchecked.';}
-   catch(e){if(mine===melodyToken)$('ideasMelodyState').textContent=e.message||'Melody check unavailable.';}
-   finally{melodyBusy=false;$('ideasMelody').disabled=!items.length;}
-  };
-$('openIdeas').onclick=()=>{refresh();$('ideasDialog').showModal();$('ideasDialog').scrollTop=0;};
-  for(const id of ['ideasStyle','ideasColour','ideasScope'])$(id).onchange=refresh;
-  $('ideasRefresh').onclick=refresh;$('ideasOriginal').onclick=()=>preview(false);$('ideasPreview').onclick=()=>preview(true);$('ideasStop').onclick=()=>{stop();$('ideasStatus').textContent='Stopped.';};
-  $('ideasClose').onclick=()=>{++melodyToken;stop();$('ideasDialog').close();};$('ideasDialog').addEventListener('cancel',e=>{e.preventDefault();$('ideasClose').click();});window.addEventListener('pagehide',stop);
-  $('ideasSave').onclick=()=>{if(api.get($('ideasScope').value).session!==snapshot.session){refresh();return;}const q=v=>'"'+String(v).replace(/"/g,'""')+'"';const rows=['Start,End,Original,Suggestion,Bass notes,Style',...items.map(x=>[x.chord.start.toFixed(3),x.chord.end.toFixed(3),q(x.before),q(x.label),q(x.bass.map(note).join(' ')),q($('ideasStyle').value)].join(','))];const url=URL.createObjectURL(new Blob([rows.join('\r\n')],{type:'text/csv;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download='Bass_Studio_Ideas.csv';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);};
- }
- return {init,generate,collect,note,label,stop,cancel:()=>{++melodyToken;stop();}};
-})();
 </script>
 <script id="rc169-lyrics-worker">window.BASS_LYRICS_WORKER="// Optional local transcription. Only model/runtime downloads use the network.\nlet transcriber;\nself.onmessage=async({data})=>{\n try {\n  if(!transcriber){\n   const {pipeline,env}=await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1/dist/transformers.min.js');\n   env.allowLocalModels=false;env.backends.onnx.wasm.numThreads=1;\n   transcriber=await pipeline('automatic-speech-recognition','Xenova/whisper-tiny',{\n    device:'wasm',dtype:'q8',progress_callback:p=>{if(p.status==='progress')self.postMessage({type:'progress',text:'Downloading lyrics AI\u2026'});}\n   });\n  }\n  self.postMessage({type:'progress',text:'Finding words\u2026'});\n  const result=await transcriber(data.audio,{return_timestamps:'word',task:'transcribe',chunk_length_s:30,stride_length_s:5, ...(data.language?{language:data.language}:{})});\n  self.postMessage({type:'result',chunks:result.chunks||[]});\n }catch(e){self.postMessage({type:'error',message:String(e.message||e)});}\n};\n";</script>
 <script id="rc169-lyrics">window.BassLyrics=(()=>{
@@ -13466,7 +13383,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRo
 <link rel="stylesheet" href="./song-reference/chords.css">
 <link rel="stylesheet" href="./ai-source/lyrics-ux.css">
 <link rel="stylesheet" href="./library-source/saved-audio-match.css">
-<link rel="stylesheet" href="./library-source/tools-layout.css">
+<link rel="stylesheet" href="./library-source/tools-layout.css?v=rc254">
 
 <style id="rc239-piano-preview-style">.piano-action{display:none!important;}
 html body.piano-view-active #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot .simple-timeline-head .practice-view-head{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:6px!important;width:100%!important;align-items:stretch!important;}
@@ -14111,7 +14028,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPan
       </div>
       </div>
 
-<section id="liveAudioEntry" aria-label="Practice controls"><button id="openLiveAudio" type="button" aria-label="Live audio"><span>Live</span> <span>audio</span></button><button id="openReview" type="button" aria-label="Review chords"><span>Review</span> <span>chords</span></button><button id="openMoreTools" type="button" aria-label="More tools" aria-expanded="false" aria-controls="moreTools"><span>More</span> <span>tools</span></button></section><div id="moreTools" hidden><div class="more-tools-select-row"><label for="moreToolsView" class="more-tools-select-label">Show tools</label><select id="moreToolsView" aria-label="More tools display"><option value="open">Tools open</option><option value="close">Close tools</option></select></div><div id="extraTools"><button id="openLyrics" type="button">Lyrics</button><button id="openIdeas" type="button">Ideas</button><button id="openRhythm" type="button">Rhythm / practice</button><button id="openSoundCheck" type="button">Sound check</button></div></div><div id="practiceComfort"><label title="Short fades soften loop joins"><input id="smoothLoops" type="checkbox" checked>Smooth loops</label><label><input id="keepAwake" type="checkbox" checked>Keep awake</label><small id="awakeStatus" role="status"></small></div>
+<section id="liveAudioEntry" aria-label="Practice controls"><button id="openLiveAudio" type="button" aria-label="Live audio"><span>Live</span> <span>audio</span></button><button id="openReview" type="button" aria-label="Review chords"><span>Review</span> <span>chords</span></button><button id="openMoreTools" type="button" aria-label="More tools" aria-expanded="false" aria-controls="moreTools"><span>More</span> <span>tools</span></button></section><div id="moreTools" hidden><div class="more-tools-select-row"><label for="moreToolsView" class="more-tools-select-label">Show tools</label><select id="moreToolsView" aria-label="More tools display"><option value="open">Tools open</option><option value="close">Close tools</option></select></div><div id="extraTools"><button id="openLyrics" type="button">Lyrics</button><button id="openRhythm" type="button">Rhythm / practice</button><button id="openSoundCheck" type="button">Sound check</button></div></div><div id="practiceComfort"><label title="Short fades soften loop joins"><input id="smoothLoops" type="checkbox" checked>Smooth loops</label><label><input id="keepAwake" type="checkbox" checked>Keep awake</label><small id="awakeStatus" role="status"></small></div>
 <dialog id="soundCheckDialog" aria-labelledby="soundCheckTitle"><h2 id="soundCheckTitle">Sound check</h2><p id="checkStatus" role="status">Check the room, then your playing level.</p><div class="check-buttons"><button id="checkQuiet">1. Quiet room</button><button id="checkLevel" disabled>2. Playing level</button></div><div id="checkResults" aria-live="polite"></div><small>Each check takes 3 seconds. No audio is saved. This checks input levels, not every cause of distortion.</small><div class="check-buttons"><button id="checkCancel" disabled>Stop check</button><button id="checkClose">Back</button></div></dialog>
 <dialog id="reviewDialog" aria-labelledby="reviewTitle"><h2 id="reviewTitle">Review chords</h2><p id="reviewCount"></p><h3 id="reviewChord">—</h3><p id="reviewTime"></p><p id="reviewStatus" role="status"></p><div class="review-buttons"><button id="reviewHear">Hear passage</button><button id="reviewStop" disabled>Stop audio</button><button id="reviewEdit">Check / correct</button><button id="reviewPrev">Previous</button><button id="reviewNext">Next</button><button id="reviewClose">Close</button></div><small>Save the correct chord to remove it from this queue. Use Save song to keep your corrections.</small></dialog>
 
@@ -14122,16 +14039,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPan
 
 <dialog id="mediaImportDialog" class="rc178-dialog" aria-labelledby="mediaImportTitle"><h2 id="mediaImportTitle">Import media</h2><p id="mediaImportState" role="status">Opening audio…</p><p>Video imports use the audio track.</p><button id="mediaImportCancel" type="button">Cancel</button></dialog>
 <dialog id="rhythmDialog" aria-labelledby="rhythmTitle"><h2 id="rhythmTitle">Rhythm / practice</h2><p id="rhythmStatus" role="status">Extract drums from a short song loop.</p><div class="rhythm-options"><label>From (seconds)<input id="rhythmFrom" type="number" min="0" step="0.01"></label><label>To (seconds)<input id="rhythmTo" type="number" min="0" step="0.01"></label></div><div class="rhythm-buttons"><button id="rhythmSnap">Align to beats</button><button id="rhythmExtract">Extract drums</button><button id="rhythmCancel">Cancel</button><button id="rhythmSave">Save MP3</button><button id="rhythmWav">Save WAV</button></div><audio id="rhythmPlayer" controls loop hidden></audio><small>Up to 30 seconds. First use downloads the model. Some instrument bleed may remain. WAV is best for seamless loops.</small><p><label>Or import a drum loop<input id="rhythmImport" type="file" accept="audio/*"></label></p><button id="rhythmClose">Close</button></dialog>
-<dialog id="ideasDialog" aria-labelledby="ideasTitle">
- <h2 id="ideasTitle">Musical ideas</h2>
- <p id="ideasStatus" role="status">Import and analyse a song.</p>
- <div class="idea-options"><label>Style<select id="ideasStyle"><option value="jazz">Jazz</option><option value="gospel">Gospel</option><option value="reggae">Reggae</option><option value="funk">Funk</option><option value="soul">Soul / R&amp;B</option><option value="pop">Pop</option></select></label><label>Colour<select id="ideasColour"><option value="light">Light</option><option value="bold">Bold jazz</option></select></label><label>Part<select id="ideasScope"><option value="playhead">From playhead</option><option value="section">Current section</option></select></label></div>
- <p id="ideasTip"></p><button id="ideasMelody" type="button">Check melody</button><p id="ideasMelodyState" role="status">Melody not checked.</p><small>Checks the separated vocal melody. Harmony and bleed can affect results.</small>
- <div class="idea-buttons"><button id="ideasOriginal" type="button">Chord guide</button><button id="ideasPreview" type="button">Hear idea</button><button id="ideasStop" type="button" disabled>Stop</button></div>
- <small>Sketches from analysed chords. Up to 8 changes.</small>
- <div id="ideasRows"></div>
- <div class="idea-buttons"><button id="ideasRefresh" type="button">Refresh</button><button id="ideasSave" type="button">Save ideas</button><button id="ideasClose" type="button">Close</button></div>
-</dialog>
+
 
 <dialog id="lyricsDialog" aria-labelledby="lyricsTitle">
 <div id="lyricsSticky" class="lyrics-sticky"><h2 id="lyricsTitle">Lyrics &amp; chords</h2>
@@ -14179,7 +14087,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPan
       <div class="source-file-row">
         <div class="meta" id="fileMeta">
           <b id="sourceFileTitle">No song loaded</b>
-          <span id="sourceFileDetails">Import audio, video or a saved project.</span>
+          <span id="sourceFileDetails"></span>
         </div>
       </div>
 
@@ -15539,11 +15447,11 @@ window.BassBatch = (() => {
 </dialog>
 
 <dialog id="pianoEditor" aria-labelledby="pianoEditTitle"><h2 id="pianoEditTitle">Correct melody note</h2><label>Note<select id="pianoPitch"></select></label><label>Start (seconds)<input id="pianoStart" type="number" min="0" step="0.01"></label><label>End (seconds)<input id="pianoEnd" type="number" min="0" step="0.01"></label><p id="pianoEditError" role="alert"></p><div class="piano-edit-actions"><button id="pianoSaveNote" type="button">Save note</button> <button id="pianoDelete" type="button">Delete note</button> <button id="pianoUndo" type="button" disabled>Undo last change</button> <button id="pianoCloseNote" type="button">Close</button></div></dialog>
-<script src="./chord-source/recovery.js"></script>
+<script src="./chord-source/recovery.js?v=rc254"></script>
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC253';
+  const APP_VERSION='RC254';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;
@@ -15587,7 +15495,7 @@ window.BassBatch = (() => {
     updateProjectButtons();updateAnalysisToolsState();
   }
   function replaceSongSession({preservePending=false}={}){
-    songSession++;window.BassLoopFade?.reset();window.BassChordReview?.reset();window.BassSoundCheck?.cancel();window.BassTools?.cancelSession();window.BassRhythm?.cancel();window.BassIdeas?.cancel();window.BassLyrics?.cancel();window.BassPiano?.reset();
+    songSession++;window.BassLoopFade?.reset();window.BassChordReview?.reset();window.BassSoundCheck?.cancel();window.BassTools?.cancelSession();window.BassRhythm?.cancel();window.BassLyrics?.cancel();window.BassPiano?.reset();
     resetSongStructure();
     aiBusy=false;pendingResumeBusy=false;offlineAnalysisRunning=false;
     if(aiAnalyse)aiAnalyse.removeAttribute('aria-busy');
@@ -15736,17 +15644,27 @@ window.BassBatch = (() => {
       toolsMessage(hasMusic?'Saved analysis restored.':'Audio restored. Analysis is unfinished.');return hasMusic;
     }catch(error){console.warn('Device analysis recovery unavailable',error);return false;}
   }
+  const LAST_OPENED_SESSION='bassStemLastOpenedSessionRC254';
+  function readLastOpenedSession(){
+    try{const value=JSON.parse(localStorage.getItem(LAST_OPENED_SESSION)||'null');return value&&typeof value.signature==='string'?value:null;}catch{return null;}
+  }
+  function rememberLastOpenedSession(){
+    if(!activeAudioFile||!buffer)return;
+    try{localStorage.setItem(LAST_OPENED_SESSION,JSON.stringify({signature:cloudFileSignature(activeAudioFile),name:activeAudioFile.name,openedAt:Date.now()}));}catch{}
+  }
   async function restoreLatestSession(){
-    if(songImportBusy||buffer||activeAudioFile||readPendingRunPodJob()||pendingResumeBusy)return false;
+    if(songImportBusy||buffer||activeAudioFile||pendingResumeBusy)return false;
     const request=songLoadRequest,session=songSession;
     pendingResumeBusy=true;
-    try{const saved=await recoveryStore(RUNPOD_RECOVERY_STORE,s=>s.getAll());
-      const last=(saved||[]).sort((a,b)=>b.cachedAt-a.cachedAt)[0];
+    try{
+      const preferred=readLastOpenedSession();
+      const saved=await recoveryStore(RUNPOD_RECOVERY_STORE,s=>s.getAll());
+      const last=preferred?(saved||[]).find(row=>row.signature===preferred.signature):(saved||[]).sort((a,b)=>b.cachedAt-a.cachedAt)[0];
       if(!last?.blob||buffer||request!==songLoadRequest||session!==songSession)return false;
-      const record=await recoveryStore('analyses',s=>s.get(last.signature));if(!record?.state||buffer||request!==songLoadRequest||session!==songSession)return false;
       return await loadAudioFile(new File([last.blob],last.name,{type:last.type,lastModified:last.lastModified}),{cacheForRecovery:false,recoveryRestore:true});
     }catch{return false;}finally{if(session===songSession)pendingResumeBusy=false;}
   }
+
   function selectedAnalysisRange(){
     const selected=[...selectedTimeframes].sort((a,b)=>a-b);
     if(selected.length){
@@ -16091,13 +16009,7 @@ window.BassBatch = (() => {
   // ---------- RC68 saved-project helpers ----------
   function renderSourceMeta(name,channels,sampleRate,duration){
     if(sourceFileTitle)sourceFileTitle.textContent=name||'Untitled song';
-    if(sourceFileDetails){
-      const bits=[];
-      if(Number.isFinite(Number(channels))&&Number(channels)>0)bits.push(`${Number(channels)} channel(s)`);
-      if(Number.isFinite(Number(sampleRate))&&Number(sampleRate)>0)bits.push(`${Number(sampleRate).toLocaleString()} Hz`);
-      if(Number.isFinite(Number(duration))&&Number(duration)>0)bits.push(fmt(Number(duration)));
-      sourceFileDetails.textContent=bits.join(' • ')||'Saved analysis';
-    }
+    if(sourceFileDetails)sourceFileDetails.textContent=Number.isFinite(Number(duration))&&Number(duration)>0?fmt(Number(duration)):'';
   }
 
   function updateProjectButtons(){
@@ -16604,6 +16516,8 @@ window.BassBatch = (() => {
       }
       if(songStructure)void rememberImportedSections(songSession,activeAudioFile);
       importSucceeded=true;
+      rememberLastOpenedSession();
+      window.BassChordRecovery?.queue?.();
       return true;
     }catch(err){
       if(request!==songLoadRequest)return false;
@@ -17041,6 +16955,7 @@ window.BassBatch = (() => {
   async function play(){
     window.BassPiano?.preparePlayback();
     if(!buffer||playing)return;
+    window.BassChordRecovery?.queue?.();
     const session=songSession;
     try{
       ensureCtx();buildGraph();
@@ -17170,6 +17085,8 @@ window.BassBatch = (() => {
       await restoreSavedMelody(window.BassPiano.exportData());
       if(request!==songLoadRequest)return false;
       importSucceeded=true;
+      rememberLastOpenedSession();
+      window.BassChordRecovery?.queue?.();
       return true;
     }catch(err){
       if(request!==songLoadRequest)return false;
@@ -17877,9 +17794,10 @@ window.BassBatch = (() => {
   async function cacheAudioForRecovery(file){
     if(!file)return false;
     const signature=cloudFileSignature(file),session=songSession;
+    if(activeAudioFile&&cloudFileSignature(activeAudioFile)!==signature)return false;
     try{
       const db=await openRecoveryDb();
-      if(session!==songSession){db.close();return false;}
+      if(session!==songSession||(activeAudioFile&&cloudFileSignature(activeAudioFile)!==signature)){db.close();return false;}
       await new Promise((resolve,reject)=>{
         const tx=db.transaction(RUNPOD_RECOVERY_STORE,'readwrite');
         const store=tx.objectStore(RUNPOD_RECOVERY_STORE);
@@ -19572,6 +19490,9 @@ window.BassBatch = (() => {
     if(pendingResumeBusy||aiBusy||songImportBusy||analysisStartPending)return false;
     let pending=readPendingRunPodJob();
     if(!pending?.signature||!Array.isArray(pending?.parts)||!pending.parts.length)return restoreLatestSession();
+    const preferred=readLastOpenedSession();
+    if(preferred&&preferred.signature!==pending.signature)return false;
+    if(activeAudioFile&&cloudFileSignature(activeAudioFile)!==pending.signature)return false;
     const key=storedRunPodKey();
     if(!key)return false;
 
@@ -19634,8 +19555,10 @@ window.BassBatch = (() => {
   }
 
   function checkSavedAnalysisSoon(delay=250){
-    setTimeout(()=>{if(document.visibilityState==='visible'&&!window.BassBatch?.isRunning()){
-      resumeSavedRunPodAnalysis();
+    setTimeout(async()=>{if(document.visibilityState==='visible'&&!window.BassBatch?.isRunning()){
+      if(!buffer&&!activeAudioFile)await restoreLatestSession();
+      await resumeSavedRunPodAnalysis();
+      window.BassChordRecovery?.queue?.();
       const pending=pendingStructureJob();
       if(!window.BassBatch?.isRunning()&&!songStructure&&pending?.id&&activeAudioFile&&pending.signature===cloudFileSignature(activeAudioFile))ensureSongStructure();
     }},delay);
@@ -20958,12 +20881,7 @@ window.BassBatch = (() => {
   window.BassChordReview.init({get:()=>({buffer,session:songSession,busy:aiBusy||songImportBusy,rows:detectedChordChanges.filter(c=>Number.isFinite(c.start)&&Number.isFinite(c.end)&&c.end>c.start&&!c.manual&&(c.uncertain||!reliableChord(c))).map(c=>({item:c,start:c.start,end:c.end,label:chordDisplayLabel(c)}))}),pause,edit:item=>openAnalysisEditor('chord',item)});
 
   window.BassLiveAudio.init({exportMP3:async blob=>{const c=new AudioContext({sampleRate:44100});try{return await encodeAudioBufferForAnalysis(await c.decodeAudioData(await blob.arrayBuffer()),192);}finally{await c.close();}},loadRecording:file=>loadAudioFile(file),pausePlayer:pause,isBusy:()=>aiBusy||songImportBusy});
-  window.BassIdeas.init({pause,vocal:(a,b,p,c)=>separatePracticeStem(a,b,p,c,3),get:scope=>{
-    const t=currentTime(),section=sections[currentSectionName(t)];
-    const start=scope==='section'&&section?section.start:t;
-    const end=Math.min(buffer?.duration||0,start+30,scope==='section'&&section?section.end:Infinity);
-    return {loaded:!!buffer,session:songSession,transpose:transposeSemitones,start,end,chords:detectedChordChanges.filter(reliableChord).map(c=>({...c,rootPc:((c.rootPc+transposeSemitones)%12+12)%12,bassPc:c.bassPc==null?null:((c.bassPc+transposeSemitones)%12+12)%12}))};
-  }});
+
   window.BassLyrics.init({importAudio:importAudioCheckingLibrary,get:()=>({buffer,session:songSession,title:loadedProjectName||objectName||activeAudioFile?.name||'',artist:'',time:displayTime(),live:document.getElementById('openLiveAudio').textContent!=='Live audio',chords:detectedChordChanges.filter(reliableChord).map(c=>({...c,label:chordDisplayLabel(c)}))}),pause,play,seek:seekTo,changed:updateProjectButtons});
   setPracticeVisualMode('timeline');
   rebuildNoteSidebar();
@@ -22392,14 +22310,16 @@ window.BassBatch = (() => {
   // The free chord-only scan cannot replace bass notes, paid-job records or manual edits.
   window.BassChordRecovery?.init({
     getContext:()=>({buffer,session:songSession,chords:detectedChordChanges.map(c=>({...c})),
-      busy:aiBusy||songImportBusy||projectSaveBusy}),
+      busy:aiBusy||songImportBusy||projectSaveBusy||structureBusy||window.BassBatch?.isRunning()}),
     apply:async(session,result)=>{
       if(session!==songSession||aiBusy||songImportBusy||projectSaveBusy)return 0;
       rememberAnalysis('Before on-device chord recovery');
-      detectedChordChanges=[...result.old,...result.added].sort((a,b)=>a.start-b.start||a.end-b.end);
+      const fresh=window.BassChordRecovery.addOnlyMissing(result.added,detectedChordChanges,buffer.duration);
+      if(!fresh.added.length)return 0;
+      detectedChordChanges=[...fresh.old,...fresh.added].sort((a,b)=>a.start-b.start||a.end-b.end);
       refreshEditedAnalysis();
       await persistAnalysisRecovery(true);
-      return result.added.length;
+      return fresh.added.length;
     }
   });
   let analysisStartPending=false;
@@ -22796,18 +22716,21 @@ window.BassBillingLinks = Object.freeze({render:'https://dashboard.render.com/bi
 })();
 </script>
 <style id="rc253-settings-colours">
-#settingsDialog #displaySizeControl .settings-control-row > #noteNumberToggle{background:#27555d!important;border-color:#83c6ce!important}
-#settingsDialog #displaySizeControl .settings-control-row > #fontSizeCard{background:#564174!important;border-color:#bba4dc!important}
-#settingsDialog #displaySizeControl .settings-control-row > #bassStringSelector{background:#405e39!important;border-color:#a1c68e!important}
-#settingsDialog #displaySizeControl .settings-control-row > #timelineBreakdownControl{background:#6b4c2c!important;border-color:#d8b17e!important}
-#settingsDialog #displaySizeControl .settings-control-row > #speedControl{background:#344d7d!important;border-color:#95b1e5!important}
-#settingsDialog #billingShortcuts{background:#453b59!important;border-color:#a99ac2!important}
-#settingsDialog #sharePlatformShortcuts{background:#284f43!important;border-color:#8dbdab!important}
+#settingsDialog #displaySizeControl .settings-control-row > #noteNumberToggle{background:#24434b!important;border-color:#567780!important}
+#settingsDialog #displaySizeControl .settings-control-row > #fontSizeCard{background:#3e3552!important;border-color:#756489!important}
+#settingsDialog #displaySizeControl .settings-control-row > #bassStringSelector{background:#354735!important;border-color:#687e60!important}
+#settingsDialog #displaySizeControl .settings-control-row > #timelineBreakdownControl{background:#50422f!important;border-color:#8b7656!important}
+#settingsDialog #displaySizeControl .settings-control-row > #speedControl{background:#2c3e5c!important;border-color:#657c9d!important}
+#settingsDialog #billingShortcuts{background:#302d3f!important;border-color:#655c77!important}
+#settingsDialog #sharePlatformShortcuts{background:#273f37!important;border-color:#597a6c!important}
 html body #appRoot#appRoot#appRoot#appRoot#appRoot #liveAudioEntry{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #sourceCard #fileMeta{display:flex!important;flex-direction:row!important;align-items:baseline!important;gap:8px!important;min-width:0!important}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #sourceCard #sourceFileTitle{flex:0 1 auto!important;min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #sourceCard #sourceFileDetails{flex:0 0 auto!important;white-space:nowrap!important}
 </style>
-<script defer src="./song-reference/data.js"></script>
-<script defer src="./song-reference/chords.js"></script>
-<script defer src="./library-source/tools-layout.js"></script>
+<script defer src="./song-reference/data.js?v=rc254-final"></script>
+<script defer src="./song-reference/chords.js?v=rc254"></script>
+<script defer src="./library-source/tools-layout.js?v=rc254"></script>
 </body>
 </html>
 

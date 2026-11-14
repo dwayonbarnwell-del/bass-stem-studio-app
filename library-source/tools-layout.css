@@ -5,8 +5,7 @@ html body #appRoot .bs-featured-tools #openSongChords{background:#205e68;border-
 html body #appRoot .bs-featured-tools #openLyrics{background:#3c4c86;border-color:#96a6e0}
 html body #appRoot .bs-featured-tools button:focus-visible{outline:2px solid #b3edf3;outline-offset:2px}
 
-/* Keep the tool row at three equal columns, including on phones. */
-html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #extraTools>.bs-other-row{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+/* Keep the tool row at two equal columns, including on phones. */
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #extraTools>.bs-other-row{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #extraTools #openSoundCheck{background:#334d7a!important;border-color:#89a9dd!important;color:#fff!important}
-html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #extraTools #openIdeas{background:#5b4380!important;border-color:#b6a0d8!important;color:#fff!important}
 html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #extraTools #openRhythm{background:#2c6266!important;border-color:#88c8cb!important;color:#fff!important}
