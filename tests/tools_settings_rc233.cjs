@@ -8,7 +8,7 @@ const tools=html.match(/<script id="rc189-tools-toggle">([\s\S]*?)<\/script>/)?.
 assert(tools&&settings);new vm.Script(tools);new vm.Script(settings);
 assert(html.includes('id="moreToolsView"'));assert(!html.includes('id="closeMoreTools"'));
 assert(tools.includes("view?.addEventListener('change'"));
-assert(tasks.includes('const sizes=[3],rows=[]'));
+assert(tasks.includes('const sizes=[2],rows=[]'));
 assert(tasks.includes('tools.replaceChildren(...rows,...otherNodes)'));
 assert(html.includes('height:68px!important;min-height:68px!important;max-height:68px!important'));
 assert(settings.includes('[[1,1],[3,1],[1,2],[2,2],[3,2]]'));

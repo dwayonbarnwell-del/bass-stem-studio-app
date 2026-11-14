@@ -86,3 +86,9 @@ ear_fixture=(ROOT / 'tests/browser_ear_piano_rc257.js').read_text()
 for width in [360,430,800,1280]:
     for name,src in [('ui','index.html'),('audit','audit-rc257.html')]:
         (OUT / f'{name}-rc257-{width}.html').write_text(f'<!doctype html><title>TEST ONLY | {width}px</title><iframe title="Bass Studio {width}px" src="{src}?release=rc257" allow="autoplay" style="width:{width}px;height:900px;border:0"></iframe>')
+
+# RC258: listening loops, instrument routing and concise controls.
+fixture258=(ROOT / 'tests/browser_ear_rc258.js').read_text()
+(OUT / 'audit-rc258.html').write_text(html.replace('</body>','<script>'+fixture258+'</script></body>'))
+for width in [360,430,800,1280]:
+    (OUT / f'ui-rc258-{width}.html').write_text(f'<!doctype html><title>TEST ONLY | {width}px</title><iframe title="Bass Studio {width}px" src="index.html?release=rc258" allow="autoplay" style="width:{width}px;height:900px;border:0"></iframe>')
