@@ -20,5 +20,5 @@ for(const before of old.songs){
 assert.equal(filled,manifest.completedExisting);assert.equal(data.songs.length-old.songs.length,manifest.addedSongs);
 for(const r of manifest.records){const song=data.songs.find(s=>s.id===r.id);assert.equal(song.source.url,r.url);assert(/^https:\/\//.test(r.url));assert(song.sections.length>0);for(const section of song.sections){assert(/^[b#1-7]/.test(section.chords));assert(!/[A-G]/.test(section.chords));assert.equal(section.sourceKey,r.sourceKey);assert(section.chords.split(' ').length<=24)}}
 ctx.window.test.setFilter('recent');assert.equal(data.songs.filter(ctx.window.test.fits).length,manifest.addedSongs);
-assert.equal(data.statistics.missingSongs,data.songs.filter(s=>!s.sections.length).length);
+assert.equal(data.statistics.missingSongs,data.songs.filter(s=>!s.sections.some(c=>String(c.chords||'').trim())).length);
 console.log(`PASS RC254 catalogue: ${filled} completed, ${manifest.addedSongs} added, original notes and arrangements preserved, upgrade merges safe, unique IDs and source links verified.`);
