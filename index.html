@@ -13383,7 +13383,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRo
 <link rel="stylesheet" href="./song-reference/chords.css">
 <link rel="stylesheet" href="./ai-source/lyrics-ux.css">
 <link rel="stylesheet" href="./library-source/saved-audio-match.css">
-<link rel="stylesheet" href="./library-source/tools-layout.css">
+<link rel="stylesheet" href="./library-source/tools-layout.css?v=rc254">
 
 <style id="rc239-piano-preview-style">.piano-action{display:none!important;}
 html body.piano-view-active #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot .simple-timeline-head .practice-view-head{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:6px!important;width:100%!important;align-items:stretch!important;}
@@ -15447,7 +15447,7 @@ window.BassBatch = (() => {
 </dialog>
 
 <dialog id="pianoEditor" aria-labelledby="pianoEditTitle"><h2 id="pianoEditTitle">Correct melody note</h2><label>Note<select id="pianoPitch"></select></label><label>Start (seconds)<input id="pianoStart" type="number" min="0" step="0.01"></label><label>End (seconds)<input id="pianoEnd" type="number" min="0" step="0.01"></label><p id="pianoEditError" role="alert"></p><div class="piano-edit-actions"><button id="pianoSaveNote" type="button">Save note</button> <button id="pianoDelete" type="button">Delete note</button> <button id="pianoUndo" type="button" disabled>Undo last change</button> <button id="pianoCloseNote" type="button">Close</button></div></dialog>
-<script src="./chord-source/recovery.js"></script>
+<script src="./chord-source/recovery.js?v=rc254"></script>
 <script>
 (() => {
   'use strict';
@@ -16517,7 +16517,7 @@ window.BassBatch = (() => {
       if(songStructure)void rememberImportedSections(songSession,activeAudioFile);
       importSucceeded=true;
       rememberLastOpenedSession();
-      window.BassChordRecovery?.queue();
+      window.BassChordRecovery?.queue?.();
       return true;
     }catch(err){
       if(request!==songLoadRequest)return false;
@@ -16955,7 +16955,7 @@ window.BassBatch = (() => {
   async function play(){
     window.BassPiano?.preparePlayback();
     if(!buffer||playing)return;
-    window.BassChordRecovery?.queue();
+    window.BassChordRecovery?.queue?.();
     const session=songSession;
     try{
       ensureCtx();buildGraph();
@@ -17086,7 +17086,7 @@ window.BassBatch = (() => {
       if(request!==songLoadRequest)return false;
       importSucceeded=true;
       rememberLastOpenedSession();
-      window.BassChordRecovery?.queue();
+      window.BassChordRecovery?.queue?.();
       return true;
     }catch(err){
       if(request!==songLoadRequest)return false;
@@ -19558,7 +19558,7 @@ window.BassBatch = (() => {
     setTimeout(async()=>{if(document.visibilityState==='visible'&&!window.BassBatch?.isRunning()){
       if(!buffer&&!activeAudioFile)await restoreLatestSession();
       await resumeSavedRunPodAnalysis();
-      window.BassChordRecovery?.queue();
+      window.BassChordRecovery?.queue?.();
       const pending=pendingStructureJob();
       if(!window.BassBatch?.isRunning()&&!songStructure&&pending?.id&&activeAudioFile&&pending.signature===cloudFileSignature(activeAudioFile))ensureSongStructure();
     }},delay);
@@ -22728,9 +22728,9 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #sourceCard #fileMeta
 html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #sourceCard #sourceFileTitle{flex:0 1 auto!important;min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
 html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #sourceCard #sourceFileDetails{flex:0 0 auto!important;white-space:nowrap!important}
 </style>
-<script defer src="./song-reference/data.js"></script>
-<script defer src="./song-reference/chords.js"></script>
-<script defer src="./library-source/tools-layout.js"></script>
+<script defer src="./song-reference/data.js?v=rc254"></script>
+<script defer src="./song-reference/chords.js?v=rc254"></script>
+<script defer src="./library-source/tools-layout.js?v=rc254"></script>
 </body>
 </html>
 
