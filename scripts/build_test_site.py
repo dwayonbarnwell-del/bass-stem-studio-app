@@ -70,5 +70,5 @@ library_html=html.replace('<head>', '<head><script>'+isolation+'</script>', 1)
 library_html=library_html.replace('return {init,show,prepareSave,', "return {__testFolder:async dir=>{await ready;folder=dir;folderAccess='ready';index={};await refresh();},init,show,prepareSave,", 1)
 (OUT / 'audit-rc255-library.html').write_text(library_html.replace('</body>','<script>'+library_fixture+'</script></body>'))
 for width in [360,430,800,1280]:
-    (OUT / f'ui-rc255-{width}.html').write_text(f'<!doctype html><title>TEST ONLY | {width}px</title><iframe title="Bass Studio {width}px" src="index.html?release=rc255" style="width:{width}px;height:900px;border:0"></iframe>')
+    (OUT / f'ui-rc255-{width}.html').write_text(f'<!doctype html><title>TEST ONLY | {width}px</title><iframe title="Bass Studio {width}px" src="index.html?release=rc255-final" style="width:{width}px;height:900px;border:0"></iframe>')
     (OUT / f'audit-rc255-library-{width}.html').write_text(f'<!doctype html><title>TEST ONLY | {width}px</title><iframe title="Library check {width}px" src="audit-rc255-library.html" style="width:{width}px;height:900px;border:0"></iframe>')

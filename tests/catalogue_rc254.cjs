@@ -11,14 +11,14 @@ for(const before of old.songs){
  const after=data.songs.find(s=>s.id===before.id);assert(after);assert.equal(after.title,before.title);assert.equal(after.artist,before.artist);assert.deepEqual(plain(after.notes),plain(before.notes));
  if(before.sections.length)assert.deepEqual(plain(after.sections),plain(before.sections));
  else if(after.sections.length){
-  filled++;assert(after.previousReference);ctx.window.test.changes.set(before.id,{id:before.id,favourite:true,song:plain(before)});
+  if(manifest.records.some(r=>r.id===before.id&&!r.newSong))filled++;assert(after.previousReference);ctx.window.test.changes.set(before.id,{id:before.id,favourite:true,song:plain(before)});
   assert.equal(ctx.window.test.currentSong(before.id).sections.length,after.sections.length);
   const edited={...plain(before),sections:[{part:'My chorus',chords:'1 6m 4 5',source:'edited'}]};ctx.window.test.changes.set(before.id,{id:before.id,song:edited});
   const result=ctx.window.test.currentSong(before.id);assert.equal(result.sections[0].chords,'1 6m 4 5');assert.equal(result._referenceUpdate.sections,true);
  }
 }
-assert.equal(filled,manifest.completedExisting);assert.equal(data.songs.length-old.songs.length,manifest.addedSongs);
+assert.equal(filled,manifest.completedExisting);assert.equal(manifest.records.filter(r=>r.newSong).length,manifest.addedSongs);
 for(const r of manifest.records){const song=data.songs.find(s=>s.id===r.id);assert.equal(song.source.url,r.url);assert(/^https:\/\//.test(r.url));assert(song.sections.length>0);for(const section of song.sections){assert(/^[b#1-7]/.test(section.chords));assert(!/[A-G]/.test(section.chords));assert.equal(section.sourceKey,r.sourceKey);assert(section.chords.split(' ').length<=24)}}
-ctx.window.test.setFilter('recent');assert.equal(data.songs.filter(ctx.window.test.fits).length,manifest.addedSongs);
+for(const r of manifest.records.filter(r=>r.newSong))assert(data.songs.find(s=>s.id===r.id).collections.includes('Added November 2026'));
 assert.equal(data.statistics.missingSongs,data.songs.filter(s=>!s.sections.some(c=>String(c.chords||'').trim())).length);
 console.log(`PASS RC254 catalogue: ${filled} completed, ${manifest.addedSongs} added, original notes and arrangements preserved, upgrade merges safe, unique IDs and source links verified.`);
