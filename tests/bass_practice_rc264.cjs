@@ -1,6 +1,6 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const env={window:{}};vm.createContext(env);
-for(const file of ['fills-rc264.js','practice-rc264.js'])vm.runInContext(fs.readFileSync('ear-source/'+file,'utf8'),env);
+for(const file of ['fills-rc264.js','practice-rc264b.js'])vm.runInContext(fs.readFileSync('ear-source/'+file,'utf8'),env);
 const {BassFillCore:F,BassPracticeCore:P,BassTransitionCore:T}=env.window,pc=n=>(n%12+12)%12;
 assert.equal(Object.keys(P.modes).length,7);assert.deepEqual(Array.from(F.scales.phrygian),[0,1,3,5,7,8,10]);assert.deepEqual(Array.from(F.scales.locrian),[0,1,3,5,6,8,10]);
 let cases=0;
@@ -35,5 +35,5 @@ const mod=structuredClone(project);mod.analysis.keySections=[{start:0,end:4,scal
 const simple=structuredClone(project);simple.analysis.notes=[{midi:36,start:0,end:4},{midi:41,start:4,end:8},{midi:43,start:8,end:12}];assert.equal(T.extract(simple,meta).items.length,0,'held roots are not fills');
 const repeated=structuredClone(project);repeated.analysis.chords.splice(1,0,{...repeated.analysis.chords[0],start:2});repeated.analysis.chords[0].end=2;assert.equal(T.extract(repeated,meta).items.length,2,'merge repeated chord detections');
 const html=fs.readFileSync('index.html','utf8');assert(html.includes('if(importSucceeded&&!practiceOnly)queueAutomaticMelody()'));assert(html.includes('practiceOnly:true'));assert(html.includes(fs.readFileSync('library-source/library.js','utf8').trim()));
-for(const file of ['fills-rc264.js','practice-rc264.js','library-fills-rc264.js','study-ui-rc264.js','trainer-rc264.js'])new vm.Script(fs.readFileSync('ear-source/'+file,'utf8'));
+for(const file of ['fills-rc264.js','practice-rc264b.js','library-fills-rc264b.js','study-ui-rc264b.js','trainer-rc264.js'])new vm.Script(fs.readFileSync('ear-source/'+file,'utf8'));
 console.log(`PASS ${cases} modal fill/run/bassline arrangements; extraction, gaps, missing data, modulation, confidence, timing and read-only practice import.`);
