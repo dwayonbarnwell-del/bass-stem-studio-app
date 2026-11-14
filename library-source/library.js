@@ -561,5 +561,32 @@ window.BassLibrary=(()=>{
     return target.dir?'folder':'device';
   }
 
-  return {init,show,prepareSave,save,saveAnalysisProject,saveMelodyProject,hasProject,ensureBatchAccess,errorText,chartProjects,chartProject,checkAudioImport,analysisSummary,openForAnalysis};
+  const practiceId=row=>row.audioId?'audio:'+row.audioId:(row.handle?'folder:':'device:')+String(row.id||row.filename).toLowerCase();
+  async function practiceProjects(){
+    await ready;await refresh();
+    return {songs:rows.map(row=>({id:practiceId(row),title:row.title,filename:row.filename,stamp:[row.size,row.modified,row.savedAt].join(':')})),reconnect:folderAccess==='reconnect'};
+  }
+  async function practiceRow(id){
+    if(ready)await ready;
+    let row=rows.find(r=>practiceId(r)===id);
+    if(!row){await refresh();row=rows.find(r=>practiceId(r)===id);}
+    if(!row)throw Error('Reconnect the song folder in Library, then scan again.');
+    return row;
+  }
+  async function practiceProject(id){
+    const row=await practiceRow(id);
+    if(Number(row.size)>240*1024*1024)throw Error('Song too large to scan on this device.');
+    const project=JSON.parse(await (await rowFile(row)).text()),a=project.analysis||{};
+    // Keep audio, stems and lyrics out of the transition catalogue.
+    return {projectName:project.projectName,source:{duration:project.source?.duration},settings:{sections:project.settings?.sections||{}},analysis:{notes:a.notes,chords:a.chords,baseScale:a.baseScale,scale:a.scale,tempoBpm:a.tempoBpm,keySections:a.keySections,keyCorrections:a.keyCorrections,structure:{segments:a.structure?.segments||[]}}};
+  }
+  async function openPracticeSong(id,stamp){
+    if(hooks.isBusy?.())throw Error('Finish the current song first.');
+    await refresh();const row=await practiceRow(id);
+    if(stamp&&stamp!==[row.size,row.modified,row.savedAt].join(':'))throw Error('This song has changed. Scan your library again.');
+    const file=await rowFile(row);
+    if(!hooks.openPractice)throw Error('Reload the platform to open this part.');
+    return !!await hooks.openPractice(file);
+  }
+  return {init,show,prepareSave,save,saveAnalysisProject,saveMelodyProject,hasProject,ensureBatchAccess,errorText,chartProjects,chartProject,checkAudioImport,analysisSummary,openForAnalysis,practiceProjects,practiceProject,openPracticeSong};
 })();

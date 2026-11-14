@@ -23,5 +23,5 @@ for(const mode of C.modes)for(const level of [4,5])for(const sound of ['bass','p
  if(mode==='chords')assert.equal(seen.size,level===4?10:17);if(mode==='intervals')assert.equal(seen.size,12);
 }
 const old={version:1,modes:{notes:{total:30,correct:22,rounds:6,level:3,recent:[true,false]}}},restored=C.restore(old);assert.equal(restored.modes.notes.total,30);assert.equal(restored.modes.notes.level,3);assert.equal(C.record(restored,'notes',true,5).modes.notes.level,5);assert.equal(C.restore({version:1,modes:{notes:{level:99}}}).modes.notes.level,5);
-const trainer=fs.readFileSync('ear-source/trainer-rc263.js','utf8');new vm.Script(trainer);assert(trainer.includes('round.level<C.maxLevel'));assert(trainer.includes('Math.min(C.maxLevel,round.level+1)'));assert(trainer.includes('duration=(4+(question.barBeats||4))*beat'));
+const trainer=fs.readFileSync('ear-source/trainer-rc264.js','utf8');new vm.Script(trainer);assert(trainer.includes('round.level<C.maxLevel'));assert(trainer.includes('Math.min(C.maxLevel,round.level+1)'));assert(trainer.includes('duration=(4+(question.barBeats||4))*beat'));
 console.log(`PASS ${count} advanced examples: five skills, both sounds, compound intervals, 17 chord types, six-chord sequences, two-bar rhythms, fixed C–B keys and saved progress.`);
