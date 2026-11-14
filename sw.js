@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bass-stem-studio-rc255-worship-library';
+const CACHE_NAME = 'bass-stem-studio-rc256-playback-timing';
 const APP_SHELL = ['./vendor/lamejs/lame.min.js','./','./index.html','./guide.html','./manifest.webmanifest','./ai-assets-rc201.js','./song-reference/data.js?v=rc255','./song-reference/chords.js?v=rc255','./song-reference/chords.css','./chord-source/recovery.js?v=rc254','./ai-source/lyrics-ux.css','./library-source/saved-audio-match.css','./library-source/tools-layout.js?v=rc254','./library-source/navigation.js','./library-source/tools-layout.css?v=rc254','./icons/icon-192.png','./icons/icon-512.png'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)).then(()=>self.skipWaiting()));
