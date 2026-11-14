@@ -14,7 +14,7 @@ if OUT.exists():
     shutil.rmtree(OUT)
 OUT.mkdir()
 folders = {'icons', 'licenses', 'ai-source', 'batch-source', 'billing-source',
-           'chord-source', 'library-source', 'media-source', 'song-reference', 'vendor'}
+           'chord-source', 'ear-source', 'library-source', 'media-source', 'song-reference', 'vendor'}
 files = {'index.html', 'guide.html', 'manifest.webmanifest', 'sw.js', 'ai-assets-rc201.js', 'SOUND_CREDITS.txt'}
 for name in subprocess.check_output(['git', 'ls-files'], cwd=ROOT, text=True).splitlines():
     p = Path(name)
@@ -79,3 +79,10 @@ timing_fixture=(ROOT / 'tests/browser_timing_rc256.js').read_text()
 for width in [360,430,800,1280]:
     (OUT / f'audit-rc256-timing-{width}.html').write_text(f'<!doctype html><title>TEST ONLY | {width}px</title><iframe title="Timing check {width}px" src="audit-rc256-timing.html?release=speed-check-3" allow="autoplay" style="width:{width}px;height:900px;border:0"></iframe>')
     (OUT / f'ui-rc256-{width}.html').write_text(f'<!doctype html><title>TEST ONLY | {width}px</title><iframe title="Bass Studio {width}px" src="index.html?release=rc256-final" style="width:{width}px;height:900px;border:0"></iframe>')
+
+# RC257: ear-training controls and real stereo decoder/export checks.
+ear_fixture=(ROOT / 'tests/browser_ear_piano_rc257.js').read_text()
+(OUT / 'audit-rc257.html').write_text(html.replace('</body>','<script>'+ear_fixture+'</script></body>'))
+for width in [360,430,800,1280]:
+    for name,src in [('ui','index.html'),('audit','audit-rc257.html')]:
+        (OUT / f'{name}-rc257-{width}.html').write_text(f'<!doctype html><title>TEST ONLY | {width}px</title><iframe title="Bass Studio {width}px" src="{src}?release=rc257" allow="autoplay" style="width:{width}px;height:900px;border:0"></iframe>')

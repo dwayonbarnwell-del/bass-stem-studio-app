@@ -74,3 +74,14 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 
+
+
+Salamander Grand Piano v3 (RC257)
+Author: Alexander Holm. Licensed under Creative Commons Attribution 3.0 Unported.
+Source: https://github.com/sfzinstruments/SalamanderGrandPiano
+Original recording: https://archive.org/details/SalamanderGrandPianoV3
+Source commit: 3382bf9496bba2486f5ab0de55a264d1dfc38404
+Licence: https://creativecommons.org/licenses/by/3.0/
+Full licence and upstream description: ai-source/salamander/LICENSE.txt and SOURCE_README.md.
+Adaptation: layers 4/8/12 selected; original minor-third anchors retained; source retuning corrections baked in; upstream start offsets shortened with a 3 ms lead; tails limited to 5–8 seconds with a 250 ms fade; encoded to 44.1 kHz stereo MP3. Relative sample levels preserved.
+Derived from the SFZ mapping by kinwie, which credits Jeff Learman for the fast-response offsets. Separate pedal, hammer and sympathetic-resonance recordings omitted for this compact browser version.

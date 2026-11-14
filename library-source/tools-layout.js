@@ -1,4 +1,4 @@
-/* RC253: two featured cards and one row of two retained tools. */
+/* RC257: two featured cards and three equally sized practice tools. */
 (()=>{
 const $=id=>document.getElementById(id);
 let featured;
@@ -13,11 +13,11 @@ function install(){
  $('bassHelpShare')?.remove();
  // Sound check and Rhythm keep their existing handlers and equal sizes.
  // Move existing buttons; never clone or replace their event handlers.
- const order=['openSoundCheck','openRhythm'];
+ const order=['openEarTraining','openSoundCheck','openRhythm'];
  const remaining=order.map($).filter(Boolean);
  const otherNodes=Array.from(tools.children).filter(el=>el.tagName!=='BUTTON');
- if(remaining.length===2){
-  const sizes=[2],rows=[];let pos=0;
+ if(remaining.length===3){
+  const sizes=[3],rows=[];let pos=0;
   for(const size of sizes){
    const row=elem('div','bs-other-row');
    for(const button of remaining.slice(pos,pos+size))row.append(button);
