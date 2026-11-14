@@ -1,5 +1,6 @@
 """Build the isolated UI test site. Never use this build for production."""
 import json
+import hashlib
 import os
 from pathlib import Path
 import re
@@ -23,6 +24,10 @@ for name in subprocess.check_output(['git', 'ls-files'], cwd=ROOT, text=True).sp
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(ROOT / p, dest)
 html = (OUT / 'index.html').read_text()
+# Test rebuilds can reuse a release number; avoid stale component assets.
+html = re.sub(r'((?:src|href)="\./([^"?]+\.(?:css|js)))\?v=[^"]+',
+              lambda m: m[1] + '?v=' + hashlib.sha256((OUT / m[2]).read_bytes()).hexdigest()[:12]
+              if (OUT / m[2]).is_file() else m[0], html)
 # Header CSP is authoritative; this meta also protects local static previews.
 policy = "connect-src 'self' blob: data:; form-action 'none'; worker-src 'none'"
 html = html.replace('<head>', '<head>\n<meta name="robots" content="noindex,nofollow">\n'
