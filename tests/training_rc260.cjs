@@ -1,6 +1,6 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const e={window:{},document:{getElementById:()=>null},Math,console};vm.createContext(e);
-for(const f of ['ear-source/core-rc260.js','ear-source/fills.js','ai-source/piano.js'])vm.runInContext(fs.readFileSync(f,'utf8'),e);
+for(const f of ['ear-source/core-rc261.js','ear-source/fills.js','ai-source/piano.js'])vm.runInContext(fs.readFileSync(f,'utf8'),e);
 const F=e.window.BassFillCore,C=e.window.BassEarTrainingCore,P=e.window.BassPiano,pc=m=>(m%12+12)%12;
 let checked=0;
 for(const mode of ['major','minor'])for(let key=0;key<12;key++)for(let from=1;from<=7;from++)for(let to=1;to<=7;to++){

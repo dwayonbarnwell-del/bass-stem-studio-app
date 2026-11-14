@@ -15349,13 +15349,13 @@ window.BassBatch = (() => {
 
 <dialog id="pianoEditor" aria-labelledby="pianoEditTitle"><h2 id="pianoEditTitle">Correct melody note</h2><label>Note<select id="pianoPitch"></select></label><label>Start (seconds)<input id="pianoStart" type="number" min="0" step="0.01"></label><label>End (seconds)<input id="pianoEnd" type="number" min="0" step="0.01"></label><p id="pianoEditError" role="alert"></p><div class="piano-edit-actions"><button id="pianoSaveNote" type="button">Save note</button> <button id="pianoDelete" type="button">Delete note</button> <button id="pianoUndo" type="button" disabled>Undo last change</button> <button id="pianoCloseNote" type="button">Close</button></div></dialog>
 <script src="./chord-source/recovery.js?v=rc254"></script>
-<script src="./ear-source/core-rc260.js?v=rc260"></script>
+<script src="./ear-source/core-rc261.js?v=rc261"></script>
 <script src="./ear-source/fills.js?v=rc260"></script>
-<script src="./ear-source/trainer-rc260.js?v=rc260"></script>
+<script src="./ear-source/trainer-rc261.js?v=rc261"></script>
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC260';
+  const APP_VERSION='RC261';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;
