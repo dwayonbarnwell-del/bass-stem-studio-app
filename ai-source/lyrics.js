@@ -18,7 +18,7 @@ window.BassLyrics=(()=>{
  function controls(){
   const s=api.get(),chords=Array.isArray(s.chords)?s.chords:[];
   $('lyricsDetect').disabled=busy||!s.buffer;
-  $('lyricsPlay').disabled=window.BassLRCLIB?.isBrowsing?.()?!window.BassLRCLIB.hasSelection():!s.buffer;
+  $('lyricsPlay').disabled=!s.buffer;
   $('lyricsPause').disabled=!s.buffer;
   $('lyricsCancel').disabled=!busy;
   $('lyricsExport').disabled=!words.length;
@@ -79,7 +79,7 @@ window.BassLyrics=(()=>{
     words=clean([...words.filter(w=>w.start<core||w.start>=coreEnd),...additions],s.buffer.duration);render();api.changed?.();
     status('Finding words: '+Math.round((coreEnd-start)/(end-start)*100)+'%');
    }
-   if(token===run&&api.get().session===s.session)status(words.length?'Words ready. Play the song to check them.':'No clear words found. Try Find song lyrics above.');
+   if(token===run&&api.get().session===s.session)status(words.length?'Words ready. Play the song to check them.':'No clear words found.');
   }catch(e){if(token===run)status('Could not find words. Check your connection and try again.');}
   finally{if(token===run){cancel();render();}}
  }

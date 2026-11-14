@@ -8,14 +8,14 @@ const tools=html.match(/<script id="rc189-tools-toggle">([\s\S]*?)<\/script>/)?.
 assert(tools&&settings);new vm.Script(tools);new vm.Script(settings);
 assert(html.includes('id="moreToolsView"'));assert(!html.includes('id="closeMoreTools"'));
 assert(tools.includes("view?.addEventListener('change'"));
-assert(tasks.includes('const sizes=[3,3],rows=[]'));
+assert(tasks.includes('const sizes=[3],rows=[]'));
 assert(tasks.includes('tools.replaceChildren(...rows,...otherNodes)'));
 assert(html.includes('height:68px!important;min-height:68px!important;max-height:68px!important'));
 assert(settings.includes('[[1,1],[3,1],[1,2],[2,2],[3,2]]'));
 assert(settings.includes("style.setProperty(key,value,'important')"));
 assert(html.includes('grid-template-columns:repeat(3,minmax(0,1fr))!important'));
 assert(lib.includes("folder?'Change save folder':'Choose save folder'"));
-assert(lib.includes('rows=[...found,...deviceRows]'));
+assert(lib.includes('rows=uniqueSongs([...found,...deviceRows])'));
 assert(html.includes("lyrics:window.BassLyrics?.exportData()||[]"));
 assert(html.includes('window.BassBatch.init'));
-console.log('PASS: dropdown close, exactly 2 equal-height other rows, equal-size 5 Settings cards and preservation.');
+console.log('PASS: dropdown close, one equal-height row of retained tools, equal-size 5 Settings cards and preservation.');

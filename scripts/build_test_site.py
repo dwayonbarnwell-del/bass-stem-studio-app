@@ -52,3 +52,7 @@ for width in [360,430,800,1280]:
 # Render static site headers also apply to workers; prevent outbound API jobs.
 (OUT / '_headers').write_text('/*\n  X-Robots-Tag: noindex, nofollow\n  Content-Security-Policy: ' + policy + '\n')
 print('Built isolated TEST ONLY site in test-dist; online analysis disabled.')
+
+# Responsive UI inspection pages for the current settings and retained tools.
+for width in [360,430,800]:
+    (OUT / f'ui-rc253-{width}.html').write_text(f'<!doctype html><title>TEST ONLY | {width}px</title><iframe title="Bass Studio {width}px" src="index.html" style="width:{width}px;height:900px;border:0"></iframe>')
