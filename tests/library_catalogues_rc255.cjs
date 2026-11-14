@@ -1,0 +1,25 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const {webcrypto}=require('node:crypto');
+const source=fs.readFileSync('library-source/library.js','utf8');
+assert(fs.readFileSync('index.html','utf8').includes(source.trim()),'inline library must match maintained source');
+const data={settings:new Map(),songs:new Map()},files=new Map(),status={textContent:''};let writes=0,reads=0,modified=1;
+const indexedDB={open(){const r={};setImmediate(()=>{r.result={close(){},transaction(name){const tx={};tx.objectStore=()=>({get:k=>req(()=>data[name].get(k)),getAll:()=>req(()=>[...data[name].values()]),put:(v,k)=>req(()=>data[name].set(k??v.id,v))});function req(fn){const q={};setImmediate(()=>{try{q.result=fn();tx.oncomplete?.();}catch(e){tx.error=e;tx.onerror?.();}});return q;}return tx;}};r.onsuccess();});return r;}};
+const handle=name=>({kind:'file',getFile:async()=>{const f=new File([files.get(name)],name,{lastModified:modified}),text=f.text.bind(f);f.text=()=>{reads++;return text();};return f;},createWritable:async()=>({write:async b=>{files.set(name,b);writes++;},close:async()=>{}})});
+const folder={name:'Songs and charts',queryPermission:async()=> 'granted',async *entries(){for(const name of files.keys())yield [name,handle(name)];}};
+const ctx={File,Blob,DOMException,TextEncoder,Uint8Array,crypto:webcrypto,indexedDB,console,setTimeout,Event,navigator:{storage:{}},document:{getElementById:id=>id==='libraryStatus'?status:null},window:{dispatchEvent(){}}};
+vm.createContext(ctx);vm.runInContext(source.replace('return {init,show,','return {refresh,addFiles,getRows:()=>rows,init,show,'),ctx);const lib=ctx.window.BassLibrary;
+const project={format:'Bass Stem Studio Project',schemaVersion:2,projectName:'Saved song',source:{audioBase64:'AAAA',name:'song.mp3',duration:12},analysis:{notes:[{midi:40,start:0,end:1}],chords:[{chord:'C'}]}};
+const names=['BassStem_SongChords_2026-11-08.json','BassStem_Praise_Worship_Number_Charts.json'];
+const charts=[{format:'BassStemSongReferences',changes:[]},{format:'BassStemSongChordPack',songs:[]}];
+const put=(name,value)=>files.set(name,JSON.stringify(value));
+(async()=>{
+ put('saved.bassstudio',project);names.forEach((name,i)=>put(name,charts[i]));data.settings.set('folder',folder);lib.init({});
+ await lib.refresh();assert.equal(lib.getRows().length,1);assert.equal(status.textContent,'');assert.equal((await lib.analysisSummary()).issues,0);
+ const initialReads=reads;await lib.refresh();assert.equal(reads,initialReads,'unchanged chart catalogues are cached without rereading');
+ put('renamed-backup.json',charts[0]);files.set('broken.json','{invalid');await lib.refresh();assert.equal(lib.getRows().length,1);assert.equal(status.textContent,'1 unreadable saved file skipped.');assert.equal((await lib.analysisSummary()).issues,1);
+ files.delete('broken.json');await lib.addFiles(names.map((n,i)=>new File([JSON.stringify(charts[i])],n)));assert.match(status.textContent,/Open chord backups in Song Chords/);assert.doesNotMatch(status.textContent,/could not be added|unreadable/);assert.equal(writes,0);assert.equal(files.size,4);
+ put(names[0],{...project,projectName:'Audio saved under a chart filename',source:{...project.source,audioBase64:'BBBB'}});modified++;
+ await lib.refresh();assert.equal(lib.getRows().length,2,'file content, not its name, decides whether it is an audio project');assert.equal(status.textContent,'');assert.equal((await lib.analysisSummary()).songs.length,2);
+ assert.equal(files.get(names[1]),JSON.stringify(charts[1]),'chart backups must remain untouched');
+ console.log('PASS chord backups excluded from scans and analysis counts; real errors retained; explicit import guidance; cache invalidation; no file changes.');
+})().catch(e=>{console.error(e);process.exitCode=1;});

@@ -14254,6 +14254,8 @@ window.BassLibrary=(()=>{
   const el=id=>document.getElementById(id);
   const abort=()=>new DOMException('Cancelled','AbortError');
   const clean=v=>String(v||'').trim();
+  // Chord catalogues belong to Song Chords, not the audio-project library.
+  const isChordCatalogue=p=>p?.format==='BassStemSongReferences'||p?.format==='BassStemSongChordPack';
   function database(){
     if(!dbPromise)dbPromise=new Promise((resolve,reject)=>{
       const r=indexedDB.open(DB,1);
@@ -14393,8 +14395,14 @@ window.BassLibrary=(()=>{
         if(handle.kind!=='file'||!SUPPORTED.test(name))continue;
         try{
           const file=await handle.getFile(),cached=index[name];
-          const meta=cached&&cached.audioId&&cached.size===file.size&&cached.modified===file.lastModified
-            ?cached:await indexedMetadata(JSON.parse(await file.text()),file);
+          const unchanged=cached&&cached.size===file.size&&cached.modified===file.lastModified;
+          if(unchanged&&cached.kind==='chord-catalogue'){next[name]=cached;continue;}
+          let meta=unchanged&&cached.audioId?cached:null;
+          if(!meta){
+            const project=JSON.parse(await file.text());
+            if(isChordCatalogue(project)){next[name]={kind:'chord-catalogue',size:file.size,modified:file.lastModified};continue;}
+            meta=await indexedMetadata(project,file);
+          }
           next[name]=meta;found.push({...meta,handle,file,storageLabel:'Save folder'});
         }catch{skipped++;}
       }
@@ -14507,17 +14515,19 @@ window.BassLibrary=(()=>{
     if(ok){dialog.close();return;}status('The song could not be opened. Check the message on the main screen.');
   }
   async function addFiles(files){
-    let added=0,failed=0,cancelled=0,duplicates=0;
+    let added=0,failed=0,cancelled=0,duplicates=0,chordCatalogues=0;
     for(const file of files){
       try{
         status('Adding '+file.name+'…');
-        const p=JSON.parse(await file.text());metadata(p,file);
+        const p=JSON.parse(await file.text());
+        if(isChordCatalogue(p)){chordCatalogues++;continue;}
+        metadata(p,file);
         if(await matchingTarget(p)){duplicates++;continue;}
         const target=await prepareSave(clean(p.projectName)||file.name.replace(SUPPORTED,''));
         await save(p,file,target);added++;
       }catch(e){if(e?.name==='AbortError')cancelled++;else failed++;}
     }
-    await refresh();status(added+' added'+(duplicates?' · '+duplicates+' already saved':'')+(cancelled?' · '+cancelled+' cancelled':'')+(failed?' · '+failed+' could not be added; check the file format, folder access and free space.':'.'));
+    await refresh();status(added+' added'+(duplicates?' · '+duplicates+' already saved':'')+(cancelled?' · '+cancelled+' cancelled':'')+(failed?' · '+failed+' could not be added; check the file format, folder access and free space.':'.')+(chordCatalogues?' Open chord backups in Song Chords → Import charts / backup.':''));
   }
 
   /* RC227: Reuse saved analysed songs before loading audio or creating a paid job. */
@@ -14669,9 +14679,12 @@ window.BassLibrary=(()=>{
             try{
               const file=await handle.getFile();
               let info=index[name];
+              if(info?.kind==='chord-catalogue'&&info.size===file.size&&info.modified===file.lastModified)continue;
               if(!info||info.size!==file.size||info.modified!==file.lastModified
                 ||typeof info.hasBassAnalysis!=='boolean'||typeof info.hasChordAnalysis!=='boolean'){
-                info=metadata(JSON.parse(await file.text()),file);
+                const project=JSON.parse(await file.text());
+                if(isChordCatalogue(project)){index[name]={kind:'chord-catalogue',size:file.size,modified:file.lastModified};updated=true;continue;}
+                info=metadata(project,file);
                 index[name]=info;updated=true;
               }
               seen.add(id);all.push({location:'folder',id:name,...info});
@@ -15451,7 +15464,7 @@ window.BassBatch = (() => {
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC254';
+  const APP_VERSION='RC255';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;
@@ -22715,21 +22728,28 @@ window.BassBillingLinks = Object.freeze({render:'https://dashboard.render.com/bi
  });
 })();
 </script>
-<style id="rc253-settings-colours">
-#settingsDialog #displaySizeControl .settings-control-row > #noteNumberToggle{background:#24434b!important;border-color:#567780!important}
-#settingsDialog #displaySizeControl .settings-control-row > #fontSizeCard{background:#3e3552!important;border-color:#756489!important}
-#settingsDialog #displaySizeControl .settings-control-row > #bassStringSelector{background:#354735!important;border-color:#687e60!important}
-#settingsDialog #displaySizeControl .settings-control-row > #timelineBreakdownControl{background:#50422f!important;border-color:#8b7656!important}
-#settingsDialog #displaySizeControl .settings-control-row > #speedControl{background:#2c3e5c!important;border-color:#657c9d!important}
-#settingsDialog #billingShortcuts{background:#302d3f!important;border-color:#655c77!important}
-#settingsDialog #sharePlatformShortcuts{background:#273f37!important;border-color:#597a6c!important}
+<style id="rc255-settings-button-colours">
+/* Muted colours belong to the controls; their surrounding panels stay neutral. */
+#settingsDialog #displaySizeControl .settings-control-row > :is(#noteNumberToggle,#fontSizeCard,#bassStringSelector,#timelineBreakdownControl,#speedControl){background:#14283c!important;border-color:#496983!important}
+#settingsDialog #billingShortcuts,#settingsDialog #sharePlatformShortcuts{background:#14283c!important;border-color:#496983!important}
+#settingsDialog #displaySizeControl .settings-control-row #noteNumberSelect{background:#24434b!important;border-color:#567780!important}
+#settingsDialog #displaySizeControl .settings-control-row #fontSizePreset{background:#3e3552!important;border-color:#756489!important}
+#settingsDialog #displaySizeControl .settings-control-row #bassStringSelect{background:#354735!important;border-color:#687e60!important}
+#settingsDialog #displaySizeControl .settings-control-row #timelineSplitSelect{background:#50422f!important;border-color:#8b7656!important}
+#settingsDialog #displaySizeControl .settings-control-row #tempo{background:#2c3e5c!important;border-color:#657c9d!important}
+#settingsDialog .billing-links a:nth-child(1){background:#3e3552!important;border-color:#756489!important}
+#settingsDialog .billing-links a:nth-child(2){background:#354735!important;border-color:#687e60!important}
+#settingsDialog .billing-links a:nth-child(3){background:#50422f!important;border-color:#8b7656!important}
+#settingsDialog .share-platform-actions a{background:#24434b!important;border-color:#567780!important}
+#settingsDialog .share-platform-actions button{background:#3e3552!important;border-color:#756489!important}
+#settingsDialog #settingsClose{background:#2c3e5c!important;border-color:#657c9d!important}
 html body #appRoot#appRoot#appRoot#appRoot#appRoot #liveAudioEntry{grid-template-columns:repeat(4,minmax(0,1fr))!important}
 html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #sourceCard #fileMeta{display:flex!important;flex-direction:row!important;align-items:baseline!important;gap:8px!important;min-width:0!important}
 html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #sourceCard #sourceFileTitle{flex:0 1 auto!important;min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
 html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #sourceCard #sourceFileDetails{flex:0 0 auto!important;white-space:nowrap!important}
 </style>
-<script defer src="./song-reference/data.js?v=rc254-final"></script>
-<script defer src="./song-reference/chords.js?v=rc254"></script>
+<script defer src="./song-reference/data.js?v=rc255"></script>
+<script defer src="./song-reference/chords.js?v=rc255"></script>
 <script defer src="./library-source/tools-layout.js?v=rc254"></script>
 </body>
 </html>

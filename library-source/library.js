@@ -5,6 +5,8 @@ window.BassLibrary=(()=>{
   const el=id=>document.getElementById(id);
   const abort=()=>new DOMException('Cancelled','AbortError');
   const clean=v=>String(v||'').trim();
+  // Chord catalogues belong to Song Chords, not the audio-project library.
+  const isChordCatalogue=p=>p?.format==='BassStemSongReferences'||p?.format==='BassStemSongChordPack';
   function database(){
     if(!dbPromise)dbPromise=new Promise((resolve,reject)=>{
       const r=indexedDB.open(DB,1);
@@ -144,8 +146,14 @@ window.BassLibrary=(()=>{
         if(handle.kind!=='file'||!SUPPORTED.test(name))continue;
         try{
           const file=await handle.getFile(),cached=index[name];
-          const meta=cached&&cached.audioId&&cached.size===file.size&&cached.modified===file.lastModified
-            ?cached:await indexedMetadata(JSON.parse(await file.text()),file);
+          const unchanged=cached&&cached.size===file.size&&cached.modified===file.lastModified;
+          if(unchanged&&cached.kind==='chord-catalogue'){next[name]=cached;continue;}
+          let meta=unchanged&&cached.audioId?cached:null;
+          if(!meta){
+            const project=JSON.parse(await file.text());
+            if(isChordCatalogue(project)){next[name]={kind:'chord-catalogue',size:file.size,modified:file.lastModified};continue;}
+            meta=await indexedMetadata(project,file);
+          }
           next[name]=meta;found.push({...meta,handle,file,storageLabel:'Save folder'});
         }catch{skipped++;}
       }
@@ -258,17 +266,19 @@ window.BassLibrary=(()=>{
     if(ok){dialog.close();return;}status('The song could not be opened. Check the message on the main screen.');
   }
   async function addFiles(files){
-    let added=0,failed=0,cancelled=0,duplicates=0;
+    let added=0,failed=0,cancelled=0,duplicates=0,chordCatalogues=0;
     for(const file of files){
       try{
         status('Adding '+file.name+'…');
-        const p=JSON.parse(await file.text());metadata(p,file);
+        const p=JSON.parse(await file.text());
+        if(isChordCatalogue(p)){chordCatalogues++;continue;}
+        metadata(p,file);
         if(await matchingTarget(p)){duplicates++;continue;}
         const target=await prepareSave(clean(p.projectName)||file.name.replace(SUPPORTED,''));
         await save(p,file,target);added++;
       }catch(e){if(e?.name==='AbortError')cancelled++;else failed++;}
     }
-    await refresh();status(added+' added'+(duplicates?' · '+duplicates+' already saved':'')+(cancelled?' · '+cancelled+' cancelled':'')+(failed?' · '+failed+' could not be added; check the file format, folder access and free space.':'.'));
+    await refresh();status(added+' added'+(duplicates?' · '+duplicates+' already saved':'')+(cancelled?' · '+cancelled+' cancelled':'')+(failed?' · '+failed+' could not be added; check the file format, folder access and free space.':'.')+(chordCatalogues?' Open chord backups in Song Chords → Import charts / backup.':''));
   }
 
   /* RC227: Reuse saved analysed songs before loading audio or creating a paid job. */
@@ -420,9 +430,12 @@ window.BassLibrary=(()=>{
             try{
               const file=await handle.getFile();
               let info=index[name];
+              if(info?.kind==='chord-catalogue'&&info.size===file.size&&info.modified===file.lastModified)continue;
               if(!info||info.size!==file.size||info.modified!==file.lastModified
                 ||typeof info.hasBassAnalysis!=='boolean'||typeof info.hasChordAnalysis!=='boolean'){
-                info=metadata(JSON.parse(await file.text()),file);
+                const project=JSON.parse(await file.text());
+                if(isChordCatalogue(project)){index[name]={kind:'chord-catalogue',size:file.size,modified:file.lastModified};updated=true;continue;}
+                info=metadata(project,file);
                 index[name]=info;updated=true;
               }
               seen.add(id);all.push({location:'folder',id:name,...info});
