@@ -63,3 +63,12 @@ fixture254=(ROOT / 'tests/browser_session_rc254.js').read_text()
 for width in [360,430,800,1280]:
     (OUT / f'ui-rc254-{width}.html').write_text(f'<!doctype html><title>TEST ONLY | {width}px</title><iframe title="Bass Studio {width}px" src="index.html" style="width:{width}px;height:900px;border:0"></iframe>')
     (OUT / f'audit-rc254-session-{width}.html').write_text(f'<!doctype html><title>TEST ONLY | {width}px</title><iframe title="Refresh test {width}px" src="audit-rc254-session.html" style="width:{width}px;height:900px;border:0"></iframe>')
+
+# RC255: distinguish chord backups from actual damaged audio projects.
+library_fixture=(ROOT / 'tests/browser_library_rc255.js').read_text()
+library_html=html.replace('<head>', '<head><script>'+isolation+'</script>', 1)
+library_html=library_html.replace('return {init,show,prepareSave,', "return {__testFolder:async dir=>{await ready;folder=dir;folderAccess='ready';index={};await refresh();},init,show,prepareSave,", 1)
+(OUT / 'audit-rc255-library.html').write_text(library_html.replace('</body>','<script>'+library_fixture+'</script></body>'))
+for width in [360,430,800,1280]:
+    (OUT / f'ui-rc255-{width}.html').write_text(f'<!doctype html><title>TEST ONLY | {width}px</title><iframe title="Bass Studio {width}px" src="index.html?release=rc255" style="width:{width}px;height:900px;border:0"></iframe>')
+    (OUT / f'audit-rc255-library-{width}.html').write_text(f'<!doctype html><title>TEST ONLY | {width}px</title><iframe title="Library check {width}px" src="audit-rc255-library.html" style="width:{width}px;height:900px;border:0"></iframe>')
