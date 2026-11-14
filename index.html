@@ -22522,8 +22522,8 @@ new ResizeObserver(size).observe(play);size();})();
   const sync=()=>{const bpm=song()?.bpm;detected.disabled=!(Number.isFinite(bpm)&&bpm>=40&&bpm<=240);};
   input.closest('dialog')?.addEventListener('toggle',sync);sync();detected.className='tempo-detected';tap.className='tempo-tap';r.append(detected,tap);
  }
- // Use the selected passage or named sections in both loop tools.
- for(const [dialogId,from,to,max] of [['rhythmDialog','rhythmFrom','rhythmTo',30],['loopShareDialog','loopShareFrom','loopShareTo',120]]){
+ // Use the selected passage or named sections for rhythm practice.
+ for(const [dialogId,from,to,max] of [['rhythmDialog','rhythmFrom','rhythmTo',30]]){
   const dialog=$(dialogId),anchor=$(from).closest('div');
   const label=document.createElement('label');label.textContent='Choose passage';
   const select=document.createElement('select');select.className='ux181-choice';select.setAttribute('aria-label','Choose passage');label.append(select);anchor.before(label);
@@ -22549,7 +22549,6 @@ new ResizeObserver(size).observe(play);size();})();
  // Native numeric keyboards and clear accessible names for existing controls.
  document.querySelectorAll('input[type="number"]').forEach(el=>{el.inputMode=Number(el.step)%1?'decimal':'numeric';});
  $('sectionSelect').setAttribute('aria-label','Song section');
- $('patternFret').setAttribute('aria-label','First fret');
 })();
 
 </script>

@@ -11,7 +11,7 @@ $('runTimingAudit').onclick=async()=>{
  const chart=[{rootPc:0,quality:'maj',start:.18,end:.75},{rootPc:9,quality:'min',start:.75,end:1.25},{rootPc:5,quality:'maj',start:1.25,end:2.1},{rootPc:7,quality:'maj',start:2.4,end:4.5},{rootPc:0,quality:'maj',start:5,end:7.9}].map(c=>({...c,confidence:.99,evidence_version:'chord-timeline-v4'}));
  const audio=ctx.createBuffer(2,ctx.sampleRate*8,ctx.sampleRate);
  for(let ch=0;ch<2;ch++){const data=audio.getChannelData(ch);for(let i=0;i<data.length;i++){const t=i/ctx.sampleRate,n=bass.find(n=>t>=n.start&&t<n.end),beat=beats.find(b=>t>=b&&t<b+.035);if(n)data[i]+=.08*Math.sin(2*Math.PI*440*2**((n.midi-69)/12)*t);if(beat!==undefined)data[i]+=.15*Math.sin(2*Math.PI*1000*(t-beat))*Math.exp(-100*(t-beat));}}
- const wav=BassLoopShare.wav(audio,BassLoopShare.bounds(audio,0,8)),base={format:'Bass Stem Studio Project',schemaVersion:2,projectName:'Timing check',source:{name:'timing-check.wav',type:'audio/wav',audioBase64:arrayBufferToBase64(await wav.arrayBuffer())},analysis:{ready:true,notes:bass,chords:chart,tempoBpm:120,beatTimes:beats},settings:{speed:100,practiceView:'timeline'}};
+ const wav=wavBlob(audio),base={format:'Bass Stem Studio Project',schemaVersion:2,projectName:'Timing check',source:{name:'timing-check.wav',type:'audio/wav',audioBase64:arrayBufferToBase64(await wav.arrayBuffer())},analysis:{ready:true,notes:bass,chords:chart,tempoBpm:120,beatTimes:beats},settings:{speed:100,practiceView:'timeline'}};
  await test('saved event times remain exact',async()=>{
   check(await importBassStudioProject(new File([JSON.stringify(base)],'timing-check.bassstudio')),'project import');
   await wait(100);setPracticeVisualMode('timeline');setTimelineCellSeconds(1,{clearSelection:true,rebuild:true});
