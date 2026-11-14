@@ -77,5 +77,5 @@ for width in [360,430,800,1280]:
 timing_fixture=(ROOT / 'tests/browser_timing_rc256.js').read_text()
 (OUT / 'audit-rc256-timing.html').write_text(audit_html.replace(marker,timing_fixture+'\n'+marker))
 for width in [360,430,800,1280]:
-    (OUT / f'audit-rc256-timing-{width}.html').write_text(f'<!doctype html><title>TEST ONLY | {width}px</title><iframe title="Timing check {width}px" src="audit-rc256-timing.html?release=diagnostic-2" allow="autoplay" style="width:{width}px;height:900px;border:0"></iframe>')
+    (OUT / f'audit-rc256-timing-{width}.html').write_text(f'<!doctype html><title>TEST ONLY | {width}px</title><iframe title="Timing check {width}px" src="audit-rc256-timing.html?release=speed-check-3" allow="autoplay" style="width:{width}px;height:900px;border:0"></iframe>')
     (OUT / f'ui-rc256-{width}.html').write_text(f'<!doctype html><title>TEST ONLY | {width}px</title><iframe title="Bass Studio {width}px" src="index.html?release=rc256-final" style="width:{width}px;height:900px;border:0"></iframe>')

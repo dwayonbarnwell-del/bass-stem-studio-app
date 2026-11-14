@@ -20,9 +20,9 @@ $('runTimingAudit').onclick=async()=>{
   check(detectedBeatTimes.every((t,i)=>t===beats[i]),'beat times changed');
  });
  const snapshots=[];let observe=false;
- const originalFrame=drawPlaybackFrame;drawPlaybackFrame=function(){originalFrame();if(observe)snapshots.push({raw:currentTime(),t:displayTime(),note:noteLane.querySelector('.note-token.active')?.dataset.start??null,chord:chordRuler.querySelector('.current-chord')?.dataset.eventIndex??null,pulse:$('songTempoWrap').classList.contains('on-beat'),timer:curTime.textContent});};
+ const originalFrame=drawPlaybackFrame;drawPlaybackFrame=function(){const started=performance.now();originalFrame();if(observe)snapshots.push({cost:performance.now()-started,visible:document.visibilityState,raw:currentTime(),t:displayTime(),note:noteLane.querySelector('.note-token.active')?.dataset.start??null,chord:chordRuler.querySelector('.current-chord')?.dataset.eventIndex??null,pulse:$('songTempoWrap').classList.contains('on-beat'),timer:curTime.textContent});};
  const checkFrames=()=>{
-  check(snapshots.length>15,'too few animation frames ('+snapshots.length+', playing='+playing+', paused='+masterAudio.paused+', raw='+currentTime()+', ready='+offlineAnalysisReady+', context='+ctx.state+')');let checks=0;
+  check(snapshots.length>15,'too few animation frames ('+snapshots.length+', playing='+playing+', paused='+masterAudio.paused+', raw='+currentTime()+', ready='+offlineAnalysisReady+', context='+ctx.state+', maxFrameMs='+Math.max(0,...snapshots.map(s=>s.cost)).toFixed(1)+', visibility='+[...new Set(snapshots.map(s=>s.visible))].join(',')+')');let checks=0;
   const edges=[...bass.flatMap(n=>[n.start,n.end]),...chart.flatMap(c=>[c.start,c.end]),...beats.flatMap(t=>[t,t+.12])];
   for(const s of snapshots){if(edges.some(t=>Math.abs(t-s.t)<.025))continue;const n=bass.find(n=>s.t>=n.start&&s.t<n.end),ci=chart.findIndex(c=>s.t>=c.start&&s.t<c.end),last=beats.filter(t=>t<=s.t).at(-1);
    check(s.note===(n?String(n.start):null),'bass highlight at '+s.t.toFixed(3));
@@ -32,7 +32,7 @@ $('runTimingAudit').onclick=async()=>{
   }check(checks>10,'too few non-boundary checks');
  };
  for(const speed of [100,50,150])await test('audio clock, beat, chords and sustained bass at '+speed+'%',async()=>{
-  tempo.value=speed;applyTempo();seekTo(.05);await wait(60);snapshots.length=0;observe=true;await play();out.textContent+='START '+speed+'% '+JSON.stringify({playing,paused:masterAudio.paused,time:currentTime(),rate:masterAudio.playbackRate,context:ctx.state})+'\n';await wait(speed===50?5300:3200);observe=false;checkFrames();
+  setPracticeSpeed(speed);applyTempo();seekTo(.05);await wait(60);snapshots.length=0;observe=true;await play();out.textContent+='START '+speed+'% '+JSON.stringify({playing,paused:masterAudio.paused,time:currentTime(),rate:masterAudio.playbackRate,context:ctx.state})+'\n';await wait(speed===50?5300:3200);observe=false;checkFrames();
   check(snapshots.some(s=>s.t>1&&s.t<2.2&&s.note==='.25')||snapshots.some(s=>s.t>1&&s.t<2.2&&s.note==='0.25'),'sustain lost across columns');
   const delay=window.BassPlaybackTiming.outputDelay(ctx,window.BassAutoLevel.latency(loopFadeGain));
   check(snapshots.filter(s=>s.raw>.5).every(s=>Math.abs(s.raw-s.t-delay*speed/100)<.03),'display not following audible clock');
@@ -45,7 +45,7 @@ $('runTimingAudit').onclick=async()=>{
  });
  await test('metronome cancellation and speed changes during playback',async()=>{
   metronomeEnabled=true;seekTo(.6);await wait(80);await play();await wait(130);pause();check(metronomeVoices.size===0,'queued click after pause');
-  await play();await wait(150);tempo.value=50;applyTempo();check(metronomeVoices.size===0,'old-rate click remains');await wait(200);seekTo(3.1);check(metronomeVoices.size===0,'old-position click remains');metronomeEnabled=false;cancelMetronome();
+  await play();await wait(150);setPracticeSpeed(50);applyTempo();check(metronomeVoices.size===0,'old-rate click remains');await wait(200);seekTo(3.1);check(metronomeVoices.size===0,'old-position click remains');metronomeEnabled=false;cancelMetronome();
  });
  await test('loop restart follows the new song position',async()=>{
   tempo.value=100;applyTempo();loopStart=2.4;loopEnd=3.4;loopEnabled=true;seekTo(3.2);await wait(80);snapshots.length=0;observe=true;await play();await wait(1500);observe=false;check(snapshots.some((s,i)=>i&&s.raw<snapshots[i-1].raw-.4),'loop did not restart ('+snapshots.length+' frames, playing='+playing+', paused='+masterAudio.paused+', raw='+currentTime()+')');checkFrames();loopEnabled=false;loopStart=null;loopEnd=null;

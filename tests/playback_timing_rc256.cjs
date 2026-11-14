@@ -36,6 +36,10 @@ m.masterAudio.paused=false;m.masterAudio.seeking=true;m.updateMetronome(1.18);as
 m.masterAudio.seeking=false;m.masterAudio.playbackRate=1;m.updateMetronome(1.1);close(calls.at(-1),5.09);
 m.updateMetronome(8);assert.equal(calls.length,3,'no burst of missed beats after backgrounding');
 m.cancelMetronome();m.detectedBeatTimes=[];m.updateMetronome(.25);assert.equal(calls.length,3,'BPM fallback must not click at arbitrary seek point');m.updateMetronome(.4);close(calls.at(-1),5.11);
+// Piano sound scheduling stays on the transport clock; visuals use the audible clock.
+const piano=fs.readFileSync('ai-source/piano.js','utf8'),pstart=piano.indexOf(' function transport(){'),pend=piano.indexOf('\n function ',pstart+2),scheduled=new Map(),tones=[];
+const pctx={solo:true,api:{},state:()=>({playing:true,time:1.9,transportTime:2,speed:100,transpose:0}),voice:{state:'running',currentTime:5},preparedSound:'piano',sound:'piano',lastClock:null,scheduled,data:{notes:[{start:2.1,end:2.6,midi:60}]},stopVoices(){scheduled.clear()},A:()=>({tone:(...args)=>{tones.push(args);return {stop(){}}}})};
+vm.runInNewContext(piano.slice(pstart,pend),pctx);pctx.transport();close(tones[0][2],5.1);close(tones[0][3],.5);
 // Analysed playback updates only the moving view. Invalidation still rebuilds it.
 let rebuilds=0,frames=0;const frame={practiceVisualMode:'timeline',displayTime:()=>1.3,updateSectionKey(){},rebuildSimpleTimeline:Object.assign(()=>rebuilds++,{_sig:'ready'}),curTime:{},seek:{},fmt:c.fmt,buffer:{duration:4},updateSongInfo(){frames++},followPlaybackPage(){},drawWaveform(){},drawRoll(){}};
 vm.createContext(frame);vm.runInContext(fn('drawPlaybackFrame'),frame);frame.drawPlaybackFrame();assert.equal(rebuilds,0);assert.equal(frames,1);frame.rebuildSimpleTimeline._sig='';frame.drawPlaybackFrame();assert.equal(rebuilds,1);
