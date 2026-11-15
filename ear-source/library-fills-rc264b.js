@@ -9,7 +9,7 @@ window.BassLibraryFills=(()=>{
  function message(s){$('myFillStatus').textContent=s;}
  function render(){
   const query=$('myFillSearch').value.toLowerCase().trim(),from=$('myFillFrom').value,to=$('myFillTo').value,only=$('myFillFavourites').getAttribute('aria-pressed')==='true';
-  const all=catalogue.songs.flatMap(s=>s.items||[]),items=all.filter(r=>(!from||r.from===from)&&(!to||r.to===to)&&(!only||favourites.has(r.id))&&(!query||[r.title,r.key,r.section,r.fromChord,r.toChord].join(' ').toLowerCase().includes(query)));
+  const all=catalogue.songs.flatMap(s=>(s.items||[]).filter(T.qualifies)),items=all.filter(r=>(!from||r.from===from)&&(!to||r.to===to)&&(!only||favourites.has(r.id))&&(!query||[r.title,r.key,r.section,r.fromChord,r.toChord].join(' ').toLowerCase().includes(query)));
   page=Math.min(page,Math.max(0,Math.ceil(items.length/8)-1));$('myFillResults').replaceChildren();
   $('myFillCount').textContent=items.length+(items.length===1?' fill · ':' fills · ')+catalogue.songs.length+(catalogue.songs.length===1?' song':' songs');
   for(const r of items.slice(page*8,page*8+8)){
@@ -32,8 +32,8 @@ window.BassLibraryFills=(()=>{
    for(const meta of list.songs){
     if(cancelled)break;message('Scanning '+(++index)+' / '+list.songs.length);
     const saved=old.get(meta.id);
-    if(saved?.stamp===meta.stamp&&saved.version===1){songs.push(saved);if(!saved.items.length)missing++;continue;}
-    try{const p=await window.BassLibrary.practiceProject(meta.id),result=T.extract(p,meta);songs.push({...meta,version:1,...result});if(!result.items.length)missing++;}
+    if(saved?.stamp===meta.stamp&&saved.version===2){songs.push(saved);if(!saved.items.length)missing++;continue;}
+    try{const p=await window.BassLibrary.practiceProject(meta.id),result=T.extract(p,meta);songs.push({...meta,version:2,...result});if(!result.items.length)missing++;}
     catch(e){failed++;issues.push(meta.title+': '+(e.message||'Could not read song'));if(saved)songs.push(saved);}
     // Release each parsed audio project before continuing and allow cancellation.
     await new Promise(resolve=>setTimeout(resolve,0));
@@ -49,7 +49,7 @@ window.BassLibraryFills=(()=>{
  }
  async function show(){if(!loaded){loaded=true;try{catalogue=await storage()||{songs:[]};}catch{message('Saved catalogue unavailable');}try{favourites=new Set(JSON.parse(localStorage.getItem('bass-fill-favourites-v1')||'[]'));}catch{}render();if(!catalogue.songs.length)void scan();}}
  function init(panel,hooks){
-  api=hooks;panel.innerHTML=`<p>Find fills in the saved analysis on this device. No new audio analysis.</p><div class="my-fill-actions"><button id="myFillScan" type="button">Scan library</button><button id="myFillFavourites" type="button" aria-pressed="false">Favourites</button></div><div class="fill-settings"><select id="myFillFrom" aria-label="Filter starting degree"><option value="">From: all</option></select><select id="myFillTo" aria-label="Filter target degree"><option value="">To: all</option></select></div><input id="myFillSearch" type="search" placeholder="Song, key or section" aria-label="Search saved fills"><p id="myFillStatus" role="status"></p><p id="myFillCount"></p><div id="myFillResults"></div><div class="my-fill-pages"><button id="myFillPrev" type="button">Previous</button><span id="myFillPage"></span><button id="myFillNext" type="button">Next</button></div><details hidden><summary>Scan details</summary><p id="myFillIssues"></p></details>`;
+  api=hooks;panel.innerHTML=`<p>Lead-in runs with at least three different notes before the chord changes.</p><div class="my-fill-actions"><button id="myFillScan" type="button">Scan library</button><button id="myFillFavourites" type="button" aria-pressed="false">Favourites</button></div><div class="fill-settings"><select id="myFillFrom" aria-label="Filter starting degree"><option value="">From: all</option></select><select id="myFillTo" aria-label="Filter target degree"><option value="">To: all</option></select></div><input id="myFillSearch" type="search" placeholder="Song, key or section" aria-label="Search saved fills"><p id="myFillStatus" role="status"></p><p id="myFillCount"></p><div id="myFillResults"></div><div class="my-fill-pages"><button id="myFillPrev" type="button">Previous</button><span id="myFillPage"></span><button id="myFillNext" type="button">Next</button></div><details hidden><summary>Scan details</summary><p id="myFillIssues"></p></details>`;
   for(const id of ['myFillFrom','myFillTo'])for(const d of ['1','♭2','2','♭3','3','4','♯4','♭5','5','♭6','6','♭7','7','?']){const o=document.createElement('option');o.value=d;o.textContent=d==='?'?'Unknown':d;$(id).append(o);}
   $('myFillScan').onclick=()=>void scan();$('myFillFavourites').onclick=()=>{$('myFillFavourites').setAttribute('aria-pressed',String($('myFillFavourites').getAttribute('aria-pressed')!=='true'));page=0;render();};
   for(const id of ['myFillFrom','myFillTo'])$(id).onchange=()=>{page=0;render();};$('myFillSearch').oninput=()=>{page=0;render();};$('myFillPrev').onclick=()=>{page--;render();};$('myFillNext').onclick=()=>{page++;render();};

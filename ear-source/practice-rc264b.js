@@ -14,7 +14,18 @@ window.BassPracticeCore=(()=>{
   {name:'Highlife praise · 1–5–1–5',degrees:[1,5,1,5],feel:'highlife',tip:'A syncopated root-and-fifth study for an upbeat praise groove.'},
   {name:'Worship · 4–5–6–1',degrees:[4,5,6,1],feel:'lift',tip:'Build towards the home chord with octaves and a gentle pickup.'}
  ];
+ lines.push(
+  {name:'Gospel · Sunday turnaround',degrees:[1,6,2,5],feel:'church',tip:'A rolling triplet pickup resolves each change.'},
+  {name:'Highlife · Dancing sixths',degrees:[1,4,2,5],feel:'sixths',tip:'Interlocking upper chord tones with a late descending answer.'},
+  {name:'Funk · Octave engine',degrees:[1,4,6,5],feel:'funk',tip:'Short octave bursts and rests keep the groove crisp.'},
+  {name:'Soul · Walking turnaround',degrees:[1,6,2,5],feel:'walk',tip:'Four steady steps, then a chromatic pickup.'},
+  {name:'Praise · Makossa motion',degrees:[1,5,4,5],feel:'makossa',tip:'Offbeat answers and a three-note lead into each chord.'},
+  {name:'Worship · Rising anthem',degrees:[6,4,1,5],feel:'anthem',tip:'Build from a held root into a flowing final beat.'},
+  {name:'Minor · Broken-octave drive',degrees:[1,6,3,7],feel:'drive',mode:'minor',tip:'A minor chord pattern with a descending pickup.'},
+  {name:'Gospel · Chromatic pocket',degrees:[2,5,1,6],feel:'pocket',tip:'Space first, then a tight enclosure around the next root.'}
+ );
  const runs=[['Pentatonic cascade','A descending five-note shape with an octave return.'],['Gospel triplet burst','A rising chord shape followed by a quick triplet descent.'],['Modal sequence','Move through the mode in groups of three.'],['Chromatic enclosure','Surround the next root, then resolve clearly.'],['Octave staircase','Link lower and upper chord tones across the strings.'],['Blues turnaround','A short blue-note phrase resolves into the next root.'],['Sixteenth-note lift','A rising modal burst; start slowly before increasing the tempo.'],['Neighbour-note flourish','Alternate chord tones with neighbouring scale notes.']];
+ runs.push(['Gospel waterfall','Descending chord tones turn into a rising modal answer.'],['Pentatonic double-back','A five-note climb doubles back before the landing.'],['Highlife ribbon','Alternating thirds spiral down to the next root.'],['Chromatic corkscrew','Two tight enclosures resolve on the downbeat.'],['Octave fireworks','Wide octave answers fold into a close approach.'],['Triplet summit','Twelve quick notes rise and fall over two beats.'],['Soul staircase','Descending pairs lead smoothly into the next chord.'],['Praise homecoming','A rising sequence turns back for a firm landing.']);
  function make(kind,opts={}){
   if(kind==='fills')return F.make(opts);
   const key=pc(Math.round(Number(opts.key)||0)),mode=Object.hasOwn(modes,opts.mode)?opts.mode:'major',scale=F.scales[mode];
@@ -31,7 +42,15 @@ window.BassPracticeCore=(()=>{
    line.degrees.forEach((d,bar)=>{
     const root=roots[bar],third=near(degree(d+1),root+4),fifth=near(degree(d+3),root+7),next=roots[(bar+1)%roots.length],offset=bar*4;
     let shape;
-    if(line.feel==='highlife')shape=[[0,root,.35],[.75,third,.2],[1.25,fifth,.35],[2,root+12,.35],[2.75,fifth,.35],[3.5,next,.35]];
+    if(line.feel==='church')shape=[[0,root,.8],[1,third,.6],[2,fifth,.6],[3,next-3,.25],[3+1/3,next-2,.25],[3+2/3,next-1,.25]];
+    else if(line.feel==='sixths')shape=[[0,root,.45],[.75,third+12,.3],[1.25,fifth,.3],[2,root+12,.45],[3,fifth,.2],[3.25,third,.2],[3.5,next-1,.3]];
+    else if(line.feel==='funk')shape=[[0,root,.2],[.75,root+12,.2],[1.5,fifth,.2],[2,root,.2],[2.75,root+12,.2],[3.25,next+2,.18],[3.5,next+1,.18],[3.75,next-1,.18]];
+    else if(line.feel==='walk')shape=[[0,root,.8],[1,third,.8],[2,fifth,.8],[3,next-2,.4],[3.5,next-1,.4]];
+    else if(line.feel==='makossa')shape=[[0,root,.3],[.75,fifth,.3],[1.5,third,.3],[2.25,root+12,.3],[3,fifth,.2],[3.25,next-2,.2],[3.5,next-1,.3]];
+    else if(line.feel==='anthem')shape=[[0,root,1.7],[2,fifth,.7],[3,third,.2],[3.25,fifth,.2],[3.5,next-2,.2],[3.75,next-1,.2]];
+    else if(line.feel==='drive')shape=[[0,root,.4],[.5,root+12,.4],[1,third,.4],[1.5,fifth,.4],[2,root+12,.7],[3,fifth,.2],[3.25,third,.2],[3.5,next+1,.3]];
+    else if(line.feel==='pocket')shape=[[0,root,1.2],[1.5,fifth,.3],[2.5,third,.3],[3,next+2,.2],[3.25,next+1,.2],[3.5,next-1,.3]];
+    else if(line.feel==='highlife')shape=[[0,root,.35],[.75,third,.2],[1.25,fifth,.35],[2,root+12,.35],[2.75,fifth,.35],[3.5,next,.35]];
     else if(line.feel==='reggae')shape=[[0,root,.6],[.75,root,.2],[1.5,fifth,.4],[2.5,root,.65],[3.5,third,.3]];
     else if(line.feel==='dub')shape=[[.5,root,1.1],[2,root,.4],[2.75,fifth,.35],[3.5,next,.3]];
     else if(line.feel==='gospel')shape=[[0,root,.8],[1,third,.65],[2,fifth,.65],[3,next-2,.35],[3.5,next-1,.35]];
@@ -50,6 +69,7 @@ window.BassPracticeCore=(()=>{
   const pents=(mode==='major'?[0,2,4,7,9]:mode==='minor'?[0,3,5,7,10]:[0,1,2,4,5].map(i=>scale[i]));
   const pent=Array.from({length:72},(_,i)=>24+i).filter(n=>n>target&&pents.includes(pc(n-key))).slice(0,5).reverse();
   const shapes=[pent.concat([pent[0],pent[2],target+1]),[source+12,fifth,third,...[5,4,3,2,1,0].map(i=>degree(ti+i))],[4,2,3,2,0,1,0,-2].map(i=>degree(ti+i)),[target+2,target-1,target+1,target-2,target-1,target+1,target+12,target-1],[source,source+12,base.bass[1].midi,base.bass[1].midi+12,source+12,source+7,target+12,target+1],[source+5,source+6,source+7,source+10,source+7,source+6,target-2,target-1],[-7,-6,-5,-4,-3,-2,-1,0].map(i=>degree(ti+i)),[2,1,3,2,1,0,1,-1].map(i=>degree(ti+i))];
+  shapes.push([source+12,fifth,third,source,...[-3,-2,-1,1].map(i=>degree(ti+i))], [0,2,3,1,4,2,1,0].map(i=>pent[i%pent.length]),[5,3,4,2,3,1,2,-1].map(i=>degree(ti+i)),[target+3,target+2,target-1,target+1,target+2,target-2,target+1,target-1],[source,source+12,third,third+12,fifth,source+12,target+2,target-1],[-3,-2,-1,0,1,2,3,4,3,2,1,-1].map(i=>degree(ti+i)),[5,4,3,4,2,3,1,-1].map(i=>degree(ti+i)),[-4,-2,-3,-1,0,2,1,-1].map(i=>degree(ti+i)));
   add(0,source,1.7);const notes=shapes[idea],step=2/notes.length;
   notes.forEach((n,i)=>add(2+i*step,n,step*.82));add(4,target,2.8,'landing');
   if(Math.min(...bass.map(n=>n.midi))<23)for(const n of bass)n.midi+=12;
@@ -88,10 +108,10 @@ window.BassTransitionCore=(()=>{
   const items=[];let first=0;
   for(let i=1;i<chords.length;i++){
    const before=chords[i-1],after=chords[i],change=after.start;if(before.rootPc===after.rootPc||change-before.end>.25||before.end>change+.25||after.end-change<.15)continue;
-   const start=Math.max(before.start,change-Math.min(6,beat*4)),end=Math.min(after.end,change+beat*1.5,duration);
+   const start=Math.max(before.start,change-Math.min(12,beat*8)),end=Math.min(after.end,change+beat*1.5,duration);
    while(first<notes.length&&notes[first].end<=start)first++;
    const slice=[];for(let j=first;j<notes.length&&notes[j].start<end;j++){const n=notes[j];if(n.end>start)slice.push({midi:n.midi,start:Math.max(start,n.start),end:Math.min(end,n.end),confidence:n.confidence,manual:!!n.manual,isFill:!!n.isFill});}
-   const lead=slice.filter(n=>n.start<change-.02);if(lead.length<2||new Set(lead.map(n=>n.midi)).size<2||slice.length>96)continue;
+   const lead=slice.filter(n=>n.start<change-.02);if(!qualifies({notes:slice,change})||slice.length>96)continue;
    const ctx=keyAt(change+.01),oldKey=keyAt(Math.max(before.start,change-.01)),modulates=!!ctx&&!!oldKey&&(ctx.root!==oldKey.root||ctx.mode!==oldKey.mode);
    const from=modulates?'?':degree(before.rootPc,ctx),to=degree(after.rootPc,ctx),label=c=>c.label||F.names[c.rootPc]+({minor:'m',min:'m',dim:'dim',diminished:'dim',aug:'aug',sus2:'sus2',sus4:'sus4','7':'7',maj7:'maj7',min7:'m7','6':'6',min6:'m6',add9:'add9',minadd9:'madd9','9':'9',maj9:'maj9',min9:'m9','11':'11',min11:'m11','13':'13',min13:'m13','7sus4':'7sus4',dim7:'dim7',min7b5:'m7♭5','7b9':'7♭9','7#9':'7♯9'}[c.quality]||'');
    const check=before.uncertain||after.uncertain||[before,after,...slice].some(n=>!n.manual&&valid(n.confidence)&&Number(n.confidence)<.55);
@@ -100,9 +120,10 @@ window.BassTransitionCore=(()=>{
   }
   return {items,reason:items.length?'':'No moving fills found'};
  }
+ function qualifies(item){const lead=(item.notes||[]).filter(n=>n.start<item.change-.02);const moving=lead.filter((n,i)=>!i||n.midi!==lead[i-1].midi);return moving.length>=3&&new Set(moving.map(n=>n.midi)).size>=3;}
  function plan(item,speed=100){
   const bpm=item.bpm||80,beat=60/bpm;
   return {kind:'library',bpm:bpm*speed/100,beats:(item.end-item.start)/beat,bass:item.notes.map(n=>({midi:n.midi,beat:(n.start-item.start)/beat,length:(n.end-n.start)/beat,velocity:85,role:n.start>=item.change?'landing':'bass'})),chords:[],title:item.title,heading:item.from+' → '+item.to+' · '+item.fromChord+' → '+item.toChord,tip:'Detected notes · '+item.key+(item.check?' · Check against the original':''),item};
  }
- return {extract,plan,keyContext,degree};
+ return {extract,plan,keyContext,degree,qualifies};
 })();
