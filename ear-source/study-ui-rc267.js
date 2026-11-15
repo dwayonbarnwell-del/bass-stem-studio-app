@@ -6,7 +6,7 @@ window.BassFillTrainer=(()=>{
  const imported=()=>kind==='basslines'&&U.groups.slice(1).some(([id])=>id===$('fillCollection').value);
  function clipOptions(){
   const group=$('fillCollection').value;$('fillClip').replaceChildren();
-  for(const c of U.items.filter(c=>c.group===group&&D.visible('uploaded',c.id))){const o=document.createElement('option');o.value=c.id;o.textContent=c.title;$('fillClip').append(o);}
+  for(const c of U.items.filter(c=>(c.collection||c.group)===group&&D.visible('uploaded',c.id))){const o=document.createElement('option');o.value=c.id;o.textContent=c.title;$('fillClip').append(o);}
   if(rememberedClips[group])$('fillClip').value=rememberedClips[group];
   if(!$('fillClip').value&&$('fillClip').options.length)$('fillClip').selectedIndex=0;partOptions();
  }

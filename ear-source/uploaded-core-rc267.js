@@ -1,7 +1,17 @@
 /* Bass studies transcribed from the owner's supplied clips. Source audio is not hosted here. */
 window.BassUploadedCore=(()=>{
  'use strict';
- const items=window.BassUploadedStudies||[],groups=[['studies','Original studies'],['bass-lady','Bass Lady lessons'],['bassmatics','Bassmatics lessons'],['bass-sounds','Uploaded grooves']];
+ const items=(window.BassUploadedStudies||[]).map(c=>({...c})),groups=[['studies','Original studies'],['recorded-makossa','Makossa · Bass Lady recordings'],['recorded-soukous','Soukous · Bass Lady recording'],['recorded-seben','Seben · Bassmatics recordings'],['recorded-praise','African Praise · recordings'],['recorded-nigerian','Nigerian styles · mixed recordings'],['recorded-soca','Soca · recordings'],['recorded-review','Other recordings · genre to review']];
+ for(const c of items){
+  c.originalTitle=c.title;
+  if(c.group==='bass-lady'){c.collection=/makossa/i.test(c.title)?'recorded-makossa':'recorded-soukous';c.title=c.title.replace('Bass Lady - ','').replace(/^(Makossa|Soukous)(.*)$/,'$1 · Bass Lady$2');}
+  else if(c.group==='bassmatics'){c.collection='recorded-seben';c.title=c.title.replace('Bassmatics - Seben','Seben · Bassmatics');}
+  else if(/African praise/i.test(c.title)){c.collection='recorded-praise';c.title='African Praise · bass study';}
+  else if(/Five Nigerian/i.test(c.title)){c.collection='recorded-nigerian';c.title='Nigerian bass styles · five-style demonstration';}
+  else if(/Soca/i.test(c.title)){c.collection='recorded-soca';c.title='Soca · Hookin Meh cover';}
+  else {c.collection='recorded-review';c.title=c.title.replace(/^Uploaded groove /,'Bass recording ').replace(/^Groove - /,'Bass study · ').replace(/grooves/gi,'bass studies').replace(/groove/gi,'bass study');if(/subscribers|overload|locked|weep|mad bass|^Bass recording/i.test(c.title))c.title='Bass study · '+c.id.replace('clip-','Recording ');}
+ }
+
  const time=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
  function plan(id,part=0,speed=100,transpose=0){
   const clip=items.find(c=>c.id===id);if(!clip)return null;

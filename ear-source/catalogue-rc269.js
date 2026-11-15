@@ -11,7 +11,7 @@ window.BassPracticeCatalogue=(()=>{
  gospel:{label:'No Treble · bass lick lessons',url:'https://www.notreble.com/lessons/bass-lick-series/'},
  africa:{label:'African bass · World Music Method course',url:'https://worldmusicmethod.com/learn-african-bass/'}
  };
- const genres=[['reggae','Reggae'],['makossa','Makossa'],['highlife','Highlife'],['afrobeat','Afrobeat'],['soukous','Soukous'],['mbalax','Mbalax'],['mbaqanga','Mbaqanga']];
+ const genres=[['worship','Worship'],['praise','Praise'],['reggae','Reggae'],['makossa','Makossa'],['highlife','Highlife'],['afrobeat','Afrobeat'],['soukous','Soukous'],['mbalax','Mbalax'],['mbaqanga','Mbaqanga']];
  const groups=[['studies','Original studies'],...genres,['jamerson','James Jamerson · style studies'],['edwards','Bernard Edwards · style studies'],['miller','Marcus Miller · style studies']];
  P.lines.forEach((l,i)=>{l.id='line-'+i;l.african=/highlife|makossa/i.test(l.name);});
  const progressions={
@@ -71,7 +71,7 @@ window.BassPracticeCatalogue=(()=>{
  const storageKey='bass-practice-deleted-v1',customKey='bass-practice-custom-v1';let deleted=new Set(),custom=[];
  try{const saved=JSON.parse(localStorage.getItem(storageKey)||'[]');if(Array.isArray(saved))deleted=new Set(saved.filter(v=>typeof v==='string'));}catch{}
  try{const saved=JSON.parse(localStorage.getItem(customKey)||'[]');if(Array.isArray(saved))custom=saved.filter(l=>typeof l.id==='string'&&l.id.startsWith('custom-')&&Array.isArray(l.degrees)&&l.degrees.length>=2&&l.degrees.length<=16&&l.degrees.every(n=>Number.isInteger(n)&&n>=1&&n<=7));P.lines.push(...custom);}catch{}
- function genreOf(line){if(line.id?.startsWith('custom-'))return null;if(line.artist==='marley'||/reggae/i.test(line.name))return 'reggae';return genres.find(([id])=>new RegExp(id,'i').test(line.name))?.[0]||null;}
+ function genreOf(line){if(line.id?.startsWith('custom-'))return null;if(/worship/i.test(line.name))return 'worship';if(/praise/i.test(line.name))return 'praise';if(line.artist==='marley'||/reggae/i.test(line.name))return 'reggae';return genres.find(([id])=>new RegExp(id,'i').test(line.name))?.[0]||null;}
  function inCollection(line,group){const genre=genreOf(line);return group==='studies'?!genre:genres.some(([id])=>id===group)?genre===group:line.artist===group;}
  const lineLabel=l=>l.name.replace(/\s*·\s*[1-7](?:[–-][1-7])+$/,'')+' · '+l.degrees.join('–');
  const key=(kind,id)=>kind+':'+id;
