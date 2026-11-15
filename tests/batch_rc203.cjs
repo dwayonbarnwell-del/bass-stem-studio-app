@@ -145,6 +145,7 @@ test('Unsent parts resume without replacing cached completed jobs',async()=>{
 test('RC202 interface, original full-save gate and background recovery exclusion retained',async()=>{
  for(const text of ['rc202-uniform-actions','rc202-share-platform','ai-assets-rc201.js','saveBassStudioProject({batchName:name})',"document.visibilityState==='visible'&&!window.BassBatch?.isRunning()"])
   assert(html.includes(text),text);
- assert(fs.readFileSync('sw.js','utf8').includes('bass-stem-studio-rc251'));
+ const version=html.match(/APP_VERSION='([^']+)'/)[1].toLowerCase();
+ assert(fs.readFileSync('sw.js','utf8').includes('bass-stem-studio-'+version),'offline cache follows current app release');
 });
 (async()=>{for(const [name,fn] of tests){await fn();console.log('PASS '+name)}console.log(`PASS ${tests.length} RC203 mocked scenarios. No live audio or paid analysis requests.`)})().catch(err=>{console.error(err);process.exitCode=1});

@@ -1,0 +1,8 @@
+RC272 - Recorded bass lessons
+
+Adds 13 recordings from the supplied Bass - Lessons archive, retaining all 43 existing recordings.
+Groups the new lessons under Worship, African Praise, Reggae, Makossa and Seben. Two recordings with unconfirmed classifications remain under Genre to review.
+Includes bass-only playback, automatic note estimates and short practice sections. Low-confidence notes and notes where the two detection passes disagree are marked for review.
+Preserves speed controls, transposition for note playback, existing practice studies and source hashes for duplicate checks.
+
+Automatic transcriptions are estimates and have not been manually verified note by note. Practice sections are time-based excerpts, not confirmed verse or chorus boundaries.

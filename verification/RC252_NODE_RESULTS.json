@@ -1,0 +1,217 @@
+[
+  {
+    "file": "analysis_failures_rc250.cjs",
+    "passed": true,
+    "output": "PASS worker error preserved, bad cached output recoverable, silent part accepted, secrets redacted, empty recovery truthful\n"
+  },
+  {
+    "file": "auto_level_rc186.cjs",
+    "passed": true,
+    "output": "PASS automatic levels: three sample rates, quiet audio, overload transitions, stereo balance, silence and impulses.\n"
+  },
+  {
+    "file": "automatic_audio_rc247.cjs",
+    "passed": true,
+    "output": "PASS automatic audio: sequencing, saved reuse, locking, pending recovery, failure protection, batch exclusion and stale songs\n"
+  },
+  {
+    "file": "automatic_melody_rc245.cjs",
+    "passed": true,
+    "output": "PASS automatic melody sequencing, saved reuse, busy deferral and song-change protection\n"
+  },
+  {
+    "file": "batch_rc196.cjs",
+    "passed": true,
+    "output": "PASS: batch ZIP central directory; stored and deflated media; nested files; duplicates; damaged ZIP; unchanged analysis/save hooks.\n"
+  },
+  {
+    "file": "batch_rc197.cjs",
+    "passed": true,
+    "output": "PASS: continue after section errors; return to failed songs; reuse bass results; never auto-reanalyse failed bass; pause for outstanding paid jobs; health check.\n"
+  },
+  {
+    "file": "batch_rc203.cjs",
+    "passed": true,
+    "output": "PASS 10, 15 and 20 song limits, complete timings and saved-song skip\nPASS pre-analysis failure returns after the next song and really runs its first analysis\nPASS save failure restores cached analysis rather than submitting again\nPASS held running result is revisited and saved automatically\nPASS interrupted job is preserved, next song completes, original result is recovered\nPASS unconfirmed upload is held without another submission\nPASS running jobs have bounded checks, not an infinite paid retry loop\nPASS a review row without a held ID can restore its cached result\nPASS unconfirmed previous analysis is not repeated after reselecting the ZIP\nPASS persistent review rows do not starve later songs\nPASS permission refusal, cancellation and storage failure never start paid work\nPASS double start processes each song once\nPASS Stop prevents another return pass\nPASS failure to preserve an active job stops the next song\nPASS FAILED and TIMED_OUT use the original job ID once only\nPASS running, completed, cancelled, unknown and missing-ID jobs never POST\nPASS lost retry reply and mismatched ID cannot cause a second retry\nPASS completed result clears stale local failure without re-running\nPASS provider storage failure prevents retry POST\nPASS Unsent parts resume without replacing cached completed jobs\nPASS RC202 interface, original full-save gate and background recovery exclusion retained\nPASS 21 RC203 mocked scenarios. No live audio or paid analysis requests.\n"
+  },
+  {
+    "file": "batch_repair_rc209.cjs",
+    "passed": true,
+    "output": "PASS 19 saved and 13 unfinished: repair only the 13, without touching saved work\nPASS A second Repair click can approve another failed attempt without reloading ZIP\nPASS Newly completed bass can repair missing sections in the same run\nPASS In-progress section job is checked again and saved, without another upload\nPASS Persistently running sections do not cause extra paid requests\nPASS Completed section results are collected before starting the next song\nPASS Refused extra charge keeps unfinished song and saved bass\nPASS Ongoing or unreachable bass job is not replaced\nPASS Missing sections survive closing and reopening the ZIP\nPASS Double click remains single processing run\nPASS Folder permission and local storage failures start no paid work\nPASS Stop stops checks and leaves the recovery record\nPASS Only complete projects reach the existing save function\nPASS Full app retains save checks, new polling bounds and no background batch sections\nPASS 14 batch repair scenarios. Mocked; no paid analysis.\n"
+  },
+  {
+    "file": "chord_labels_rc235.cjs",
+    "passed": true,
+    "output": "PASS: major has no M, minor m, major seventh M7, selected numbers, slash bass and no-key fallback.\n"
+  },
+  {
+    "file": "comfort_rc176.cjs",
+    "passed": true,
+    "output": "PASS: boundary fade scheduling, seek recovery, duplicate prevention and wake-lock start/stop/visibility/opt-out.\n"
+  },
+  {
+    "file": "controls_rc188.cjs",
+    "passed": true,
+    "output": "PASS: all scripts parse; seconds 1\u201310; retired cards removed; shortcut IDs exist; BPM and all tracks follow Speed; custom speed survives save/restore; bounds and unknown tempo handled.\n"
+  },
+  {
+    "file": "ear_training_rc174.cjs",
+    "passed": true,
+    "output": "PASS: song-derived notes, intervals, chord voicings, confidence/uncertainty filtering, passage bounds, unique answers and scoring.\n"
+  },
+  {
+    "file": "empty_library_rc251.cjs",
+    "passed": true,
+    "output": "PASS empty library draft resumes, finished results reused, fresh audio loads, cancellation respected\n"
+  },
+  {
+    "file": "encoder_timeout_rc248.cjs",
+    "passed": true,
+    "output": "PASS encoder loading: stalled connection, cleanup, retry, success, network error and invalid script\n"
+  },
+  {
+    "file": "feedback_rc183.cjs",
+    "passed": true,
+    "output": "PASS: reference alignment handles timing, wrong/missing/extra/repeated notes, empty input and bounded practice passages; synthetic B0 through G3 pitch detection.\nPASS: recurring recording difficulties produce bounded practice suggestions.\n"
+  },
+  {
+    "file": "ideas_rc170.cjs",
+    "passed": true,
+    "output": "PASS: ii\u2013V\u2013I colour, conditional tritone substitution, slash bass, all genre note ranges, original preservation, range merging and removed messages.\n"
+  },
+  {
+    "file": "import_pipeline_rc249.cjs",
+    "passed": true,
+    "output": "PASS: old job preserved, new MP3 processed, each part collected before next upload, melody queued\nPASS: reopening interrupted song collects original IDs without duplicate paid jobs\nPASS: lost upload reply remains protected and UI unlocks\nPASS: ZIP runs melody and retains musical results when sections fail\nPASS: bundled encoder processes actual PCM to MP3\n"
+  },
+  {
+    "file": "library_melody_rc245.cjs",
+    "passed": true,
+    "output": "PASS library identity, duplicate imports, folder/device count, JSON melody updates and different-recording protection\n"
+  },
+  {
+    "file": "links_coach_rc172.cjs",
+    "passed": true,
+    "output": "PASS: 54 tuning cases across three sample rates; silence/clipping; beat snapping; timing/delay; melody clash rejection; original preservation.\nPASS: audio-worklet pitch buffers and sample-timed onset messages.\n"
+  },
+  {
+    "file": "live_audio_rc167.cjs",
+    "passed": true,
+    "output": "PASS: 72 major/minor/seventh/diminished templates; ambiguous, silent, single-note and noise rejection; harmonic spectra at 44.1/48 kHz.\n"
+  },
+  {
+    "file": "long_sections_rc244.cjs",
+    "passed": true,
+    "output": "Long section uploads: all checks passed.\n"
+  },
+  {
+    "file": "lrclib_rc225.cjs",
+    "passed": true,
+    "output": "PASS: LRCLIB timing, opt-in integration and existing project persistence.\n"
+  },
+  {
+    "file": "lyrics_recording_rc244.cjs",
+    "passed": true,
+    "output": "PASS: wrong-song playback blocked, saved/current recording matching, duration and artist mismatch, cancellation, ambiguous recordings, stale results, duplicate clicks, feature removal and inline syntax.\n"
+  },
+  {
+    "file": "lyrics_ux_rc226.cjs",
+    "passed": true,
+    "output": "PASS: RC226 whole-song English lyrics, persistent playback, chord updates and saved projects.\n"
+  },
+  {
+    "file": "navigation_rc243.cjs",
+    "passed": true,
+    "output": "PASS: nested Back navigation and modal cleanup.\n"
+  },
+  {
+    "file": "network_safety_rc184.cjs",
+    "passed": true,
+    "output": "PASS: POST single attempt, GET retry, lost-reply/reload duplicate guard, 401 safe retry, sanitised errors, malformed response, storage quota blocks submission, job ID persistence, bounded request timeout.\n"
+  },
+  {
+    "file": "offline_rc179.cjs",
+    "passed": true,
+    "output": "PASS offline navigation fallback, missing assets, uncached private requests, quota failure and unavailable storage.\n"
+  },
+  {
+    "file": "piano_audio_rc238.cjs",
+    "passed": true,
+    "output": "PASS: rendered pitch, silence, level bounds, WAV header, MIDI, live-note rests and confidence, cancellation\n"
+  },
+  {
+    "file": "piano_cloud_rc237.cjs",
+    "passed": true,
+    "output": "PASS: reconnect resumes the same job; completed cache avoids POST and GET; ambiguous upload cannot automatically resubmit; timing offsets retained\n"
+  },
+  {
+    "file": "piano_full_song_rc241.cjs",
+    "passed": true,
+    "output": "PASS: full-song coverage 3\u201314 minutes, short final passage, original timing, cached reuse, safe network retries, saved resume, incomplete status and 2\u20133 word messages. No real service calls.\n"
+  },
+  {
+    "file": "piano_view_rc237.cjs",
+    "passed": true,
+    "output": "PASS: keyboard bounds, invalid data rejection, held notes across passages and manual-note preservation\n"
+  },
+  {
+    "file": "playback_polish_rc246.cjs",
+    "passed": true,
+    "output": "PASS exact note/chord boundaries, reverse seek, indexed note lookup, beat clock, pause clearing, BPM fallback and bundled sources\n"
+  },
+  {
+    "file": "responsive_live_rc209.cjs",
+    "passed": true,
+    "output": "PASS Spectrum C\nPASS Model C\nPASS Spectrum Cm\nPASS Model Cm\nPASS Spectrum C#\nPASS Model C#\nPASS Spectrum C#m\nPASS Model C#m\nPASS Spectrum D\nPASS Model D\nPASS Spectrum Dm\nPASS Model Dm\nPASS Spectrum Eb\nPASS Model Eb\nPASS Spectrum Ebm\nPASS Model Ebm\nPASS Spectrum E\nPASS Model E\nPASS Spectrum Em\nPASS Model Em\nPASS Spectrum F\nPASS Model F\nPASS Spectrum Fm\nPASS Model Fm\nPASS Spectrum F#\nPASS Model F#\nPASS Spectrum F#m\nPASS Model F#m\nPASS Spectrum G\nPASS Model G\nPASS Spectrum Gm\nPASS Model Gm\nPASS Spectrum Ab\nPASS Model Ab\nPASS Spectrum Abm\nPASS Model Abm\nPASS Spectrum A\nPASS Model A\nPASS Spectrum Am\nPASS Model Am\nPASS Spectrum Bb\nPASS Model Bb\nPASS Spectrum Bbm\nPASS Model Bbm\nPASS Spectrum B\nPASS Model B\nPASS Spectrum Bm\nPASS Model Bm\nPASS Silence has no chord\nPASS Flat noise has no chord\nPASS Sung harmonics do not create a chord\nPASS Sequential solo melody does not create chords\nPASS Loud isolated peak is not sustained clipping\nPASS Sustained distortion is flagged\nPASS First chord arrives without waiting for voice model\nPASS Basic chord changes within 300 ms of consistent evidence\nPASS Momentary gap holds marked last chord then clears\nPASS Old events cannot overwrite newer chord\nPASS Exactly three requested modes installed\nPASS Current voice and responsive source match app exactly\nPASS 60 live tests. Synthetic inputs; no paid requests.\n"
+  },
+  {
+    "file": "rhythm_practice_rc171.cjs",
+    "passed": true,
+    "output": "PASS: MIDI timing, track length, octave mapping and bass-range pitch-class preservation; recovery take identity.\n"
+  },
+  {
+    "file": "saved_audio_match_rc227.cjs",
+    "passed": true,
+    "output": "PASS: RC227 saved match, both import routes, explicit paid analysis and persistence.\n"
+  },
+  {
+    "file": "section_speed_rc165.cjs",
+    "passed": true,
+    "output": "PASS: starts while import/bass analysis is busy; same-job deduplication; unchanged submitted audio and returned sections; twelve-song bounded cache; cache reuse without upload.\n"
+  },
+  {
+    "file": "share_rc177.cjs",
+    "passed": true,
+    "output": "PASS: exact stereo sample boundaries, clipped metadata, beat phase, source preservation, limits and shared loop recognition.\n"
+  },
+  {
+    "file": "song_bulk_rc221.cjs",
+    "passed": true,
+    "output": "PASS 31 RC221 bulk management and discoverability checks\n"
+  },
+  {
+    "file": "songbook_pack_rc220.cjs",
+    "passed": true,
+    "output": "RC220: local import, edit preservation and share checks passed\n"
+  },
+  {
+    "file": "study_tools_rc173.cjs",
+    "passed": true,
+    "output": "PASS: passage selection and validation, legacy saved-data helpers, escaped print sheets, chord timeline and transport compatibility.\n"
+  },
+  {
+    "file": "voice_ai_rc168.cjs",
+    "passed": true,
+    "output": "PASS: simultaneous C/Am, sequential melody rejection, solo mode, silence, insufficient key evidence and C-major profile.\n"
+  },
+  {
+    "file": "low_bitrate_audio_rc244.cjs",
+    "passed": true,
+    "output": "PASS 14 real MP3 encode/decode cases: audible stereo and correct excerpt duration. Web Audio resampling stubbed with FFmpeg.\n"
+  },
+  {
+    "file": "song_key_rc252.cjs",
+    "passed": true,
+    "output": "PASS 19 song key checks: uncertainty, modulation, correction, transpose and saved key recovery; inline scripts parse.\n"
+  }
+]

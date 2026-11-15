@@ -3,9 +3,19 @@ window.BassEarTrainer=(()=>{
  'use strict';
  const C=window.BassEarTrainingCore,$=id=>document.getElementById(id),A=()=>window.BassPianoAudio;
  const titles={notes:'Notes by ear',intervals:'Intervals',chords:'Chords',progressions:'Worship progressions',rhythm:'Rhythm'};
- const hints={notes:'Hear the notes, then play them back.',intervals:'Name the distance between two notes.',chords:'Recognise the chord sound.',progressions:'Identify four chords. Home chord is optional.',rhythm:'Copy the taps. No microphone needed.'};
+ const hints={notes:'Hear the notes, then play them back.',intervals:'Name the distance between two notes.',chords:'Recognise the chord sound.',progressions:'Identify the chord sequence. Home chord is optional.',rhythm:'Copy the taps. No microphone needed.'};
  const storageKey='bass-ear-training-v1';let api,dialog,context,voices=[],timers=[],token=0,phase='idle',question=null,round=null,entered=[],taps=[],heard=false,answered=false,progress=C.empty(),storageOK=true;
- let looping=false,repeatQuestion=false,exampleHistory={};
+ let looping=false,repeatQuestion=false,exampleHistory={},section='notes';
+ const selectedMode=()=>section==='notes'?$('earMode').value:section;
+ let viewportFrame=0;
+ function fitViewport(){
+  cancelAnimationFrame(viewportFrame);
+  viewportFrame=requestAnimationFrame(()=>{
+   if(!dialog)return;const v=window.visualViewport;
+   const width=v?.width||document.documentElement.clientWidth||window.innerWidth,height=v?.height||window.innerHeight;
+   for(const [name,value] of Object.entries({width,height,top:v?.offsetTop||0,left:v?.offsetLeft||0}))dialog.style.setProperty('--ear-view-'+name,value+'px');
+  });
+ }
  const listening=()=>!!round&&round.playback!=='questions';
  function readProgress(){try{progress=C.restore(JSON.parse(localStorage.getItem(storageKey)||'null'));const raw=JSON.parse(localStorage.getItem('bass-ear-examples-v1')||'{}');exampleHistory=raw&&typeof raw==='object'&&!Array.isArray(raw)?raw:{};}catch{progress=C.empty();storageOK=false;}}
  function save(){try{localStorage.setItem(storageKey,JSON.stringify(progress));storageOK=true;}catch{storageOK=false;}}
@@ -17,12 +27,15 @@ window.BassEarTrainer=(()=>{
   const list=$('earProgressList');list.replaceChildren();for(const mode of C.modes){const s=progress.modes[mode],li=document.createElement('li');li.textContent=titles[mode]+': '+(s?.total?s.correct+'/'+s.total+' correct':'Not started');list.append(li);}
   text('earStorageNote',storageOK?'Progress stays on this device.':'Progress cannot be saved in this browser.');
  }
- function options(){return {mode:$('earMode').value,level:Number($('earLevel').value),sound:$('earSound').value,count:Number($('earCount').value),playback:$('earPlayback').value};}
+ function options(){return {mode:selectedMode(),level:Number($('earLevel').value),sound:$('earSound').value,count:Number($('earCount').value),playback:$('earPlayback').value};}
  function controls(){
-  const busy=phase==='loading'||phase==='playing',active=!!round&&phase!=='summary',fills=$('earMode').value==='fills';
-  $('earFillStudy').hidden=!fills; $('earLevel').parentElement.hidden=fills; $('earSound').parentElement.hidden=fills||$('earMode').value==='rhythm';
+  const busy=phase==='loading'||phase==='playing',active=!!round&&phase!=='summary',mode=selectedMode(),fills=['fills','basslines','runs','library'].includes(mode);dialog.dataset.lesson=mode;
+  $('earSections').hidden=active;
+  for(const b of $('earSections').querySelectorAll('button')){b.disabled=active;b.setAttribute('aria-pressed',String(b.dataset.section===section));}
+  $('earMode').parentElement.hidden=section!=='notes';
+  $('earFillStudy').hidden=!fills; $('earLevel').parentElement.hidden=fills; $('earSound').parentElement.hidden=fills||mode==='rhythm';
   $('earStartRow').hidden=fills;$('earStatus').hidden=fills;$('earSummary').hidden=fills||phase!=='summary';
-  $('earSetup').hidden=active;$('earPlaybackChoices').hidden=active||fills;$('earHint').hidden=active||fills;$('earSession').hidden=!active;
+  $('earSetup').hidden=active||fills;$('earPlaybackChoices').hidden=active||fills;$('earHint').hidden=active||fills;$('earSession').hidden=!active;
   if(active)text('earSession',titles[round.mode]+' · Level '+round.level+(round.mode==='rhythm'?'':' · '+(round.sound==='bass'?'Bass':'Piano')));
   for(const b of $('earPlaybackChoices').querySelectorAll('button')){b.disabled=active;b.setAttribute('aria-pressed',String(b.dataset.playback===$('earPlayback').value));}
   for(const id of ['earMode','earLevel','earSound','earCount','earPlayback'])$(id).disabled=active;
@@ -55,7 +68,7 @@ window.BassEarTrainer=(()=>{
     b.onclick=()=>enterNote(m);keys.append(b);
    });text('earEntered','Choose '+question.answer.length+' notes.');
   }
-  if(question.mode==='rhythm'){text('earTapCount','0 taps · '+question.bpm+' BPM');text('earTap','Tap rhythm');}
+  if(question.mode==='rhythm'){text('earTapCount','0/'+question.answer.length+' taps · '+question.bpm+' BPM');text('earTap','Tap rhythm');}
   if(listening())text('earFeedback',question.explanation);
   controls();
  }
@@ -80,7 +93,7 @@ window.BassEarTrainer=(()=>{
     const beat=60/question.bpm;
     // Four quieter count-in clicks, followed by the rhythm to copy.
     for(let i=0;i<4;i++)click(start+i*beat,true,i===0);
-    question.answer.forEach(t=>click(start+4*beat+t,false));duration=8*beat;
+    question.answer.forEach(t=>click(start+4*beat+t,false));duration=(4+(question.barBeats||4))*beat;
    }else{
     const offset=0;
     for(const n of question.events){voices.push(A().tone(context,n.midi,start+offset+n.start,n.end-n.start,question.sound,0,n.velocity,question.mode==='notes'||question.mode==='intervals'?.72:.45));if(answered&&question.mode==='notes'){const b=$('earKeyboard').querySelector('[data-midi="'+n.midi+'"]');if(b){later(()=>b.classList.add('ear-playing'),(n.start+.08)*1000);later(()=>b.classList.remove('ear-playing'),(n.end+.08)*1000);}}}
@@ -98,7 +111,7 @@ window.BassEarTrainer=(()=>{
  async function home(){
   if(!question?.reference||phase==='loading'||phase==='playing'||looping)return;
   stopSound();const mine=token,previousPhase=phase;phase='loading';status('Home chord');controls();
-  try{context??=new AudioContext();await context.resume();await A().prepare(question.sound,context,{notes:question.reference});if(mine!==token||!dialog.open)return;phase='playing';controls();const start=context.currentTime+.08;for(const n of question.reference)voices.push(A().tone(context,n.midi,start+n.start,n.end-n.start,question.sound,0,n.velocity,.55));later(()=>{if(mine!==token||!dialog.open)return;phase=previousPhase;status('Play four chords');controls();},(1.25+(window.BassPlaybackTiming?.outputDelay(context)||0))*1000);}catch{if(mine===token){phase=previousPhase;status('Sound unavailable');controls();}}
+  try{context??=new AudioContext();await context.resume();await A().prepare(question.sound,context,{notes:question.reference});if(mine!==token||!dialog.open)return;phase='playing';controls();const start=context.currentTime+.08;for(const n of question.reference)voices.push(A().tone(context,n.midi,start+n.start,n.end-n.start,question.sound,0,n.velocity,.55));later(()=>{if(mine!==token||!dialog.open)return;phase=previousPhase;status('Play the chords');controls();},(1.25+(window.BassPlaybackTiming?.outputDelay(context)||0))*1000);}catch{if(mine===token){phase=previousPhase;status('Sound unavailable');controls();}}
  }
  function click(when,countIn=false,accent=false){
   const o=context.createOscillator(),g=context.createGain();o.type='sine';o.frequency.value=countIn?(accent?1100:850):1500;g.gain.setValueAtTime(0,when);g.gain.linearRampToValueAtTime(countIn?.09:.18,when+.003);g.gain.exponentialRampToValueAtTime(.0001,when+.06);o.connect(g).connect(context.destination);o.start(when);o.stop(when+.075);o.onended=()=>{o.disconnect();g.disconnect();};voices.push({stop(){try{o.stop();}catch{}}});
@@ -139,21 +152,23 @@ window.BassEarTrainer=(()=>{
   phase='summary';$('earSummary').hidden=false;const total=round.answered;
   if(total){const s=progress.modes[round.mode];s.rounds++;save();}
   text('earSummaryTitle',total?round.correct+' of '+total+' correct':'Practice paused');
-  const nextLevel=total>=5&&round.correct/total>=.8&&round.level<3;
+  const nextLevel=total>=5&&round.correct/total>=.8&&round.level<C.maxLevel;
   text('earSummaryText',nextLevel?'Ready for the next level.':total?'Practise again to strengthen your listening.':'Your earlier progress is kept.');
   $('earAdvance').hidden=!nextLevel;updateProgress();controls();
  }
- function resetQuestion(){if(answered)return;entered=[];taps=[];text('earEntered','Choose '+question.answer.length+' notes.');text('earTapCount','0 taps · '+question.bpm+' BPM');controls();}
- function close(){window.BassFillTrainer?.stop();repeatQuestion=false;stopSound();phase='idle';answered=false;question=null;round=null;if(context?.state==='running')void context.suspend();}
- function modeChanged(){window.BassFillTrainer?.stop();const mode=$('earMode').value;text('earHint',hints[mode]||'');$('earLevel').value=String(progress.modes[mode]?.level||1);controls();}
+ function resetQuestion(){if(answered)return;entered=[];taps=[];text('earEntered','Choose '+question.answer.length+' notes.');if(question.mode==='rhythm')text('earTapCount','0/'+question.answer.length+' taps · '+question.bpm+' BPM');controls();}
+ function close(){window.BassFillTrainer?.stop();window.BassLibraryFills?.cancel();repeatQuestion=false;stopSound();phase='idle';answered=false;question=null;round=null;if(context?.state==='running')void context.suspend();}
+ function modeChanged(){window.BassFillTrainer?.stop();const mode=selectedMode();text('earHint',hints[mode]||'');$('earLevel').value=String(progress.modes[mode]?.level||1);controls();if(['fills','basslines','runs','library'].includes(mode))window.BassFillTrainer?.setKind(mode);}
+ function selectSection(nextSection){if(section===nextSection)return;close();section=nextSection;modeChanged();status('No song needed');dialog.scrollTop=0;}
  function init(hooks){
   api=hooks;if(dialog)return;
   const wrap=document.createElement('div');wrap.innerHTML=`<dialog id="earTrainerDialog" aria-labelledby="earTitle">
 <header class="ear-header"><h2 id="earTitle">Ear training</h2><button id="earClose" type="button">Close</button></header>
+<div id="earSections" role="group" aria-label="Ear training sections"><button id="earSectionNotes" type="button" data-section="notes" aria-pressed="true">Notes</button><button id="earSectionRhythm" type="button" data-section="rhythm" aria-pressed="false">Rhythm</button><button id="earSectionFills" type="button" data-section="fills" aria-pressed="false">Bass fills</button><button id="earSectionBasslines" type="button" data-section="basslines" aria-pressed="false">Basslines</button><button id="earSectionRuns" type="button" data-section="runs" aria-pressed="false">Runs</button><button id="earSectionLibrary" type="button" data-section="library" aria-pressed="false">My fills</button></div>
 <div id="earSetup" class="ear-settings">
-<label><select id="earMode" aria-label="Select lesson" title="Select lesson"><option value="notes">Lesson: Notes</option><option value="intervals">Lesson: Intervals</option><option value="chords">Lesson: Chords</option><option value="progressions">Lesson: Progressions</option><option value="rhythm">Lesson: Rhythm</option><option value="fills">Lesson: Bass fills</option></select></label>
-<label><select id="earLevel" aria-label="Select level" title="Select level"><option value="1">Level 1</option><option value="2">Level 2</option><option value="3">Level 3</option></select></label>
-<label><select id="earSound" aria-label="Select sound" title="Select sound"><option value="piano">Sound: Piano</option><option value="bass">Sound: Bass</option></select></label>
+<label><select id="earMode" aria-label="Select lesson" title="Select lesson"><option value="notes">Notes</option><option value="intervals">Intervals</option><option value="chords">Chords</option><option value="progressions">Progressions</option></select></label>
+<label><select id="earLevel" aria-label="Select level" title="Select level"><option value="1">Level 1</option><option value="2">Level 2</option><option value="3">Level 3</option><option value="4">Level 4</option><option value="5">Level 5</option></select></label>
+<label><select id="earSound" aria-label="Select sound" title="Select sound"><option value="piano">Piano</option><option value="bass">Bass</option></select></label>
 <label><button id="earCount" type="button" value="5" aria-label="Change question count">5 questions</button></label>
 </div>
 <input id="earPlayback" type="hidden" value="questions">
@@ -165,19 +180,21 @@ window.BassEarTrainer=(()=>{
 <div class="ear-actions"><button id="earListen" type="button">Play</button><button id="earRepeat" type="button" aria-pressed="false" title="Repeat this example">Repeat</button><button id="earReveal" type="button" aria-label="Show answer">Answer</button><button id="earNext" type="button" disabled>Next</button></div>
 <div id="earAnswers" class="ear-answers"></div>
 <div id="earNotes" hidden><div id="earKeyboard" aria-label="Answer piano keyboard"></div><p id="earEntered" aria-live="polite"></p><div class="ear-note-actions"><button id="earUndoNote" type="button">Undo</button><button id="earClearNotes" type="button">Clear</button><button id="earCheckNotes" type="button">Check</button></div></div>
-<div id="earRhythm" hidden><button id="earTap" type="button">Tap rhythm</button><p id="earTapCount" aria-live="polite"></p><div class="ear-note-actions"><button id="earResetTaps" type="button">Reset taps</button><button id="earCheckRhythm" type="button">Check taps</button></div></div>
+<div id="earRhythm" hidden><button id="earTap" type="button">Tap rhythm</button><p id="earTapCount" aria-live="polite" aria-atomic="true"></p><div class="ear-note-actions"><button id="earResetTaps" type="button">Reset taps</button><button id="earCheckRhythm" type="button">Check taps</button></div></div>
 <p id="earFeedback" class="ear-feedback" aria-live="polite"></p><div id="earAnswerSoundRow" class="ear-answer-sound" hidden><button id="earAnswerSound" type="button">Hear answer</button></div></section>
 <section id="earFillStudy" hidden></section>
 <section id="earSummary" hidden><h3 id="earSummaryTitle"></h3><p id="earSummaryText"></p><button id="earAdvance" type="button" hidden>Next level</button></section>
 <details class="ear-progress"><summary>Your progress</summary><ul id="earProgressList"></ul><small id="earStorageNote"></small></details></dialog>`;
   dialog=wrap.firstElementChild;$('appRoot').append(dialog);readProgress();modeChanged();updateProgress();
-  $('openEarTraining').onclick=()=>{if(api?.busy?.())return;api?.pause?.();close();$('earSummary').hidden=true;dialog.showModal();status('No song needed');controls();};
-  window.BassFillTrainer.init($('earFillStudy'),hooks);$('earAnswerSound').onclick=()=>void listen(true);
+  window.addEventListener('resize',fitViewport);window.visualViewport?.addEventListener('resize',fitViewport);window.visualViewport?.addEventListener('scroll',fitViewport);screen.orientation?.addEventListener('change',fitViewport);fitViewport();
+  $('openEarTraining').onclick=()=>{if(api?.busy?.())return;api?.pause?.();close();$('earSummary').hidden=true;dialog.showModal();dialog.scrollTop=0;fitViewport();status('No song needed');controls();};
+  window.BassFillTrainer.init($('earFillStudy'),{...hooks,openPart:async item=>{await hooks.openPart(item);close();dialog.close();}});$('earAnswerSound').onclick=()=>void listen(true);
+  for(const b of $('earSections').querySelectorAll('button'))b.onclick=()=>selectSection(b.dataset.section);
   $('earClose').onclick=()=>{close();dialog.close();};dialog.addEventListener('close',()=>{if(!dialog.open)close();});dialog.addEventListener('cancel',close);
   $('earMode').onchange=modeChanged;$('earCount').onclick=()=>{$('earCount').value=$('earCount').value==='5'?'10':'5';$('earCount').textContent=$('earCount').value+' questions';};for(const b of $('earPlaybackChoices').querySelectorAll('button'))b.onclick=()=>{$('earPlayback').value=b.dataset.playback;controls();};$('earRepeat').onclick=repeat;$('earPlayback').onchange=controls;$('earHome').onclick=home;$('earStart').onclick=start;$('earFinish').onclick=finish;$('earListen').onclick=listen;$('earNext').onclick=()=>{next();if(listening())void listen(true);};$('earReveal').onclick=()=>submit(null,true);
   $('earCheckNotes').onclick=()=>submit(entered);$('earUndoNote').onclick=()=>{entered.pop();text('earEntered',entered.length?entered.map(C.note).join(' → '):'Choose '+question.answer.length+' notes.');controls();};$('earClearNotes').onclick=resetQuestion;
   $('earTap').onclick=tap;$('earResetTaps').onclick=resetQuestion;$('earCheckRhythm').onclick=()=>submit(taps);
-  $('earAdvance').onclick=()=>{$('earLevel').value=String(Math.min(3,round.level+1));void start();};
+  $('earAdvance').onclick=()=>{$('earLevel').value=String(Math.min(C.maxLevel,round.level+1));void start();};
   document.addEventListener('visibilitychange',()=>{if(document.hidden&&dialog.open){repeatQuestion=false;stopSound();if(phase==='playing'||phase==='loading'){phase=answered?'feedback':'ready';if(!answered)heard=false;status('Tap Play');}controls();}});
  }
  return {init};

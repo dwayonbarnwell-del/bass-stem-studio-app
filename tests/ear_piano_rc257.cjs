@@ -1,5 +1,5 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),crypto=require('node:crypto');
-const env={window:{},console,Math};vm.createContext(env);vm.runInContext(fs.readFileSync('ear-source/core-rc260.js','utf8'),env);const C=env.window.BassEarTrainingCore;let seed=7;const rng=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};let count=0;
+const env={window:{},console,Math};vm.createContext(env);vm.runInContext(fs.readFileSync('ear-source/core-rc261.js','utf8'),env);const C=env.window.BassEarTrainingCore;let seed=7;const rng=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};let count=0;
 for(const mode of C.modes)for(let level=1;level<=3;level++)for(const sound of ['piano','bass'])for(let i=0;i<80;i++){
  const q=C.make(mode,level,{rng,sound});assert(C.grade(q,q.answer).correct);assert(!C.grade(q,null).correct);assert.equal(q.level,level);
  for(const n of [...q.events,...(q.reference||[])]){assert(n.midi>=21&&n.midi<=108);assert(n.end>n.start&&n.start>=0);assert(n.velocity>0&&n.velocity<=127);}
@@ -13,5 +13,5 @@ for(const mode of C.modes)for(let level=1;level<=3;level++)for(const sound of ['
 }
 let p=C.empty();for(let i=0;i<25;i++)p=C.record(p,'notes',i%2===0,2);assert.equal(p.modes.notes.total,25);assert.equal(p.modes.notes.correct,13);assert.equal(p.modes.notes.recent.length,20);p=C.restore(JSON.parse(JSON.stringify(p)));assert.equal(p.modes.notes.level,2);assert.equal(C.restore({version:99}).version,1);
 const manifest=JSON.parse(fs.readFileSync('ai-source/salamander/manifest.json'));assert.equal(manifest.samples.length,90);let size=0;for(const s of manifest.samples){const bytes=fs.readFileSync('ai-source/salamander/'+s.url);assert.equal(bytes.length,s.bytes);size+=bytes.length;assert.equal(crypto.createHash('sha256').update(bytes).digest('hex'),s.sha256);assert.equal(s.channels,2);assert(s.decodedAttackSeconds<=.003);assert(s.peak<1);assert(s.tuningBakedIn);}assert.equal(size,manifest.totalBytes);
-const h=fs.readFileSync('index.html','utf8');assert(h.includes(fs.readFileSync('ai-source/piano.js','utf8').trim()));assert(h.includes('window.BassPianoSamples='));assert(h.includes('exportAudio({...r,notes,sound'));assert(h.includes("const APP_VERSION='RC260'"));
+const h=fs.readFileSync('index.html','utf8');assert(h.includes(fs.readFileSync('ai-source/piano.js','utf8').trim()));assert(h.includes('window.BassPianoSamples='));assert(h.includes('exportAudio({...r,notes,sound'));assert(h.includes("const APP_VERSION='RC267'"));
 console.log('PASS',count,'generated exercises, grading, pitch/chord/progression logic, rhythm offsets/tempo, saved progress and 90 licensed asset hashes.');

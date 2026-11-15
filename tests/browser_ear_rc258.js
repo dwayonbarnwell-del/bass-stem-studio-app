@@ -6,7 +6,7 @@
  let question,tones=[];const make=window.BassEarTrainingCore.make,tone=window.BassPianoAudio.tone;
  window.BassEarTrainingCore.make=(...args)=>(question=make(...args));window.BassPianoAudio.tone=(...args)=>{tones.push({midi:args[1],when:args[2],sound:args[4]});return tone(...args);};
  async function until(fn,ms=45000){const start=performance.now();while(!fn()){if(performance.now()-start>ms)throw Error('Timeout: '+$('earStatus')?.textContent);await sleep(30);}}
- async function start(mode,sound='piano',playback='questions',level=1){if($('earTrainerDialog').open)$('earClose').click();$('openEarTraining').click();$('earMode').value=mode;$('earMode').dispatchEvent(new Event('change'));$('earSound').value=sound;$('earPlayback').value=playback;$('earPlayback').dispatchEvent(new Event('change'));$('earLevel').value=level;$('earStart').click();await until(()=>!$('earQuestion').hidden);}
+ async function start(mode,sound='piano',playback='questions',level=1){if($('earTrainerDialog').open)$('earClose').click();$('openEarTraining').click();$(mode==='rhythm'?'earSectionRhythm':'earSectionNotes').click();if(mode!=='rhythm'){$('earMode').value=mode;$('earMode').dispatchEvent(new Event('change'));}$('earSound').value=sound;$('earPlayback').value=playback;$('earPlayback').dispatchEvent(new Event('change'));$('earLevel').value=level;$('earStart').click();await until(()=>!$('earQuestion').hidden);}
  $('rc258Run').onclick=async()=>{
   out.textContent='Running RC258';$('rc258Run').disabled=true;
   try{

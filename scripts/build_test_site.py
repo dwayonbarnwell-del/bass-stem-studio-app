@@ -1,6 +1,5 @@
 """Build the isolated UI test site. Never use this build for production."""
 import json
-import hashlib
 import os
 from pathlib import Path
 import re
@@ -15,7 +14,7 @@ if OUT.exists():
     shutil.rmtree(OUT)
 OUT.mkdir()
 folders = {'icons', 'licenses', 'ai-source', 'batch-source', 'billing-source',
-           'chord-source', 'ear-source', 'library-source', 'media-source', 'song-reference', 'vendor'}
+           'chord-source', 'ear-source', 'ear-assets', 'library-source', 'media-source', 'song-reference', 'vendor'}
 files = {'index.html', 'guide.html', 'manifest.webmanifest', 'sw.js', 'ai-assets-rc201.js', 'SOUND_CREDITS.txt'}
 for name in subprocess.check_output(['git', 'ls-files'], cwd=ROOT, text=True).splitlines():
     p = Path(name)
@@ -24,10 +23,6 @@ for name in subprocess.check_output(['git', 'ls-files'], cwd=ROOT, text=True).sp
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(ROOT / p, dest)
 html = (OUT / 'index.html').read_text()
-# Test rebuilds can reuse a release number; avoid stale component assets.
-html = re.sub(r'((?:src|href)="\./([^"?]+\.(?:css|js)))\?v=[^"]+',
-              lambda m: m[1] + '?v=' + hashlib.sha256((OUT / m[2]).read_bytes()).hexdigest()[:12]
-              if (OUT / m[2]).is_file() else m[0], html)
 # Header CSP is authoritative; this meta also protects local static previews.
 policy = "connect-src 'self' blob: data:; form-action 'none'; worker-src 'none'"
 html = html.replace('<head>', '<head>\n<meta name="robots" content="noindex,nofollow">\n'
@@ -58,57 +53,9 @@ for width in [360,430,800,1280]:
 (OUT / '_headers').write_text('/*\n  X-Robots-Tag: noindex, nofollow\n  Content-Security-Policy: ' + policy + '\n')
 print('Built isolated TEST ONLY site in test-dist; online analysis disabled.')
 
-# Responsive UI inspection pages for the current settings and retained tools.
-for width in [360,430,800]:
-    (OUT / f'ui-rc253-{width}.html').write_text(f'<!doctype html><title>TEST ONLY | {width}px</title><iframe title="Bass Studio {width}px" src="index.html" style="width:{width}px;height:900px;border:0"></iframe>')
-
-# RC254: exercise real browser storage and last-song recovery on the test origin.
-fixture254=(ROOT / 'tests/browser_session_rc254.js').read_text()
-(OUT / 'audit-rc254-session.html').write_text(html.replace(marker,fixture254+'\n'+marker))
-for width in [360,430,800,1280]:
-    (OUT / f'ui-rc254-{width}.html').write_text(f'<!doctype html><title>TEST ONLY | {width}px</title><iframe title="Bass Studio {width}px" src="index.html" style="width:{width}px;height:900px;border:0"></iframe>')
-    (OUT / f'audit-rc254-session-{width}.html').write_text(f'<!doctype html><title>TEST ONLY | {width}px</title><iframe title="Refresh test {width}px" src="audit-rc254-session.html" style="width:{width}px;height:900px;border:0"></iframe>')
-
-# RC255: distinguish chord backups from actual damaged audio projects.
-library_fixture=(ROOT / 'tests/browser_library_rc255.js').read_text()
-library_html=html.replace('<head>', '<head><script>'+isolation+'</script>', 1)
-library_html=library_html.replace('return {init,show,prepareSave,', "return {__testFolder:async dir=>{await ready;folder=dir;folderAccess='ready';index={};await refresh();},init,show,prepareSave,", 1)
-(OUT / 'audit-rc255-library.html').write_text(library_html.replace('</body>','<script>'+library_fixture+'</script></body>'))
-for width in [360,430,800,1280]:
-    (OUT / f'ui-rc255-{width}.html').write_text(f'<!doctype html><title>TEST ONLY | {width}px</title><iframe title="Bass Studio {width}px" src="index.html?release=rc255-final" style="width:{width}px;height:900px;border:0"></iframe>')
-    (OUT / f'audit-rc255-library-{width}.html').write_text(f'<!doctype html><title>TEST ONLY | {width}px</title><iframe title="Library check {width}px" src="audit-rc255-library.html" style="width:{width}px;height:900px;border:0"></iframe>')
-
-# RC256: deterministic playback and timing audit on the isolated origin.
-timing_fixture=(ROOT / 'tests/browser_timing_rc256.js').read_text()
-(OUT / 'audit-rc256-timing.html').write_text(audit_html.replace(marker,timing_fixture+'\n'+marker))
-for width in [360,430,800,1280]:
-    (OUT / f'audit-rc256-timing-{width}.html').write_text(f'<!doctype html><title>TEST ONLY | {width}px</title><iframe title="Timing check {width}px" src="audit-rc256-timing.html?release=speed-check-3" allow="autoplay" style="width:{width}px;height:900px;border:0"></iframe>')
-    (OUT / f'ui-rc256-{width}.html').write_text(f'<!doctype html><title>TEST ONLY | {width}px</title><iframe title="Bass Studio {width}px" src="index.html?release=rc256-final" style="width:{width}px;height:900px;border:0"></iframe>')
-
-# RC257: ear-training controls and real stereo decoder/export checks.
-ear_fixture=(ROOT / 'tests/browser_ear_piano_rc257.js').read_text()
-(OUT / 'audit-rc257.html').write_text(html.replace('</body>','<script>'+ear_fixture+'</script></body>'))
-for width in [360,430,800,1280]:
-    for name,src in [('ui','index.html'),('audit','audit-rc257.html')]:
-        (OUT / f'{name}-rc257-{width}.html').write_text(f'<!doctype html><title>TEST ONLY | {width}px</title><iframe title="Bass Studio {width}px" src="{src}?release=rc257" allow="autoplay" style="width:{width}px;height:900px;border:0"></iframe>')
-
-# RC258: listening loops, instrument routing and concise controls.
-fixture258=(ROOT / 'tests/browser_ear_rc258.js').read_text()
-(OUT / 'audit-rc258.html').write_text(html.replace('</body>','<script>'+fixture258+'</script></body>'))
-for width in [360,430,800,1280]:
-    (OUT / f'ui-rc258-{width}.html').write_text(f'<!doctype html><title>TEST ONLY | {width}px</title><iframe title="Bass Studio {width}px" src="index.html?release=rc258" allow="autoplay" style="width:{width}px;height:900px;border:0"></iframe>')
-
-# RC259: compact trainer and keyboard geometry at phone widths.
-fixture259=(ROOT / 'tests/browser_ear_rc259.js').read_text()
-(OUT / 'audit-rc259.html').write_text(html.replace('</body>','<script>'+fixture259+'</script></body>'))
-for width in [360,430,800,1280]:
-    for name,source in [('ui','index.html'),('audit','audit-rc259.html')]:
-        (OUT / f'{name}-rc259-{width}.html').write_text(f'<!doctype html><title>TEST ONLY | {width}px</title><iframe title="Bass Studio {width}px" src="{source}?release=rc259" allow="autoplay" style="width:{width}px;height:740px;border:0"></iframe>')
-
-# RC260: actual answer, keyboard, fill and piano audition interactions.
-fixture260=(ROOT / 'tests/browser_training_rc260.js').read_text()
-training260=html.replace('<head>', '<head><script>'+isolation+'</script>',1)
-(OUT / 'audit-rc260.html').write_text(training260.replace(marker,fixture260+'\n'+marker))
-for width in [360,430,800,1280]:
-    for name,source in [('ui','index.html'),('audit','audit-rc260.html')]:
-        (OUT / f'{name}-rc260-{width}.html').write_text(f'<!doctype html><title>TEST ONLY | {width}px</title><iframe title="Bass Studio {width}px" src="{source}?release=rc260" allow="autoplay" style="width:{width}px;height:740px;border:0"></iframe>')
+# Current regression audit. Storage and requests are isolated from production.
+audit_275 = ROOT / 'tests/browser_audit_rc275.js'
+if audit_275.exists():
+    (OUT / 'audit-rc275.html').write_text(audit_html.replace(marker, audit_275.read_text()+'\n'+marker))
+    for width,height in [(360,800),(412,915),(844,390),(800,1000),(1280,900)]:
+        (OUT / f'audit-rc275-{width}.html').write_text(f'<!doctype html><title>TEST ONLY | {width}px</title><iframe title="Isolated audit" src="audit-rc275.html" style="width:{width}px;height:{height}px;border:0"></iframe>')

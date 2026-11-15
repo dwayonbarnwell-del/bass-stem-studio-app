@@ -1,5 +1,5 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
-const env={window:{},Math,console};vm.createContext(env);vm.runInContext(fs.readFileSync('ear-source/core-rc260.js','utf8'),env);const C=env.window.BassEarTrainingCore;
+const env={window:{},Math,console};vm.createContext(env);vm.runInContext(fs.readFileSync('ear-source/core-rc261.js','utf8'),env);const C=env.window.BassEarTrainingCore;
 let seed=258;const rng=()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);
 const qualities={'Major':[0,4,7],'Minor':[0,3,7],'Diminished':[0,3,6],'Augmented':[0,4,8],'Sus2':[0,2,7],'Sus4':[0,5,7],'Dominant 7th':[0,4,7,10],'Major 7th':[0,4,7,11],'Minor 7th':[0,3,7,10],'Half-diminished 7th':[0,3,6,10]};
 // Independent major-key triads, including octave placement of the low root.

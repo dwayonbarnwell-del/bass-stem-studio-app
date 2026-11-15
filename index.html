@@ -13705,7 +13705,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 html body #appRoot #songTempoWrap.on-beat{box-shadow:inset 0 0 0 3px #b9f3da!important}
 html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel .piano-chord.current-chord{background:#a7e8d2!important;color:#102b25!important;font-weight:800!important;box-shadow:inset 0 -3px #fff!important}
 </style>
-<link rel="stylesheet" href="./ear-source/trainer.css?v=rc260">
+<link rel="stylesheet" href="./ear-source/trainer-rc267.css?v=rc269">
 <style id="rc260-key-audition">@layer bass-piano-audition-260{#appRoot #pianoKeyboard .piano-key.auditioning{background:#248bd1!important;color:white!important;box-shadow:inset 0 0 0 1px #b7e4ff!important}}</style>
 </head>
 <body>
@@ -14698,7 +14698,34 @@ window.BassLibrary=(()=>{
     return target.dir?'folder':'device';
   }
 
-  return {init,show,prepareSave,save,saveAnalysisProject,saveMelodyProject,hasProject,ensureBatchAccess,errorText,chartProjects,chartProject,checkAudioImport,analysisSummary,openForAnalysis};
+  const practiceId=row=>row.audioId?'audio:'+row.audioId:(row.handle?'folder:':'device:')+String(row.id||row.filename).toLowerCase();
+  async function practiceProjects(){
+    await ready;await refresh();
+    return {songs:rows.map(row=>({id:practiceId(row),title:row.title,filename:row.filename,stamp:[row.size,row.modified,row.savedAt].join(':')})),reconnect:folderAccess==='reconnect'};
+  }
+  async function practiceRow(id){
+    if(ready)await ready;
+    let row=rows.find(r=>practiceId(r)===id);
+    if(!row){await refresh();row=rows.find(r=>practiceId(r)===id);}
+    if(!row)throw Error('Reconnect the song folder in Library, then scan again.');
+    return row;
+  }
+  async function practiceProject(id){
+    const row=await practiceRow(id);
+    if(Number(row.size)>240*1024*1024)throw Error('Song too large to scan on this device.');
+    const project=JSON.parse(await (await rowFile(row)).text()),a=project.analysis||{};
+    // Keep audio, stems and lyrics out of the transition catalogue.
+    return {projectName:project.projectName,source:{duration:project.source?.duration},settings:{sections:project.settings?.sections||{}},analysis:{notes:a.notes,chords:a.chords,baseScale:a.baseScale,scale:a.scale,tempoBpm:a.tempoBpm,keySections:a.keySections,keyCorrections:a.keyCorrections,structure:{segments:a.structure?.segments||[]}}};
+  }
+  async function openPracticeSong(id,stamp){
+    if(hooks.isBusy?.())throw Error('Finish the current song first.');
+    await refresh();const row=await practiceRow(id);
+    if(stamp&&stamp!==[row.size,row.modified,row.savedAt].join(':'))throw Error('This song has changed. Scan your library again.');
+    const file=await rowFile(row);
+    if(!hooks.openPractice)throw Error('Reload the platform to open this part.');
+    return !!await hooks.openPractice(file);
+  }
+  return {init,show,prepareSave,save,saveAnalysisProject,saveMelodyProject,hasProject,ensureBatchAccess,errorText,chartProjects,chartProject,checkAudioImport,analysisSummary,openForAnalysis,practiceProjects,practiceProject,openPracticeSong};
 })();
 </script>
 <script id="rc196-batch">
@@ -15349,13 +15376,22 @@ window.BassBatch = (() => {
 
 <dialog id="pianoEditor" aria-labelledby="pianoEditTitle"><h2 id="pianoEditTitle">Correct melody note</h2><label>Note<select id="pianoPitch"></select></label><label>Start (seconds)<input id="pianoStart" type="number" min="0" step="0.01"></label><label>End (seconds)<input id="pianoEnd" type="number" min="0" step="0.01"></label><p id="pianoEditError" role="alert"></p><div class="piano-edit-actions"><button id="pianoSaveNote" type="button">Save note</button> <button id="pianoDelete" type="button">Delete note</button> <button id="pianoUndo" type="button" disabled>Undo last change</button> <button id="pianoCloseNote" type="button">Close</button></div></dialog>
 <script src="./chord-source/recovery.js?v=rc254"></script>
-<script src="./ear-source/core-rc260.js?v=rc260"></script>
-<script src="./ear-source/fills.js?v=rc260"></script>
-<script src="./ear-source/trainer-rc260.js?v=rc260"></script>
+<script src="./ear-source/core-rc261.js?v=rc261"></script>
+<script src="./ear-source/fills-rc264.js?v=rc264"></script>
+<script src="./ear-source/practice-rc264b.js?v=rc269"></script>
+<script src="./ear-source/catalogue-rc269.js?v=rc271"></script>
+<script src="./ear-source/library-fills-rc264b.js?v=rc269"></script>
+<script src="./ear-source/uploaded-data-rc267.js?v=rc267"></script>
+<script src="./ear-source/lesson-data-rc272.js?v=rc272"></script>
+<script src="./ear-source/reggae-data-rc273.js?v=rc273"></script>
+<script src="./ear-source/african-data-rc274.js?v=rc274"></script>
+<script src="./ear-source/uploaded-core-rc267.js?v=rc274"></script>
+<script src="./ear-source/study-ui-rc267.js?v=rc271"></script>
+<script src="./ear-source/trainer-rc266.js?v=rc268"></script>
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC260';
+  const APP_VERSION='RC274';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;
@@ -16178,7 +16214,7 @@ window.BassBatch = (() => {
     }finally{projectSaveBusy=false;updateProjectButtons();}
   }
 
-  async function importBassStudioProject(file,{findSections=false}={}){
+  async function importBassStudioProject(file,{findSections=false,practiceOnly=false}={}){
     if(!file)return false;
     const request=++songLoadRequest;
     let importSucceeded=false;
@@ -16376,7 +16412,7 @@ window.BassBatch = (() => {
       seek.value=0;curTime.textContent=fmt(0);
       status.className='status good';status.textContent='';
       aiStatus(`Opened “${loadedProjectName||audioName}” · ${restored.length} notes`,100);
-      if(!songStructure&&!savedSectionRanges)void ensureSongStructure({importReady:true,allowNewJob:false,maxChecks:2,pollMs:500});
+      if(!practiceOnly&&!songStructure&&!savedSectionRanges)void ensureSongStructure({importReady:true,allowNewJob:false,maxChecks:2,pollMs:500});
       // The old song has already been replaced. A slow/missing optional stem
       // cannot leave its title, notes, selection or transport on screen.
       if(analysisParts.length){
@@ -16422,7 +16458,7 @@ window.BassBatch = (() => {
       if(songStructure)void rememberImportedSections(songSession,activeAudioFile);
       importSucceeded=true;
       rememberLastOpenedSession();
-      window.BassChordRecovery?.queue?.();
+      if(!practiceOnly)window.BassChordRecovery?.queue?.();
       return true;
     }catch(err){
       if(request!==songLoadRequest)return false;
@@ -16438,7 +16474,7 @@ window.BassBatch = (() => {
         if(projectFileInput)projectFileInput.value='';
         setSongImportBusy(false);updatePracticeLayoutState(true);
         if(importSucceeded&&findSections)startImportedSongSections();
-        if(importSucceeded)queueAutomaticMelody();
+        if(importSucceeded&&!practiceOnly)queueAutomaticMelody();
       }
     }
   }
@@ -20795,7 +20831,14 @@ window.BassBatch = (() => {
   });
 
   window.BassTools.init({get:studySong});
-  window.BassEarTrainer.init({pause:()=>{pause();window.BassPiano.leave();},busy:()=>!$('liveStop').disabled||!$('pianoLiveStop').disabled||window.BassPiano.isBusy()});
+  window.BassEarTrainer.init({pause:()=>{pause();window.BassPiano.leave();},busy:()=>songImportBusy||aiBusy||!$('liveStop').disabled||!$('pianoLiveStop').disabled||window.BassPiano.isBusy(),openPart:async item=>{
+    if(!await window.BassLibrary.openPracticeSong(item.songId,item.stamp))throw Error('Could not open the saved song.');
+    const start=Math.max(0,Math.min(buffer.duration,item.start)),end=Math.min(buffer.duration,item.end);
+    if(end<=start)throw Error('The saved song has changed. Scan your library again.');
+    pause();selectedTimeframes.clear();selectedSections.clear();multiSectionMode=false;timeframeLoopMode=false;sectionQueue=[];timeframeQueue=[];
+    loopStart=start;loopEnd=end;loopEnabled=true;refreshTimeframeSelectionUI();refreshSectionUI();updateLoopUI();seekTo(start);
+    status.className='status ok';status.textContent='Fill ready · press Play';
+  }});
 
   function displayTime(){
     const position=currentTime();
@@ -21867,7 +21910,7 @@ window.BassBatch = (() => {
 
   // ---------- Controls ----------
   refreshNoteNumberToggle();refreshStemMixerUI();updatePracticeLayoutState(true);
-  window.BassLibrary.init({open:file=>importBassStudioProject(file,{findSections:false}),isBusy:()=>songImportBusy||aiBusy||projectSaveBusy});
+  window.BassLibrary.init({open:file=>importBassStudioProject(file,{findSections:false}),openPractice:file=>importBassStudioProject(file,{findSections:false,practiceOnly:true}),isBusy:()=>songImportBusy||aiBusy||projectSaveBusy});
   // GET /health checks connection without submitting a paid analysis.
   async function checkBatchRunPodConnection(){
     const key=await getRunPodKey();

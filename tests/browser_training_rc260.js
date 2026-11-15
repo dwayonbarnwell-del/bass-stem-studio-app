@@ -23,8 +23,8 @@
    $('earNext').click();check(!$('earKeyboard').querySelector('.ear-correct'),'Next clears answer highlights');$('earListen').click();await until(()=>!$('earReveal').disabled);
    for(const m of q.answer)$('earKeyboard').querySelector('[data-midi="'+(m===q.keyboard[0]?q.keyboard[1]:q.keyboard[0])+'"]').click();
    check($('earFeedback').textContent.startsWith('Keep practising')&&$('earKeyboard').querySelector('.ear-correct'),'wrong answer automatically shows correct notes');
-   $('earClose').click();$('openEarTraining').click();$('earMode').value='fills';$('earMode').dispatchEvent(new Event('change'));
-   check(!$('earFillStudy').hidden&&$('earStartRow').hidden,'bass fills lesson replaces quiz controls');check($('fillFrom').options.length===7&&$('fillTo').options.length===7&&$('fillIdea').options.length===6,'all degrees and six ideas available');
+   $('earClose').click();$('openEarTraining').click();$('earSectionFills').click();
+   check(!$('earFillStudy').hidden&&$('earStartRow').hidden,'bass fills lesson replaces quiz controls');check($('fillFrom').options.length===7&&$('fillTo').options.length===7&&$('fillIdea').options.length===10,'all degrees and ten ideas available');
    $('fillTempo').value='160';$('fillTempo').dispatchEvent(new Event('change'));$('fillFrom').value='4';$('fillFrom').dispatchEvent(new Event('change'));$('fillTo').value='5';$('fillTo').dispatchEvent(new Event('change'));
    check($('fillHeading').textContent==='4 → 5 · F → G','degree and chord labels agree');
    tones=[];$('fillPlay').click();await until(()=>$('fillStatus').textContent==='Play it again');check(tones.some(n=>n.sound==='bass')&&tones.some(n=>n.sound==='piano'),'bass fill and chord backing both play');

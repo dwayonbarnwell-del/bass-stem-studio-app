@@ -5,7 +5,7 @@
  const out=$('rc259Results'),say=s=>out.textContent+='\n'+s,check=(ok,label)=>{if(!ok)throw Error(label);say('PASS '+label);};let q,tones=[];
  const make=window.BassEarTrainingCore.make,tone=window.BassPianoAudio.tone;window.BassEarTrainingCore.make=(...a)=>(q=make(...a));window.BassPianoAudio.tone=(...a)=>{tones.push({midi:a[1],sound:a[4]});return tone(...a);};
  async function until(fn,ms=45000){const start=performance.now();while(!fn()){if(performance.now()-start>ms)throw Error('Timeout: '+$('earStatus')?.textContent);await sleep(30);}}
- async function start(mode){if($('earTrainerDialog').open)$('earClose').click();$('openEarTraining').click();$('earMode').value=mode;$('earMode').dispatchEvent(new Event('change'));$('earLevel').value='1';$('earSound').value='bass';document.querySelector('[data-playback="questions"]').click();$('earStart').click();await until(()=>!$('earQuestion').hidden);}
+ async function start(mode){if($('earTrainerDialog').open)$('earClose').click();$('openEarTraining').click();$(mode==='rhythm'?'earSectionRhythm':'earSectionNotes').click();if(mode!=='rhythm'){$('earMode').value=mode;$('earMode').dispatchEvent(new Event('change'));}$('earLevel').value='1';$('earSound').value='bass';document.querySelector('[data-playback="questions"]').click();$('earStart').click();await until(()=>!$('earQuestion').hidden);}
  const rect=e=>e.getBoundingClientRect();
  $('rc259Run').onclick=async()=>{
   out.textContent='Running RC259';$('rc259Run').disabled=true;
