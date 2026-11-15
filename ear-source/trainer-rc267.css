@@ -121,3 +121,12 @@
 @media (max-width:359px){#earTrainerDialog .ear-actions,#earTrainerDialog .fill-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
 @media (prefers-reduced-motion:reduce){#earTrainerDialog{scroll-behavior:auto!important}}
 }
+
+#earTrainerDialog #fillTip,#earTrainerDialog #fillManageStatus{font-size:12px!important;margin:0!important;line-height:1.35!important}
+#earTrainerDialog #fillManageStatus:empty{display:none!important}
+#earTrainerDialog #fillSource{color:#83d5ff!important;font-size:12px!important;overflow-wrap:anywhere!important}
+#earTrainerDialog #fillProgression{width:100%!important;min-width:0!important;font-size:14px!important;padding:8px!important}
+#earTrainerDialog #fillNotes{max-height:clamp(150px,28vh,270px)!important;overflow:auto!important;align-content:flex-start!important}
+#earTrainerDialog [hidden]{display:none!important}
+
+#earTrainerDialog #fillPlayer[hidden],#earTrainerDialog #fillLibrary[hidden]{display:none!important}

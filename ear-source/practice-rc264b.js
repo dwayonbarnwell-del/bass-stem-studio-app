@@ -42,7 +42,8 @@ window.BassPracticeCore=(()=>{
    line.degrees.forEach((d,bar)=>{
     const root=roots[bar],third=near(degree(d+1),root+4),fifth=near(degree(d+3),root+7),next=roots[(bar+1)%roots.length],offset=bar*4;
     let shape;
-    if(line.feel==='church')shape=[[0,root,.8],[1,third,.6],[2,fifth,.6],[3,next-3,.25],[3+1/3,next-2,.25],[3+2/3,next-1,.25]];
+    if(line.shape)shape=line.shape.map(([b,n,l])=>[b,typeof n==='number'?degree(d-1+n)+root-degree(d-1):next+Number(n.slice(1)),l]);
+    else if(line.feel==='church')shape=[[0,root,.8],[1,third,.6],[2,fifth,.6],[3,next-3,.25],[3+1/3,next-2,.25],[3+2/3,next-1,.25]];
     else if(line.feel==='sixths')shape=[[0,root,.45],[.75,third+12,.3],[1.25,fifth,.3],[2,root+12,.45],[3,fifth,.2],[3.25,third,.2],[3.5,next-1,.3]];
     else if(line.feel==='funk')shape=[[0,root,.2],[.75,root+12,.2],[1.5,fifth,.2],[2,root,.2],[2.75,root+12,.2],[3.25,next+2,.18],[3.5,next+1,.18],[3.75,next-1,.18]];
     else if(line.feel==='walk')shape=[[0,root,.8],[1,third,.8],[2,fifth,.8],[3,next-2,.4],[3.5,next-1,.4]];
@@ -61,7 +62,7 @@ window.BassPracticeCore=(()=>{
     chord(d).forEach(midi=>chords.push({midi,beat:offset,length:3.8,velocity:47,role:'chord'}));
    });
    if(Math.min(...bass.map(n=>n.midi))<23)for(const n of bass)n.midi+=12;
-   return {kind,key,mode,idea,bpm,beats:16,bass,chords,title:line.name,tip:line.tip,heading:line.degrees.map(chordName).join(' → ')};
+   return {kind,key,mode,idea,bpm,beats:line.degrees.length*4,bass,chords,source:line.source,title:line.name,tip:line.tip,heading:line.degrees.join('–')+' · '+line.degrees.map(chordName).join(' → ')};
   }
   idea=Math.min(runs.length-1,idea);const base=F.make({...opts,key,mode,idea:0}),source=base.source,target=base.target;
   const third=source+pc(degree(Number(opts.from||1)+1)-source),fifth=source+pc(degree(Number(opts.from||1)+3)-source);
@@ -70,10 +71,11 @@ window.BassPracticeCore=(()=>{
   const pent=Array.from({length:72},(_,i)=>24+i).filter(n=>n>target&&pents.includes(pc(n-key))).slice(0,5).reverse();
   const shapes=[pent.concat([pent[0],pent[2],target+1]),[source+12,fifth,third,...[5,4,3,2,1,0].map(i=>degree(ti+i))],[4,2,3,2,0,1,0,-2].map(i=>degree(ti+i)),[target+2,target-1,target+1,target-2,target-1,target+1,target+12,target-1],[source,source+12,base.bass[1].midi,base.bass[1].midi+12,source+12,source+7,target+12,target+1],[source+5,source+6,source+7,source+10,source+7,source+6,target-2,target-1],[-7,-6,-5,-4,-3,-2,-1,0].map(i=>degree(ti+i)),[2,1,3,2,1,0,1,-1].map(i=>degree(ti+i))];
   shapes.push([source+12,fifth,third,source,...[-3,-2,-1,1].map(i=>degree(ti+i))], [0,2,3,1,4,2,1,0].map(i=>pent[i%pent.length]),[5,3,4,2,3,1,2,-1].map(i=>degree(ti+i)),[target+3,target+2,target-1,target+1,target+2,target-2,target+1,target-1],[source,source+12,third,third+12,fifth,source+12,target+2,target-1],[-3,-2,-1,0,1,2,3,4,3,2,1,-1].map(i=>degree(ti+i)),[5,4,3,4,2,3,1,-1].map(i=>degree(ti+i)),[-4,-2,-3,-1,0,2,1,-1].map(i=>degree(ti+i)));
+  if(runs[idea].steps){const run=runs[idea],pentScale=mode==='major'?[0,2,4,7,9]:mode==='minor'?[0,3,5,7,10]:[0,1,2,4,5].map(i=>scale[i]);const pool=Array.from({length:100},(_,i)=>12+i).filter(n=>pentScale.includes(pc(n-key)));let anchor=pool.findIndex(n=>n>=target);shapes[idea]=run.steps.map(i=>run.type==='chromatic'?target+i:run.type==='pent'?pool[Math.max(0,Math.min(pool.length-1,anchor+i))]:degree(ti+i));}
   add(0,source,1.7);const notes=shapes[idea],step=2/notes.length;
   notes.forEach((n,i)=>add(2+i*step,n,step*.82));add(4,target,2.8,'landing');
   if(Math.min(...bass.map(n=>n.midi))<23)for(const n of bass)n.midi+=12;
-  return {...base,kind,idea,bpm,bass,title:runs[idea][0],tip:runs[idea][1],heading:base.from+' → '+base.to+' · '+base.fromChord+' → '+base.toChord};
+  return {...base,kind,idea,bpm,bass,source:bass[0].midi,target:bass.at(-1).midi,title:runs[idea][0],tip:runs[idea][1],lesson:runs[idea].source,heading:base.from+' → '+base.to+' · '+base.fromChord+' → '+base.toChord};
  }
  return {make,modes,lines,runs};
 })();

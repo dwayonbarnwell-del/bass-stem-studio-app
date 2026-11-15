@@ -1,7 +1,7 @@
 /* On-device, read-only analysis catalogue. Audio never enters this database. */
 window.BassLibraryFills=(()=>{
  'use strict';
- const T=window.BassTransitionCore,$=id=>document.getElementById(id);
+ const T=window.BassTransitionCore,D=window.BassPracticeCatalogue,$=id=>document.getElementById(id);
  let api,catalogue={songs:[]},favourites=new Set(),page=0,busy=false,cancelled=false,loaded=false,dbPromise;
  const time=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
  function database(){return dbPromise??=new Promise((resolve,reject)=>{const r=indexedDB.open('bass-transition-library-v1',1);r.onupgradeneeded=()=>r.result.createObjectStore('catalogue');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});}
@@ -9,7 +9,7 @@ window.BassLibraryFills=(()=>{
  function message(s){$('myFillStatus').textContent=s;}
  function render(){
   const query=$('myFillSearch').value.toLowerCase().trim(),from=$('myFillFrom').value,to=$('myFillTo').value,only=$('myFillFavourites').getAttribute('aria-pressed')==='true';
-  const all=catalogue.songs.flatMap(s=>(s.items||[]).filter(T.qualifies)),items=all.filter(r=>(!from||r.from===from)&&(!to||r.to===to)&&(!only||favourites.has(r.id))&&(!query||[r.title,r.key,r.section,r.fromChord,r.toChord].join(' ').toLowerCase().includes(query)));
+  const all=catalogue.songs.flatMap(s=>(s.items||[]).filter(T.qualifies)),items=all.filter(r=>D.visible('library',r.id)&&(!from||r.from===from)&&(!to||r.to===to)&&(!only||favourites.has(r.id))&&(!query||[r.title,r.key,r.section,r.fromChord,r.toChord].join(' ').toLowerCase().includes(query)));
   page=Math.min(page,Math.max(0,Math.ceil(items.length/8)-1));$('myFillResults').replaceChildren();
   $('myFillCount').textContent=items.length+(items.length===1?' fill · ':' fills · ')+catalogue.songs.length+(catalogue.songs.length===1?' song':' songs');
   for(const r of items.slice(page*8,page*8+8)){
@@ -17,7 +17,7 @@ window.BassLibraryFills=(()=>{
    title.textContent=r.from+' → '+r.to+' · '+r.title;detail.textContent=time(r.change)+' · '+r.fromChord+' → '+r.toChord+' · '+r.key+(r.section?' · '+r.section:'')+(r.modulates?' · Key change':'')+(r.check?' · Check notes':'');
    const play=document.createElement('button');play.type='button';play.textContent='Practise';play.onclick=()=>api.select(r);
    const fav=document.createElement('button');fav.type='button';fav.textContent=favourites.has(r.id)?'Saved':'Save';fav.setAttribute('aria-pressed',String(favourites.has(r.id)));fav.setAttribute('aria-label','Save fill from '+r.title+' at '+time(r.change));fav.onclick=()=>{if(favourites.has(r.id))favourites.delete(r.id);else favourites.add(r.id);try{localStorage.setItem('bass-fill-favourites-v1',JSON.stringify([...favourites]));}catch{message('Favourite could not be saved');}render();};
-   actions.append(play,fav);card.append(title,detail,actions);$('myFillResults').append(card);
+   const remove=document.createElement('button');remove.type='button';remove.textContent='Delete';remove.onclick=()=>{try{D.remove('library',r.id);render();api.removed?.();message('Deleted from this device. Restore any time.');}catch{message('Could not save deletion.');}};actions.append(play,fav,remove);card.append(title,detail,actions);$('myFillResults').append(card);
   }
   if(!items.length){const p=document.createElement('p');p.textContent=all.length?'No matching fills.':'Scan your saved songs to find moving bass notes around chord changes.';$('myFillResults').append(p);}
   $('myFillPage').textContent=(items.length?page+1:0)+' / '+Math.ceil(items.length/8);$('myFillPrev').disabled=page===0;$('myFillNext').disabled=(page+1)*8>=items.length;
@@ -55,5 +55,5 @@ window.BassLibraryFills=(()=>{
   for(const id of ['myFillFrom','myFillTo'])$(id).onchange=()=>{page=0;render();};$('myFillSearch').oninput=()=>{page=0;render();};$('myFillPrev').onclick=()=>{page--;render();};$('myFillNext').onclick=()=>{page++;render();};
   render();
  }
- return {init,show,cancel:()=>{cancelled=true;},time};
+ return {init,show,refresh:render,cancel:()=>{cancelled=true;},time};
 })();
