@@ -15391,7 +15391,7 @@ window.BassBatch = (() => {
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC274';
+  const APP_VERSION='RC275';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;
@@ -15630,7 +15630,8 @@ window.BassBatch = (() => {
   function replayManualCorrections(){
     for(const edit of manualCorrections){
       if(edit.kind==='note'){
-        notes=notes.filter(n=>!(Math.abs(n.start-edit.original.start)<.08&&(n.midi===edit.original.midi||n.manual)));
+        notes=notes.filter(n=>!(Math.abs(n.start-edit.original.start)<.08&&(n.midi===edit.original.midi||n.manual))&&
+          !(edit.value&&n.manual&&n.midi===edit.value.midi&&Math.abs(n.start-edit.value.start)<.001&&Math.abs(n.end-edit.value.end)<.001));
         if(edit.value)notes.push(copyAnalysis(edit.value));
       }else{
         const start=Math.min(edit.original.start,edit.value?.start??edit.original.start),end=Math.max(edit.original.end,edit.value?.end??edit.original.end);
@@ -15659,7 +15660,7 @@ window.BassBatch = (() => {
   async function commitAnalysisEdit(remove=false){
     if(analysisDeleteBusy)return;analysisDeleteBusy=true;try{
     if(!editingEvent||aiBusy)return;
-    const {kind,original}=editingEvent,start=Number($('editEventStart').value),end=Number($('editEventEnd').value);
+    const {kind,original}=editingEvent,start=$('editEventStart').value.trim()===''?NaN:Number($('editEventStart').value),end=$('editEventEnd').value.trim()===''?NaN:Number($('editEventEnd').value);
     if(!remove&&(!Number.isFinite(start)||!Number.isFinite(end)||start<0||end<=start||end>buffer.duration+.001))throw new Error('Enter a start and end within this song.');
     let value=null;
     if(!remove){
@@ -21700,18 +21701,18 @@ window.BassBatch = (() => {
   }
 
   function parseUserTime(v){
-    v=String(v||'').trim();
+    v=String(v??'').trim();
     if(!v) return NaN;
     if(v.includes(':')){
+      if(!/^\d+(?::\d+){1,2}(?:\.\d+)?$/.test(v))return NaN;
       const p=v.split(':').map(Number);
-      if(p.some(Number.isNaN)) return NaN;
-      if(p.length===2) return p[0]*60+p[1];
-      if(p.length===3) return p[0]*3600+p[1]*60+p[2];
-      return NaN;
+      if(p.some(n=>!Number.isFinite(n))) return NaN;
+      const seconds=p.reduce((total,n)=>total*60+n,0);
+      return Number.isFinite(seconds)?seconds:NaN;
     }
     // Bare digits use MMSS entry, not raw seconds:
     // "26" = 0:26 and "120" = 1:20.
-    return compactDigitsToSeconds(v);
+    return /^\d+$/.test(v)?compactDigitsToSeconds(v):NaN;
   }
 
   function applyEditedRepeatRange(){
@@ -22709,7 +22710,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #sourceCard #sourceFi
 html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #sourceCard #sourceFileDetails{flex:0 0 auto!important;white-space:nowrap!important}
 </style>
 <script defer src="./song-reference/data.js?v=rc255"></script>
-<script defer src="./song-reference/chords.js?v=rc255"></script>
+<script defer src="./song-reference/chords.js?v=rc275"></script>
 <script defer src="./library-source/tools-layout.js?v=rc258"></script>
 <script defer src="./library-source/practice-icons.js?v=rc259"></script>
 </body>

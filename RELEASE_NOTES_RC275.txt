@@ -1,0 +1,5 @@
+RC275: correct editing and repeat-time validation
+
+Prevents moved bass notes being duplicated when corrections replay. Rejects blank correction times and invalid repeat entries, while keeping established time-entry formats. Corrects Song Chords singular wording and Back navigation labels.
+
+Validation: 210 isolated browser checks across five viewport sizes; 16 targeted Node suites; 37 JavaScript syntax checks. See AUDIT_RC275.md for scope and limits.

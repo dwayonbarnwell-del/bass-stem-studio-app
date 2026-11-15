@@ -147,7 +147,7 @@ function renderList(){
  if(root.scrollTop!==undefined)root.scrollTop=offset;
  const more=$('bsRefMore');more.hidden=found.length<=visible;
  more.textContent='Show more ('+Math.min(80,found.length-visible)+' of '+(found.length-visible)+' remaining)';
- const count=$('bsRefMatches');count.textContent=found.length+' matching songs'+(found.length>visible?' · showing first '+visible:'');
+ const count=$('bsRefMatches');count.textContent=found.length+' matching song'+(found.length===1?'':'s')+(found.length>visible?' · showing first '+visible:'');
  updateCount();updateBulkControls();
 }
 function toggleBulkMode(){bulkMode=!bulkMode;bulkSelected.clear();renderList();}
@@ -314,7 +314,7 @@ function setView(next){
  $('bsRefOverview').hidden=next!=='overview';
  $('bsRefDetails').hidden=next!=='edit';
  $('bsRefEmpty').hidden=true;
- $('bsRefClose').textContent=listing?'Close':next==='edit'?'← Overview':directEntry?'← Back':'← All songs';
+ $('bsRefClose').textContent=listing?'Close':next==='edit'?'← Overview':'← Back';
  dialog.scrollTop=0;updateBulkControls();
  if(listing&&previous!=='list'){
   const row=[...$('bsRefSongs').children].find(item=>item.dataset.songId===String(selectedId));

@@ -14,7 +14,7 @@ if OUT.exists():
     shutil.rmtree(OUT)
 OUT.mkdir()
 folders = {'icons', 'licenses', 'ai-source', 'batch-source', 'billing-source',
-           'chord-source', 'ear-source', 'library-source', 'media-source', 'song-reference', 'vendor'}
+           'chord-source', 'ear-source', 'ear-assets', 'library-source', 'media-source', 'song-reference', 'vendor'}
 files = {'index.html', 'guide.html', 'manifest.webmanifest', 'sw.js', 'ai-assets-rc201.js', 'SOUND_CREDITS.txt'}
 for name in subprocess.check_output(['git', 'ls-files'], cwd=ROOT, text=True).splitlines():
     p = Path(name)
@@ -52,3 +52,10 @@ for width in [360,430,800,1280]:
 # Render static site headers also apply to workers; prevent outbound API jobs.
 (OUT / '_headers').write_text('/*\n  X-Robots-Tag: noindex, nofollow\n  Content-Security-Policy: ' + policy + '\n')
 print('Built isolated TEST ONLY site in test-dist; online analysis disabled.')
+
+# Current regression audit. Storage and requests are isolated from production.
+audit_275 = ROOT / 'tests/browser_audit_rc275.js'
+if audit_275.exists():
+    (OUT / 'audit-rc275.html').write_text(audit_html.replace(marker, audit_275.read_text()+'\n'+marker))
+    for width,height in [(360,800),(412,915),(844,390),(800,1000),(1280,900)]:
+        (OUT / f'audit-rc275-{width}.html').write_text(f'<!doctype html><title>TEST ONLY | {width}px</title><iframe title="Isolated audit" src="audit-rc275.html" style="width:{width}px;height:{height}px;border:0"></iframe>')
