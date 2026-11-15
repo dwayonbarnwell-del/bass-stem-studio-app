@@ -27,7 +27,7 @@ window.BassFillTrainer=(()=>{
  const collections=()=>kind==='runs'?P.runs:kind==='basslines'?P.lines.map(x=>[D.lineLabel(x),x.tip]):F.styles;
  function patternId(i){return kind==='basslines'?P.lines[i]?.id:String(i);}
  function ideaOptions(wanted=remembered[kind]){
-  const select=$('fillIdea');select.replaceChildren();const rows=collections().map((s,i)=>({s,i,line:kind==='basslines'?P.lines[i]:null})).filter(({i,line})=>D.visible(kind,patternId(i))&&(!line||$('fillCollection').value==='studies'||line.artist===$('fillCollection').value));
+  const select=$('fillIdea');select.replaceChildren();const rows=collections().map((s,i)=>({s,i,line:kind==='basslines'?P.lines[i]:null})).filter(({i,line})=>D.visible(kind,patternId(i))&&(!line||D.inCollection(line,$('fillCollection').value)));
   rows.sort((a,b)=>Number(!!a.line?.african)-Number(!!b.line?.african));let african;
   for(const {s,i,line} of rows){const o=document.createElement('option');o.value=i;o.textContent=s[0];if(line?.african){if(!african){african=document.createElement('optgroup');african.label='African basslines';select.append(african);}african.append(o);}else select.append(o);}
   if([...select.options].some(o=>o.value===String(wanted)))select.value=String(wanted);else if(select.options.length)select.selectedIndex=0;

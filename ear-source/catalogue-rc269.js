@@ -11,7 +11,8 @@ window.BassPracticeCatalogue=(()=>{
  gospel:{label:'No Treble · bass lick lessons',url:'https://www.notreble.com/lessons/bass-lick-series/'},
  africa:{label:'African bass · World Music Method course',url:'https://worldmusicmethod.com/learn-african-bass/'}
  };
- const groups=[['studies','All original studies'],['marley','Bob Marley / Aston Barrett · style studies'],['jamerson','James Jamerson · style studies'],['edwards','Bernard Edwards · style studies'],['miller','Marcus Miller · style studies']];
+ const genres=[['reggae','Reggae'],['makossa','Makossa'],['highlife','Highlife'],['afrobeat','Afrobeat'],['soukous','Soukous'],['mbalax','Mbalax'],['mbaqanga','Mbaqanga']];
+ const groups=[['studies','Original studies'],...genres,['jamerson','James Jamerson · style studies'],['edwards','Bernard Edwards · style studies'],['miller','Marcus Miller · style studies']];
  P.lines.forEach((l,i)=>{l.id='line-'+i;l.african=/highlife|makossa/i.test(l.name);});
  const progressions={
   6:['6 2 3 6','6 5 4 5 3','6 2 5 1','6 4 2 5','6 3 4 5','6 5 4 3','6 2 4 5','6 4 1 3','6 3 2 5','6 5 1 4','6 2 5 1 4 3','6 4 5 3'],
@@ -70,11 +71,13 @@ window.BassPracticeCatalogue=(()=>{
  const storageKey='bass-practice-deleted-v1',customKey='bass-practice-custom-v1';let deleted=new Set(),custom=[];
  try{const saved=JSON.parse(localStorage.getItem(storageKey)||'[]');if(Array.isArray(saved))deleted=new Set(saved.filter(v=>typeof v==='string'));}catch{}
  try{const saved=JSON.parse(localStorage.getItem(customKey)||'[]');if(Array.isArray(saved))custom=saved.filter(l=>typeof l.id==='string'&&l.id.startsWith('custom-')&&Array.isArray(l.degrees)&&l.degrees.length>=2&&l.degrees.length<=16&&l.degrees.every(n=>Number.isInteger(n)&&n>=1&&n<=7));P.lines.push(...custom);}catch{}
+ function genreOf(line){if(line.id?.startsWith('custom-'))return null;if(line.artist==='marley'||/reggae/i.test(line.name))return 'reggae';return genres.find(([id])=>new RegExp(id,'i').test(line.name))?.[0]||null;}
+ function inCollection(line,group){const genre=genreOf(line);return group==='studies'?!genre:genres.some(([id])=>id===group)?genre===group:line.artist===group;}
  const lineLabel=l=>l.name.replace(/\s*·\s*[1-7](?:[–-][1-7])+$/,'')+' · '+l.degrees.join('–');
  const key=(kind,id)=>kind+':'+id;
  const visible=(kind,id)=>!deleted.has(key(kind,id));
  function remove(kind,id){const next=new Set(deleted);next.add(key(kind,id));localStorage.setItem(storageKey,JSON.stringify([...next]));deleted=next;}
  function restore(){localStorage.setItem(storageKey,'[]');deleted.clear();}
  function addProgression(text,template){const parts=text.trim().split(/[\s,–>→-]+/);if(parts.length<2||parts.length>16||parts.some(x=>! /^[1-7]$/.test(x)))throw Error('Enter 2–16 numbers from 1 to 7.');const l={...template,id:'custom-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),name:'My progression',artist:undefined,degrees:parts.map(Number)};const next=[...custom,l];localStorage.setItem(customKey,JSON.stringify(next));custom=next;P.lines.push(l);return P.lines.length-1;}
- return {groups,sources,lineLabel,visible,remove,restore,addProgression,get deletedCount(){return deleted.size;}};
+ return {groups,sources,genreOf,inCollection,lineLabel,visible,remove,restore,addProgression,get deletedCount(){return deleted.size;}};
 })();
