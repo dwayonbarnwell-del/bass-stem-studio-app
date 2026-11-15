@@ -1,0 +1,1 @@
+Bass-only audio extracted from the six supplied reggae lesson videos. Full mixes and videos are not included. Automatic notes are estimates; low confidence and disagreement between detection passes are flagged for review. Practice sections are time-based excerpts, not manually verified individual patterns or song boundaries. Titles follow the supplied filenames.

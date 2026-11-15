@@ -1,0 +1,7 @@
+RC273 - Reggae bass lessons
+
+Adds six recordings from Bass - Reggae Basslines New 2.zip alongside the 56 recordings prepared in RC272. Covers rub-a-dub, rhythm exercises, groove development, bassline techniques and the supplied Bob Marley lesson. Source hashes prevent exact duplicates.
+
+Includes isolated bass audio, estimated notes and short practice sections. Notes are automatic estimates, not verified transcriptions. Review flags mark uncertain or conflicting detections. Practice sections are excerpts, not confirmed song or pattern boundaries.
+
+Included in the authorised RC274 release.

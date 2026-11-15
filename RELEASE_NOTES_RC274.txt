@@ -1,0 +1,9 @@
+RC274 - African-style bass lessons
+
+Adds ten new recordings from Various African Genres.zip, preserving the 62 recordings prepared through RC273. Includes three Cameroonian Makossa tutorials, two Congolese technique lessons, a Sebene lesson, a Zouk lesson and two broadly labelled African bass lessons. One World Music recording has an incomplete title and remains under Genre to review. No praise or worship classification is assumed for these instrumental tutorials.
+
+Bass-only audio, estimated notes and short practice sections are included. Automatic transcription is not manually verified note by note. Uncertain notes are flagged. Practice sections are time-based excerpts rather than confirmed musical boundaries.
+
+Publication authorised by the user on 15 November 2026, including all 29 lesson audio files added in RC272–RC274.
+
+Validation passed: 72 unique recording IDs and source hashes; 12,832 estimated notes in this batch; 366 short practice sections; 4,512 section/speed/transposition combinations. All ten new audio files decode correctly and match their note timeline durations. Existing 62-recording checks passed before final integration.
