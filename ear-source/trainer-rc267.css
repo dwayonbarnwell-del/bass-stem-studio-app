@@ -1,0 +1,123 @@
+/* Layered important rules isolate the trainer from legacy global control styles. */
+@layer bass-ear-267 {
+#earTrainerDialog{--ear-view-width:100vw;--ear-view-height:100dvh;--ear-view-top:0px;--ear-view-left:0px;--ear-edge:8px;--ear-gap:clamp(10px,calc(var(--ear-view-height)*.018),22px);--ear-control:clamp(44px,calc(var(--ear-view-height)*.065),60px);--ear-pad:clamp(14px,calc(var(--ear-view-width)*.035),24px);--ear-key-height:clamp(120px,calc(var(--ear-view-height)*.19),180px);--ear-panel-width:min(720px,calc(var(--ear-view-width) - 2*var(--ear-edge) - env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px)));--ear-panel-height:calc(var(--ear-view-height) - 2*var(--ear-edge) - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));box-sizing:border-box!important;position:fixed!important;width:var(--ear-panel-width)!important;max-width:none!important;height:var(--ear-panel-height)!important;max-height:var(--ear-panel-height)!important;padding:var(--ear-pad)!important;margin:0!important;inset:auto!important;left:calc(var(--ear-view-left) + env(safe-area-inset-left,0px) + (var(--ear-view-width) - env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px) - var(--ear-panel-width))/2)!important;top:calc(var(--ear-view-top) + var(--ear-edge) + env(safe-area-inset-top,0px))!important;border:1px solid #557487!important;border-radius:16px!important;background:#101f2d!important;color:#f4f8fb!important;overflow:auto!important;font:14px/1.4 system-ui,sans-serif!important;overscroll-behavior:contain!important;scroll-padding:var(--ear-pad)!important}
+#earTrainerDialog[open]{display:flex!important;flex-direction:column!important;justify-content:flex-start!important;gap:var(--ear-gap)!important}
+#earTrainerDialog>*,#earTrainerDialog #earQuestion>*,#earTrainerDialog #earNotes>*,#earTrainerDialog #earFillStudy>*{flex-shrink:0!important}
+#earTrainerDialog *{box-sizing:border-box!important;min-width:0!important;font-family:system-ui,sans-serif!important}
+#earTrainerDialog section{margin:0!important;padding:0!important;border:0!important;background:transparent!important}
+#earTrainerDialog#earTrainerDialog [hidden]{display:none!important}
+#earTrainerDialog h2{font-size:20px!important;line-height:1.2!important;margin:0!important;padding:0!important;text-align:left!important}
+#earTrainerDialog h3{font-size:14px!important;line-height:1.35!important;margin:0!important;padding:0!important;text-align:left!important}
+#earTrainerDialog p{font-size:13px!important;line-height:1.35!important;margin:0!important;padding:0!important}
+#earTrainerDialog button,#earTrainerDialog select{box-sizing:border-box!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;flex-direction:row!important;gap:0!important;font:650 14px/1.25 system-ui,sans-serif!important;min-height:var(--ear-control)!important;height:var(--ear-control)!important;max-height:none!important;min-width:0!important;width:auto!important;max-width:100%!important;border-radius:9px!important;border:1px solid #6d8b9e!important;color:#f5f9fc!important;background:#243e50!important;padding:6px 8px!important;margin:0!important;white-space:normal!important;word-break:normal!important;overflow-wrap:normal!important;letter-spacing:normal!important;text-align:center!important;cursor:pointer!important;touch-action:manipulation!important}
+#earTrainerDialog select{display:block!important;width:100%!important;text-align:center!important;text-align-last:center!important;padding:8px 24px!important;background:#102b3d!important;appearance:auto!important;white-space:nowrap!important}
+#earTrainerDialog button:disabled,#earTrainerDialog select:disabled{opacity:.5!important;cursor:default!important}
+#earTrainerDialog button:focus-visible,#earTrainerDialog select:focus-visible{outline:2px solid #8ce2ff!important;outline-offset:2px!important}
+#earTrainerDialog .ear-header{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:var(--ear-gap)!important;margin:0!important;padding:0!important;position:sticky!important;top:calc(-1*var(--ear-pad))!important;z-index:5!important;background:#101f2d!important;min-height:var(--ear-control)!important}
+#earTrainerDialog #earClose{min-height:var(--ear-control)!important;height:var(--ear-control)!important;flex:0 0 auto!important;width:auto!important;background:#624252!important;border-color:#af8398!important}
+#earTrainerDialog #earSections{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:var(--ear-gap)!important;margin:0!important;padding:0!important}
+#earTrainerDialog #earSections button{width:100%!important}
+#earTrainerDialog #earMode{background:#214e52!important;border-color:#80c5ca!important}
+#earTrainerDialog #earMode[data-active="true"]{background:#285b59!important;border-color:#a3e8dc!important;box-shadow:inset 0 -3px 0 #a3e8dc!important}
+#earTrainerDialog #earSectionFills{background:#654c31!important;border-color:#c8a271!important}
+#earTrainerDialog #earSectionFills[aria-pressed="true"]{background:#765935!important;border-color:#ffcf89!important;box-shadow:inset 0 -3px 0 #ffcf89!important}
+#earTrainerDialog #earBassSections{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:var(--ear-gap)!important}
+#earTrainerDialog #earBassSections button{background:#333f61!important;border-color:#8295c4!important;font-size:13px!important;width:100%!important}
+#earTrainerDialog #earBassSections [aria-pressed="true"]{background:#514370!important;border-color:#c7b2eb!important;box-shadow:inset 0 -3px 0 #c7b2eb!important}
+#earTrainerDialog #earSetup #earStart{width:100%!important;min-width:0!important}
+#earTrainerDialog .ear-settings{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:var(--ear-gap)!important;margin:0!important;padding:0!important}
+#earTrainerDialog .ear-settings label{display:block!important;margin:0!important;padding:0!important}
+#earTrainerDialog #earCount{width:100%!important;background:#253e53!important}
+#earTrainerDialog #earPlaybackChoices{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:var(--ear-gap)!important;margin:0!important;padding:0!important}
+#earTrainerDialog #earPlaybackChoices button{font-size:13px!important;min-height:var(--ear-control)!important;height:var(--ear-control)!important;padding:5px 3px!important}
+#earTrainerDialog #earPlaybackChoices [aria-pressed=true]{background:#285b59!important;border-color:#97d8cc!important}
+#earTrainerDialog #earHint{font-size:13px!important;color:#bdcfdc!important;margin:0!important}
+#earTrainerDialog .ear-start-row{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:var(--ear-gap)!important;margin:0!important;padding:0!important}
+#earTrainerDialog #earStart{background:#285b59!important;border-color:#8fcac0!important;padding:6px 14px!important;min-width:88px!important;width:auto!important}
+#earTrainerDialog #earFinish{background:#4f3f50!important;border-color:#a28da7!important;flex:0 0 auto!important;min-height:var(--ear-control)!important;height:var(--ear-control)!important;font-size:13px!important;padding:5px 9px!important}
+#earTrainerDialog #earSession{font-size:13px!important;color:#b9cedd!important;line-height:1.3!important;text-align:left!important}
+#earTrainerDialog #earStatus{font-size:13px!important;min-height:0!important;color:#b5dcd1!important;margin:0!important}
+#earTrainerDialog #earStatus:empty{display:none!important}
+#earTrainerDialog .ear-score-row{display:flex!important;justify-content:space-between!important;gap:var(--ear-gap)!important;font-size:13px!important;color:#c0d0dc!important;border-top:1px solid #385064!important;padding:7px 0 0!important;margin:0!important}
+#earTrainerDialog .ear-question-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:var(--ear-gap)!important;margin:0!important;padding:0!important}
+#earTrainerDialog #earHome{flex:0 0 auto!important;background:#4c4b32!important;border-color:#a7a47e!important;font-size:13px!important;min-height:var(--ear-control)!important;height:var(--ear-control)!important;padding:4px 8px!important}
+#earTrainerDialog .ear-actions{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:var(--ear-gap)!important;margin:0!important;padding:0!important}
+#earTrainerDialog .ear-actions button{min-height:var(--ear-control)!important;height:var(--ear-control)!important;width:100%!important;padding:5px 3px!important;font-size:13px!important}
+#earTrainerDialog #earListen{background:#245651!important;border-color:#87c7b9!important}
+#earTrainerDialog #earRepeat{background:#514370!important;border-color:#ad9acb!important}
+#earTrainerDialog #earRepeat[aria-pressed=true]{background:#8063a7!important;border-color:#e2d2f7!important;box-shadow:inset 0 0 0 1px #e2d2f7!important}
+#earTrainerDialog #earReveal{background:#664c31!important;border-color:#c2a079!important}
+#earTrainerDialog #earNext,#earTrainerDialog #earAdvance{background:#345583!important;border-color:#91b7e5!important}
+#earTrainerDialog .ear-answers{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:var(--ear-gap)!important;margin:0!important;padding:0!important}
+#earTrainerDialog .ear-answers:empty{display:none!important}
+#earTrainerDialog .ear-answers button{height:auto!important;min-height:var(--ear-control)!important;white-space:normal!important;background:#303b58!important;padding:7px 6px!important;font-size:13px!important}
+#earTrainerDialog .ear-answers button.correct{background:#245348!important;border-color:#8fe0bd!important;opacity:1!important}
+#earTrainerDialog .ear-answers button.review{background:#63472e!important;border-color:#d8b78c!important;opacity:1!important}
+#earTrainerDialog #earKeyboardScroll{width:100%!important;overflow-x:auto!important;overflow-y:hidden!important;flex-shrink:0!important;touch-action:pan-x!important;padding-bottom:6px!important}
+#earTrainerDialog #earKeyboard{min-width:var(--ear-piano-min-width,224px)!important;position:relative!important;display:block!important;height:var(--ear-key-height)!important;min-height:var(--ear-key-height)!important;max-height:var(--ear-key-height)!important;width:100%!important;margin:0!important;padding:0!important;isolation:isolate!important;border-radius:5px!important;background:#0b1621!important;overflow:hidden!important}
+#earTrainerDialog #earKeyboard button{position:absolute!important;display:flex!important;top:0!important;bottom:auto!important;min-width:0!important;max-width:none!important;min-height:0!important;max-height:none!important;align-items:flex-end!important;justify-content:center!important;padding:0 0 7px!important;margin:0!important;border:1px solid #687b89!important;border-radius:0 0 5px 5px!important;white-space:nowrap!important;word-break:normal!important;overflow-wrap:normal!important;font-size:11px!important;line-height:1!important;letter-spacing:-.2px!important;opacity:1!important;box-shadow:none!important;transform:none!important;filter:none!important}
+#earTrainerDialog #earKeyboard .ear-white{width:var(--ear-white-width,14.285714%)!important;height:var(--ear-key-height)!important;min-height:var(--ear-key-height)!important;background:#ecf0f3!important;color:#13232d!important;z-index:1!important}
+#earTrainerDialog #earKeyboard .ear-black{width:var(--ear-black-width,8%)!important;height:calc(var(--ear-key-height)*.6)!important;min-height:calc(var(--ear-key-height)*.6)!important;background:#18222e!important;color:#fff!important;z-index:2!important;padding-bottom:6px!important;font-size:9px!important;border-color:#405263!important}
+#earTrainerDialog #earKeyboard button:disabled{opacity:1!important;cursor:default!important}
+#earTrainerDialog #earKeyboard button:active{background:#248bd1!important;color:#fff!important}
+#earTrainerDialog #earEntered{font-size:13px!important;line-height:1.25!important;text-align:center!important;min-height:15px!important;color:#c7e9e2!important;margin:0!important;font-weight:650!important}
+#earTrainerDialog .ear-note-actions{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:var(--ear-gap)!important;margin:0!important;padding:0!important}
+#earTrainerDialog .ear-note-actions button{font-size:13px!important;min-height:var(--ear-control)!important;height:var(--ear-control)!important;padding:5px 4px!important;background:#314658!important}
+#earTrainerDialog #earCheckNotes{background:#31574f!important;border-color:#83b7a6!important}
+#earTrainerDialog .ear-feedback{padding:8px!important;border-radius:9px!important;font-size:13px!important;line-height:1.4!important;margin:0!important;min-height:0!important}
+#earTrainerDialog .ear-feedback:empty{display:none!important}
+#earTrainerDialog .ear-feedback.correct{background:#1d3f38!important;color:#c3f3df!important}
+#earTrainerDialog .ear-feedback.review{background:#43392c!important;color:#ffe2b8!important}
+#earTrainerDialog .ear-progress{border:0!important;margin:0!important;padding:6px 0 0!important;border-top:1px solid #385064!important;background:transparent!important;border-radius:0!important}
+#earTrainerDialog .ear-progress summary{display:list-item!important;cursor:pointer!important;min-height:44px!important;font-size:13px!important;font-weight:650!important;margin:0!important;padding:10px 0!important;background:transparent!important;border:none!important;border-radius:0!important}
+#earTrainerDialog .ear-progress ul{padding:0 0 0 18px!important;margin:0!important;font-size:13px!important}
+#earTrainerDialog .ear-progress li{margin:2px 0!important}
+#earTrainerDialog #earStorageNote{font-size:11px!important}
+#earTrainerDialog #earKeyboard button.ear-correct,#earTrainerDialog #earKeyboard button.ear-playing{background:#248bd1!important;color:#fff!important;border-color:#9bd8ff!important;box-shadow:inset 0 0 0 1px #b7e4ff!important}
+#earTrainerDialog #earKeyboard button.ear-correct::after{content:attr(data-order)!important;position:absolute!important;top:5px!important;left:0!important;right:0!important;font-size:10px!important;text-align:center!important;color:#fff!important}
+#earTrainerDialog #earCheckNotes{display:none!important}
+#earTrainerDialog .ear-note-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+#earTrainerDialog .ear-answer-sound{display:flex!important;gap:var(--ear-gap)!important;margin:0!important}
+#earTrainerDialog #earAnswerSound{background:#245b82!important;border-color:#8cbfde!important;width:100%!important}
+#earTrainerDialog .fill-settings{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:var(--ear-gap)!important;margin:0!important}
+#earTrainerDialog .fill-actions{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:var(--ear-gap)!important;margin:0!important}
+#earTrainerDialog .fill-actions button{width:100%!important;padding:4px!important;font-size:11px!important}
+#earTrainerDialog #fillPlay{background:#245651!important}#earTrainerDialog #fillRepeat{background:#514370!important}#earTrainerDialog #fillNext{background:#345583!important}#earTrainerDialog #fillBacking{background:#664c31!important}
+#earTrainerDialog #fillRepeat[aria-pressed=true]{background:#8063a7!important;border-color:#e2d2f7!important}
+#earTrainerDialog #fillNotes{display:flex!important;flex-wrap:wrap!important;gap:var(--ear-gap)!important;margin:0!important}
+#earTrainerDialog #fillNotes button{font-size:13px!important;min-width:42px!important;flex:1!important;min-height:var(--ear-control)!important;height:var(--ear-control)!important}
+#earTrainerDialog #fillNotes .landing{border:2px solid #59b7f3!important}
+#earTrainerDialog #fillNotes .sounding{background:#248bd1!important;color:white!important}
+#earTrainerDialog #fillStatus{font-size:13px!important}
+
+#earTrainerDialog #earQuestion,#earTrainerDialog #earNotes,#earTrainerDialog #earFillStudy{display:flex!important;flex-direction:column!important;justify-content:space-evenly!important;gap:var(--ear-gap)!important;flex:1 0 auto!important}
+#earTrainerDialog #earSummary{display:flex!important;flex-direction:column!important;justify-content:center!important;gap:var(--ear-gap)!important;flex:1 0 auto!important}
+#earTrainerDialog .ear-score-row{flex-wrap:wrap!important}
+#earTrainerDialog #earStart{min-width:120px!important}
+#earTrainerDialog .fill-settings #fillIdea{grid-column:1/-1!important}
+#earTrainerDialog .ear-feedback{padding:12px!important}
+#earTrainerDialog #fillNotes{gap:10px!important}
+#earTrainerDialog #fillNotes button{min-width:48px!important;font-size:13px!important}
+#earTrainerDialog .fill-actions button{font-size:13px!important;white-space:normal!important}
+#earTrainerDialog #fillPlayer,#earTrainerDialog #fillLibrary{display:flex!important;flex-direction:column!important;gap:var(--ear-gap)!important}
+#earTrainerDialog #fillPlayer>* ,#earTrainerDialog #fillLibrary>*{flex-shrink:0!important}
+#earTrainerDialog .my-fill-actions,#earTrainerDialog .my-fill-pages{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:var(--ear-gap)!important;align-items:center!important}
+#earTrainerDialog .my-fill-pages{grid-template-columns:1fr auto 1fr!important}
+#earTrainerDialog #myFillSearch{width:100%!important;min-height:44px!important;background:#102b3d!important;color:#fff!important;border:1px solid #6d8b9e!important;border-radius:9px!important;padding:8px!important;font:14px system-ui!important}
+#earTrainerDialog #myFillResults{display:flex!important;flex-direction:column!important;gap:14px!important}
+#earTrainerDialog .my-fill-card{display:flex!important;flex-direction:column!important;gap:10px!important;border:1px solid #496375!important;border-radius:10px!important;padding:12px!important;background:#152b3a!important}
+#earTrainerDialog .my-fill-card h3,#earTrainerDialog .my-fill-card p{overflow-wrap:anywhere!important}
+#earTrainerDialog #myFillIssues{white-space:pre-wrap!important}
+#earTrainerDialog #fillSavedActions select{padding:4px!important;font-size:13px!important}
+#earTrainerDialog #earNoteEntry,#earTrainerDialog #earFeedbackPanel{display:flex!important;flex-direction:column!important;gap:var(--ear-gap)!important}
+#earTrainerDialog #earNotes{flex:1 0 auto!important;justify-content:center!important}
+#earTrainerDialog #earProgress{margin-top:auto!important}
+#earTrainerDialog #earQuestion{flex:0 0 auto!important;justify-content:flex-start!important}
+#earTrainerDialog #fillCollection,#earTrainerDialog #fillClip,#earTrainerDialog #fillExcerpt,#earTrainerDialog #fillClipTranspose{grid-column:1/-1!important}
+#earTrainerDialog #earFillStudy[data-imported="true"] #fillNotes{position:relative!important;max-height:clamp(150px,28vh,270px)!important;overflow:auto!important;align-content:flex-start!important;padding:4px!important}
+#earTrainerDialog #earFillStudy[data-imported="true"] #fillNotes button{flex:0 0 calc(20% - 8px)!important;min-width:40px!important}
+#earTrainerDialog #earFillStudy[data-imported="true"] .fill-actions{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+#earTrainerDialog #fillNotes .needs-review{border-color:#d5ac70!important;border-style:dashed!important}
+@media (max-width:359px){#earTrainerDialog .ear-actions,#earTrainerDialog .fill-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media (prefers-reduced-motion:reduce){#earTrainerDialog{scroll-behavior:auto!important}}
+}

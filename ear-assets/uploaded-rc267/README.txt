@@ -1,0 +1,1 @@
+Bass stems derived from 43 user-supplied videos for the requested rehearsal collection. Original video and full-mix audio are not hosted in this directory. Transcription metadata is in ear-source/uploaded-data-rc267.js. All note estimates are automatic; flagged notes need checking against recorded bass.
