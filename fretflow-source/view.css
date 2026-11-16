@@ -1,0 +1,39 @@
+#fretFlowPanel{flex:1 1 0;min-height:0;min-width:0;display:flex;flex-direction:column;gap:6px;overflow:auto;color:#f4f1e8;background:radial-gradient(ellipse at 0 50%,#2b1c17 0,transparent 45%),#0b1018;border-radius:13px;padding:8px;box-sizing:border-box}
+#fretFlowPanel [hidden],#fretFlowPanel[hidden]{display:none!important}
+#fretFlowPanel *{box-sizing:border-box}
+#fretFlowPanel .ff-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:none}
+#fretFlowPanel .ff-brand{color:#eacc80;letter-spacing:.04em;font-weight:800;font-size:16px;flex:1}
+#fretFlowPanel button{min-height:36px;height:auto;min-width:0;max-width:100%;padding:6px 12px;font:600 12px/1.25 system-ui;border:1px solid #6a675a;border-radius:9px;background:#243346;color:#fff;text-align:center;white-space:normal}
+#fretFlowPanel button[aria-pressed=true]{background:#35664f;border-color:#81e2b4}
+#fretFlowPanel button:focus-visible{outline:3px solid #f2d281;outline-offset:2px}
+#fretFlowPanel .ff-song{font:600 12px/1.25 system-ui;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;max-width:100%;color:#bbc5d4;flex:none}
+#fretFlowPanel .ff-stage{flex:1 1 0;min-height:395px;display:grid;grid-template-columns:minmax(64px,24%) minmax(0,1fr);gap:10px}
+#fretFlowPanel .ff-neck-wrap{min-height:0;position:relative}
+#fretFlowPanel .ff-neck{width:100%;height:100%;display:block;overflow:visible}
+#fretFlowPanel .ff-main{min-width:0;min-height:0;display:flex;flex-direction:column;gap:5px}
+#fretFlowPanel .ff-readout{display:flex;align-items:center;gap:8px;min-height:34px;flex:none}
+#fretFlowPanel .ff-note{font:800 25px/1 system-ui;color:var(--ff-current,#eacc80)}
+#fretFlowPanel .ff-position{font:500 12px/1.2 system-ui;color:#b9c2d0;flex:1}
+#fretFlowPanel .ff-map{flex:1 1 0;width:100%;min-height:245px;display:block;border:1px solid #3e4149;border-radius:13px;background:linear-gradient(125deg,#242831,#151c26);overflow:visible}
+#fretFlowPanel .ff-tab{width:100%;height:104px;flex:none;display:block;background:#151c26;border:1px solid #3e4149;border-radius:10px;touch-action:manipulation}
+#fretFlowPanel .ff-caption{font:11px/1.3 system-ui;color:#aab6c8;margin:0;flex:none}
+#fretFlowPanel .ff-message{font:12px/1.35 system-ui;color:#ecd290;margin:0;flex:none}
+#fretFlowPanel .ff-message:empty{display:none}
+#fretFlowPanel svg text{font-family:system-ui,sans-serif;user-select:none}
+#fretFlowPanel .ff-tab-hit{cursor:pointer}
+body.fretflow-view-active #appRoot #timelineBreakdownControl{visibility:hidden}
+@media(min-width:700px) and (min-height:600px){#fretFlowPanel .ff-stage{max-width:810px;width:100%;margin:auto;grid-template-columns:minmax(90px,23%) minmax(0,1fr)}#fretFlowPanel .ff-tab{height:125px}}
+@media(max-height:550px){#fretFlowPanel .ff-stage{min-height:395px}#fretFlowPanel .ff-caption{font-size:11px}}
+
+@layer fretflow276 {
+ #ffHeaderTools{display:none!important}
+ body.fretflow-view-active #ffHeaderTools{display:flex!important;flex:1 1 0!important;min-width:0!important;gap:6px!important;justify-content:flex-end!important;align-items:center!important}
+ #ffHeaderTools [hidden]{display:none!important}
+ #ffHeaderTools select{font:600 12px/1.2 system-ui!important;min-height:40px!important;height:40px!important;min-width:75px!important;width:85px!important;max-width:85px!important;flex:none!important;padding:4px!important;border-radius:9px!important;text-align:center!important;background:#172d3d!important;color:#f4f1e8!important;border:1px solid #567487!important}
+ #ffHeaderTools button{min-height:40px!important;height:auto!important;width:auto!important;max-width:100%!important;padding:7px 10px!important;font:600 12px/1.2 system-ui!important;white-space:normal!important;border:1px solid #6a675a!important;border-radius:9px!important;background:#243346!important;color:white!important;text-align:center!important}
+ #ffHeaderTools button[aria-pressed=true]{background:#35664f!important;border-color:#81e2b4!important}
+ #fretFlowPanel .ff-note{font:800 25px/1 system-ui!important}
+ #fretFlowPanel .ff-position{font:500 12px/1.2 system-ui!important}
+ #fretFlowPanel .ff-song{font:600 12px/1.25 system-ui!important}
+ #fretFlowPanel .ff-caption{font:11px/1.3 system-ui!important}
+}
