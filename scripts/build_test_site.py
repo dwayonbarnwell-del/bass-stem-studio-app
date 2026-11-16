@@ -14,7 +14,7 @@ if OUT.exists():
     shutil.rmtree(OUT)
 OUT.mkdir()
 folders = {'icons', 'licenses', 'ai-source', 'batch-source', 'billing-source',
-           'chord-source', 'ear-source', 'ear-assets', 'library-source', 'media-source', 'song-reference', 'vendor'}
+           'fretflow-source', 'chord-source', 'ear-source', 'ear-assets', 'library-source', 'media-source', 'song-reference', 'vendor'}
 files = {'index.html', 'guide.html', 'manifest.webmanifest', 'sw.js', 'ai-assets-rc201.js', 'SOUND_CREDITS.txt'}
 for name in subprocess.check_output(['git', 'ls-files'], cwd=ROOT, text=True).splitlines():
     p = Path(name)
@@ -59,3 +59,10 @@ if audit_275.exists():
     (OUT / 'audit-rc275.html').write_text(audit_html.replace(marker, audit_275.read_text()+'\n'+marker))
     for width,height in [(360,800),(412,915),(844,390),(800,1000),(1280,900)]:
         (OUT / f'audit-rc275-{width}.html').write_text(f'<!doctype html><title>TEST ONLY | {width}px</title><iframe title="Isolated audit" src="audit-rc275.html" style="width:{width}px;height:{height}px;border:0"></iframe>')
+
+# FretFlow regression fixtures retain the production geometry. The fixture itself
+# visibly labels the page as a test; avoid a 44px banner changing the viewport.
+fretflow = audit_html.replace(banner, '')
+(OUT / 'audit-fretflow.html').write_text(fretflow.replace(marker, (ROOT / 'tests/browser_fretflow_rc276.js').read_text()+'\n'+marker))
+for width, height in [(360,800), (412,915), (844,390), (1280,900)]:
+    (OUT / f'fretflow-{width}.html').write_text(f'<!doctype html><title>TEST ONLY | FretFlow {width}px</title><iframe title="FretFlow test" src="audit-fretflow.html" style="width:{width}px;height:{height}px;border:0"></iframe>')

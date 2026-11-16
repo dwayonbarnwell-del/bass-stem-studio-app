@@ -13707,6 +13707,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPan
 </style>
 <link rel="stylesheet" href="./ear-source/trainer-rc267.css?v=rc269">
 <style id="rc260-key-audition">@layer bass-piano-audition-260{#appRoot #pianoKeyboard .piano-key.auditioning{background:#248bd1!important;color:white!important;box-shadow:inset 0 0 0 1px #b7e4ff!important}}</style>
+<link rel="stylesheet" href="./fretflow-source/view.css?v=rc276">
 </head>
 <body>
 <div id="sectionCompatibility" style="display:none" aria-hidden="true">
@@ -13820,6 +13821,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPan
             <option value="timeline" selected>Notes View</option>
             <option value="bass">Bass View</option>
             <option value="piano">Piano View</option>
+            <option value="fretflow">FretFlow View</option>
           </select>
           <span class="stacked-select-display" aria-hidden="true"><strong id="practiceViewDisplayValue">Notes</strong><span>View</span></span>
         </div>
@@ -13842,6 +13844,8 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPan
  <div id="pianoNotice" hidden><span id="pianoStatus" role="status"></span><button id="pianoDismiss" type="button" aria-label="Dismiss message">×</button></div>
  <div id="pianoRollViewport" tabindex="0" aria-label="Melody timeline. Follows playback automatically. Swipe horizontally when paused to review notes."><div id="pianoRollCanvas"><div id="pianoRollHeader"><div id="pianoRollCorner">Notes</div><div id="pianoTimeRuler"></div><div id="pianoChordRuler"></div><div id="pianoReadout"><span id="pianoCurrentChord" aria-label="Current chord">—</span><span id="pianoCurrentNote" aria-label="Current melody note">—</span></div></div><div id="pianoKeyboard" aria-label="Vertical piano keyboard. Tap a key to add a note at the playhead."></div><div id="pianoTimeline" aria-label="Melody notes along the song timeline"></div></div></div>
 </div>
+
+    <section id="fretFlowPanel" hidden aria-label="FretFlow bass practice"></section>
 
     <div class="bass-view-panel" id="bassViewPanel" hidden aria-label="Live bass guitar fretboard">
       <div class="bass-time-strip" id="bassTimeScroll" aria-label="Clickable repeat timeline using the selected split interval">
@@ -15388,10 +15392,13 @@ window.BassBatch = (() => {
 <script src="./ear-source/uploaded-core-rc267.js?v=rc274"></script>
 <script src="./ear-source/study-ui-rc267.js?v=rc271"></script>
 <script src="./ear-source/trainer-rc266.js?v=rc268"></script>
+<script src="./fretflow-source/core.js?v=rc276"></script>
+<script src="./fretflow-source/backing.js?v=rc276"></script>
+<script src="./fretflow-source/view.js?v=rc276"></script>
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC275';
+  const APP_VERSION='RC276';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;
@@ -15432,10 +15439,10 @@ window.BassBatch = (() => {
     songImportBusy=value;
     if(importProjectBtn){importProjectBtn.textContent=value?'Opening…':'Library';importProjectBtn.setAttribute('aria-busy',String(value));}
     if(aiAnalyse)aiAnalyse.disabled=value||aiBusy||!buffer;
-    updateProjectButtons();updateAnalysisToolsState();
+    updateProjectButtons();updateAnalysisToolsState();refreshBassPracticeToggle();
   }
   function replaceSongSession({preservePending=false}={}){
-    songSession++;window.BassLoopFade?.reset();window.BassChordReview?.reset();window.BassSoundCheck?.cancel();window.BassTools?.cancelSession();window.BassRhythm?.cancel();window.BassLyrics?.cancel();window.BassPiano?.reset();
+    songSession++;fretFlowStringCount=5;window.BassFretFlow?.showControls();window.BassBacking?.reset();window.BassFretFlow?.invalidate();window.BassLoopFade?.reset();window.BassChordReview?.reset();window.BassSoundCheck?.cancel();window.BassTools?.cancelSession();window.BassRhythm?.cancel();window.BassLyrics?.cancel();window.BassPiano?.reset();
     resetSongStructure();
     aiBusy=false;pendingResumeBusy=false;offlineAnalysisRunning=false;
     if(aiAnalyse)aiAnalyse.removeAttribute('aria-busy');
@@ -15487,6 +15494,7 @@ window.BassBatch = (() => {
   let analysisParts=[], activeAnalysisPartIndex=0, stemTimelineOffset=0, stemTimelineEnd=Infinity, stemPartSwitchBusy=false;
   let audioKeyBuffer=null,audioKeySections=[],audioKeyReady=false,audioKeyRun=0;
   let practiceVisualMode='timeline';
+  let fretFlowStringCount=5;
   let bassViewStringCount=5;
   try{bassViewStringCount=Number(localStorage.getItem('bassStemBassStringCount')||5)}catch(e){}
   if(![4,5,6].includes(bassViewStringCount))bassViewStringCount=5;
@@ -16036,7 +16044,7 @@ window.BassBatch = (() => {
           audioBase64
         },
         analysis:{
-          ready:true,melody:window.BassPiano?.exportData(),structure:copyAnalysis(songStructure),
+          ready:true,melody:window.BassPiano?.exportData(),structure:copyAnalysis(songStructure),bassBacking:window.BassBacking?.exportData()||null,
           history:analysisHistory,manualCorrections,keyCorrections,
           keySections:audioKeySections,keyReady:audioKeyReady,baseScale:detectedBaseScale,
           noteCount:savedNotes.length,
@@ -16080,7 +16088,8 @@ window.BassBatch = (() => {
           metronomeVolume:Number.isFinite(Number(metronomeVol?.value))?Number(metronomeVol.value):70,
           speed:Number.isFinite(Number(tempo?.value))?Number(tempo.value):100,
           timelineCellSeconds:Number(TIMELINE_CELL_SECONDS)||1,
-          practiceView:['timeline','bass'].includes(String(practiceVisualMode))?String(practiceVisualMode):'timeline',
+          practiceView:['timeline','bass','piano','fretflow'].includes(String(practiceVisualMode))?String(practiceVisualMode):'timeline',
+          fretFlowStrings:fretFlowStringCount,
           bassStringCount:[4,5,6].includes(Number(bassViewStringCount))?Number(bassViewStringCount):5,
           transposeSemitones,
           selectedScale:String(songScale?.textContent||detectedScaleContext?.scaleText||'—'),
@@ -16154,7 +16163,7 @@ window.BassBatch = (() => {
           audioBase64
         },
         analysis:{
-          ready:true,melody:window.BassPiano?.exportData(),structure:copyAnalysis(songStructure),
+          ready:true,melody:window.BassPiano?.exportData(),structure:copyAnalysis(songStructure),bassBacking:window.BassBacking?.exportData()||null,
           history:analysisHistory,manualCorrections,keyCorrections,
           keySections:audioKeySections,keyReady:audioKeyReady,baseScale:detectedBaseScale,
           noteCount:savedNotes.length,
@@ -16198,7 +16207,8 @@ window.BassBatch = (() => {
           metronomeVolume:Number.isFinite(Number(metronomeVol?.value))?Number(metronomeVol.value):70,
           speed:Number.isFinite(Number(tempo?.value))?Number(tempo.value):100,
           timelineCellSeconds:Number(TIMELINE_CELL_SECONDS)||1,
-          practiceView:['timeline','bass'].includes(String(practiceVisualMode))?String(practiceVisualMode):'timeline',
+          practiceView:['timeline','bass','piano','fretflow'].includes(String(practiceVisualMode))?String(practiceVisualMode):'timeline',
+          fretFlowStrings:fretFlowStringCount,
           bassStringCount:[4,5,6].includes(Number(bassViewStringCount))?Number(bassViewStringCount):5,
           transposeSemitones,
           selectedScale:String(songScale?.textContent||detectedScaleContext?.scaleText||'—'),
@@ -16411,6 +16421,10 @@ window.BassBatch = (() => {
       updateButtons();updateProjectButtons();
       updateSectionKey(0);
       seek.value=0;curTime.textContent=fmt(0);
+      setFretFlowStringCount([4,5,6].includes(Number(project.settings?.fretFlowStrings))?Number(project.settings.fretFlowStrings):5);
+      if(project.settings?.practiceView==='fretflow')setPracticeVisualMode('fretflow');
+      await window.BassBacking?.restore(project.analysis.bassBacking);
+      if(request!==songLoadRequest)return false;
       status.className='status good';status.textContent='';
       aiStatus(`Opened “${loadedProjectName||audioName}” · ${restored.length} notes`,100);
       if(!practiceOnly&&!songStructure&&!savedSectionRanges)void ensureSongStructure({importReady:true,allowNewJob:false,maxChecks:2,pollMs:500});
@@ -16774,7 +16788,8 @@ window.BassBatch = (() => {
   function updateAudioParams(){
     if(!ctx) return;
     const now=ctx.currentTime;
-    const trueBassAvailable=!!bassStemReady;
+    const backingActive=!!window.BassBacking?.state().enabled;
+    const trueBassAvailable=!!bassStemReady||backingActive;
     const effectiveAudioTranspose=transposeSemitones;
     // Once a clean no-bass accompaniment exists it becomes Main Track. Bass is
     // added only from the genuine backend-separated bass stem. RC97 deliberately
@@ -16782,9 +16797,9 @@ window.BassBatch = (() => {
     // because that produces phase/codec noise.
     const useNoBass=!!noBassReady;
     if(origGain) origGain.gain.setTargetAtTime((melodySolo?0:Number(origVol.value)/100),now,.01);
-    if(mainSourceGain) mainSourceGain.gain.setTargetAtTime(useNoBass?0:1,now,.01);
-    if(noBassSourceGain) noBassSourceGain.gain.setTargetAtTime(useNoBass?1:0,now,.01);
-    if(bassStemSourceGain) bassStemSourceGain.gain.setTargetAtTime(trueBassAvailable?1:0,now,.01);
+    if(mainSourceGain) mainSourceGain.gain.setTargetAtTime(backingActive||useNoBass?0:1,now,.01);
+    if(noBassSourceGain) noBassSourceGain.gain.setTargetAtTime(!backingActive&&useNoBass?1:0,now,.01);
+    if(bassStemSourceGain) bassStemSourceGain.gain.setTargetAtTime(!backingActive&&bassStemReady?1:0,now,.01);
     if(bassGain) bassGain.gain.setTargetAtTime((trueBassAvailable&&!bassPracticeMuted&&!melodySolo)?Number(bassVol.value)/100:0,now,.01);
     if(bassCancelGain) bassCancelGain.gain.setTargetAtTime(0,now,.01);
     if(mainDryGain) mainDryGain.gain.setTargetAtTime(1,now,.01);
@@ -16811,14 +16826,16 @@ window.BassBatch = (() => {
 
   function refreshBassPracticeToggle(){
     if(!bassPracticeToggle||!bassPracticeText)return;
-    const ready=!!buffer&&noBassReady;
+    const backing=window.BassBacking?.state();
+    const canPrepare=practiceVisualMode==='fretflow'&&!aiBusy&&!songImportBusy;
+    const ready=!!buffer&&(noBassReady||backing?.ready||canPrepare)&&!backing?.busy;
     if(!ready)bassPracticeMuted=false;
     bassPracticeToggle.disabled=!ready;
-    bassPracticeText.textContent=bassPracticeMuted?'Unmute':'Mute';
+    bassPracticeText.textContent=bassPracticeMuted?'Restore bass':'Mute bass';
     bassPracticeToggle.setAttribute('aria-pressed',bassPracticeMuted?'true':'false');
     bassPracticeToggle.setAttribute('aria-label',bassPracticeMuted?'Restore bass':'Mute bass');
     bassPracticeToggle.title=ready
-      ? (bassPracticeMuted?'Restore the original bass':'Play the no-bass rehearsal track so you can perform the bass part live')
+      ? (bassPracticeMuted?'Restore the original bass':noBassReady||backing?.ready?'Play the no-bass rehearsal track so you can perform the bass part live':'Prepare the no-bass rehearsal track')
       : 'Run a fresh analysis to prepare the clean no-bass rehearsal track';
   }
   function refreshStemMixerUI(){
@@ -18476,7 +18493,7 @@ window.BassBatch = (() => {
     }
     cells.forEach(c=>c.classList.toggle('playing',c===active));
 
-    if(active && practiceVisualMode==='bass'){
+    if(active && ['bass','fretflow'].includes(practiceVisualMode)){
       const left=active.offsetLeft;
       const right=left+active.offsetWidth;
       const viewLeft=bassTimeScroll.scrollLeft;
@@ -18500,17 +18517,28 @@ window.BassBatch = (() => {
     drawAll();
   }
 
+  function setFretFlowStringCount(count){
+    if(![4,5,6].includes(Number(count)))return;
+    fretFlowStringCount=Number(count);
+    if(practiceVisualMode==='fretflow'){bassStringSelect.value=String(count);if($('bassStringDisplayValue'))$('bassStringDisplayValue').textContent=String(count);}
+    window.BassFretFlow?.invalidate();
+  }
+
   function setPracticeVisualMode(mode){
-    const next=['bass','piano'].includes(mode)?mode:'timeline';
+    const next=['bass','piano','fretflow'].includes(mode)?mode:'timeline';
     practiceVisualMode=next;
-    const bass=next==='bass',piano=next==='piano';
+    const bass=next==='bass',piano=next==='piano',flow=next==='fretflow';
+    document.body.classList.toggle('fretflow-view-active',flow);
+    bassStringSelect.value=String(flow?fretFlowStringCount:bassViewStringCount);
+    if($('bassStringDisplayValue'))$('bassStringDisplayValue').textContent=bassStringSelect.value;
+    $('fretFlowPanel').hidden=!flow;
     document.body.classList.toggle('piano-view-active',piano);
     $('pianoViewPanel').hidden=!piano;
     document.body.classList.toggle('bass-view-active',bass);
     if(practiceViewSelect)practiceViewSelect.value=next;
     const viewDisplay=document.getElementById('practiceViewDisplayValue');
-    if(viewDisplay)viewDisplay.textContent=piano?'Piano':bass?'Bass':'Notes';
-    if(timelineScroll)timelineScroll.hidden=bass||piano;
+    if(viewDisplay)viewDisplay.textContent=flow?'FretFlow':piano?'Piano':bass?'Bass':'Notes';
+    if(timelineScroll)timelineScroll.hidden=bass||piano||flow;
     if(bassViewPanel)bassViewPanel.hidden=!bass;
     if(bassStringSelector)bassStringSelector.hidden=false;
     if(timelineViewBtn){
@@ -18522,6 +18550,12 @@ window.BassBatch = (() => {
       bassViewBtn.setAttribute('aria-pressed',bass?'true':'false');
     }
     if(piano)window.BassPiano?.follow();else window.BassPiano?.leave();
+    if(bassTimeScroll){
+      const parent=flow?$('fretFlowPanel'):bassViewPanel;
+      if(parent&&bassTimeScroll.parentElement!==parent)parent.prepend(bassTimeScroll);
+    }
+    refreshBassPracticeToggle();
+    if(flow){window.BassFretFlow?.invalidate();rebuildBassTimeRuler();syncBassTimeSelection();updateBassTimePlayhead(currentTime());}
     if(bass){
       renderBassFretboard();
       rebuildBassTimeRuler();
@@ -18607,7 +18641,7 @@ window.BassBatch = (() => {
   bassViewBtn?.addEventListener('click',()=>setPracticeVisualMode('bass'));
   practiceViewSelect?.addEventListener('change',()=>setPracticeVisualMode(practiceViewSelect.value));
   timelineSplitSelect?.addEventListener('change',()=>setTimelineCellSeconds(Number(timelineSplitSelect.value)));
-  bassStringSelect?.addEventListener('change',()=>setBassStringCount(Number(bassStringSelect.value)));
+  bassStringSelect?.addEventListener('change',()=>{const count=Number(bassStringSelect.value);if(practiceVisualMode==='fretflow')setFretFlowStringCount(count);else setBassStringCount(count);});
 
   function numberingScaleContext(){
     if(!currentScaleContext)return null;
@@ -20494,6 +20528,7 @@ window.BassBatch = (() => {
 
   function updateSongInfo(t){
     updatePlaybackBeat(t);
+    void window.BassBacking?.sync();
     if(practiceVisualMode==='piano'&&!playing&&updateSongInfo._pianoTime!==t)window.BassPiano.follow();
     updateSongInfo._pianoTime=t;
     updateSectionKey(t);
@@ -20502,6 +20537,8 @@ window.BassBatch = (() => {
     if(practiceVisualMode==='bass'){
       updateBassView(t);
       updateBassTimePlayhead(t);
+    }else if(practiceVisualMode==='fretflow'){
+      window.BassFretFlow?.draw(t);updateBassTimePlayhead(t);
     }else if(practiceVisualMode==='piano'){
       window.BassPiano.render();
     }else{
@@ -20513,6 +20550,7 @@ window.BassBatch = (() => {
     ensureSongKeyAnalysis();
     updateProjectButtons();
     updatePracticeLayoutState();
+    if(practiceVisualMode==='fretflow')window.BassFretFlow?.invalidate();
     if(!buffer) return;
     const t=displayTime();
     updateSectionKey(t);
@@ -20589,17 +20627,18 @@ window.BassBatch = (() => {
         await ensureAiSession(false);assertSongSession(session);if(cancelled())throw Error('Cancelled.');
         const pad=AI_CHUNK-Math.floor(AI_CHUNK/2),step=Math.floor(AI_CHUNK/2),fade=Math.floor(AI_CHUNK/10),n=input.length+2*pad;
         const channels=[0,1].map(c=>{const a=new Float32Array(n),x=input.getChannelData(c);for(let i=0;i<n;i++)a[i]=x[reflectIndex(i-pad,x.length)];return a;});
-        const output=[new Float32Array(n),new Float32Array(n)],weight=new Float32Array(n),starts=[];
+        const mixes=stem==='practice'?[[0,2,3],[1]]:[[stem]],channelsOut=mixes.length*2;
+        const output=Array.from({length:channelsOut},()=>new Float32Array(n)),weight=new Float32Array(n),starts=[];
         for(let s=0;s<n;s+=step)starts.push(s);
         for(let ci=0;ci<starts.length;ci++){
           assertSongSession(session);if(cancelled())throw Error('Cancelled.');progress(Math.round(ci/starts.length*100));
           const s=starts[ci],spec=makeDrumInput(channels[0],channels[1],s),tensor=new ort.Tensor('float32',spec,[1,4,AI_BINS,AI_FRAMES]);let result;
           try{result=await aiSession.run({[aiSession.inputNames[0]]:tensor});
             const data=result[aiSession.outputNames[0]].data;
-            for(let c=0;c<2;c++){
+            for(let c=0;c<channelsOut;c++){
               const audio=new Float32Array(AI_CHUNK),envelope=new Float32Array(AI_CHUNK),re=new Float32Array(AI_NFFT),im=new Float32Array(AI_NFFT);
               for(let t=0;t<AI_FRAMES;t++){
-                for(let k=0;k<AI_BINS;k++){const j=(((stem*2+c)*AI_BINS+k)*AI_FRAMES+t)*2;re[k]=data[j]*Math.sqrt(AI_NFFT);im[k]=data[j+1]*Math.sqrt(AI_NFFT);}
+                for(let k=0;k<AI_BINS;k++){re[k]=0;im[k]=0;for(const part of mixes[Math.floor(c/2)]){const j=(((part*2+c%2)*AI_BINS+k)*AI_FRAMES+t)*2;re[k]+=data[j]*Math.sqrt(AI_NFFT);im[k]+=data[j+1]*Math.sqrt(AI_NFFT);}}
                 for(let k=AI_BINS;k<AI_NFFT;k++){re[k]=re[AI_NFFT-k];im[k]=-im[AI_NFFT-k];}ifftInPlace(re,im);
                 for(let j=0;j<AI_NFFT;j++){const p=t*AI_HOP+j-AI_NFFT/2;if(p>=0&&p<AI_CHUNK){audio[p]+=re[j];envelope[p]++;}}
               }
@@ -20612,11 +20651,11 @@ window.BassBatch = (() => {
           await new Promise(r=>setTimeout(r,0));
         }
         assertSongSession(session);if(cancelled())throw Error('Cancelled.');
-        const rendered=new AudioBuffer({numberOfChannels:2,length:input.length,sampleRate:AI_SR});let peak=0;
-        for(let c=0;c<2;c++){const target=rendered.getChannelData(c);for(let i=0;i<target.length;i++){target[i]=output[c][i+pad]/Math.max(1e-6,weight[i+pad]);peak=Math.max(peak,Math.abs(target[i]));}}
-        if(peak>.95)for(let c=0;c<2;c++){const x=rendered.getChannelData(c);for(let i=0;i<x.length;i++)x[i]*=.95/peak;}
+        const rendered=new AudioBuffer({numberOfChannels:channelsOut,length:input.length,sampleRate:AI_SR});let peak=0;
+        for(let c=0;c<channelsOut;c++){const target=rendered.getChannelData(c);for(let i=0;i<target.length;i++){target[i]=output[c][i+pad]/Math.max(1e-6,weight[i+pad]);peak=Math.max(peak,Math.abs(target[i]));}}
+        if(stem!=='practice'&&peak>.95)for(let c=0;c<channelsOut;c++){const x=rendered.getChannelData(c);for(let i=0;i<x.length;i++)x[i]*=.95/peak;}
         return rendered;
-      }finally{aiBusy=false;updateAnalysisToolsState();}
+      }finally{if(session===songSession){aiBusy=false;updateAnalysisToolsState();}}
 
   }
   function makeDrumInput(left,right,startSample){
@@ -20813,6 +20852,14 @@ window.BassBatch = (() => {
     melodySaveTimer=setTimeout(flush,750);
   }
 
+  window.BassBacking.init({
+    get:()=>({session:songSession,loaded:!!buffer,duration:buffer?.duration||0,busy:aiBusy||songImportBusy,master:masterAudio}),
+    pause,encode:fileToBase64,setMuted:value=>{bassPracticeMuted=!!value;},
+    graph:()=>{ensureCtx();buildGraph();return {ctx,main:sourceBus,bass:[bassPitchDryGain,bassPitchShift.input]};},
+    update:()=>{updateAudioParams();refreshBassPracticeToggle();window.BassFretFlow?.draw();},
+    extract:(a,b,p,c)=>separatePracticeStem(a,b,p,c,'practice')
+  });
+  window.BassFretFlow.init({get:()=>({...studySong(),strings:fretFlowStringCount,time:displayTime()}),seek:seekTo,setStrings:setFretFlowStringCount});
   window.BassUXContext=studySong;
   window.BassPiano.init({
     get:()=>({buffer,session:songSession,busy:aiBusy||songImportBusy,time:displayTime(),transportTime:currentTime(),duration:buffer?.duration||0,playing,transpose:transposeSemitones,speed:Number(tempo.value),title:loadedProjectName||objectName||'Song',repeatRanges:(timeframeLoopMode?timeframeQueue:multiSectionMode?sectionQueue:loopEnabled?[{start:loopStart,end:loopEnd}]:[]).map(r=>({start:r.start,end:r.end})),loopStart:loopEnabled?loopStart:null,loopEnd:loopEnabled?loopEnd:null,step:TIMELINE_CELL_SECONDS,selection:[...selectedTimeframes].join(','),chords:detectedChordChanges.filter(reliableChord).map(c=>({...c,label:chordDisplayLabel(c)}))}),
@@ -22142,7 +22189,9 @@ window.BassBatch = (() => {
   });
   scaleSelect?.addEventListener('change',()=>{if(detectedScaleContext)applySelectedScaleRoot(Number(scaleSelect.value));});
   bassPracticeToggle?.addEventListener('click',async()=>{
-    if(bassPracticeToggle.disabled||!noBassReady)return;
+    if(bassPracticeToggle.disabled)return;
+    const backing=window.BassBacking.state();
+    if(backing.enabled||!noBassReady){await window.BassBacking.toggle();return;}
     bassPracticeMuted=!bassPracticeMuted;
     refreshBassPracticeToggle();updateAudioParams();
     if(playing){

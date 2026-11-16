@@ -1,0 +1,97 @@
+window.BassFretFlow=(()=>{
+ 'use strict';
+ const C=window.BassFretFlowCore,ns='http://www.w3.org/2000/svg';
+ let api,panel,rows=[],cache={},signature='',lastBoard='',lastTab='',nodes={},resize;
+ function svg(tag,attrs={},text){const e=document.createElementNS(ns,tag);for(const[k,v]of Object.entries(attrs))e.setAttribute(k,String(v));if(text!==undefined)e.textContent=text;return e;}
+ function add(parent,tag,attrs,text){const e=svg(tag,attrs,text);parent.append(e);return e;}
+ function line(p,x,y,x2,y2,stroke,width=1){return add(p,'line',{x1:x,y1:y,x2,y2,stroke,'stroke-width':width});}
+ function label(p,x,y,text,fill='#aeb8c9',size=12){return add(p,'text',{x,y,fill,'font-size':size,'text-anchor':'middle','dominant-baseline':'central'},text);}
+ function marker(p,x,y,row,active=false,small=false){
+  const c=C.colour(row.midi),g=add(p,'g',{'data-midi':row.midi,'data-fret':row.position.fret,'data-string':row.position.string,class:active?'ff-active-note':'ff-preview-note'}),r=small?6:active?14:10;
+  if(active){const halo=add(g,'circle',{cx:x,cy:y,r:r+8,fill:c,opacity:.18});add(halo,'animate',{attributeName:'opacity',from:.4,to:.08,dur:'.7s',fill:'freeze'});}
+  add(g,'circle',{cx:x,cy:y,r,fill:active?c:'#151c26',stroke:c,'stroke-width':active?2.2:1.5,'stroke-dasharray':row.source.isFill||Number(row.source.confidence)<.7?'3 2':''});
+  if(!small)label(g,x,y,C.name(row.midi),active?'#10231a':c,active?14:11);
+  add(g,'title',{},`${C.pitch(row.midi)} · string ${C.name(row.position.open)} · fret ${row.position.fret}${row.source.isFill?' · suggested fill':Number(row.source.confidence)<.7?' · check note':''}`);
+ }
+ function makeNeck(count){
+  const p=nodes.neck;p.replaceChildren();p.setAttribute('viewBox','0 0 110 650');p.setAttribute('preserveAspectRatio','none');
+  const defs=add(p,'defs'),wood=add(defs,'linearGradient',{id:'ffWood'});
+  for(const[o,c]of [['0%','#28140d'],['35%','#593424'],['55%','#2b1a14'],['100%','#483024']])add(wood,'stop',{offset:o,'stop-color':c});
+  add(p,'path',{d:'M 20 18 L 90 18 L 104 644 L 6 644 Z',fill:'url(#ffWood)',stroke:'#a5967d','stroke-width':2});
+  for(let i=0;i<20;i++)line(p,20+i*3.7,20,7+i*5,644,i%3?'#b6956530':'#0a080850',.7);
+  const y=f=>26+C.fretWire(f)/C.fretWire(24)*610;
+  add(p,'rect',{x:18,y:21,width:74,height:8,fill:'#e0d8c8',rx:1});
+  for(let f=1;f<=24;f++){const yy=y(f),w=70+26*(yy-26)/610;line(p,55-w/2,yy,55+w/2,yy,'#d8d1bd',1.7);}
+  for(const f of [3,5,7,9,12,15,17,19,21,24]){const yy=26+C.fretCentre(f)/C.fretWire(24)*610;for(const x of f%12===0?[42,68]:[55])add(p,'circle',{cx:x,cy:yy,r:3.8,fill:'#e1dcca',opacity:.8});}
+  const strings=C.tuning(count);strings.forEach((m,i)=>{const a=24+i*62/(count-1),b=12+i*86/(count-1);line(p,a,19,b,646,'#181716',4-i*.35);line(p,a+1,19,b+1,646,'#c3c5bc',2.5-i*.26);});
+  nodes.neckNotes=add(p,'g');
+ }
+ function makeMap(count,first){
+  const p=nodes.map,w=Math.max(170,p.clientWidth),h=Math.max(245,p.clientHeight),left=37,right=w-21,top=38,step=(h-57)/12,x=i=>left+i*(right-left)/(count-1);
+  nodes.mapGeometry={x,top,step};p.replaceChildren();p.setAttribute('viewBox',`0 0 ${w} ${h}`);p.setAttribute('preserveAspectRatio','none');
+  const strings=C.tuning(count);
+  for(let f=0;f<=12;f++)line(p,left-9,top+f*step,right+9,top+f*step,f===0?'#f1e3bb':'#b6a27b',f===0?4:1.4);
+  for(let f=1;f<=12;f++){const fret=first+f-1,yy=top+(f-.5)*step;label(p,13,yy,fret,'#aab6c6',11);if([3,5,7,9,12,15,17,19,21,24].includes(fret))for(const xx of fret%12===0?[w*.47,w*.73]:[w*.6])add(p,'circle',{cx:xx,cy:yy,r:3,fill:'#e9e3d5',opacity:.2});}
+  strings.forEach((m,i)=>{const xx=x(i);line(p,xx,top,xx,h-16,'#d7d9d5',2.7-i*.25);add(p,'circle',{cx:xx,cy:17,r:10,fill:C.colour(m)});label(p,xx,17,C.name(m),'#17211b',11);});
+  nodes.mapNotes=add(p,'g');label(p,w/2,h-7,first===1?'Frets 1–12':'Frets 13–24','#96a2b1',10);
+ }
+ function prepare(s){
+  const k=cache;
+  if(k.notes!==s.notes||k.count!==s.strings||k.shift!==s.transpose||k.session!==s.session){rows=C.plan(s.notes,s.strings,s.transpose);cache={notes:s.notes,count:s.strings,shift:s.transpose,session:s.session};signature='';lastBoard='';lastTab='';}
+ }
+ function draw(t){
+  if(!api||panel.hidden)return;const s=api.get();prepare(s);const time=Number.isFinite(t)?t:s.time;
+  const active=C.active(rows,time),primary=active.at(-1),future=C.nearby(rows,time,3,4).filter(n=>!active.includes(n)).slice(-12),focus=primary||future.find(n=>n.start>time);
+  const first=(focus?.position?.fret||0)>12?13:1,key=s.strings+':'+first+':'+nodes.map.clientWidth+':'+nodes.map.clientHeight;
+  if(lastBoard!==key){makeNeck(s.strings);makeMap(s.strings,first);lastBoard=key;signature='';}
+  const sign=active.map(n=>n.id).join(',')+'|'+future.map(n=>n.id).join(',')+'|'+key;
+  if(sign!==signature){
+   signature=sign;nodes.mapNotes.replaceChildren();nodes.neckNotes.replaceChildren();
+   const geo=nodes.mapGeometry,xx=geo.x,yy=f=>f===0?17:geo.top+(f-first+.5)*geo.step,seen=new Set();
+   for(const n of [...future.slice().reverse(),...active])if(n.position){
+    const p=n.position,isActive=active.includes(n),id=p.string+':'+p.fret;if(!isActive&&seen.has(id))continue;seen.add(id);
+    if(p.fret===0||(p.fret>=first&&p.fret<first+12))marker(nodes.mapNotes,xx(p.string),yy(p.fret),n,isActive);
+    if(isActive){const y=26+C.fretCentre(p.fret)/C.fretWire(24)*610,x=24+p.string*62/(s.strings-1)+(y-26)/610*(-12+p.string*24/(s.strings-1));marker(nodes.neckNotes,x,y,n,true,true);}
+   }
+   nodes.note.textContent=primary?C.pitch(primary.midi):'—';nodes.note.style.color=primary?C.colour(primary.midi):'';
+   nodes.position.textContent=primary?(primary.position?`${C.name(primary.position.open)} string · ${primary.position.fret===0?'open':'fret '+primary.position.fret}`:`Outside ${s.strings}-string range`):!s.loaded?'Open an analysed song':!rows.length?'No analysed bass notes':'Rest';
+   nodes.position.title=primary?.source.isFill?'Suggested fill':primary&&Number(primary.source.confidence)<.7?'Low-confidence note: check against the recording':'';
+  }
+  nodes.controls.disabled=!s.loaded;
+  nodes.strings.value=String(s.strings);
+  nodes.song.textContent=s.title+(s.bpm?' · '+Math.round(s.bpm*s.speed/100)+' BPM':'')+' · '+s.speed+'%';
+  drawTab(time,s,active);
+  const v=window.BassBacking?.state();if(v){nodes.cancel.hidden=!v.busy;if(nodes.message.textContent!==v.message)nodes.message.textContent=v.message;}
+ }
+ function drawTab(time,s,active){
+  const p=nodes.tab,count=s.strings,width=Math.max(180,p.clientWidth||340),height=104,span=6,scale=(width-42)/span,playhead=42+scale*1.5,start=time-1.5,windowNotes=C.nearby(rows,time,1.5,4.5);
+  const key=count+':'+width+':'+windowNotes.map(n=>n.id).join(',');
+  if(key!==lastTab){
+   lastTab=key;p.replaceChildren();p.setAttribute('viewBox',`0 0 ${width} ${height}`);const tunings=C.tuning(count);
+   for(let i=0;i<count;i++){const y=16+(count-1-i)*72/(count-1);line(p,30,y,width-8,y,'#566171');label(p,14,y,C.name(tunings[i]),'#b6c1cf',12);}
+   const defs=add(p,'defs');add(add(defs,'clipPath',{id:'ffTabClip'}),'rect',{x:32,y:0,width:width-35,height:102});
+   nodes.tabNotes=add(p,'g',{'clip-path':'url(#ffTabClip)'});nodes.tabItems=[];
+   for(const n of windowNotes){const g=add(nodes.tabNotes,'g',{class:'ff-tab-hit',role:'button',tabindex:0,'aria-label':`${C.pitch(n.midi)}, ${n.position?'fret '+n.position.fret:'outside range'}, ${n.start.toFixed(2)} seconds`});
+    const y=n.position?16+(count-1-n.position.string)*72/(count-1):height/2;
+    const bg=add(g,'rect',{x:-9,y:y-9,width:18,height:18,rx:5,fill:'#151c26'});const tx=label(g,0,y,n.position?n.position.fret:'×',C.colour(n.midi),12);
+    const seek=()=>api.seek(n.start);g.onclick=seek;g.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();seek();}};nodes.tabItems.push({g,bg,tx,n});
+   }
+   line(p,playhead,3,playhead,99,'#fff6cf',2);label(p,playhead+22,99,'NOW','#daceaa',8);
+  }
+  const ids=new Set(active.map(n=>n.id));for(const i of nodes.tabItems){i.g.setAttribute('transform',`translate(${42+(i.n.start-start)*scale},0)`);const on=ids.has(i.n.id);i.bg.setAttribute('fill',on?C.colour(i.n.midi):'#151c26');i.tx.setAttribute('fill',on?'#10231a':C.colour(i.n.midi));}
+ }
+ function init(hooks){api=hooks;panel=document.getElementById('fretFlowPanel');panel.innerHTML='<div class="ff-tools"><strong class="ff-brand">FretFlow</strong><select id="ffStrings" aria-label="FretFlow strings"><option value="4">4 strings</option><option value="5">5 strings</option><option value="6">6 strings</option></select><button id="ffControls" type="button" aria-expanded="true" aria-controls="fretFlowPanel">Hide controls</button><button id="ffCancel" type="button" hidden>Cancel</button></div><div class="ff-song"></div><div class="ff-stage"><div class="ff-neck-wrap"><svg class="ff-neck" role="img" aria-label="Bass neck with current note"></svg></div><div class="ff-main"><div class="ff-readout"><strong class="ff-note">—</strong><span class="ff-position"></span></div><svg class="ff-map" role="img" aria-label="FretFlow note map, low strings on the left"></svg><svg class="ff-tab" aria-label="Scrolling bass tablature. Select a fret number to seek."></svg></div></div><p class="ff-caption">Standard tuning · Suggested fingering · Dashed notes need checking</p><p class="ff-message" role="status"></p>';
+  for(const[name,cls]of Object.entries({song:'.ff-song',neck:'.ff-neck',map:'.ff-map',tab:'.ff-tab',note:'.ff-note',position:'.ff-position',message:'.ff-message',controls:'#ffControls',cancel:'#ffCancel',strings:'#ffStrings'}))nodes[name]=panel.querySelector(cls);
+  const controls=panel.querySelector('.ff-tools');controls.id='ffHeaderTools';controls.querySelector('.ff-brand').remove();document.querySelector('.practice-view-head').append(controls);
+  nodes.strings.onchange=()=>api.setStrings(Number(nodes.strings.value));
+  nodes.controls.onclick=()=>showControls(document.body.classList.contains('ff-controls-hidden'));nodes.cancel.onclick=()=>window.BassBacking.cancel();
+  resize=new ResizeObserver(()=>{lastTab='';draw();});resize.observe(panel);
+ }
+ function invalidate(){cache={};lastTab='';signature='';draw();}
+ function showControls(show=true){
+  document.body.classList.toggle('ff-controls-hidden',!show);
+  if(nodes.controls){nodes.controls.textContent=show?'Hide controls':'Show controls';nodes.controls.setAttribute('aria-expanded',String(show));}
+  lastBoard='';lastTab='';draw();
+ }
+ return {init,draw,invalidate,showControls};
+})();
