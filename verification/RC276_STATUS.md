@@ -29,6 +29,10 @@ FretFlow uses the same repeat strip, named sections, typed repeat ranges, speed 
 
 Fingering is a playable suggestion, not a transcription of a performer's hand position. Display accuracy depends on the saved analysis; FretFlow does not correct wrong source notes. Some bass residue or separation artefacts may remain in a prepared backing track. First preparation speed depends on the device and requires the model download. No paid analysis jobs were submitted.
 
-## Continuation checkpoint
+## Live release verified
 
-The user corrected the original request from vocal mute to bass mute and requested a five-string default and hide/show controls. Those changes are complete and tested. Automatic approval review previously rejected publication to main because it requires explicit approval for RC276. Production remains RC275. Keep PR 6 as a draft until that approval arrives. After approval, publish the current PR head, verify Render's automatic deployment and live file hashes. Do not reimport lesson recordings or trigger a duplicate deployment.
+The user authorised publication on 16 November 2026. PR 6 was merged to main as 98c83e38afd58f4d113df3793121cf14d53ba50a. Render deployment dep-dbt91t2jnfac73d3qgl0 became live at 05:13:34 UTC.
+
+The live index, service worker, all four FretFlow assets and four lesson data files match the tested files byte for byte. The live browser shows all four view choices, opens FretFlow successfully and defaults to five strings. The live site is https://bass-stem-studio-app-z5ja.onrender.com/.
+
+Implementation, publication and live verification are complete. No further approval or deployment is needed for RC276. Future work should start from current main and preserve the 72 lesson recordings. Physical Android background behaviour and the accuracy of individual source analyses remain unverified.
