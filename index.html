@@ -13707,7 +13707,8 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPan
 </style>
 <link rel="stylesheet" href="./ear-source/trainer-rc267.css?v=rc269">
 <style id="rc260-key-audition">@layer bass-piano-audition-260{#appRoot #pianoKeyboard .piano-key.auditioning{background:#248bd1!important;color:white!important;box-shadow:inset 0 0 0 1px #b7e4ff!important}}</style>
-<link rel="stylesheet" href="./fretflow-source/view.css?v=rc277">
+<link rel="stylesheet" href="./fretflow-source/controls.css?v=rc278">
+<link rel="stylesheet" href="./fretflow-source/view.css?v=rc278">
 </head>
 <body>
 <div id="sectionCompatibility" style="display:none" aria-hidden="true">
@@ -15393,12 +15394,13 @@ window.BassBatch = (() => {
 <script src="./ear-source/study-ui-rc267.js?v=rc271"></script>
 <script src="./ear-source/trainer-rc266.js?v=rc268"></script>
 <script src="./fretflow-source/core.js?v=rc277"></script>
-<script src="./fretflow-source/backing.js?v=rc277"></script>
-<script src="./fretflow-source/view.js?v=rc277"></script>
+<script src="./fretflow-source/backing.js?v=rc278"></script>
+<script src="./fretflow-source/view.js?v=rc278"></script>
+<script src="./fretflow-source/controls.js?v=rc278"></script>
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC277';
+  const APP_VERSION='RC278';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;
@@ -15442,7 +15444,7 @@ window.BassBatch = (() => {
     updateProjectButtons();updateAnalysisToolsState();refreshBassPracticeToggle();
   }
   function replaceSongSession({preservePending=false}={}){
-    songSession++;fretFlowStringCount=5;window.BassFretFlow?.showControls();window.BassBacking?.reset();window.BassFretFlow?.invalidate();window.BassLoopFade?.reset();window.BassChordReview?.reset();window.BassSoundCheck?.cancel();window.BassTools?.cancelSession();window.BassRhythm?.cancel();window.BassLyrics?.cancel();window.BassPiano?.reset();
+    songSession++;fretFlowStringCount=5;window.BassPracticeControls?.showControls();window.BassBacking?.reset();window.BassFretFlow?.invalidate();window.BassLoopFade?.reset();window.BassChordReview?.reset();window.BassSoundCheck?.cancel();window.BassTools?.cancelSession();window.BassRhythm?.cancel();window.BassLyrics?.cancel();window.BassPiano?.reset();
     resetSongStructure();
     aiBusy=false;pendingResumeBusy=false;offlineAnalysisRunning=false;
     if(aiAnalyse)aiAnalyse.removeAttribute('aria-busy');
@@ -16827,16 +16829,17 @@ window.BassBatch = (() => {
   function refreshBassPracticeToggle(){
     if(!bassPracticeToggle||!bassPracticeText)return;
     const backing=window.BassBacking?.state();
-    const canPrepare=practiceVisualMode==='fretflow'&&!aiBusy&&!songImportBusy;
+    const canPrepare=!aiBusy&&!songImportBusy;
     const ready=!!buffer&&(noBassReady||backing?.ready||canPrepare)&&!backing?.busy;
-    if(!ready)bassPracticeMuted=false;
+    if(!buffer)bassPracticeMuted=false;
     bassPracticeToggle.disabled=!ready;
     bassPracticeText.textContent=bassPracticeMuted?'Restore bass':'Mute bass';
     bassPracticeToggle.setAttribute('aria-pressed',bassPracticeMuted?'true':'false');
     bassPracticeToggle.setAttribute('aria-label',bassPracticeMuted?'Restore bass':'Mute bass');
     bassPracticeToggle.title=ready
       ? (bassPracticeMuted?'Restore the original bass':noBassReady||backing?.ready?'Play the no-bass rehearsal track so you can perform the bass part live':'Prepare the no-bass rehearsal track')
-      : 'Run a fresh analysis to prepare the clean no-bass rehearsal track';
+      : 'Open a song, then prepare bass mute when analysis has finished';
+    window.BassPracticeControls?.update();
   }
   function refreshStemMixerUI(){
     // The control remains adjustable before analysis so the preferred level can
@@ -18514,14 +18517,14 @@ window.BassBatch = (() => {
     try{localStorage.setItem('bassStemBassStringCount',String(n))}catch(e){}
     if(practiceVisualMode==='bass')renderBassFretboard();
     rebuildSimpleTimeline._sig='';
-    drawAll();
+    drawAll();window.BassPracticeControls?.update();
   }
 
   function setFretFlowStringCount(count){
     if(![4,5,6].includes(Number(count)))return;
     fretFlowStringCount=Number(count);
     if(practiceVisualMode==='fretflow'){bassStringSelect.value=String(count);if($('bassStringDisplayValue'))$('bassStringDisplayValue').textContent=String(count);}
-    window.BassFretFlow?.invalidate();
+    window.BassFretFlow?.invalidate();window.BassPracticeControls?.update();
   }
 
   function setPracticeVisualMode(mode){
@@ -20627,7 +20630,7 @@ window.BassBatch = (() => {
         await ensureAiSession(false);assertSongSession(session);if(cancelled())throw Error('Cancelled.');
         const pad=AI_CHUNK-Math.floor(AI_CHUNK/2),step=Math.floor(AI_CHUNK/2),fade=Math.floor(AI_CHUNK/10),n=input.length+2*pad;
         const channels=[0,1].map(c=>{const a=new Float32Array(n),x=input.getChannelData(c);for(let i=0;i<n;i++)a[i]=x[reflectIndex(i-pad,x.length)];return a;});
-        const mixes=stem==='practice'?[[0,2,3],[1]]:[[stem]],channelsOut=mixes.length*2;
+        const mixes=stem==='rehearsal'?[[0,2],[1],[3]]:stem==='practice'?[[0,2,3],[1]]:[[stem]],channelsOut=mixes.length*2;
         const output=Array.from({length:channelsOut},()=>new Float32Array(n)),weight=new Float32Array(n),starts=[];
         for(let s=0;s<n;s+=step)starts.push(s);
         for(let ci=0;ci<starts.length;ci++){
@@ -20653,7 +20656,7 @@ window.BassBatch = (() => {
         assertSongSession(session);if(cancelled())throw Error('Cancelled.');
         const rendered=new AudioBuffer({numberOfChannels:channelsOut,length:input.length,sampleRate:AI_SR});let peak=0;
         for(let c=0;c<channelsOut;c++){const target=rendered.getChannelData(c);for(let i=0;i<target.length;i++){target[i]=output[c][i+pad]/Math.max(1e-6,weight[i+pad]);peak=Math.max(peak,Math.abs(target[i]));}}
-        if(stem!=='practice'&&peak>.95)for(let c=0;c<channelsOut;c++){const x=rendered.getChannelData(c);for(let i=0;i<x.length;i++)x[i]*=.95/peak;}
+        if(stem!=='practice'&&stem!=='rehearsal'&&peak>.95)for(let c=0;c<channelsOut;c++){const x=rendered.getChannelData(c);for(let i=0;i<x.length;i++)x[i]*=.95/peak;}
         return rendered;
       }finally{if(session===songSession){aiBusy=false;updateAnalysisToolsState();}}
 
@@ -20853,13 +20856,14 @@ window.BassBatch = (() => {
   }
 
   window.BassBacking.init({
-    get:()=>({session:songSession,loaded:!!buffer,duration:buffer?.duration||0,busy:aiBusy||songImportBusy,master:masterAudio}),
+    get:()=>({session:songSession,loaded:!!buffer,duration:buffer?.duration||0,busy:aiBusy||songImportBusy,master:masterAudio,bassMuted:bassPracticeMuted}),
     pause,encode:fileToBase64,setMuted:value=>{bassPracticeMuted=!!value;},
     graph:()=>{ensureCtx();buildGraph();return {ctx,main:sourceBus,bass:[bassPitchDryGain,bassPitchShift.input]};},
     update:()=>{updateAudioParams();refreshBassPracticeToggle();window.BassFretFlow?.draw();},
-    extract:(a,b,p,c)=>separatePracticeStem(a,b,p,c,'practice')
+    extract:(a,b,p,c)=>separatePracticeStem(a,b,p,c,'rehearsal')
   });
-  window.BassFretFlow.init({get:()=>({...studySong(),strings:fretFlowStringCount,time:displayTime()}),seek:seekTo,setStrings:setFretFlowStringCount});
+  window.BassFretFlow.init({get:()=>({...studySong(),strings:fretFlowStringCount,time:displayTime()})});
+  window.BassPracticeControls.init({get:()=>({view:practiceVisualMode,loaded:!!buffer,busy:aiBusy||songImportBusy,strings:practiceVisualMode==='fretflow'?fretFlowStringCount:bassViewStringCount}),setStrings:n=>practiceVisualMode==='fretflow'?setFretFlowStringCount(n):setBassStringCount(n)});
   window.BassUXContext=studySong;
   window.BassPiano.init({
     get:()=>({buffer,session:songSession,busy:aiBusy||songImportBusy,time:displayTime(),transportTime:currentTime(),duration:buffer?.duration||0,playing,transpose:transposeSemitones,speed:Number(tempo.value),title:loadedProjectName||objectName||'Song',repeatRanges:(timeframeLoopMode?timeframeQueue:multiSectionMode?sectionQueue:loopEnabled?[{start:loopStart,end:loopEnd}]:[]).map(r=>({start:r.start,end:r.end})),loopStart:loopEnabled?loopStart:null,loopEnd:loopEnabled?loopEnd:null,step:TIMELINE_CELL_SECONDS,selection:[...selectedTimeframes].join(','),chords:detectedChordChanges.filter(reliableChord).map(c=>({...c,label:chordDisplayLabel(c)}))}),
@@ -22191,7 +22195,7 @@ window.BassBatch = (() => {
   bassPracticeToggle?.addEventListener('click',async()=>{
     if(bassPracticeToggle.disabled)return;
     const backing=window.BassBacking.state();
-    if(backing.enabled||!noBassReady){await window.BassBacking.toggle();return;}
+    if(backing.ready||backing.enabled||!noBassReady){await window.BassBacking.toggle();return;}
     bassPracticeMuted=!bassPracticeMuted;
     refreshBassPracticeToggle();updateAudioParams();
     if(playing){

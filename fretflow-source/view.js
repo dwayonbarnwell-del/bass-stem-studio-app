@@ -49,17 +49,12 @@ window.BassFretFlow=(()=>{
   add(nodes.connector,'path',{d:`M ${x1} ${y1} C ${mid} ${y1}, ${mid} ${y2}, ${x2} ${y2}`,fill:'none',stroke:colour,'stroke-width':1.5,'stroke-dasharray':'3 4',opacity:.75,'data-midi':primary.midi,class:'ff-neck-connection'});
   if(onPage(next)&&(next.position.string!==primary.position.string||next.position.fret!==primary.position.fret)){const end=point(next);line(nodes.mapLinks,map.x,map.y,end.x,end.y,colour,1.4).setAttribute('stroke-dasharray','3 4');}
  }
- function layout(){
-  const play=document.getElementById('playBtn').getBoundingClientRect();
-  const root=document.getElementById('practiceWorkspace');
-  for(const[key,value]of [['--ff-control-w',play.width],['--ff-control-h',play.height]]){const v=Math.round(value*100)/100+'px';if(root.style.getPropertyValue(key)!==v)root.style.setProperty(key,v);}
- }
  function prepare(s){
   const k=cache;
   if(k.notes!==s.notes||k.count!==s.strings||k.shift!==s.transpose||k.session!==s.session){rows=C.plan(s.notes,s.strings,s.transpose);cache={notes:s.notes,count:s.strings,shift:s.transpose,session:s.session};signature='';lastBoard='';}
  }
  function draw(t){
-  if(!api||panel.hidden)return;const s=api.get();layout();prepare(s);const time=Number.isFinite(t)?t:s.time;
+  if(!api||panel.hidden)return;const s=api.get();prepare(s);const time=Number.isFinite(t)?t:s.time;
   const active=C.active(rows,time),primary=active.at(-1),future=C.nearby(rows,time,2,3).filter(n=>!active.includes(n)).sort((a,b)=>Math.abs(a.start-time)-Math.abs(b.start-time)),focus=primary||future.find(n=>n.start>time);
   const frets=nodes.map.clientHeight<290?6:12,first=1+Math.floor(Math.max(0,(focus?.position?.fret||1)-1)/frets)*frets,key=s.strings+':'+first+':'+frets+':'+nodes.map.clientWidth+':'+nodes.map.clientHeight;
   if(lastBoard!==key){makeNeck(s.strings);makeMap(s.strings,first,frets);lastBoard=key;signature='';}
@@ -82,24 +77,13 @@ window.BassFretFlow=(()=>{
    nodes.position.textContent=primary?(primary.position?`${C.name(primary.position.open)} string · ${primary.position.fret===0?'open':'fret '+primary.position.fret}`:`Outside ${s.strings}-string range`):!s.loaded?'Open an analysed song':!rows.length?'No analysed bass notes':'Rest';
    nodes.position.title=primary?.source.isFill?'Suggested fill':primary&&Number(primary.source.confidence)<.7?'Low-confidence note: check against the recording':'';
   }
-  nodes.controls.disabled=!s.loaded;
-  nodes.strings.value=String(s.strings);nodes.stringNumber.textContent=String(s.strings);
   nodes.song.textContent=s.title+(s.bpm?' · '+Math.round(s.bpm*s.speed/100)+' BPM':'')+' · '+s.speed+'%';
 
-  const v=window.BassBacking?.state();if(v){nodes.cancel.hidden=!v.busy;if(nodes.message.textContent!==v.message)nodes.message.textContent=v.message;}
  }
- function init(hooks){api=hooks;panel=document.getElementById('fretFlowPanel');panel.innerHTML='<div class="ff-tools"><strong class="ff-brand">FretFlow</strong><div id="ffStringsCard"><span class="ff-string-display" aria-hidden="true"><strong id="ffStringNumber">5</strong><span>strings</span></span><select id="ffStrings" aria-label="FretFlow strings"><option value="4">4 strings</option><option value="5">5 strings</option><option value="6">6 strings</option></select></div><button id="ffControls" type="button" aria-expanded="true" aria-controls="fretFlowPanel">Hide controls</button><button id="ffCancel" type="button" hidden>Cancel</button></div><div class="ff-song"></div><div class="ff-stage"><svg class="ff-connector" aria-hidden="true"></svg><div class="ff-neck-wrap"><svg class="ff-neck" role="img" aria-label="Bass neck with current note"></svg></div><div class="ff-main"><div class="ff-readout"><strong class="ff-note">—</strong><span class="ff-position"></span></div><svg class="ff-map" role="img" aria-label="FretFlow note map, low strings on the left"></svg></div></div><p class="ff-message" role="status"></p>';
-  for(const[name,cls]of Object.entries({song:'.ff-song',neck:'.ff-neck',map:'.ff-map',stage:'.ff-stage',connector:'.ff-connector',note:'.ff-note',position:'.ff-position',message:'.ff-message',controls:'#ffControls',cancel:'#ffCancel',strings:'#ffStrings',stringNumber:'#ffStringNumber'}))nodes[name]=panel.querySelector(cls);
-  const controls=panel.querySelector('.ff-tools');controls.id='ffHeaderTools';controls.querySelector('.ff-brand').remove();document.querySelector('.practice-view-head').append(controls);
-  nodes.strings.onchange=()=>api.setStrings(Number(nodes.strings.value));
-  nodes.controls.onclick=()=>showControls(document.body.classList.contains('ff-controls-hidden'));nodes.cancel.onclick=()=>window.BassBacking.cancel();
+ function init(hooks){api=hooks;panel=document.getElementById('fretFlowPanel');panel.innerHTML='<div class="ff-song"></div><div class="ff-stage"><svg class="ff-connector" aria-hidden="true"></svg><div class="ff-neck-wrap"><svg class="ff-neck" role="img" aria-label="Bass neck with current note"></svg></div><div class="ff-main"><div class="ff-readout"><strong class="ff-note">—</strong><span class="ff-position"></span></div><svg class="ff-map" role="img" aria-label="FretFlow note map, low strings on the left"></svg></div></div>';
+  for(const[name,cls]of Object.entries({song:'.ff-song',neck:'.ff-neck',map:'.ff-map',stage:'.ff-stage',connector:'.ff-connector',note:'.ff-note',position:'.ff-position'}))nodes[name]=panel.querySelector(cls);
   resize=new ResizeObserver(()=>{draw();});resize.observe(panel);resize.observe(document.querySelector('.practice-view-head'));resize.observe(document.getElementById('playBtn'));
  }
  function invalidate(){cache={};signature='';draw();}
- function showControls(show=true){
-  document.body.classList.toggle('ff-controls-hidden',!show);
-  if(nodes.controls){nodes.controls.textContent=show?'Hide controls':'Show controls';nodes.controls.setAttribute('aria-expanded',String(show));}
-  lastBoard='';draw();
- }
- return {init,draw,invalidate,showControls};
+ return {init,draw,invalidate,showControls:show=>window.BassPracticeControls?.showControls(show)};
 })();
