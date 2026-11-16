@@ -1,0 +1,16 @@
+Running
+PASS new view added and saved selection restores
+PASS exact pitches and out-of-range notes for 4, 5 and 6 strings
+PASS rests and note endings clear highlights
+PASS transposition changes exact displayed pitch only once
+PASS linked fretboards show the same exact note with no third view
+PASS repeated and adjacent notes do not overlap visually
+PASS original views remain separate and usable
+PASS phone layout fits without horizontal overflow
+PASS shared repeat strip and section chooser remain available
+PASS hide and show controls preserve playback and repeat settings
+PASS multipart controls fit and keep equal sizes in both layouts
+PASS actual playback, slow speed, seek and repeat use the same clock
+PASS bass mute removes recorded bass, retains backing and saves
+PASS switching songs clears instrumental and cancellation cannot affect next song
+DONE 14 passed; 0 failed

@@ -1,51 +1,53 @@
-#fretFlowPanel{flex:1 1 0;min-height:0;min-width:0;display:flex;flex-direction:column;gap:6px;overflow:auto;color:#f4f1e8;background:radial-gradient(ellipse at 0 50%,#2b1c17 0,transparent 45%),#0b1018;border-radius:13px;padding:8px;box-sizing:border-box}
+#fretFlowPanel{flex:1 1 0;min-height:0;min-width:0;display:flex;flex-direction:column;gap:6px;overflow:hidden;color:#f4f1e8;background:radial-gradient(ellipse at 0 50%,#2b1c17 0,transparent 45%),#0b1018;border-radius:13px;padding:8px;box-sizing:border-box}
 #fretFlowPanel [hidden],#fretFlowPanel[hidden]{display:none!important}
 #fretFlowPanel *{box-sizing:border-box}
-#fretFlowPanel .ff-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:none}
-#fretFlowPanel .ff-brand{color:#eacc80;letter-spacing:.04em;font-weight:800;font-size:16px;flex:1}
-#fretFlowPanel button{min-height:36px;height:auto;min-width:0;max-width:100%;padding:6px 12px;font:600 12px/1.25 system-ui;border:1px solid #6a675a;border-radius:9px;background:#243346;color:#fff;text-align:center;white-space:normal}
-#fretFlowPanel button[aria-pressed=true]{background:#35664f;border-color:#81e2b4}
-#fretFlowPanel button:focus-visible{outline:3px solid #f2d281;outline-offset:2px}
 #fretFlowPanel .ff-song{font:600 12px/1.25 system-ui;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;max-width:100%;color:#bbc5d4;flex:none}
-#fretFlowPanel .ff-stage{flex:1 1 0;min-height:395px;display:grid;grid-template-columns:minmax(64px,24%) minmax(0,1fr);gap:10px}
+#fretFlowPanel .ff-stage{position:relative;flex:1 1 0;min-height:140px;display:grid;grid-template-columns:minmax(72px,28%) minmax(0,1fr);gap:12px;padding:0 3px 3px}
+#fretFlowPanel .ff-connector{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:2}
 #fretFlowPanel .ff-neck-wrap{min-height:0;position:relative}
 #fretFlowPanel .ff-neck{width:100%;height:100%;display:block;overflow:visible}
 #fretFlowPanel .ff-main{min-width:0;min-height:0;display:flex;flex-direction:column;gap:5px}
-#fretFlowPanel .ff-readout{display:flex;align-items:center;gap:8px;min-height:34px;flex:none}
-#fretFlowPanel .ff-note{font:800 25px/1 system-ui;color:var(--ff-current,#eacc80)}
-#fretFlowPanel .ff-position{font:500 12px/1.2 system-ui;color:#b9c2d0;flex:1}
-#fretFlowPanel .ff-map{flex:1 1 0;width:100%;min-height:245px;display:block;border:1px solid #3e4149;border-radius:13px;background:linear-gradient(125deg,#242831,#151c26);overflow:visible}
-#fretFlowPanel .ff-tab{width:100%;height:104px;flex:none;display:block;background:#151c26;border:1px solid #3e4149;border-radius:10px;touch-action:manipulation}
-#fretFlowPanel .ff-caption{font:11px/1.3 system-ui;color:#aab6c8;margin:0;flex:none}
+#fretFlowPanel .ff-readout{display:flex;align-items:center;gap:8px;min-height:30px;flex:none}
+#fretFlowPanel .ff-map{flex:1 1 0;width:100%;min-height:120px;display:block;border:1px solid #3e4149;border-radius:13px;background:linear-gradient(125deg,#242831,#151c26);overflow:visible}
 #fretFlowPanel .ff-message{font:12px/1.35 system-ui;color:#ecd290;margin:0;flex:none}
 #fretFlowPanel .ff-message:empty{display:none}
 #fretFlowPanel svg text{font-family:system-ui,sans-serif;user-select:none}
-#fretFlowPanel .ff-tab-hit{cursor:pointer}
+#ffHeaderTools{display:none}
 
-@media(min-width:700px) and (min-height:600px){#fretFlowPanel .ff-stage{max-width:810px;width:100%;margin:auto;grid-template-columns:minmax(90px,23%) minmax(0,1fr)}#fretFlowPanel .ff-tab{height:125px}}
-@media(max-height:550px){#fretFlowPanel .ff-stage{min-height:395px}#fretFlowPanel .ff-caption{font-size:11px}}
-
-@layer fretflow276 {
- #ffHeaderTools{display:none!important}
- body.fretflow-view-active #ffHeaderTools{display:flex!important;flex:1 1 0!important;min-width:0!important;gap:6px!important;justify-content:flex-end!important;align-items:center!important}
+@layer fretflow277 {
+ body.fretflow-view-active .simple-timeline-head{flex:none!important;min-width:0!important}
+ body.fretflow-view-active .practice-view-head{display:grid!important;grid-template-columns:repeat(5,minmax(0,var(--ff-control-w,1fr)))!important;justify-content:space-between!important;gap:6px!important;width:100%!important;min-width:0!important;flex-wrap:nowrap!important;align-items:center!important;position:relative!important}
+ body.fretflow-view-active #ffHeaderTools{display:contents!important}
  #ffHeaderTools [hidden]{display:none!important}
- #ffHeaderTools select{font:600 12px/1.2 system-ui!important;min-height:40px!important;height:40px!important;min-width:75px!important;width:85px!important;max-width:85px!important;flex:none!important;padding:4px!important;border-radius:9px!important;text-align:center!important;background:#172d3d!important;color:#f4f1e8!important;border:1px solid #567487!important}
- #ffHeaderTools button{min-height:40px!important;height:auto!important;width:auto!important;max-width:100%!important;padding:7px 10px!important;font:600 12px/1.2 system-ui!important;white-space:normal!important;border:1px solid #6a675a!important;border-radius:9px!important;background:#243346!important;color:white!important;text-align:center!important}
- #ffHeaderTools button[aria-pressed=true]{background:#35664f!important;border-color:#81e2b4!important}
+ body.fretflow-view-active #practiceViewCard{grid-column:1!important;grid-row:1!important;width:100%!important;min-width:0!important;max-width:none!important;height:var(--ff-control-h,44px)!important;min-height:var(--ff-control-h,44px)!important;max-height:var(--ff-control-h,44px)!important}
+ body.fretflow-view-active #practiceViewCard .stacked-select-display,body.fretflow-view-active #practiceViewCard .stacked-select-display :is(strong,span){font:700 clamp(9px,calc(var(--ff-control-w,60px)*.2),12px)/1.15 system-ui!important}
+ body.fretflow-view-active #timelinePartTabs{grid-column:2 / span 2!important;grid-row:1!important;display:flex!important;flex-wrap:nowrap!important;gap:6px!important;width:100%!important;min-width:0!important;max-width:100%!important;height:var(--ff-control-h,44px)!important;min-height:0!important;max-height:none!important;overflow-x:auto!important;overflow-y:hidden!important;scrollbar-width:none!important;padding:0!important;margin:0!important}
+ body.fretflow-view-active #timelinePartTabs[hidden]{display:none!important}
+ body.fretflow-view-active .timeline-part-btn{flex:0 0 var(--ff-control-w,60px)!important;width:var(--ff-control-w,60px)!important;min-width:0!important;max-width:none!important;height:var(--ff-control-h,44px)!important;min-height:0!important;max-height:none!important;padding:3px!important;font:600 12px/1.15 system-ui!important;box-sizing:border-box!important;border-width:1px!important;outline:none!important}
+ body.fretflow-view-active .timeline-part-btn.active{box-shadow:inset 0 0 0 2px #d7edff!important}
+ body.fretflow-view-active #ffStringsCard{grid-column:4!important;grid-row:1!important;position:relative!important;width:100%!important;height:var(--ff-control-h,44px)!important;min-width:0!important;border:1px solid #567487!important;border-radius:var(--rc120-radius,9px)!important;background:#172d3d!important;box-sizing:border-box!important}
+ #ffStringsCard #ffStrings{position:absolute!important;inset:0!important;opacity:0!important;cursor:pointer!important}
+ #ffStringsCard:focus-within{outline:2px solid #f2d281!important;outline-offset:-3px!important}
+ #ffStringsCard .ff-string-display{display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;height:100%!important;pointer-events:none!important}
+ #ffStringsCard .ff-string-display :is(strong,span){font:600 12px/1.15 system-ui!important;color:#f4f1e8!important}
+ body.fretflow-view-active #ffControls{grid-column:5!important;grid-row:1!important}
+ body.fretflow-view-active #ffCancel{grid-column:4 / span 2!important;grid-row:2!important}
+ #ffHeaderTools :is(select,button){width:100%!important;min-width:0!important;max-width:none!important;height:var(--ff-control-h,44px)!important;min-height:var(--ff-control-h,44px)!important;max-height:var(--ff-control-h,44px)!important;padding:3px!important;font:600 12px/1.15 system-ui!important;border:1px solid #567487!important;border-radius:var(--rc120-radius,9px)!important;text-align:center!important;white-space:normal!important;background:#172d3d!important;color:#f4f1e8!important;box-sizing:border-box!important}
+ #ffHeaderTools button:focus-visible{outline:2px solid #f2d281!important;outline-offset:-3px!important}
  #fretFlowPanel .ff-note{font:800 25px/1 system-ui!important}
- #fretFlowPanel .ff-position{font:500 12px/1.2 system-ui!important}
+ #fretFlowPanel .ff-position{font:500 12px/1.2 system-ui!important;color:#b9c2d0!important}
  #fretFlowPanel .ff-song{font:600 12px/1.25 system-ui!important}
- #fretFlowPanel .ff-caption{font:11px/1.3 system-ui!important}
-}
-
-@layer fretflow276 {
  body.fretflow-view-active #bassPracticeText{position:static!important;clip:auto!important;clip-path:none!important;width:auto!important;height:auto!important;overflow:visible!important;font:600 11px/1.1 system-ui!important;white-space:normal!important;color:inherit!important;text-align:center!important}
  body.fretflow-view-active #bassPracticeToggle .bass-state-icon{width:24px!important;height:24px!important;min-height:0!important}
- #fretFlowPanel #bassTimeScroll{flex:none!important;width:100%!important;min-height:38px!important;max-height:46px!important;margin:0!important;scrollbar-color:#536879 #152335!important;scrollbar-width:thin!important}
- #fretFlowPanel .bass-time-cell{min-height:34px!important;height:34px!important;padding:4px!important;font:600 11px/1.2 system-ui!important}
- body.fretflow-view-active.ff-controls-hidden :is(#importBtn,#songTempoWrap,.loop-range-row,#ffStrings,#bassTimeScroll,#liveAudioEntry,#practiceComfort,#sourceCard,#moreTools){display:none!important}
- body.fretflow-view-active.ff-controls-hidden .transport-main{grid-template-columns:repeat(3,minmax(0,1fr))!important}
- body.fretflow-view-active.ff-controls-hidden #playBtn{grid-column:1!important}
- body.fretflow-view-active.ff-controls-hidden #pauseBtn{grid-column:2!important}
- body.fretflow-view-active.ff-controls-hidden #bassPracticeToggle{grid-column:3!important}
+ #fretFlowPanel #bassTimeScroll{flex:none!important;width:100%!important;height:40px!important;min-height:40px!important;max-height:40px!important;padding:2px 0!important;margin:0!important;overflow-y:hidden!important;scrollbar-width:none!important}
+ #fretFlowPanel .bass-time-cell{min-height:30px!important;height:30px!important;padding:4px!important;font:600 11px/1.2 system-ui!important}
+ body.fretflow-view-active.ff-controls-hidden :is(#importBtn,#songTempoWrap,.loop-range-row,#ffStringsCard,#ffStrings,#bassTimeScroll,#liveAudioEntry,#practiceComfort,#sourceCard,#moreTools){display:none!important}
+ body.fretflow-view-active.ff-controls-hidden #practiceWorkspace{height:calc(var(--device-view-height,100dvh) - 24px)!important}
+ body.fretflow-view-active.ff-controls-hidden .transport-main{grid-template-columns:repeat(5,minmax(0,1fr))!important}
+ body.fretflow-view-active.ff-controls-hidden #playBtn{grid-column:2!important}
+ body.fretflow-view-active.ff-controls-hidden #pauseBtn{grid-column:3!important}
+ body.fretflow-view-active.ff-controls-hidden #bassPracticeToggle{grid-column:4!important}
+ body.fretflow-view-active.ff-controls-hidden #timelinePartTabs{grid-column:2 / span 3!important}
 }
+
+#fretFlowPanel #bassTimeScroll::-webkit-scrollbar{display:none}

@@ -13707,7 +13707,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPan
 </style>
 <link rel="stylesheet" href="./ear-source/trainer-rc267.css?v=rc269">
 <style id="rc260-key-audition">@layer bass-piano-audition-260{#appRoot #pianoKeyboard .piano-key.auditioning{background:#248bd1!important;color:white!important;box-shadow:inset 0 0 0 1px #b7e4ff!important}}</style>
-<link rel="stylesheet" href="./fretflow-source/view.css?v=rc276">
+<link rel="stylesheet" href="./fretflow-source/view.css?v=rc277">
 </head>
 <body>
 <div id="sectionCompatibility" style="display:none" aria-hidden="true">
@@ -15392,13 +15392,13 @@ window.BassBatch = (() => {
 <script src="./ear-source/uploaded-core-rc267.js?v=rc274"></script>
 <script src="./ear-source/study-ui-rc267.js?v=rc271"></script>
 <script src="./ear-source/trainer-rc266.js?v=rc268"></script>
-<script src="./fretflow-source/core.js?v=rc276"></script>
-<script src="./fretflow-source/backing.js?v=rc276"></script>
-<script src="./fretflow-source/view.js?v=rc276"></script>
+<script src="./fretflow-source/core.js?v=rc277"></script>
+<script src="./fretflow-source/backing.js?v=rc277"></script>
+<script src="./fretflow-source/view.js?v=rc277"></script>
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC276';
+  const APP_VERSION='RC277';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;
@@ -15928,7 +15928,7 @@ window.BassBatch = (() => {
       }
 
       if(!current())return false;
-      bassPracticeMuted=keepMuted&&noBassReady;
+      bassPracticeMuted=keepMuted&&(noBassReady||window.BassBacking?.state().enabled);
       refreshBassPracticeToggle();refreshStemMixerUI();updateAudioParams();
 
       if(seek){
