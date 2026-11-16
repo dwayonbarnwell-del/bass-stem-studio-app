@@ -21,7 +21,7 @@
 #fretFlowPanel .ff-message:empty{display:none}
 #fretFlowPanel svg text{font-family:system-ui,sans-serif;user-select:none}
 #fretFlowPanel .ff-tab-hit{cursor:pointer}
-body.fretflow-view-active #appRoot #timelineBreakdownControl{visibility:hidden}
+
 @media(min-width:700px) and (min-height:600px){#fretFlowPanel .ff-stage{max-width:810px;width:100%;margin:auto;grid-template-columns:minmax(90px,23%) minmax(0,1fr)}#fretFlowPanel .ff-tab{height:125px}}
 @media(max-height:550px){#fretFlowPanel .ff-stage{min-height:395px}#fretFlowPanel .ff-caption{font-size:11px}}
 
@@ -36,4 +36,16 @@ body.fretflow-view-active #appRoot #timelineBreakdownControl{visibility:hidden}
  #fretFlowPanel .ff-position{font:500 12px/1.2 system-ui!important}
  #fretFlowPanel .ff-song{font:600 12px/1.25 system-ui!important}
  #fretFlowPanel .ff-caption{font:11px/1.3 system-ui!important}
+}
+
+@layer fretflow276 {
+ body.fretflow-view-active #bassPracticeText{position:static!important;clip:auto!important;clip-path:none!important;width:auto!important;height:auto!important;overflow:visible!important;font:600 11px/1.1 system-ui!important;white-space:normal!important;color:inherit!important;text-align:center!important}
+ body.fretflow-view-active #bassPracticeToggle .bass-state-icon{width:24px!important;height:24px!important;min-height:0!important}
+ #fretFlowPanel #bassTimeScroll{flex:none!important;width:100%!important;min-height:38px!important;max-height:46px!important;margin:0!important;scrollbar-color:#536879 #152335!important;scrollbar-width:thin!important}
+ #fretFlowPanel .bass-time-cell{min-height:34px!important;height:34px!important;padding:4px!important;font:600 11px/1.2 system-ui!important}
+ body.fretflow-view-active.ff-controls-hidden :is(#importBtn,#songTempoWrap,.loop-range-row,#ffStrings,#bassTimeScroll,#liveAudioEntry,#practiceComfort,#sourceCard,#moreTools){display:none!important}
+ body.fretflow-view-active.ff-controls-hidden .transport-main{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+ body.fretflow-view-active.ff-controls-hidden #playBtn{grid-column:1!important}
+ body.fretflow-view-active.ff-controls-hidden #pauseBtn{grid-column:2!important}
+ body.fretflow-view-active.ff-controls-hidden #bassPracticeToggle{grid-column:3!important}
 }

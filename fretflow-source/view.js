@@ -57,10 +57,11 @@ window.BassFretFlow=(()=>{
    nodes.position.textContent=primary?(primary.position?`${C.name(primary.position.open)} string · ${primary.position.fret===0?'open':'fret '+primary.position.fret}`:`Outside ${s.strings}-string range`):!s.loaded?'Open an analysed song':!rows.length?'No analysed bass notes':'Rest';
    nodes.position.title=primary?.source.isFill?'Suggested fill':primary&&Number(primary.source.confidence)<.7?'Low-confidence note: check against the recording':'';
   }
+  nodes.controls.disabled=!s.loaded;
   nodes.strings.value=String(s.strings);
   nodes.song.textContent=s.title+(s.bpm?' · '+Math.round(s.bpm*s.speed/100)+' BPM':'')+' · '+s.speed+'%';
   drawTab(time,s,active);
-  const v=window.BassVocalMute?.state();if(v){nodes.vocals.disabled=!s.loaded||v.busy;nodes.vocals.textContent=v.enabled?'Restore vocals':v.ready?'Mute vocals':'Prepare vocal mute';nodes.vocals.setAttribute('aria-pressed',String(v.enabled));nodes.cancel.hidden=!v.busy;if(nodes.message.textContent!==v.message)nodes.message.textContent=v.message;}
+  const v=window.BassBacking?.state();if(v){nodes.cancel.hidden=!v.busy;if(nodes.message.textContent!==v.message)nodes.message.textContent=v.message;}
  }
  function drawTab(time,s,active){
   const p=nodes.tab,count=s.strings,width=Math.max(180,p.clientWidth||340),height=104,span=6,scale=(width-42)/span,playhead=42+scale*1.5,start=time-1.5,windowNotes=C.nearby(rows,time,1.5,4.5);
@@ -79,13 +80,18 @@ window.BassFretFlow=(()=>{
   }
   const ids=new Set(active.map(n=>n.id));for(const i of nodes.tabItems){i.g.setAttribute('transform',`translate(${42+(i.n.start-start)*scale},0)`);const on=ids.has(i.n.id);i.bg.setAttribute('fill',on?C.colour(i.n.midi):'#151c26');i.tx.setAttribute('fill',on?'#10231a':C.colour(i.n.midi));}
  }
- function init(hooks){api=hooks;panel=document.getElementById('fretFlowPanel');panel.innerHTML='<div class="ff-tools"><strong class="ff-brand">FretFlow</strong><select id="ffStrings" aria-label="FretFlow strings"><option value="4">4 strings</option><option value="5">5 strings</option><option value="6">6 strings</option></select><button id="ffVocals" type="button" aria-pressed="false">Prepare vocal mute</button><button id="ffCancel" type="button" hidden>Cancel</button></div><div class="ff-song"></div><div class="ff-stage"><div class="ff-neck-wrap"><svg class="ff-neck" role="img" aria-label="Bass neck with current note"></svg></div><div class="ff-main"><div class="ff-readout"><strong class="ff-note">—</strong><span class="ff-position"></span></div><svg class="ff-map" role="img" aria-label="FretFlow note map, low strings on the left"></svg><svg class="ff-tab" aria-label="Scrolling bass tablature. Select a fret number to seek."></svg></div></div><p class="ff-caption">Standard tuning · Suggested fingering · Dashed notes need checking</p><p class="ff-message" role="status"></p>';
-  for(const[name,cls]of Object.entries({song:'.ff-song',neck:'.ff-neck',map:'.ff-map',tab:'.ff-tab',note:'.ff-note',position:'.ff-position',message:'.ff-message',vocals:'#ffVocals',cancel:'#ffCancel',strings:'#ffStrings'}))nodes[name]=panel.querySelector(cls);
+ function init(hooks){api=hooks;panel=document.getElementById('fretFlowPanel');panel.innerHTML='<div class="ff-tools"><strong class="ff-brand">FretFlow</strong><select id="ffStrings" aria-label="FretFlow strings"><option value="4">4 strings</option><option value="5">5 strings</option><option value="6">6 strings</option></select><button id="ffControls" type="button" aria-expanded="true" aria-controls="fretFlowPanel">Hide controls</button><button id="ffCancel" type="button" hidden>Cancel</button></div><div class="ff-song"></div><div class="ff-stage"><div class="ff-neck-wrap"><svg class="ff-neck" role="img" aria-label="Bass neck with current note"></svg></div><div class="ff-main"><div class="ff-readout"><strong class="ff-note">—</strong><span class="ff-position"></span></div><svg class="ff-map" role="img" aria-label="FretFlow note map, low strings on the left"></svg><svg class="ff-tab" aria-label="Scrolling bass tablature. Select a fret number to seek."></svg></div></div><p class="ff-caption">Standard tuning · Suggested fingering · Dashed notes need checking</p><p class="ff-message" role="status"></p>';
+  for(const[name,cls]of Object.entries({song:'.ff-song',neck:'.ff-neck',map:'.ff-map',tab:'.ff-tab',note:'.ff-note',position:'.ff-position',message:'.ff-message',controls:'#ffControls',cancel:'#ffCancel',strings:'#ffStrings'}))nodes[name]=panel.querySelector(cls);
   const controls=panel.querySelector('.ff-tools');controls.id='ffHeaderTools';controls.querySelector('.ff-brand').remove();document.querySelector('.practice-view-head').append(controls);
   nodes.strings.onchange=()=>api.setStrings(Number(nodes.strings.value));
-  nodes.vocals.onclick=()=>void window.BassVocalMute.toggle();nodes.cancel.onclick=()=>window.BassVocalMute.cancel();
+  nodes.controls.onclick=()=>showControls(document.body.classList.contains('ff-controls-hidden'));nodes.cancel.onclick=()=>window.BassBacking.cancel();
   resize=new ResizeObserver(()=>{lastTab='';draw();});resize.observe(panel);
  }
  function invalidate(){cache={};lastTab='';signature='';draw();}
- return {init,draw,invalidate};
+ function showControls(show=true){
+  document.body.classList.toggle('ff-controls-hidden',!show);
+  if(nodes.controls){nodes.controls.textContent=show?'Hide controls':'Show controls';nodes.controls.setAttribute('aria-expanded',String(show));}
+  lastBoard='';lastTab='';draw();
+ }
+ return {init,draw,invalidate,showControls};
 })();
