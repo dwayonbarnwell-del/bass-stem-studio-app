@@ -63,6 +63,6 @@ if audit_275.exists():
 # FretFlow regression fixtures retain the production geometry. The fixture itself
 # visibly labels the page as a test; avoid a 44px banner changing the viewport.
 fretflow = audit_html.replace(banner, '')
-(OUT / 'audit-fretflow.html').write_text(fretflow.replace(marker, (ROOT / 'tests/browser_fretflow_rc277.js').read_text()+'\n'+marker))
+(OUT / 'audit-fretflow.html').write_text(fretflow.replace(marker, (ROOT / 'tests/browser_fretflow_rc278.js').read_text()+'\n'+marker))
 for width, height in [(360,800), (412,915), (844,390), (1280,900)]:
     (OUT / f'fretflow-{width}.html').write_text(f'<!doctype html><title>TEST ONLY | FretFlow {width}px</title><iframe title="FretFlow test" src="audit-fretflow.html" style="width:{width}px;height:{height}px;border:0"></iframe>')
