@@ -1,0 +1,28 @@
+{
+  "release": "RC279",
+  "commit": "ba04cfcbc27a0a22f00ef550653815e3068a1083",
+  "deployment": "dep-dbtb38tbedkc73d2prt0",
+  "liveAt": "2026-11-16T07:33:02Z",
+  "files": [
+    {
+      "path": "index.html",
+      "sha256": "6a57fb88ba5ce291b5deee48cb0ee8a7e725f7c313a3b1f4bf177d526ba3d71f",
+      "match": true
+    },
+    {
+      "path": "song-reference/data.js",
+      "sha256": "38f0c6faa934571015973b18d26c0339b324cf312bed1426421cf1d523068c59",
+      "match": true
+    },
+    {
+      "path": "song-reference/chords.js",
+      "sha256": "0232cb967152b3d6c2d923b92c844936a173e139808903093bd78b165ef1bd63",
+      "match": true
+    },
+    {
+      "path": "sw.js",
+      "sha256": "60e1b4d1c1284848eceb101a73b480136ffbc2a3d3a2ddd7929597a4a9c9365f",
+      "match": true
+    }
+  ]
+}
