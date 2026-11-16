@@ -21,6 +21,15 @@ Existing suites passed: 459 pitch/range/fret checks; playback timing; note editi
 
 Screenshots show the isolated compact Piano and FretFlow layouts. Note accuracy still depends on the saved transcription. Model separation quality on individual user songs and physical Android background behaviour have not been newly benchmarked. No paid analysis jobs were submitted.
 
-## Release checkpoint
+## Published and verified
 
-Prepared for publication under the user's existing authorisation. Confirm the merged main commit, Render automatic deployment and live file hashes before reporting the update live. Save final evidence on a separate audit branch to avoid a duplicate production deployment.
+Published 16 November 2026 through merged PR 8:
+https://github.com/dwayonbarnwell-del/bass-stem-studio-app/pull/8
+
+Production commit: f93b941ad76d970e9b786348d4500a1025863d9c.
+Render deployment: dep-dbt9updbedkc73d1iotg, live at 06:15:16 UTC.
+Live URL: https://bass-stem-studio-app-z5ja.onrender.com/
+
+All eight checked live SHA-256 hashes match the tested source: index, service worker, FretFlow view JS/CSS, shared controls JS/CSS, backing module and ear-training catalogue. Live browser checks confirmed Hide controls, bass mute and vocal mute in all four views, plus Show controls remaining visible after hiding.
+
+No further publication is pending. Final verification is stored on audit/rc278-live-verification to avoid another production deployment.
