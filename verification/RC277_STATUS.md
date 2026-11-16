@@ -25,6 +25,15 @@ The existing 459 pitch/fret assertions, playback timing, editing and African les
 
 The browser tests exercise the app in Chromium at the four viewport sizes. Physical Android touch, background and screen-off behaviour have not been retested. Note accuracy still depends on the existing song analysis. The update does not reanalyse or alter saved song notes. No paid analysis jobs were submitted.
 
-## Release checkpoint
+## Published and verified
 
-RC277 is prepared for publication under the user's existing authorisation to publish the platform update. Verify the GitHub main merge, Render automatic deployment and live file hashes before reporting publication complete. Do not submit a second deployment. Keep final deployment evidence on an audit branch to avoid another production build.
+Published 16 November 2026 at 05:52 UTC through merged PR 7:
+https://github.com/dwayonbarnwell-del/bass-stem-studio-app/pull/7
+
+Production commit: 71aac97a955d26db7345538e12d6f4e71475879f.
+Render deployment: dep-dbt9k168bjmc73fcue4g, live at 05:52:16 UTC.
+Live URL: https://bass-stem-studio-app-z5ja.onrender.com/
+
+SHA-256 comparisons matched all seven checked live files: index.html, sw.js, all four FretFlow assets and the ear-training catalogue. The live browser loaded RC277 assets, opened FretFlow with five strings and showed no lower tablature or redundant caption. Screenshots and hashes are saved alongside this record.
+
+No further publication is pending. This verification-only commit is kept on audit/rc277-live-verification to avoid an unnecessary production deployment.

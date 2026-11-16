@@ -1,0 +1,37 @@
+[
+  {
+    "path": "index.html",
+    "matches": true,
+    "sha256": "f1d511fbfe869716d29d3bda1521e682cd36e9a7555cad5bb857f9d4d7a0c709"
+  },
+  {
+    "path": "sw.js",
+    "matches": true,
+    "sha256": "8ce18189a20ae1096c08ea01bf3825c07192a134133614b9788b242341a54a44"
+  },
+  {
+    "path": "fretflow-source/view.js",
+    "matches": true,
+    "sha256": "e88f77ed0865c3ef65f3e1989208776cf92928896613e535efb63d62c80d57a7"
+  },
+  {
+    "path": "fretflow-source/view.css",
+    "matches": true,
+    "sha256": "939b21b555d6b30da576ff32a6777c1815c0953b4abe0a91cf1e374d332b421b"
+  },
+  {
+    "path": "fretflow-source/core.js",
+    "matches": true,
+    "sha256": "d265380fcc0a735e7ad14949c6195c9dd1fb33d5fad9dbe9b4bdaa530cb6df5c"
+  },
+  {
+    "path": "fretflow-source/backing.js",
+    "matches": true,
+    "sha256": "849e7b585cd7fb0fbca71c71c8cad4bc4a97d92333d24aa2ec9798d1b4928b41"
+  },
+  {
+    "path": "ear-source/catalogue-rc269.js",
+    "matches": true,
+    "sha256": "4f9ccfb29603a997a90a0f9124bab757968e38ea81c7b24d55095da47ecb2091"
+  }
+]
