@@ -13709,7 +13709,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPan
 <style id="rc260-key-audition">@layer bass-piano-audition-260{#appRoot #pianoKeyboard .piano-key.auditioning{background:#248bd1!important;color:white!important;box-shadow:inset 0 0 0 1px #b7e4ff!important}}</style>
 <link rel="stylesheet" href="./fretflow-source/controls.css?v=rc278">
 <link rel="stylesheet" href="./fretflow-source/view.css?v=rc278">
-<link rel="stylesheet" href="./song-view/view.css?v=rc285">
+<link rel="stylesheet" href="./song-view/view.css?v=rc286">
 </head>
 <body>
 <div id="sectionCompatibility" style="display:none" aria-hidden="true">
@@ -15400,12 +15400,12 @@ window.BassBatch = (() => {
 <script src="./fretflow-source/backing.js?v=rc278"></script>
 <script src="./fretflow-source/view.js?v=rc278"></script>
 <script src="./fretflow-source/controls.js?v=rc278"></script>
-<script src="./song-view/core.js?v=rc285"></script>
-<script src="./song-view/view.js?v=rc285"></script>
+<script src="./song-view/core.js?v=rc286"></script>
+<script src="./song-view/view.js?v=rc286"></script>
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC285';
+  const APP_VERSION='RC286';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;
@@ -20895,7 +20895,7 @@ window.BassBatch = (() => {
     if(current){if(t<current.start||t>=current.end-.003)seekTo(current.start);if(!playing)void play();}
   }
   window.BassSongView.init({
-    get:()=>({loaded:!!buffer,busy:aiBusy||songImportBusy,session:songSession,title:loadedProjectName||objectName||'Song',time:displayTime(),duration:buffer?.duration||0,notes,chords:detectedChordChanges,sections,parts:analysisParts,transpose:transposeSemitones,repeatRanges:timeframeLoopMode?timeframeQueue:multiSectionMode?sectionQueue:loopEnabled?[{start:loopStart,end:loopEnd}]:[],noteFormat:noteDisplayMode+':'+numberingConvention+':'+JSON.stringify([detectedBaseScale,audioKeySections,keyCorrections])}),
+    get:()=>({loaded:!!buffer,busy:aiBusy||songImportBusy||!$('liveStop').disabled||!$('pianoLiveStop').disabled,session:songSession,title:loadedProjectName||objectName||'Song',time:displayTime(),duration:buffer?.duration||0,notes,chords:detectedChordChanges,sections,parts:analysisParts,transpose:transposeSemitones,repeatRanges:timeframeLoopMode?timeframeQueue:multiSectionMode?sectionQueue:loopEnabled?[{start:loopStart,end:loopEnd}]:[],noteFormat:noteDisplayMode+':'+numberingConvention+':'+JSON.stringify([detectedBaseScale,audioKeySections,keyCorrections])}),
     validChord:reliableChord,
     noteLabel:n=>{const pitch=practiceDisplayMidi(n.midi);return noteDisplayMode==='numbers'?(scaleDegreeLabel(pitch,songViewScaleAt(n.start))||midiName(pitch)):midiName(pitch);},
     chordLabel:c=>chordDisplayLabel(c,songViewScaleAt(c.start)),seek:seekTo,pause,wholeSong:songViewWhole,repeat:songViewRepeat,

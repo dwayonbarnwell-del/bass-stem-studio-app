@@ -1,0 +1,7 @@
+RC286: Song View tap targets and repeat feedback
+
+Confirmed RC285's note/chord taps only sought within the song; row backgrounds had no action. Repeat also used the broader library busy guard, which silently ignored taps during background melody analysis despite leaving repeat controls enabled.
+
+RC286 makes notes, chords, time labels and row backgrounds toggle the containing repeat block. Section headings still select the whole section. Native click activation supports mouse, keyboard and taps without selecting on touch/pointer down. Pointer down stops automatic following so the target stays still. Selected rows retain a clear green background and border while the current playback row is highlighted. Repeat and Whole song use the same visible import/analysis/recording busy state; background melody work no longer blocks them. Song data and audio remain unchanged.
+
+Validation: 17 browser integration checks passed with no failed or skipped checks on the final run, including real playback across unselected gaps and the song ending. Manual browser interaction verified note selection, second-tap deselection, Enter activation, multiple selections and Whole song clearing; selected styling was visually checked. Existing repeat boundary, Song View data and playback timing tests pass. All 34 inline scripts and changed JavaScript parse; git diff --check passes. Actual Android hardware was unavailable.

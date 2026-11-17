@@ -20,6 +20,10 @@
 #songViewRepeatStatus{flex:none;font:11px/1.3 system-ui!important;color:#b8d4c9}
 #songViewPanel .song-view-row{display:grid;grid-template-columns:42px minmax(0,1fr);gap:6px;padding:7px 3px;border-bottom:1px solid #365167}
 #songViewPanel .song-view-row.current{background:#243c4b;box-shadow:inset 3px 0 #d1ecbc}
+#songViewPanel .song-view-row{cursor:pointer;touch-action:pan-y}
+#songViewPanel .song-view-row.repeat-selected{background:#245d49;box-shadow:inset 4px 0 #9ee0bc;outline:1px solid #9ee0bc;outline-offset:-1px}
+#songViewPanel .song-view-row.repeat-selected.current{background:#296952;box-shadow:inset 4px 0 #f3d48a}
+#songViewPanel .song-view-chip[aria-pressed="true"]{border-color:#9ee0bc}
 #songViewPanel .song-view-events{min-width:0;display:flex;flex-direction:column;gap:5px}
 #songViewPanel .song-view-chords,#songViewPanel .song-view-notes{display:flex;flex-wrap:wrap;gap:4px;min-width:0}
 #songViewPanel .song-view-chip,#songViewPanel .song-view-time{height:auto!important;min-width:0!important;min-height:28px!important;padding:4px 7px!important;border-radius:6px!important;font:600 12px/1.2 system-ui!important;margin:0!important;white-space:normal;overflow-wrap:anywhere;color:#eaf4fc;border:1px solid #587c92;background:#153142}
