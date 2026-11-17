@@ -1,0 +1,8 @@
+RC284: independent fills and full-song view
+
+My fills uses the independent fill catalogue. No library-fill scan runs in the practice UI. The old saved library-fill database is left untouched.
+Song View shows the complete saved song notes and reliable chords, grouped by saved sections or analysis parts, with every uncovered interval retained. It follows the existing playback clock, supports note seeking, transposition and section-specific number notation, and uses the shared transport and mute controls. The library chooser opens the saved project through the existing read-only practice path. Switching views preserves repeats; Whole song clears repeats explicitly.
+
+Passed: full-song model and section/key tests; playback_timing_rc256; song_key_rc252 (19 checks); bass_practice_rc264; library_fills_rc264; ear_keyboard_rc266; catalogue_rc269; JavaScript syntax and whitespace checks.
+Browser interaction tests are supplied but could not be run in this environment: Chromium launch was blocked by socket permissions, and the shared browser could not reach the local test server. No mobile layout or real browser playback pass is claimed.
+No song catalogue, audio files, saved project records or stored pattern preferences were changed.
