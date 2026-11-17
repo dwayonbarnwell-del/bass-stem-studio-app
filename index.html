@@ -13709,7 +13709,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPan
 <style id="rc260-key-audition">@layer bass-piano-audition-260{#appRoot #pianoKeyboard .piano-key.auditioning{background:#248bd1!important;color:white!important;box-shadow:inset 0 0 0 1px #b7e4ff!important}}</style>
 <link rel="stylesheet" href="./fretflow-source/controls.css?v=rc278">
 <link rel="stylesheet" href="./fretflow-source/view.css?v=rc278">
-<link rel="stylesheet" href="./song-view/view.css?v=rc284">
+<link rel="stylesheet" href="./song-view/view.css?v=rc285">
 </head>
 <body>
 <div id="sectionCompatibility" style="display:none" aria-hidden="true">
@@ -15400,12 +15400,12 @@ window.BassBatch = (() => {
 <script src="./fretflow-source/backing.js?v=rc278"></script>
 <script src="./fretflow-source/view.js?v=rc278"></script>
 <script src="./fretflow-source/controls.js?v=rc278"></script>
-<script src="./song-view/core.js?v=rc284"></script>
-<script src="./song-view/view.js?v=rc284"></script>
+<script src="./song-view/core.js?v=rc285"></script>
+<script src="./song-view/view.js?v=rc285"></script>
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC284';
+  const APP_VERSION='RC285';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;
@@ -20884,11 +20884,21 @@ window.BassBatch = (() => {
     selectedTimeframes.clear();selectedSections.clear();multiSectionMode=false;timeframeLoopMode=false;sectionQueue=[];timeframeQueue=[];
     loopStart=null;loopEnd=null;loopEnabled=false;refreshTimeframeSelectionUI();refreshSectionUI();updateLoopUI();seekTo(0);
   }
+  function songViewRepeat(ranges){
+    if(!buffer||aiBusy||songImportBusy)return;
+    const next=window.BassSongViewCore.repeatRanges(ranges,buffer.duration),t=currentTime();
+    selectedTimeframes.clear();selectedSections.clear();sectionQueue=[];queueIndex=0;multiSectionMode=false;loopEnabled=false;
+    timeframeQueue=next;timeframeLoopMode=next.length>0;timeframeQueueIndex=next.findIndex(r=>t>=r.start&&t<r.end-.003);
+    if(timeframeQueueIndex<0)timeframeQueueIndex=0;
+    const current=next[timeframeQueueIndex];loopStart=current?.start??null;loopEnd=current?.end??null;
+    refreshTimeframeSelectionUI();refreshSectionUI();updateLoopUI();
+    if(current){if(t<current.start||t>=current.end-.003)seekTo(current.start);if(!playing)void play();}
+  }
   window.BassSongView.init({
-    get:()=>({loaded:!!buffer,busy:aiBusy||songImportBusy,session:songSession,title:loadedProjectName||objectName||'Song',time:displayTime(),duration:buffer?.duration||0,notes,chords:detectedChordChanges,sections,parts:analysisParts,transpose:transposeSemitones,noteFormat:noteDisplayMode+':'+numberingConvention+':'+JSON.stringify([detectedBaseScale,audioKeySections,keyCorrections])}),
+    get:()=>({loaded:!!buffer,busy:aiBusy||songImportBusy,session:songSession,title:loadedProjectName||objectName||'Song',time:displayTime(),duration:buffer?.duration||0,notes,chords:detectedChordChanges,sections,parts:analysisParts,transpose:transposeSemitones,repeatRanges:timeframeLoopMode?timeframeQueue:multiSectionMode?sectionQueue:loopEnabled?[{start:loopStart,end:loopEnd}]:[],noteFormat:noteDisplayMode+':'+numberingConvention+':'+JSON.stringify([detectedBaseScale,audioKeySections,keyCorrections])}),
     validChord:reliableChord,
     noteLabel:n=>{const pitch=practiceDisplayMidi(n.midi);return noteDisplayMode==='numbers'?(scaleDegreeLabel(pitch,songViewScaleAt(n.start))||midiName(pitch)):midiName(pitch);},
-    chordLabel:c=>chordDisplayLabel(c,songViewScaleAt(c.start)),seek:seekTo,pause,wholeSong:songViewWhole,
+    chordLabel:c=>chordDisplayLabel(c,songViewScaleAt(c.start)),seek:seekTo,pause,wholeSong:songViewWhole,repeat:songViewRepeat,
     busy:()=>songImportBusy||aiBusy||!$('liveStop').disabled||!$('pianoLiveStop').disabled||window.BassPiano.isBusy(),
     show:()=>setPracticeVisualMode('song'),
     openSong:async meta=>{const opened=await window.BassLibrary.openPracticeSong(meta.id,meta.stamp);if(opened){songViewWhole();setPracticeVisualMode('song');}return opened;}
@@ -21499,6 +21509,7 @@ window.BassBatch = (() => {
     loopToggle.setAttribute('aria-label',repeatActive?'Stop repeating':'Repeat a section');
     loopToggle.title=repeatActive?'Stop repeating':'Repeat a section';
     renderStructureReadiness();
+    window.BassSongView?.draw();
   }
   function cloneSections(obj){return JSON.parse(JSON.stringify(obj));}
   function renderSectionControls(){
