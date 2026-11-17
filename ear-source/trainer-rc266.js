@@ -40,13 +40,13 @@ window.BassEarTrainer=(()=>{
  }
  function options(playback){return {mode:selectedMode(),level:Number($('earLevel').value),sound:$('earSound').value,count:Number($('earCount').value),playback};}
  function controls(){
-  const busy=phase==='loading'||phase==='playing',active=!!round&&phase!=='summary',mode=selectedMode(),fills=['fills','basslines','runs','library'].includes(mode);dialog.dataset.lesson=mode;
+  const busy=phase==='loading'||phase==='playing',active=!!round&&phase!=='summary',mode=selectedMode(),fills=['fills','basslines','runs'].includes(mode);dialog.dataset.lesson=mode;
   $('earSections').hidden=active;
   $('earMode').value=section==='notes'?noteMode:'';$('earMode').disabled=active;
   $('earMode').dataset.active=String(section==='notes');
   $('earSectionFills').setAttribute('aria-pressed',String(fills));
   $('earBassSections').hidden=!fills||active;
-  for(const b of $('earBassSections').querySelectorAll('button'))b.setAttribute('aria-pressed',String(b.dataset.section===section));
+  for(const b of $('earBassSections').querySelectorAll('[data-section]'))b.setAttribute('aria-pressed',String(b.dataset.section===section));
   $('earProgress').hidden=fills;
   $('earFillStudy').hidden=!fills; $('earLevel').parentElement.hidden=fills; $('earSound').parentElement.hidden=fills;
   $('earStartRow').hidden=!active;$('earStatus').hidden=fills;$('earSummary').hidden=fills||phase!=='summary';
@@ -171,15 +171,15 @@ window.BassEarTrainer=(()=>{
   $('earAdvance').hidden=!nextLevel;updateProgress();controls();
  }
  function resetQuestion(){if(answered)return;entered=[];text('earEntered','Choose '+question.answer.length+' notes.');controls();}
- function close(){window.BassFillTrainer?.stop();window.BassLibraryFills?.cancel();repeatQuestion=false;stopSound();phase='idle';answered=false;question=null;round=null;if(context?.state==='running')void context.suspend();}
- function modeChanged(){window.BassFillTrainer?.stop();stopSound();if(question||round){question=null;round=null;answered=false;phase='idle';}drawKeyboard();const mode=selectedMode();text('earHint',hints[mode]||'');$('earLevel').value=String(progress.modes[mode]?.level||1);controls();if(['fills','basslines','runs','library'].includes(mode))window.BassFillTrainer?.setKind(mode);}
+ function close(){window.BassFillTrainer?.stop();repeatQuestion=false;stopSound();phase='idle';answered=false;question=null;round=null;if(context?.state==='running')void context.suspend();}
+ function modeChanged(){window.BassFillTrainer?.stop();stopSound();if(question||round){question=null;round=null;answered=false;phase='idle';}drawKeyboard();const mode=selectedMode();text('earHint',hints[mode]||'');$('earLevel').value=String(progress.modes[mode]?.level||1);controls();if(['fills','basslines','runs'].includes(mode))window.BassFillTrainer?.setKind(mode);}
  function selectSection(nextSection){if(section===nextSection)return;close();section=nextSection;modeChanged();status('No song needed');dialog.scrollTop=0;}
  function init(hooks){
   api=hooks;if(dialog)return;
   const wrap=document.createElement('div');wrap.innerHTML=`<dialog id="earTrainerDialog" aria-labelledby="earTitle">
 <header class="ear-header"><h2 id="earTitle">Ear training</h2><button id="earClose" type="button">Close</button></header>
-<div id="earSections" role="group" aria-label="Ear training sections"><select id="earMode" aria-label="Notes lesson" title="Notes lesson"><option value="" disabled hidden>Notes</option><option value="notes" selected>Notes</option><option value="intervals">Intervals</option><option value="chords">Chords</option><option value="progressions">Progressions</option></select><button id="earSectionFills" type="button" data-section="fills" aria-pressed="false">Bass fills</button></div>
-<div id="earBassSections" role="group" aria-label="Bass studies" hidden><button id="earSectionBasslines" type="button" data-section="basslines" aria-pressed="false">Basslines</button><button id="earSectionRuns" type="button" data-section="runs" aria-pressed="false">Runs</button><button id="earSectionLibrary" type="button" data-section="library" aria-pressed="false">My fills</button></div>
+<div id="earSections" role="group" aria-label="Ear training sections"><select id="earMode" aria-label="Notes lesson" title="Notes lesson"><option value="" disabled hidden>Notes</option><option value="notes" selected>Notes</option><option value="intervals">Intervals</option><option value="chords">Chords</option><option value="progressions">Progressions</option></select><button id="earSectionFills" type="button" data-section="fills" aria-pressed="false">Bass practice</button></div>
+<div id="earBassSections" role="group" aria-label="Bass studies" hidden><button id="earSectionBasslines" type="button" data-section="basslines" aria-pressed="false">Basslines</button><button id="earSectionRuns" type="button" data-section="runs" aria-pressed="false">Runs</button><button id="earSectionMyFills" type="button" data-section="fills" aria-pressed="false">My fills</button><button id="earLibrarySongs" type="button">Song view</button></div>
 <div id="earSetup" class="ear-settings">
 <label><select id="earLevel" aria-label="Select level" title="Select level"><option value="1">Level 1</option><option value="2">Level 2</option><option value="3">Level 3</option><option value="4">Level 4</option><option value="5">Level 5</option></select></label>
 <label><select id="earSound" aria-label="Select sound" title="Select sound"><option value="piano">Piano</option><option value="bass">Bass</option></select></label>
@@ -200,9 +200,8 @@ window.BassEarTrainer=(()=>{
 <details id="earProgress" class="ear-progress"><summary>Your progress</summary><ul id="earProgressList"></ul><small id="earStorageNote"></small></details></dialog>`;
   dialog=wrap.firstElementChild;$('appRoot').append(dialog);readProgress();modeChanged();updateProgress();
   window.addEventListener('resize',fitViewport);window.visualViewport?.addEventListener('resize',fitViewport);window.visualViewport?.addEventListener('scroll',fitViewport);screen.orientation?.addEventListener('change',fitViewport);fitViewport();
-  $('openEarTraining').onclick=()=>{if(api?.busy?.())return;returnButton.hidden=true;api?.pause?.();close();drawKeyboard();$('earSummary').hidden=true;dialog.showModal();dialog.scrollTop=0;fitViewport();status('No song needed');controls();};
-  const returnButton=document.createElement('button');returnButton.id='backToMyFills';returnButton.type='button';returnButton.textContent='Back to My fills';returnButton.hidden=true;returnButton.style.cssText='position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:10000;padding:12px 20px;font-size:14px';$('appRoot').append(returnButton);let returnScroll=0;returnButton.onclick=()=>{if(api?.busy?.())return;api?.pause?.();returnButton.hidden=true;dialog.showModal();fitViewport();dialog.scrollTop=returnScroll;$('fillOriginal').focus({preventScroll:true});};
-  window.BassFillTrainer.init($('earFillStudy'),{...hooks,openPart:async item=>{returnScroll=dialog.scrollTop;await hooks.openPart(item);close();dialog.close();returnButton.hidden=false;}});$('earAnswerSound').onclick=()=>void listen(true);
+  $('openEarTraining').onclick=()=>{if(api?.busy?.())return;api?.pause?.();close();drawKeyboard();$('earSummary').hidden=true;dialog.showModal();dialog.scrollTop=0;fitViewport();status('No song needed');controls();};
+  window.BassFillTrainer.init($('earFillStudy'),hooks);$('earLibrarySongs').onclick=()=>{if(api?.busy?.())return;close();dialog.close();api?.openSongs?.();};$('earAnswerSound').onclick=()=>void listen(true);
   for(const b of dialog.querySelectorAll('[data-section]'))b.onclick=()=>selectSection(b.dataset.section);
   $('earClose').onclick=()=>{close();dialog.close();};dialog.addEventListener('close',()=>{if(!dialog.open)close();});dialog.addEventListener('cancel',close);
   $('earSound').onchange=()=>{stopSound();drawKeyboard();};$('earMode').onchange=()=>{noteMode=$('earMode').value;if(section!=='notes')selectSection('notes');else modeChanged();};$('earCount').onclick=()=>{$('earCount').value=$('earCount').value==='5'?'10':'5';$('earCount').textContent=$('earCount').value+' questions';};for(const b of $('earPlaybackChoices').querySelectorAll('button'))b.onclick=()=>void start(b.dataset.playback);$('earRepeat').onclick=repeat;$('earHome').onclick=home;$('earStart').onclick=()=>void start();$('earFinish').onclick=finish;$('earListen').onclick=listen;$('earNext').onclick=()=>{next();if(listening())void listen(true);};$('earReveal').onclick=()=>submit(null,true);
