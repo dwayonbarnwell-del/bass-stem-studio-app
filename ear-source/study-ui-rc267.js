@@ -1,8 +1,10 @@
 window.BassFillTrainer=(()=>{
  'use strict';
- const F=window.BassFillCore,P=window.BassPracticeCore,U=window.BassUploadedCore,D=window.BassPracticeCatalogue,$=id=>document.getElementById(id);
+ const F=window.BassFillCore,P=window.BassPracticeCore,U=window.BassUploadedCore,D=window.BassPracticeCatalogue,C=window.BassCuratedStudies,$=id=>document.getElementById(id);
  let api,ctx,voices=[],timers=[],token=0,playing=false,repeating=false,backing=true,plan,kind='fills',recordedAudio=null,recordedFrame=0;
- const remembered={fills:'0',runs:'0',basslines:'0'},rememberedClips={};
+ const remembered={fills:C?null:'0',runs:C?null:'0',basslines:'0'},rememberedClips={};
+ const filterKey='bass-curated-filters-v1',filters={fills:{style:'all',quality:'all',pack:'all'},runs:{style:'all',quality:'all',pack:'all'}};
+ try{const saved=JSON.parse(localStorage.getItem(filterKey)||'{}');for(const k of ['fills','runs'])for(const name of ['style','quality','pack'])if(typeof saved[k]?.[name]==='string')filters[k][name]=saved[k][name];}catch{}
  const imported=()=>kind==='basslines'&&U.groups.slice(1).some(([id])=>id===$('fillCollection').value);
  function clipOptions(){
   const group=$('fillCollection').value;$('fillClip').replaceChildren();
@@ -23,14 +25,17 @@ window.BassFillTrainer=(()=>{
   for(const id of ['fillKey','fillTempo','fillIdea'])$(id).hidden=custom;
   $('fillFrom').hidden=kind==='basslines';$('fillTo').hidden=kind==='basslines';
   $('fillBacking').hidden=custom;$('fillNext').textContent=custom?'Next part':'Next idea';
+  $('fillFilterPanel').hidden=!C||kind==='basslines';$('fillFilters').hidden=!C||kind==='basslines';$('fillCount').hidden=!C||kind==='basslines';
  }
  const collections=()=>kind==='runs'?P.runs:kind==='basslines'?P.lines.map(x=>[D.lineLabel(x),x.tip]):F.styles;
- function patternId(i){return kind==='basslines'?P.lines[i]?.id:String(i);}
+ function patternId(i){return kind==='basslines'?P.lines[i]?.id:collections()[i]?.id||String(i);}
+ function loadFilters(){if(!C||kind==='basslines')return;for(const [id,name] of [['fillStyle','style'],['fillQuality','quality'],['fillPack','pack']]){const el=$(id);el.value=filters[kind][name];if(!el.value)el.value='all';filters[kind][name]=el.value;}}
  function ideaOptions(wanted=remembered[kind]){
-  const select=$('fillIdea');select.replaceChildren();const rows=collections().map((s,i)=>({s,i,line:kind==='basslines'?P.lines[i]:null})).filter(({i,line})=>D.visible(kind,patternId(i))&&(!line||D.inCollection(line,$('fillCollection').value)));
-  rows.sort((a,b)=>Number(!!a.line?.african)-Number(!!b.line?.african));let african;
-  for(const {s,i,line} of rows){const o=document.createElement('option');o.value=i;o.textContent=s[0];if(line?.african){if(!african){african=document.createElement('optgroup');african.label='African basslines';select.append(african);}african.append(o);}else select.append(o);}
+  const select=$('fillIdea');select.replaceChildren();const rows=collections().map((s,i)=>({s,i,line:kind==='basslines'?P.lines[i]:null})).filter(({i,line})=>{if(!D.visible(kind,patternId(i))||line&&!D.inCollection(line,$('fillCollection').value))return false;if(!C||kind==='basslines')return true;const m=C.metadata(kind,i),f=filters[kind];return(f.style==='all'||m.genre===f.style)&&(f.quality==='all'||m.tier===Number(f.quality))&&(f.pack==='all'||(f.pack==='new')===m.original);});
+  rows.sort((a,b)=>C&&kind!=='basslines'?C.compare(kind,a.i,b.i):Number(!!a.line?.african)-Number(!!b.line?.african));let african;
+  for(const {s,i,line} of rows){const o=document.createElement('option');o.value=i;o.textContent=(C&&kind!=='basslines'?C.tiers[C.metadata(kind,i).tier]+' · ':'')+s[0];if(line?.african){if(!african){african=document.createElement('optgroup');african.label='African basslines';select.append(african);}african.append(o);}else select.append(o);}
   if([...select.options].some(o=>o.value===String(wanted)))select.value=String(wanted);else if(select.options.length)select.selectedIndex=0;
+  if(C&&kind!=='basslines')$('fillCount').textContent=rows.length+' '+(kind==='runs'?'runs':'fills')+' · Most amazing to good';
  }
  function deletionKey(){return imported()?$('fillClip').value&&['uploaded',$('fillClip').value]:$('fillIdea').value!==''?[kind,patternId(Number($('fillIdea').value))]:null;}
  function refreshDeleted(){ideaOptions($('fillIdea').value);clipOptions();draw();}
@@ -45,9 +50,10 @@ window.BassFillTrainer=(()=>{
  }
  function showPlan(value){
   plan=value;$('fillPlayer').hidden=!plan;$('fillEmpty').hidden=!!plan;state();if(!plan)return;
-  $('fillHeading').textContent=plan.heading||plan.from+' → '+plan.to+' · '+plan.fromChord+' → '+plan.toChord;
+  $('fillHeading').textContent=plan.curated?plan.title:(plan.heading||plan.from+' → '+plan.to+' · '+plan.fromChord+' → '+plan.toChord);$('fillHarmony').hidden=!plan.curated;$('fillHarmony').textContent=plan.curated?plan.heading:'';
   $('fillStatus').textContent=plan.kind==='uploaded'?plan.status:kind==='basslines'?(plan.beats/4)+'-bar loop':'Two bars · land on beat 1';$('fillNotes').replaceChildren();
   $('fillTip').textContent=plan.tip||'';const source=plan.lesson||(typeof plan.source==='object'?plan.source:null);$('fillSource').hidden=!source;if(source){$('fillSource').textContent=source.label;$('fillSource').href=source.url;}
+  $('fillRating').hidden=!C||kind==='basslines';if(C&&kind!=='basslines'){const m=C.metadata(kind,Number($('fillIdea').value));$('fillRating').textContent=C.tiers[m.tier]+' · '+(C.genres.find(([id])=>id===m.genre)?.[1]||'Other styles')+(m.original?' · '+m.notes.length+' phrase notes · Original study':'');}
   plan.bass.forEach((n,i)=>{const b=document.createElement('button');b.type='button';b.textContent=F.note(n.midi);b.title=F.note(n.midi)+(plan.kind==='uploaded'?' · '+U.time(n.sourceTime):' · beat '+(Math.round((n.beat%4+1)*100)/100));if(n.review){b.classList.add('needs-review');b.title+=' · Check note';}b.setAttribute('aria-label','Hear '+F.note(n.midi));b.dataset.index=i;if(n.role==='landing')b.classList.add('landing');b.onclick=()=>void preview(n);$('fillNotes').append(b);});state();
  }
  async function preview(n){
@@ -87,7 +93,7 @@ window.BassFillTrainer=(()=>{
   };recordedFrame=requestAnimationFrame(tick);
  }
  function init(panel,hooks){
-  api=hooks;panel.innerHTML=`<div id="fillSettings" class="fill-settings">
+  api=hooks;panel.innerHTML=`<details id="fillFilterPanel" hidden><summary>Filter styles and ratings</summary><div id="fillFilters" class="fill-settings" hidden><select id="fillStyle" aria-label="Run or fill style"><option value="all">All styles</option></select><select id="fillQuality" aria-label="Run or fill rating"><option value="all">All ratings</option></select><select id="fillPack" aria-label="Run or fill collection"><option value="all">All patterns</option><option value="new">New 110 collection</option><option value="previous">Previous patterns</option></select><details id="fillRatingGuide"><summary>About the ratings</summary><p>Editorial choices based on melodic interest, groove, contrast and resolution. Taste is personal; a higher rating does not mean harder. The new collection contains original studies informed by the linked lessons, not artist transcriptions.</p></details></div></details><p id="fillCount" role="status" hidden></p><div id="fillSettings" class="fill-settings">
   <select id="fillCollection" aria-label="Bassline collection" hidden></select>
   <select id="fillClip" aria-label="Uploaded bassline" hidden></select><select id="fillExcerpt" aria-label="Clip section" hidden></select>
   <select id="fillClipSpeed" aria-label="Clip speed" hidden><option value="25">25% speed</option><option value="50">50% speed</option><option value="75">75% speed</option><option value="100" selected>Original speed</option><option value="125">125% speed</option></select>
@@ -96,10 +102,11 @@ window.BassFillTrainer=(()=>{
   <select id="fillFrom" aria-label="From degree"></select><select id="fillTo" aria-label="To degree"></select>
   <select id="fillKey" aria-label="Fill key"></select><select id="fillTempo" aria-label="Fill tempo"></select>
   <select id="fillIdea" aria-label="Fill idea"></select></div>
-  <div id="fillCustom" class="my-fill-actions" hidden><input id="fillProgression" aria-label="Your progression" placeholder="e.g. 6 5 4 5 3"><button id="fillAddProgression" type="button">Add progression</button></div><p id="fillEmpty" hidden>No patterns here. Restore deleted patterns or choose another collection.</p><div class="my-fill-actions"><button id="fillDelete" type="button">Delete pattern</button><button id="fillRestore" type="button">Restore deleted</button></div><p id="fillManageStatus" role="status"></p><div id="fillPlayer"><h3 id="fillHeading"></h3><p id="fillTip"></p><a id="fillSource" target="_blank" rel="noopener noreferrer" hidden></a>
+  <div id="fillCustom" class="my-fill-actions" hidden><input id="fillProgression" aria-label="Your progression" placeholder="e.g. 6 5 4 5 3"><button id="fillAddProgression" type="button">Add progression</button></div><p id="fillEmpty" hidden>No matching patterns. Change the filters or restore deleted patterns.</p><div class="my-fill-actions"><button id="fillDelete" type="button">Delete pattern</button><button id="fillRestore" type="button">Restore deleted</button></div><p id="fillManageStatus" role="status"></p><div id="fillPlayer"><h3 id="fillHeading"></h3><p id="fillHarmony" hidden></p><p id="fillRating" hidden></p><p id="fillTip"></p><a id="fillSource" target="_blank" rel="noopener noreferrer" hidden></a>
   <div class="fill-actions"><button id="fillPlay" type="button">Play</button><button id="fillRepeat" type="button" aria-pressed="false">Repeat</button><button id="fillNext" type="button">Next idea</button><button id="fillBacking" type="button" aria-pressed="true">Chords on</button></div>
   <div id="fillNotes" aria-label="Bass fill notes"></div><p id="fillStatus" role="status"></p></div>`;
   function option(id,value,label){const o=document.createElement('option');o.value=value;o.textContent=label;$(id).append(o);}
+  if(C){for(const [id,label] of [...C.genres,['other','Other styles']])option('fillStyle',id,label);C.tiers.forEach((label,i)=>option('fillQuality',i,label));loadFilters();for(const id of ['fillStyle','fillQuality','fillPack'])$(id).onchange=()=>{filters[kind]={style:$('fillStyle').value,quality:$('fillQuality').value,pack:$('fillPack').value};try{localStorage.setItem(filterKey,JSON.stringify(filters));}catch{}ideaOptions($('fillIdea').value);draw();};}
   for(const [id,label] of [...D.groups,...U.groups.slice(1)])option('fillCollection',id,label);
   for(let i=-12;i<=12;i++)option('fillClipTranspose',i,i===0?'Original key':(i>0?'+':'')+i+' semitone'+(Math.abs(i)===1?'':'s'));$('fillClipTranspose').value='0';clipOptions();
   $('fillCollection').onchange=()=>{clipOptions();ideaOptions();draw();};$('fillClip').onchange=()=>{partOptions();draw();};
@@ -116,7 +123,7 @@ window.BassFillTrainer=(()=>{
   document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();});window.addEventListener('pagehide',stop);ideaOptions();draw();
  }
  function setKind(next){
-  stop();kind=['fills','runs','basslines'].includes(next)?next:'fills';$('fillSettings').hidden=false;$('fillNext').hidden=false;ideaOptions();draw();
+  stop();kind=['fills','runs','basslines'].includes(next)?next:'fills';$('fillSettings').hidden=false;$('fillNext').hidden=false;loadFilters();ideaOptions();draw();
  }
  return {init,stop,setKind};
 })();

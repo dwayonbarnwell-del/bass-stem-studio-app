@@ -21,6 +21,7 @@ window.BassFillCore=(()=>{
  ];
  const pc=m=>(m%12+12)%12, note=m=>names[pc(m)]+(Math.floor(m/12)-1);
  function make({key=0,mode='major',from=1,to=4,idea=0,bpm=80}={}){
+  if(window.BassCuratedStudies?.get('fills',idea))return window.BassCuratedStudies.make('fills',{key,from,to,idea,bpm});
   key=pc(Math.round(Number(key)||0));mode=Object.hasOwn(scales,mode)?mode:'major';
   from=Math.max(1,Math.min(7,Math.round(Number(from)||1)));to=Math.max(1,Math.min(7,Math.round(Number(to)||4)));
   if(from===to)to=from%7+1;idea=Math.max(0,Math.min(styles.length-1,Math.round(Number(idea)||0)));bpm=Math.max(40,Math.min(160,Number(bpm)||80));
