@@ -1,0 +1,5 @@
+RC288: Song View always follows playback
+
+Following is unconditional during playback, seeking and repeats. Taps, touch scrolling and mouse-wheel activity no longer disable it. Removed the Follow button and divided the toolbar equally between Library songs and Whole song.
+
+Validation: 17 browser checks passed at mobile size with no failures or skips, using the existing Song View suite with its former follow-off expectation updated for this request. Checked continuous following after pointer, touch and wheel events, repeat selection, gap skipping and loop wrapping. Existing Song View, repeat-boundary and playback-timing checks pass; JavaScript parsing and git diff --check pass.
