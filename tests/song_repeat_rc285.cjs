@@ -1,0 +1,26 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const box={window:{}};vm.runInNewContext(fs.readFileSync('song-view/core.js','utf8'),box);const C=box.window.BassSongViewCore;
+const plain=v=>JSON.parse(JSON.stringify(v)),equal=(a,b,m)=>assert.deepEqual(plain(a),b,m);
+let ranges=[];ranges=C.toggleRange(ranges,8,12,30);ranges=C.toggleRange(ranges,0,4,30);equal(ranges,[{start:0,end:4},{start:8,end:12}],'non-adjacent choices are in song order');
+ranges=C.toggleRange(ranges,4,8,30);equal(ranges,[{start:0,end:12}],'adjacent choices join without gaps');ranges=C.toggleRange(ranges,4,8,30);equal(ranges,[{start:0,end:4},{start:8,end:12}],'deselection removes only that phrase');
+ranges=C.toggleRange(ranges,0,12,30);equal(ranges,[{start:0,end:12}],'section header fills partial selection');ranges=C.toggleRange(ranges,0,12,30);equal(ranges,[],'second tap deselects entire section');
+equal(C.toggleRange([],29.25,34,30),[{start:29.25,end:30}],'exact fractional song ending');equal(C.toggleRange([],null,4,30),[],'invalid start ignored');equal(C.repeatRanges([{start:8,end:12},{start:0,end:10},{start:NaN,end:8}],30),[{start:0,end:12}],'overlap and invalid data');
+assert.equal(C.rangeSelected([{start:0,end:4},{start:8,end:12}],0,12),false,'gaps do not count as selected');
+const main=fs.readFileSync('index.html','utf8'),calls=[];let t=6;
+const c={window:{BassSongViewCore:C},buffer:{duration:30},aiBusy:false,songImportBusy:false,selectedTimeframes:new Set([1]),selectedSections:new Set(['Old']),sectionQueue:[{start:1,end:3}],queueIndex:0,multiSectionMode:true,loopEnabled:true,timeframeLoopMode:false,timeframeQueue:[],timeframeQueueIndex:0,loopStart:1,loopEnd:3,playing:false,currentTime:()=>t,refreshTimeframeSelectionUI:()=>{},refreshSectionUI:()=>{},updateLoopUI:()=>{},seekTo:n=>{t=n;calls.push(['seek',n]);},play:()=>{c.playing=true;calls.push(['play']);}};vm.createContext(c);
+for(const name of ['songViewRepeat','advanceSelectedTimeframe','songViewWhole']){const fn=main.match(new RegExp('  function '+name+'\\([\\s\\S]+?\\n  }'))?.[0];assert.ok(fn,name);vm.runInContext(fn,c);}
+c.songViewRepeat([{start:0,end:4},{start:8,end:12}]);assert.equal(t,0);assert.equal(c.playing,true);assert.equal(c.timeframeLoopMode,true);assert.equal(c.multiSectionMode,false);assert.equal(c.selectedSections.size,0);assert.equal(c.selectedTimeframes.size,0);
+c.advanceSelectedTimeframe();assert.equal(t,8);c.advanceSelectedTimeframe();assert.equal(t,0,'queue wraps to first choice');
+t=9;c.songViewRepeat([{start:0,end:4},{start:8,end:12},{start:20,end:24}]);assert.equal(t,9,'adding a choice preserves current playback');assert.equal(c.timeframeQueueIndex,1);c.advanceSelectedTimeframe();assert.equal(t,20,'skips unselected gap');
+c.songViewRepeat([{start:0,end:4}]);assert.equal(t,0,'removing the current choice seeks to remaining choice');c.songViewRepeat([]);assert.equal(c.timeframeLoopMode,false);assert.equal(c.loopStart,null);assert.equal(c.loopEnd,null);assert.equal(c.playing,true,'deselecting all resumes continuous playback');
+c.aiBusy=true;c.songViewRepeat([{start:0,end:4}]);assert.equal(c.timeframeQueue.length,0,'busy song cannot change repeat');c.aiBusy=false;
+c.songViewRepeat([{start:25,end:30}]);c.songViewWhole();assert.equal(t,0);assert.equal(c.timeframeLoopMode,false);assert.equal(c.timeframeQueue.length,0,'Whole song clears selection');assert.equal(c.loopEnabled,false);
+console.log('PASS repeat selection, deselection, partial sections, gap skipping, sequence wrap, fractional boundaries, transport continuity, busy guard and Whole song reset');
+let frame;
+Object.assign(c,{raf:0,requestAnimationFrame:fn=>(frame=fn,1),cancelAnimationFrame:()=>{},tempo:{value:'100'},offlineAnalysisReady:true,ensureAnalysisPartForTime:()=>{},noBassReady:false,bassStemReady:false,updateMetronome:()=>{},drawPlaybackFrame:()=>{}});
+c.window.BassLoopFade={prepare:()=>{}};c.window.BassTools={monitor:()=>{}};
+const tickStart=main.indexOf('  function tick(){\n    cancelAnimationFrame(raf)');assert.ok(tickStart>0);vm.runInContext(main.slice(tickStart,main.indexOf('\n  }',tickStart)+4),c);
+c.songViewRepeat([{start:0,end:4},{start:8,end:12}]);c.tick();t=4.25;frame();assert.equal(t,8,'real playback loop advances past the gap');t=12.25;frame();assert.equal(t,0,'real playback loop wraps after the last choice');
+c.songViewRepeat([{start:8.25,end:10.75}]);t=10.8;frame();assert.equal(t,8.25,'single fractional phrase repeats exactly');
+c.songViewRepeat([]);t=11;frame();assert.equal(t,11,'deselection stops automatic looping');
+console.log('PASS actual playback loop at section endings, fractional boundaries, queue wrap and deselection');

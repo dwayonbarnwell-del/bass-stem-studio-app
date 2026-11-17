@@ -1,0 +1,7 @@
+RC285: Song View section and phrase repeat
+
+Tap a section heading or four-second time block to select it for repeat. Tap again to deselect. Multiple selections run in song order, skip unselected gaps and wrap. Adjacent selections join; deselecting a phrase inside a whole section removes only that phrase. Selection uses exact saved section and song boundaries. Notes and chords retain click-to-seek. Whole song and the shared repeat controls clear the highlights.
+
+Validation: song_repeat_rc285, song_view_rc284 and playback_timing_rc256 pass; all changed and inline JavaScript parses; git diff --check passes. The actual shared playback-loop callback passes deterministic boundary, gap, wrap and deselection checks. All 14 browser integration checks pass on the managed preview, including real audio playback across gaps and the song ending, section/time toggles, shared clear, Whole song, existing library navigation and note seeking. Earlier background-browser runs produced zero animation frames; the final active browser run exercised real timing and reported no skipped checks. Desktop layout and selected styling were visually checked. Android hardware was not tested.
+
+No song data, audio, library records or section definitions are altered by selecting repeat ranges.

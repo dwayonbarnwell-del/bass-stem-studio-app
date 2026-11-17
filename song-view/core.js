@@ -19,5 +19,17 @@ window.BassSongViewCore=(()=>{
   for(const part of parts){part.rows=[];for(let start=part.start;start<part.end-.0001;start+=4){const end=Math.min(part.end,start+4);while(ni<notes.length&&notes[ni].end<=start)ni++;while(ci<chords.length&&chords[ci].end<=start)ci++;const row={id:rows.length,part:part.id,start,end,notes:[],chords:[]};for(let n=ni;n<notes.length&&notes[n].start<end;n++)if(notes[n].end>start)row.notes.push({...notes[n],start:Math.max(start,notes[n].start),end:Math.min(end,notes[n].end),continued:notes[n].start<start});for(let c=ci;c<chords.length&&chords[c].start<end;c++)if(chords[c].end>start)row.chords.push({...chords[c],start:Math.max(start,chords[c].start),end:Math.min(end,chords[c].end),continued:chords[c].start<start});part.rows.push(row);rows.push(row);}}
   return {duration,notes,chords,parts,rows,noteIndex:index(notes),chordIndex:index(chords),rowIndex:index(rows)};
  }
- return {time,clean,sections,index,active,build};
+ function repeatRanges(ranges,duration){
+  const out=[];
+  for(const r of (ranges||[]).filter(r=>valid(r.start)&&valid(r.end)).map(r=>({start:Math.max(0,Number(r.start)),end:Math.min(duration,Number(r.end))})).filter(r=>r.end>r.start).sort((a,b)=>a.start-b.start)){
+   const last=out.at(-1);if(last&&r.start<=last.end+.0001)last.end=Math.max(last.end,r.end);else out.push(r);
+  }return out;
+ }
+ function rangeSelected(ranges,start,end){return ranges.some(r=>r.start<=start+.0001&&r.end>=end-.0001);}
+ function toggleRange(ranges,start,end,duration){
+  const current=repeatRanges(ranges,duration),target=repeatRanges([{start,end}],duration)[0];if(!target)return current;
+  if(!rangeSelected(current,target.start,target.end))return repeatRanges([...current,target],duration);
+  return current.flatMap(r=>r.end<=target.start||r.start>=target.end?[r]:[{start:r.start,end:target.start},{start:target.end,end:r.end}].filter(r=>r.end>r.start+.0001));
+ }
+ return {time,clean,sections,index,active,build,repeatRanges,rangeSelected,toggleRange};
 })();
