@@ -1,0 +1,21 @@
+RC287: Song View recording review
+
+Reviewed all three supplied screen recordings and the supplied Never Lost MP3.
+
+Changes
+- Preserve manually scrolled position when Song View analysis is refreshed.
+- Avoid rebuilding unchanged note/chord rows during playback seeks and loop changes, preserving keyboard focus and repeat targets.
+- Show a continuous identical chord once per row. Keep genuine chord changes, gaps, bass inversions, uncertainty and manual corrections distinct. Original analysis events and bass notes remain unchanged.
+- Replace the ambiguous "Rest / no bass notes" message with "No bass notes detected". Missing analysis does not establish a musical rest.
+
+Validation
+- All 20 browser integration checks passed at 360x800, 412x915 and 844x390, including actual playback skipping unselected gaps and wrapping at the song ending.
+- Background-tab animation throttling initially interrupted loop tests. Activating the native Chromium tab resolved this; final playback checks passed without skips.
+- Regression checks cover focus and scroll retention through seeking, refreshed data, Whole song reset, continuous chord highlighting and accurate empty-state wording.
+- Existing Song View, repeat-boundary and audible-clock suites pass. New chord grouping checks cover real gaps, changes, uncertainty, inversions, section boundaries and source-data immutability.
+- JavaScript parsing and git diff --check pass. Actual Android hardware was unavailable; mobile sizes were tested in Chromium frames.
+
+Audio checks
+- Cross-correlation against the original MP3 confirmed the two uninterrupted recordings track the same source without accumulating time drift. The recordings start at approximately source 51.186s and 112.586s; exact video frames show 0:51 and 1:52 respectively.
+- Independent onset periodicity repeatedly peaks at about 123 BPM, consistent with the displayed 123 BPM. These checks do not prove downbeat placement or the musical correctness of every detected note/chord.
+- No saved analysis project was supplied, and no replacement transcription or paid audio-analysis job was run. Musical transcription accuracy remains unverified.

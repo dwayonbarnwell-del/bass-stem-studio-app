@@ -15,8 +15,16 @@ window.BassSongViewCore=(()=>{
  }
  function index(events){let max=0;return {events,maxEnd:events.map(e=>max=Math.max(max,e.end))};}
  function active(ix,t){const {events,maxEnd}=ix;let lo=0,hi=events.length;while(lo<hi){const mid=(lo+hi)>>>1;if(events[mid].start<=t)lo=mid+1;else hi=mid;}const out=[];for(let i=lo-1;i>=0&&maxEnd[i]>t;i--)if(events[i].end>t)out.push(i);return out.reverse();}
+ function chordRuns(events){
+  const runs=[];
+  for(const event of events){const last=runs.at(-1),same=last&&valid(last.rootPc)&&valid(event.rootPc)&&Number(last.rootPc)===Number(event.rootPc)&&last.quality===event.quality&&(last.bassPc??null)===(event.bassPc??null)&&!!last.uncertain===!!event.uncertain&&!!last.manual===!!event.manual;
+   if(same&&event.start>=last.start&&event.start<=last.end+.001){last.end=Math.max(last.end,event.end);if(valid(last.confidence)&&valid(event.confidence))last.confidence=Math.min(Number(last.confidence),Number(event.confidence));}
+   else runs.push({...event});
+  }return runs;
+ }
  function build(s){const duration=Number(s.duration)||0,notes=clean(s.notes,duration,true),chords=clean(s.chords,duration),parts=sections(s),rows=[];let ni=0,ci=0;
   for(const part of parts){part.rows=[];for(let start=part.start;start<part.end-.0001;start+=4){const end=Math.min(part.end,start+4);while(ni<notes.length&&notes[ni].end<=start)ni++;while(ci<chords.length&&chords[ci].end<=start)ci++;const row={id:rows.length,part:part.id,start,end,notes:[],chords:[]};for(let n=ni;n<notes.length&&notes[n].start<end;n++)if(notes[n].end>start)row.notes.push({...notes[n],start:Math.max(start,notes[n].start),end:Math.min(end,notes[n].end),continued:notes[n].start<start});for(let c=ci;c<chords.length&&chords[c].start<end;c++)if(chords[c].end>start)row.chords.push({...chords[c],start:Math.max(start,chords[c].start),end:Math.min(end,chords[c].end),continued:chords[c].start<start});part.rows.push(row);rows.push(row);}}
+  for(const row of rows)row.chords=chordRuns(row.chords);
   return {duration,notes,chords,parts,rows,noteIndex:index(notes),chordIndex:index(chords),rowIndex:index(rows)};
  }
  function repeatRanges(ranges,duration){
