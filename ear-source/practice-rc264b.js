@@ -17,7 +17,7 @@ window.BassPracticeCore=(()=>{
  lines.push(
   {name:'Gospel · Sunday turnaround',degrees:[1,6,2,5],feel:'church',tip:'A rolling triplet pickup resolves each change.'},
   {name:'Highlife · Dancing sixths',degrees:[1,4,2,5],feel:'sixths',tip:'Interlocking upper chord tones with a late descending answer.'},
-  {name:'Funk · Octave engine',degrees:[1,4,6,5],feel:'funk',tip:'Short octave bursts and rests keep the groove crisp.'},
+  {name:'Progression study · 1–4–6–5',degrees:[1,4,6,5],feel:'walk',tip:'Steady chord tones connect each chord in this progression.'},
   {name:'Soul · Walking turnaround',degrees:[1,6,2,5],feel:'walk',tip:'Four steady steps, then a chromatic pickup.'},
   {name:'Praise · Makossa motion',degrees:[1,5,4,5],feel:'makossa',tip:'Offbeat answers and a three-note lead into each chord.'},
   {name:'Worship · Rising anthem',degrees:[6,4,1,5],feel:'anthem',tip:'Build from a held root into a flowing final beat.'},

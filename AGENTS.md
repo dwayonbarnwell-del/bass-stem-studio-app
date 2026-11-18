@@ -6,6 +6,7 @@
 - Keep large source files and payloads out of the conversation. Process them locally or in tool memory and return only the small results needed.
 - Continue from the latest working release. Preserve approved features, layout, settings and business rules unless a requested fix requires a change.
 - Check the current repository and deployment before repeating previous work.
+- Basslines must exclude Disco, Motown and Octave Funk. Preserve the chord progression combinations independently of those accompaniment styles, including custom sequences. This exclusion is specific to Basslines and does not remove the Funk & Soul group from Runs or My fills.
 - Keep Runs and My fills within the five agreed groups: Gospel & Contemporary, Jazz & Chromatic, Blues & Pentatonic, Funk & Soul, and African Grooves. Keep group selection visible, patterns grouped, and the highest rated choices first. Preserve existing musical content and saved deletions. Do not reintroduce separate old/new collection and rating filters without a new request.
 
 These communication preferences were explicitly requested by the user on 2 November 2026.
