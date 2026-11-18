@@ -131,15 +131,10 @@
 
 #earTrainerDialog #fillPlayer[hidden],#earTrainerDialog #fillLibrary[hidden]{display:none!important}
 
-/* Ranked run and fill catalogue. Keep filters readable on narrow phones. */
-#earTrainerDialog #fillFilters[hidden],#earTrainerDialog #fillCount[hidden],#earTrainerDialog #fillRating[hidden]{display:none!important}
-#earTrainerDialog #fillPack{grid-column:1/-1!important}
-#earTrainerDialog #fillRatingGuide{grid-column:1/-1!important;font-size:12px!important;line-height:1.35!important}
-#earTrainerDialog #fillRatingGuide summary{cursor:pointer;padding:4px 0}
+/* Five groups, one pattern chooser. */
+#earTrainerDialog #fillGroupRow[hidden],#earTrainerDialog #fillCount[hidden],#earTrainerDialog #fillRating[hidden],#earTrainerDialog #fillHarmony[hidden],#earTrainerDialog #fillRatingGuide[hidden]{display:none!important}
+#earTrainerDialog #fillGroup{grid-column:1/-1!important}
+#earTrainerDialog #fillRatingGuide{font-size:12px!important;line-height:1.35!important;margin:0!important;padding:8px!important}
+#earTrainerDialog #fillRatingGuide summary{cursor:pointer;padding:2px!important}
 #earTrainerDialog #fillRatingGuide p{margin:6px 0!important}
-#earTrainerDialog #fillCount,#earTrainerDialog #fillRating{font-size:12px!important;line-height:1.35!important;margin:0!important;color:#9edcff!important}
-#earTrainerDialog #fillFilterPanel[hidden],#earTrainerDialog #fillHarmony[hidden]{display:none!important}
-#earTrainerDialog #fillFilterPanel{margin:0!important;padding:8px!important;font-size:13px!important}
-#earTrainerDialog #fillFilterPanel>summary{padding:2px!important;cursor:pointer}
-#earTrainerDialog #fillFilterPanel[open]>summary{margin-bottom:8px!important}
-#earTrainerDialog #fillHarmony{font-size:12px!important;line-height:1.35!important;margin:0!important}
+#earTrainerDialog #fillCount,#earTrainerDialog #fillRating,#earTrainerDialog #fillHarmony{font-size:12px!important;line-height:1.35!important;margin:0!important;color:#9edcff!important}

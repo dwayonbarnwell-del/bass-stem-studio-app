@@ -167,6 +167,8 @@ window.BassCuratedStudies=(()=>{
    tier:i<4?0:i<8?1:2,rank:i*genres.length+genres.findIndex(([g])=>g===genre),source:sources[ref||defaultSource[genre]],original:true};
   const list=kind==='runs'?P.runs:F.styles;entry.index=list.length;const row=[title,tip];row.id=entry.id;row.curated=entry;list.push(row);entries.push(entry);byIndex[kind].set(entry.index,entry);
  });
+ function register(spec){const entry={...spec,notes:typeof spec.notes==='string'?spec.notes.split(' '):spec.notes,original:true};const list=entry.kind==='runs'?P.runs:F.styles;entry.index=list.length;const row=[entry.title,entry.tip];row.id=entry.id;row.curated=entry;list.push(row);entries.push(entry);byIndex[entry.kind].set(entry.index,entry);return entry;}
+ function reindex(){for(const kind of ['runs','fills']){byIndex[kind].clear();(kind==='runs'?P.runs:F.styles).forEach((row,index)=>{if(row.curated){row.curated.index=index;byIndex[kind].set(index,row.curated);}});}}
  const get=(kind,index)=>byIndex[kind]?.get(Number(index));
  const pc=n=>(n%12+12)%12;
  function make(kind,opts={}){
@@ -180,7 +182,7 @@ window.BassCuratedStudies=(()=>{
   const pentDegrees=minor?[1,3,4,5,7]:[1,2,3,5,6];
   const pitch=token=>{const n=Number(token.slice(1));if(token[0]==='d')return relative(n);if(token[0]==='s')return source+n;if(token[0]==='t')return target+n;return relative(pentDegrees[(n%5+5)%5])+12*Math.floor(n/5);};
   const beats=rhythms[entry.rhythm],bass=[{midi:source,beat:0,length:Math.min(1.35,beats[0]-.15),velocity:87,role:'bass'}];
-  entry.notes.forEach((token,i)=>bass.push({midi:pitch(token),beat:beats[i],length:Math.min((beats[i+1]??4)-beats[i],.7)*.8,velocity:entry.genre==='fusion'?82+(i%3===0?9:0):78+(i%3===0?8:0),role:'bass'}));
+  entry.notes.forEach((token,i)=>bass.push({midi:pitch(token),beat:beats[i],length:Math.min((beats[i+1]??4)-beats[i],.7)*(entry.gate||.8),velocity:entry.genre==='fusion'?82+(i%3===0?9:0):78+(i%3===0?8:0),role:'bass'}));
   bass.push({midi:target,beat:4,length:2.8,velocity:94,role:'landing'});
   const extended=entry.genre==='jazz',chord=(d,beat)=>[0,2,4,...(extended?[6]:[])].map(i=>({midi:degree(d-1+i)+12,beat,length:3.7,velocity:46,role:'chord'}));
   const chordName=d=>{const root=degree(d-1),third=degree(d+1)-root,fifth=degree(d+3)-root,seventh=degree(d+5)-root;return F.names[pc(root)]+(fifth===6?(extended?'m7♭5':'dim'):third===3?(extended?'m7':'m'):extended?(seventh===11?'maj7':'7'):'');};
@@ -195,5 +197,5 @@ window.BassCuratedStudies=(()=>{
   return {id:String(index),title:row[0],genre,tier,rank:100+index,original:false};
  }
  function compare(kind,a,b){const x=metadata(kind,a),y=metadata(kind,b);return x.tier-y.tier||x.rank-y.rank||a-b;}
- return {entries,genres,tiers,sources,rhythms,get,make,metadata,compare};
+ return {entries,genres,tiers,sources,rhythms,get,make,metadata,compare,register,reindex};
 })();
