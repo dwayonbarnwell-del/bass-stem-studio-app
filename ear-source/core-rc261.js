@@ -48,6 +48,7 @@ window.BassEarTrainingCore=(()=>{
    }else{
     q.beats=pick(rhythmSets[level-1],rng);q.barBeats=level===5?8:4;q.bpm=[72,84,96,100,108][level-1];q.answer=q.beats.map(b=>b*60/q.bpm);q.prompt='Listen, then tap the rhythm. Your first tap sets the start.';q.explanation='Rhythm: '+q.beats.map(b=>String(Number((b+1).toFixed(2)))).join(' · ')+' beats, at '+q.bpm+' BPM.';q.key=q.beats.join(',');
    }
+   if(window.BassRegister)q=window.BassRegister.question(q);
    // Avoid identical examples, without making major/minor answers alternate predictably.
    q.key=[mode,level,q.sound,mode==='rhythm'?q.beats.join(','):q.events.map(n=>n.midi+'@'+n.start).join(',')].join('|');
    if(q.key!==previous&&!recent.includes(q.key))break;

@@ -138,3 +138,18 @@
 #earTrainerDialog #fillRatingGuide summary{cursor:pointer;padding:2px!important}
 #earTrainerDialog #fillRatingGuide p{margin:6px 0!important}
 #earTrainerDialog #fillCount,#earTrainerDialog #fillRating,#earTrainerDialog #fillHarmony{font-size:12px!important;line-height:1.35!important;margin:0!important;color:#9edcff!important}
+
+/* RC292: compact drum controls, comfortable on phones. */
+@layer bass-ear-267 {
+#fillDrumOptions{margin:.5rem 0}#fillDrumOptions summary{cursor:pointer;padding:.5rem 0;font-size:14px}
+#fillDrumOptions .fill-settings{margin-top:.4rem}.fill-drum-volume{display:flex;align-items:center;gap:.5rem;flex:1 1 240px;min-width:0;font-size:14px}.fill-drum-volume input{min-width:60px;flex:1;width:100%;padding:0!important}.fill-drum-volume output{min-width:3em;text-align:right}#fillRegister,#fillDrumNotice{font-size:12px;margin:.4rem 0;opacity:.85}
+#earTrainerDialog #earFillStudy[data-imported="false"] .fill-actions{grid-template-columns:repeat(6,minmax(0,1fr))!important}
+#earTrainerDialog #earFillStudy[data-imported="false"] .fill-actions>button{grid-column:span 2}
+#earTrainerDialog #earFillStudy[data-imported="false"] .fill-actions>button:nth-child(n+4){grid-column:span 3}
+@media(min-width:580px){#earTrainerDialog #earFillStudy[data-imported="false"] .fill-actions{grid-template-columns:repeat(5,minmax(0,1fr))!important}#earTrainerDialog #earFillStudy[data-imported="false"] .fill-actions>button{grid-column:auto!important}}
+
+#earTrainerDialog #fillDrumOptions .fill-settings{grid-template-columns:minmax(0,1fr)!important}
+#earTrainerDialog #fillDrumOptions select{width:100%!important}
+#earTrainerDialog #fillDrumOptions .fill-drum-volume{grid-column:1/-1!important;display:flex!important;width:100%!important}
+#earTrainerDialog #fillDrumOptions input[type="range"]{flex:1 1 auto!important;min-width:60px!important;height:28px!important}
+}

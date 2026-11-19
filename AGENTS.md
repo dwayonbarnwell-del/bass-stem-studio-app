@@ -11,6 +11,8 @@
 
 These communication preferences were explicitly requested by the user on 2 November 2026.
 
+- Ear-training bass should stay in B0–B3, preferring B2 or below when the complete phrase can be moved without changing its intervals. Use a rich fingered-bass sound. Keep drums and bass on one audio-clock loop with no added repeat gap. Do not add drums to unverified recording beat grids.
+
 ## Publishing preference
 
 On 17 November 2026, the user authorised publishing all Bass Stem Studio platform updates now and going forward, and explicitly asked for this permission to be remembered. This includes pushing completed updates to `dwayonbarnwell-del/bass-stem-studio-app` on `main` and deploying them to the existing live Render site. Continue to check changes before publishing and respect any later instruction that limits or withdraws this permission. This records the user's preference; it does not change tool approval controls.

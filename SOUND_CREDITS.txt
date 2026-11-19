@@ -85,3 +85,9 @@ Licence: https://creativecommons.org/licenses/by/3.0/
 Full licence and upstream description: ai-source/salamander/LICENSE.txt and SOURCE_README.md.
 Adaptation: layers 4/8/12 selected; original minor-third anchors retained; source retuning corrections baked in; upstream start offsets shortened with a 3 ms lead; tails limited to 5–8 seconds with a 250 ms fade; encoded to 44.1 kHz stereo MP3. Relative sample levels preserved.
 Derived from the SFZ mapping by kinwie, which credits Jeff Learman for the fast-response offsets. Separate pedal, hammer and sympathetic-resonance recordings omitted for this compact browser version.
+
+Virtuosity Drums (RC292)
+Versilian Studios LLC and Karoryfer Samples; performed by Austin McMahon.
+https://versilian-studios.com/virtuosity-drums/
+CC0 1.0 Universal. Full licence, provenance and edits: audio/drums-rc292/.
+Three microphone/articulation selections from the same acoustic kit: Warm Vintage, Tight Studio and Open Jazz. Original practice grooves were written for Bass Stem Studio.

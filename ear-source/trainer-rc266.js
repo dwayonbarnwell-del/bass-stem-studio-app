@@ -1,7 +1,7 @@
 /* RC266: focused lesson sections and concealed quiz answers. */
 window.BassEarTrainer=(()=>{
  'use strict';
- const C=window.BassEarTrainingCore,$=id=>document.getElementById(id),A=()=>window.BassPianoAudio;
+ const C=window.BassEarTrainingCore,$=id=>document.getElementById(id),A=()=>window.BassPracticeAudio||window.BassPianoAudio;
  const titles={notes:'Notes by ear',intervals:'Intervals',chords:'Chords',progressions:'Worship progressions'};
  const hints={notes:'Hear the notes, then play them back.',intervals:'Name the distance between two notes.',chords:'Recognise the chord sound.',progressions:'Identify the chord sequence. Home chord is optional.'};
  const storageKey='bass-ear-training-v1';let api,dialog,context,voices=[],timers=[],token=0,phase='idle',question=null,round=null,entered=[],heard=false,answered=false,progress=C.empty(),storageOK=true;
@@ -11,7 +11,7 @@ window.BassEarTrainer=(()=>{
   if(q?.keyboard?.length)return [...q.keyboard];
   const pitches=[...(q?.events||[]),...(q?.reference||[])].map(n=>n.midi).filter(Number.isFinite);
   if(!pitches.length)return Array.from({length:12},(_,i)=>(sound==='bass'?36:60)+i);
-  const low=Math.floor(Math.min(...pitches)/12)*12,high=Math.ceil((Math.max(...pitches)+1)/12)*12-1;
+  const low=Math.max(sound==='bass'?23:0,Math.floor(Math.min(...pitches)/12)*12),high=Math.min(sound==='bass'?59:127,Math.ceil((Math.max(...pitches)+1)/12)*12-1);
   return Array.from({length:high-low+1},(_,i)=>low+i);
  }
  let looping=false,repeatQuestion=false,exampleHistory={},section='notes';
@@ -182,7 +182,7 @@ window.BassEarTrainer=(()=>{
 <div id="earBassSections" role="group" aria-label="Bass studies" hidden><button id="earSectionBasslines" type="button" data-section="basslines" aria-pressed="false">Basslines</button><button id="earSectionRuns" type="button" data-section="runs" aria-pressed="false">Runs</button><button id="earSectionMyFills" type="button" data-section="fills" aria-pressed="false">My fills</button><button id="earLibrarySongs" type="button">Song view</button></div>
 <div id="earSetup" class="ear-settings">
 <label><select id="earLevel" aria-label="Select level" title="Select level"><option value="1">Level 1</option><option value="2">Level 2</option><option value="3">Level 3</option><option value="4">Level 4</option><option value="5">Level 5</option></select></label>
-<label><select id="earSound" aria-label="Select sound" title="Select sound"><option value="piano">Piano</option><option value="bass">Bass</option></select></label>
+<label><select id="earSound" aria-label="Select sound" title="Select sound"><option value="piano">Piano</option><option value="bass" selected>Bass</option></select></label>
 <label><button id="earCount" type="button" value="5" aria-label="Change question count">5 questions</button></label>
 <button id="earStart" type="button">Start</button></div>
 <div id="earPlaybackChoices" role="group" aria-label="Listen and practise"><button type="button" data-playback="repeat">Repeat</button><button type="button" data-playback="varied">New examples</button></div>
@@ -204,7 +204,8 @@ window.BassEarTrainer=(()=>{
   window.BassFillTrainer.init($('earFillStudy'),hooks);$('earLibrarySongs').onclick=()=>{if(api?.busy?.())return;close();dialog.close();api?.openSongs?.();};$('earAnswerSound').onclick=()=>void listen(true);
   for(const b of dialog.querySelectorAll('[data-section]'))b.onclick=()=>selectSection(b.dataset.section);
   $('earClose').onclick=()=>{close();dialog.close();};dialog.addEventListener('close',()=>{if(!dialog.open)close();});dialog.addEventListener('cancel',close);
-  $('earSound').onchange=()=>{stopSound();drawKeyboard();};$('earMode').onchange=()=>{noteMode=$('earMode').value;if(section!=='notes')selectSection('notes');else modeChanged();};$('earCount').onclick=()=>{$('earCount').value=$('earCount').value==='5'?'10':'5';$('earCount').textContent=$('earCount').value+' questions';};for(const b of $('earPlaybackChoices').querySelectorAll('button'))b.onclick=()=>void start(b.dataset.playback);$('earRepeat').onclick=repeat;$('earHome').onclick=home;$('earStart').onclick=()=>void start();$('earFinish').onclick=finish;$('earListen').onclick=listen;$('earNext').onclick=()=>{next();if(listening())void listen(true);};$('earReveal').onclick=()=>submit(null,true);
+  try{const sound=localStorage.getItem('bass-ear-sound-v1');if(['bass','piano'].includes(sound))$('earSound').value=sound;}catch{}
+  $('earSound').onchange=()=>{stopSound();drawKeyboard();try{localStorage.setItem('bass-ear-sound-v1',$('earSound').value);}catch{}};$('earMode').onchange=()=>{noteMode=$('earMode').value;if(section!=='notes')selectSection('notes');else modeChanged();};$('earCount').onclick=()=>{$('earCount').value=$('earCount').value==='5'?'10':'5';$('earCount').textContent=$('earCount').value+' questions';};for(const b of $('earPlaybackChoices').querySelectorAll('button'))b.onclick=()=>void start(b.dataset.playback);$('earRepeat').onclick=repeat;$('earHome').onclick=home;$('earStart').onclick=()=>void start();$('earFinish').onclick=finish;$('earListen').onclick=listen;$('earNext').onclick=()=>{next();if(listening())void listen(true);};$('earReveal').onclick=()=>submit(null,true);
   $('earCheckNotes').onclick=()=>submit(entered);$('earUndoNote').onclick=()=>{entered.pop();text('earEntered',entered.length?entered.map(C.note).join(' → '):'Choose '+question.answer.length+' notes.');controls();};$('earClearNotes').onclick=resetQuestion;
   $('earAdvance').onclick=()=>{$('earLevel').value=String(Math.min(C.maxLevel,round.level+1));void start();};
   document.addEventListener('visibilitychange',()=>{if(document.hidden&&dialog.open){repeatQuestion=false;stopSound();if(phase==='playing'||phase==='loading'){phase=answered?'feedback':'ready';if(!answered)heard=false;status('Tap Play');}controls();}});
