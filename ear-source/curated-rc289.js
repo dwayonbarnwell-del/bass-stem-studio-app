@@ -186,7 +186,7 @@ window.BassCuratedStudies=(()=>{
   bass.push({midi:target,beat:4,length:2.8,velocity:94,role:'landing'});
   const extended=entry.genre==='jazz',chord=(d,beat)=>[0,2,4,...(extended?[6]:[])].map(i=>({midi:degree(d-1+i)+12,beat,length:3.7,velocity:46,role:'chord'}));
   const chordName=d=>{const root=degree(d-1),third=degree(d+1)-root,fifth=degree(d+3)-root,seventh=degree(d+5)-root;return F.names[pc(root)]+(fifth===6?(extended?'m7♭5':'dim'):third===3?(extended?'m7':'m'):extended?(seventh===11?'maj7':'7'):'');};
-  return {kind,key,mode,from,to,idea:entry.index,bpm:Math.max(40,Math.min(160,Number(opts.bpm)||80)),beats:8,bass,chords:[...chord(from,0),...chord(to,4)],source,target,title:entry.title,tip:entry.tip,lesson:entry.source,curated:entry,
+  return {kind,key,mode,from,to,idea:entry.index,bpm:Math.max(40,Math.min(220,Number(opts.bpm)||80)),beats:8,bass,chords:[...chord(from,0),...chord(to,4)],source,target,title:entry.title,tip:entry.tip,lesson:entry.source,curated:entry,
    heading:from+' → '+to+' · '+chordName(from)+' → '+chordName(to)+' · '+P.modes[mode][0],fromChord:chordName(from),toChord:chordName(to)};
  }
  const legacyFills=[['contemporary',2],['fusion',2],['contemporary',1],['jazz',1],['fusion',1],['contemporary',1],['jazz',1],['blues',1],['pentatonic',1],['contemporary',2],['contemporary',1],['contemporary',1],['jazz',2],['fusion',2]];

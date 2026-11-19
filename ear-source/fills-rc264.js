@@ -24,7 +24,7 @@ window.BassFillCore=(()=>{
   if(window.BassCuratedStudies?.get('fills',idea))return window.BassCuratedStudies.make('fills',{key,from,to,idea,bpm});
   key=pc(Math.round(Number(key)||0));mode=Object.hasOwn(scales,mode)?mode:'major';
   from=Math.max(1,Math.min(7,Math.round(Number(from)||1)));to=Math.max(1,Math.min(7,Math.round(Number(to)||4)));
-  if(from===to)to=from%7+1;idea=Math.max(0,Math.min(styles.length-1,Math.round(Number(idea)||0)));bpm=Math.max(40,Math.min(160,Number(bpm)||80));
+  if(from===to)to=from%7+1;idea=Math.max(0,Math.min(styles.length-1,Math.round(Number(idea)||0)));bpm=Math.max(40,Math.min(220,Number(bpm)||80));
   const scale=scales[mode],tonic=36+key-(key+scale[from-1]>=12?12:0),degree=n=>tonic+scale[(n%7+7)%7]+12*Math.floor(n/7),source=degree(from-1);
   let targetIndex=to-1;
   while(degree(targetIndex)-source>6)targetIndex-=7;

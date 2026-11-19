@@ -172,8 +172,8 @@ window.BassEarTrainer=(()=>{
  }
  function resetQuestion(){if(answered)return;entered=[];text('earEntered','Choose '+question.answer.length+' notes.');controls();}
  function close(){window.BassFillTrainer?.stop();repeatQuestion=false;stopSound();phase='idle';answered=false;question=null;round=null;if(context?.state==='running')void context.suspend();}
- function modeChanged(){window.BassFillTrainer?.stop();stopSound();if(question||round){question=null;round=null;answered=false;phase='idle';}drawKeyboard();const mode=selectedMode();text('earHint',hints[mode]||'');$('earLevel').value=String(progress.modes[mode]?.level||1);controls();if(['fills','basslines','runs'].includes(mode))window.BassFillTrainer?.setKind(mode);}
- function selectSection(nextSection){if(section===nextSection)return;close();section=nextSection;modeChanged();status('No song needed');dialog.scrollTop=0;}
+ function modeChanged(){if(!['fills','runs','basslines'].includes(selectedMode()))window.BassFillTrainer?.stop();stopSound();if(question||round){question=null;round=null;answered=false;phase='idle';}drawKeyboard();const mode=selectedMode();text('earHint',hints[mode]||'');$('earLevel').value=String(progress.modes[mode]?.level||1);controls();if(['fills','basslines','runs'].includes(mode))window.BassFillTrainer?.setKind(mode);}
+ function selectSection(nextSection){if(section===nextSection)return;const practice=['fills','runs','basslines'];if(!practice.includes(section)||!practice.includes(nextSection))close();section=nextSection;modeChanged();status('No song needed');dialog.scrollTop=0;}
  function init(hooks){
   api=hooks;if(dialog)return;
   const wrap=document.createElement('div');wrap.innerHTML=`<dialog id="earTrainerDialog" aria-labelledby="earTitle">
@@ -182,7 +182,7 @@ window.BassEarTrainer=(()=>{
 <div id="earBassSections" role="group" aria-label="Bass studies" hidden><button id="earSectionBasslines" type="button" data-section="basslines" aria-pressed="false">Basslines</button><button id="earSectionRuns" type="button" data-section="runs" aria-pressed="false">Runs</button><button id="earSectionMyFills" type="button" data-section="fills" aria-pressed="false">My fills</button><button id="earLibrarySongs" type="button">Song view</button></div>
 <div id="earSetup" class="ear-settings">
 <label><select id="earLevel" aria-label="Select level" title="Select level"><option value="1">Level 1</option><option value="2">Level 2</option><option value="3">Level 3</option><option value="4">Level 4</option><option value="5">Level 5</option></select></label>
-<label><select id="earSound" aria-label="Select sound" title="Select sound"><option value="piano">Piano</option><option value="bass" selected>Bass</option></select></label>
+<label><select id="earSound" aria-label="Select sound" title="Select sound"><option value="piano" selected>Grand piano</option><option value="bass">Bass</option></select></label>
 <label><button id="earCount" type="button" value="5" aria-label="Change question count">5 questions</button></label>
 <button id="earStart" type="button">Start</button></div>
 <div id="earPlaybackChoices" role="group" aria-label="Listen and practise"><button type="button" data-playback="repeat">Repeat</button><button type="button" data-playback="varied">New examples</button></div>

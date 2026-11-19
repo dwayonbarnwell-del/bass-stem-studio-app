@@ -34,7 +34,7 @@ window.BassPracticeCore=(()=>{
   const near=(n,ref)=>{while(n-ref>6)n-=12;while(n-ref< -6)n+=12;return n;};
   const chord=d=>[0,2,4].map(i=>degree(d-1+i)+12);
   const chordName=d=>{const a=chord(d);return F.names[pc(a[0])]+(a[2]-a[0]===6?'dim':a[1]-a[0]===3?'m':'');};
-  const bpm=Math.max(30,Math.min(160,Number(opts.bpm)||80)),bass=[],chords=[];
+  const bpm=Math.max(30,Math.min(220,Number(opts.bpm)||80)),bass=[],chords=[];
   const add=(beat,midi,length,role='bass')=>bass.push({beat,midi,length,role,velocity:role==='landing'?94:84});
   let idea=Math.max(0,Math.round(Number(opts.idea)||0));
   if(kind==='basslines'){

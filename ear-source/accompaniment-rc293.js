@@ -45,6 +45,7 @@ window.BassAccompaniment=(()=>{
  }
  function resolve(plan,options={}){
   const p=profile(plan),valid=(value,values,fallback)=>values.includes(value)?value:fallback;
+  if(window.BassSuppliedDrums)return {...p,loop:window.BassSuppliedDrums.choose(p.id,options.kit,options.groove),style:valid(options.style,Object.keys(profiles),p.style),sound:valid(options.sound,['piano','electric','organ'],'piano')};
   return {...p,kit:valid(options.kit,window.BassPracticeDrums.kits.map(x=>x[0]),p.kit),groove:valid(options.groove,window.BassPracticeDrums.grooves.map(x=>x[0]),p.groove),style:valid(options.style,Object.keys(profiles),p.style),sound:valid(options.sound,['piano','electric','organ'],p.sound)};
  }
  const pc=n=>(n%12+12)%12;
