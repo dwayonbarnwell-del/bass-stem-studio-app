@@ -91,3 +91,12 @@ Versilian Studios LLC and Karoryfer Samples; performed by Austin McMahon.
 https://versilian-studios.com/virtuosity-drums/
 CC0 1.0 Universal. Full licence, provenance and edits: audio/drums-rc292/.
 Three microphone/articulation selections from the same acoustic kit: Warm Vintage, Tight Studio and Open Jazz. Original practice grooves were written for Bass Stem Studio.
+
+RC293 genre keyboard accompaniment
+Wurlitzer EP200 recordings by Greg Sullivan; SFZ mapping/tuning by kinwie. CC BY 3.0.
+https://github.com/sfzinstruments/GregSullivan.E-Pianos
+Commit 8c3e581acda3594b553948ff0222d4f84a698376.
+Drawbar Organ Emulation by Roberto for FreePats, sampled from setBfree. CC0.
+https://freepats.zenvoid.org/Organ/electric-organ.html
+This is a sampled organ emulation, not a physical Hammond recording.
+Adaptations: selected roots/velocities, source tuning and gain, mono PCM16 at 32 kHz, preserved sustain loops. Full source metadata, attribution and licences: audio/keys-rc293/.

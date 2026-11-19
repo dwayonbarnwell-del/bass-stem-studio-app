@@ -1,17 +1,24 @@
 window.BassFillTrainer=(()=>{
  'use strict';
- const F=window.BassFillCore,P=window.BassPracticeCore,U=window.BassUploadedCore,D=window.BassPracticeCatalogue,C=window.BassCuratedStudies,G=window.BassStudyGroups,R=window.BassRegister,L=window.BassPracticeLoop,B=window.BassPracticeDrums,$=id=>document.getElementById(id);
- let api,ctx,voices=[],timers=[],token=0,playing=false,repeating=false,backing=false,plan,kind='fills',recordedAudio=null,recordedFrame=0,transport=null,rendered=null,drums=true,drumKit='vintage',drumGroove='pocket',drumVolume=.45;
- const drumKey='bass-practice-drums-v1';
- try{const s=JSON.parse(localStorage.getItem(drumKey)||'{}');if(typeof s.enabled==='boolean')drums=s.enabled;if(B.kits.some(([id])=>id===s.kit))drumKit=s.kit;if(B.grooves.some(([id])=>id===s.groove))drumGroove=s.groove;if(Number.isFinite(s.volume))drumVolume=Math.max(0,Math.min(1,s.volume));}catch{}
- const saveDrums=()=>{try{localStorage.setItem(drumKey,JSON.stringify({enabled:drums,kit:drumKit,groove:drumGroove,volume:drumVolume}));}catch{}};
+ const F=window.BassFillCore,P=window.BassPracticeCore,U=window.BassUploadedCore,D=window.BassPracticeCatalogue,C=window.BassCuratedStudies,G=window.BassStudyGroups,R=window.BassRegister,L=window.BassPracticeLoop,B=window.BassPracticeDrums,H=window.BassAccompaniment,$=id=>document.getElementById(id);
+ let api,ctx,voices=[],timers=[],token=0,playing=false,repeating=false,backing=true,plan,kind='fills',recordedAudio=null,recordedFrame=0,transport=null,rendered=null,drums=true,drumKit='auto',drumGroove='auto',keyStyle='auto',keySound='auto',drumVolume=.45,keyVolume=.8;
+ const drumKey='bass-practice-accompaniment-v2';
+ // RC293 starts in Auto. The old global pocket choice must not override genres.
+ try{const s=JSON.parse(localStorage.getItem(drumKey)||'{}'),old=JSON.parse(localStorage.getItem('bass-practice-drums-v1')||'{}');if(typeof s.enabled==='boolean')drums=s.enabled;else if(typeof old.enabled==='boolean')drums=old.enabled;if(typeof s.chords==='boolean')backing=s.chords;if(B.kits.some(([id])=>id===s.kit))drumKit=s.kit;if(B.grooves.some(([id])=>id===s.groove))drumGroove=s.groove;if(H.profiles[s.style])keyStyle=s.style;if(['piano','electric','organ'].includes(s.sound))keySound=s.sound;if(Number.isFinite(s.volume??old.volume))drumVolume=Math.max(0,Math.min(1,s.volume??old.volume));if(Number.isFinite(s.keyVolume))keyVolume=Math.max(0,Math.min(1,s.keyVolume));}catch{}
+ const saveDrums=()=>{try{localStorage.setItem(drumKey,JSON.stringify({enabled:drums,chords:backing,kit:drumKit,groove:drumGroove,style:keyStyle,sound:keySound,volume:drumVolume,keyVolume}));}catch{}};
+ const accompaniment=()=>H.resolve(plan,{kit:drumKit,groove:drumGroove,style:keyStyle,sound:keySound});
+ function soundSettings(){if(!plan||plan.kind==='uploaded'){$('fillAccompaniment').textContent='';return;}const a=accompaniment(),auto=H.resolve(plan),names={piano:'Grand piano',electric:'Wurlitzer electric piano',organ:'Drawbar organ'};
+  const label=(list,id)=>list.find(x=>x[0]===id)?.[1]||id;
+  for(const [id,text] of [['fillDrumKit',label(B.kits,auto.kit)],['fillDrumGroove',label(B.grooves,auto.groove)],['fillKeyStyle',H.profiles[auto.style].label],['fillKeySound',names[auto.sound]]])$(id).options[0].textContent='Auto · '+text;
+  $('fillAccompaniment').textContent=label(B.grooves,a.groove)+' · '+H.profiles[a.style].label+' keys · '+names[a.sound];
+ }
  const remembered={fills:C?null:'0',runs:C?null:'0',basslines:'0'},rememberedClips={};
  const groupKey='bass-study-groups-v1',selectedGroups={fills:'gospel',runs:'gospel'};
  try{const saved=JSON.parse(localStorage.getItem(groupKey)||'null'),old=JSON.parse(localStorage.getItem('bass-curated-filters-v1')||'{}');for(const k of ['fills','runs'])selectedGroups[k]=G?.migrate(saved?.[k]||old[k]?.style)||'gospel';}catch{}
- const imported=()=>kind==='basslines'&&U.groups.slice(1).some(([id])=>id===$('fillCollection').value);
+ const imported=()=>kind==='basslines'&&$('fillIdea').value.startsWith('clip:');
  function clipOptions(){
   const group=$('fillCollection').value;$('fillClip').replaceChildren();
-  for(const c of U.items.filter(c=>(c.collection||c.group)===group&&D.visible('uploaded',c.id))){const o=document.createElement('option');o.value=c.id;o.textContent=c.title;$('fillClip').append(o);}
+  for(const c of U.items.filter(c=>H.category(c,true)===group&&D.visible('uploaded',c.id))){const o=document.createElement('option');o.value=c.id;o.textContent=c.title;$('fillClip').append(o);}
   if(rememberedClips[group])$('fillClip').value=rememberedClips[group];
   if(!$('fillClip').value&&$('fillClip').options.length)$('fillClip').selectedIndex=0;partOptions();
  }
@@ -23,9 +30,9 @@ window.BassFillTrainer=(()=>{
  function clipControls(){
   const custom=imported();$('earFillStudy').dataset.imported=String(custom);
   $('fillCollection').hidden=kind!=='basslines';$('fillCustom').hidden=kind!=='basslines'||custom;
-  for(const id of ['fillClip','fillExcerpt','fillClipSpeed','fillClipSound'])$(id).hidden=!custom;
+  $('fillClip').hidden=true;for(const id of ['fillExcerpt','fillClipSpeed','fillClipSound'])$(id).hidden=!custom;
   $('fillClipTranspose').hidden=!custom||$('fillClipSound').value!=='notes';
-  for(const id of ['fillKey','fillTempo','fillIdea'])$(id).hidden=custom;
+  for(const id of ['fillKey','fillTempo'])$(id).hidden=custom;$('fillIdea').hidden=false;
   $('fillFrom').hidden=kind==='basslines';$('fillTo').hidden=kind==='basslines';
   $('fillBacking').hidden=custom;$('fillDrums').hidden=custom;$('fillDrumOptions').hidden=custom;$('fillDrumNotice').hidden=!custom;$('fillNext').textContent=custom?'Next part':'Next idea';
   $('fillGroupRow').hidden=!G||kind==='basslines';$('fillCount').hidden=!G||kind==='basslines';$('fillRatingGuide').hidden=!G||kind==='basslines';
@@ -34,9 +41,10 @@ window.BassFillTrainer=(()=>{
  function patternId(i){return kind==='basslines'?P.lines[i]?.id:collections()[i]?.id||String(i);}
  function loadGroup(){if(!G||kind==='basslines')return;$('fillGroup').value=selectedGroups[kind];}
  function ideaOptions(wanted=remembered[kind]){
-  const select=$('fillIdea');select.replaceChildren();const rows=collections().map((s,i)=>({s,i,line:kind==='basslines'?P.lines[i]:null})).filter(({i,line})=>kind==='basslines'?D.visible(kind,patternId(i))&&D.inCollection(line,$('fillCollection').value):G?G.visible(kind,i)&&G.groupOf(kind,i)===selectedGroups[kind]:D.visible(kind,patternId(i)));
-  rows.sort((a,b)=>C&&kind!=='basslines'?C.compare(kind,a.i,b.i):Number(!!a.line?.african)-Number(!!b.line?.african));let african;
-  for(const {s,i,line} of rows){const o=document.createElement('option');o.value=i;o.textContent=s[0];if(line?.african){if(!african){african=document.createElement('optgroup');african.label='African basslines';select.append(african);}african.append(o);}else select.append(o);}
+  const select=$('fillIdea');select.replaceChildren();const rows=collections().map((s,i)=>({s,i,line:kind==='basslines'?P.lines[i]:null})).filter(({i,line})=>kind==='basslines'?D.visible(kind,patternId(i))&&H.category(line)===$('fillCollection').value:G?G.visible(kind,i)&&G.groupOf(kind,i)===selectedGroups[kind]:D.visible(kind,patternId(i)));
+  rows.sort((a,b)=>C&&kind!=='basslines'?C.compare(kind,a.i,b.i):0);let studies;if(kind==='basslines'&&rows.length){studies=document.createElement('optgroup');studies.label='Practice patterns';select.append(studies);}
+  for(const {s,i} of rows){const o=document.createElement('option');o.value=i;o.textContent=s[0];(studies||select).append(o);}
+  if(kind==='basslines'){const clips=U.items.filter(c=>H.category(c,true)===$('fillCollection').value&&D.visible('uploaded',c.id));if(clips.length){const group=document.createElement('optgroup');group.label='Recordings';select.append(group);for(const c of clips){const o=document.createElement('option');o.value='clip:'+c.id;o.textContent=c.title;group.append(o);}}}
   if([...select.options].some(o=>o.value===String(wanted)))select.value=String(wanted);else if(select.options.length)select.selectedIndex=0;
   if(G&&kind!=='basslines')$('fillCount').textContent=rows.length+' of '+G.total(kind)+' '+(kind==='runs'?'runs':'fills')+' · Most amazing first';
  }
@@ -47,12 +55,12 @@ window.BassFillTrainer=(()=>{
  function stop(){token++;transport?.stop();transport=null;cancelAnimationFrame(recordedFrame);recordedAudio?.pause();recordedAudio=null;playing=false;repeating=false;timers.forEach(clearTimeout);timers=[];voices.forEach(v=>{try{v.stop();}catch{}});voices=[];if($('fillPlay')){state();for(const e of $('fillNotes').children)e.classList.remove('sounding');}}
  function settings(){return {key:$('fillKey').value,mode:kind==='basslines'?(P.lines[Number($('fillIdea').value)]?.mode||'major'):'major',from:$('fillFrom').value,to:$('fillTo').value,idea:$('fillIdea').value,bpm:$('fillTempo').value};}
  function draw(){
-  stop();clipControls();if(imported()){rememberedClips[$('fillCollection').value]=$('fillClip').value;showPlan(U.plan($('fillClip').value,$('fillExcerpt').value,$('fillClipSpeed').value,$('fillClipSound').value==='notes'?$('fillClipTranspose').value:0));return;}if($('fillIdea').value===''){showPlan(null);return;}if($('fillFrom').value===$('fillTo').value)$('fillTo').value=String(Number($('fillFrom').value)%7+1);
+  stop();clipControls();if(imported()){const id=$('fillIdea').value.slice(5);if($('fillClip').value!==id){$('fillClip').value=id;partOptions();}remembered[kind]=$('fillIdea').value;rememberedClips[$('fillCollection').value]=$('fillClip').value;showPlan(U.plan($('fillClip').value,$('fillExcerpt').value,$('fillClipSpeed').value,$('fillClipSound').value==='notes'?$('fillClipTranspose').value:0));return;}if($('fillIdea').value===''){showPlan(null);return;}if($('fillFrom').value===$('fillTo').value)$('fillTo').value=String(Number($('fillFrom').value)%7+1);
   for(const o of $('fillTo').options)o.disabled=o.value===$('fillFrom').value;
   remembered[kind]=$('fillIdea').value;showPlan(P.make(kind,settings()));
  }
  function showPlan(value){
-  rendered=null;plan=value&&!(value.kind==='uploaded'&&$('fillClipSound').value==='recording')?R.plan(value):value;$('fillPlayer').hidden=!plan;$('fillEmpty').hidden=!!plan;state();if(!plan)return;
+  rendered=null;plan=value&&!(value.kind==='uploaded'&&$('fillClipSound').value==='recording')?R.plan(value):value;$('fillPlayer').hidden=!plan;$('fillEmpty').hidden=!!plan;state();soundSettings();if(!plan)return;
   $('fillHeading').textContent=G&&kind!=='basslines'?[G.label(kind,plan.idea),...G.aliases(kind,plan.idea)].join(' / '):(plan.heading||plan.title);$('fillHarmony').hidden=kind==='basslines';$('fillHarmony').textContent=kind!=='basslines'?(plan.heading||plan.from+' → '+plan.to+' · '+plan.fromChord+' → '+plan.toChord):'';
   $('fillRegister').textContent=plan.kind==='uploaded'&&$('fillClipSound').value==='recording'?'Original recorded pitch':'Bass: '+F.note(Math.min(...plan.bass.map(n=>n.midi)))+'–'+F.note(Math.max(...plan.bass.map(n=>n.midi)))+(plan.bassRevoiced?' · Octaves adjusted':'');
   $('fillStatus').textContent=plan.kind==='uploaded'?plan.status:kind==='basslines'?(plan.beats/4)+'-bar loop':'Two bars · land on beat 1';$('fillNotes').replaceChildren();
@@ -72,10 +80,10 @@ window.BassFillTrainer=(()=>{
    if(plan.kind==='uploaded'&&$('fillClipSound').value==='recording'){await playRecording(mine);return;}
    if(plan.kind==='uploaded'){await playUploadedNotes(mine);return;}
    ctx??=new AudioContext();await ctx.resume();const current=plan;
-   if(!rendered)rendered=await L.render(ctx,current,{drums:current.kind!=='uploaded',kit:drumKit,groove:drumGroove,chords:true,cancelled:()=>mine!==token});
+   if(!rendered)rendered=await L.render(ctx,current,{drums:current.kind!=='uploaded',...accompaniment(),chords:true,cancelled:()=>mine!==token});
    if(mine!==token||!rendered||!$('earTrainerDialog').open)return;
    $('fillStatus').textContent=current.kind==='uploaded'?'Playing · '+current.status:'Playing · '+current.bpm+' BPM';
-   transport=L.start(ctx,rendered,{repeat:repeating,drums:drums?drumVolume:0,chords:backing?1:0,onEnded:()=>{if(mine!==token)return;playing=false;repeating=false;transport=null;cancelAnimationFrame(recordedFrame);state();for(const e of $('fillNotes').children)e.classList.remove('sounding');$('fillStatus').textContent='Play it again';}});
+   transport=L.start(ctx,rendered,{repeat:repeating,drums:drums?drumVolume:0,chords:backing?keyVolume:0,onEnded:()=>{if(mine!==token)return;playing=false;repeating=false;transport=null;cancelAnimationFrame(recordedFrame);state();for(const e of $('fillNotes').children)e.classList.remove('sounding');$('fillStatus').textContent='Play it again';}});
    const delay=window.BassPlaybackTiming?.outputDelay(ctx)||0;
    const tick=()=>{if(mine!==token||!transport)return;const elapsed=transport.position()-delay,phase=repeating?((elapsed%rendered.seconds)+rendered.seconds)%rendered.seconds:elapsed,beat=phase*current.bpm/60;
     for(const [i,n] of current.bass.entries()){const e=$('fillNotes').children[i];if(!e)continue;const active=elapsed>=0&&beat>=n.beat&&beat<n.beat+n.length;e.classList.toggle('sounding',active);if(active){const list=$('fillNotes');if(e.offsetTop<list.scrollTop||e.offsetTop+e.offsetHeight>list.scrollTop+list.clientHeight)list.scrollTop=e.offsetTop;}}
@@ -118,7 +126,7 @@ window.BassFillTrainer=(()=>{
  }
  function init(panel,hooks){
   api=hooks;panel.innerHTML=`<div id="fillGroupRow" class="fill-settings"><select id="fillGroup" aria-label="Run or fill group"></select></div><p id="fillCount" role="status"></p><div id="fillSettings" class="fill-settings">
-  <select id="fillCollection" aria-label="Bassline collection" hidden></select>
+  <select id="fillCollection" aria-label="Bassline genre" hidden></select>
   <select id="fillClip" aria-label="Uploaded bassline" hidden></select><select id="fillExcerpt" aria-label="Clip section" hidden></select>
   <select id="fillClipSpeed" aria-label="Clip speed" hidden><option value="25">25% speed</option><option value="50">50% speed</option><option value="75">75% speed</option><option value="100" selected>Original speed</option><option value="125">125% speed</option></select>
   <select id="fillClipSound" aria-label="Clip sound" hidden><option value="recording">Recorded bass</option><option value="notes">Note playback</option></select>
@@ -127,16 +135,21 @@ window.BassFillTrainer=(()=>{
   <select id="fillFrom" aria-label="From degree"></select><select id="fillTo" aria-label="To degree"></select>
   <select id="fillKey" aria-label="Fill key"></select><select id="fillTempo" aria-label="Fill tempo"></select>
   </div>
-  <div id="fillCustom" class="my-fill-actions" hidden><input id="fillProgression" aria-label="Your progression" placeholder="e.g. 6 5 4 5 3"><button id="fillAddProgression" type="button">Add progression</button></div><p id="fillEmpty" hidden>No patterns in this group. Choose another group or restore deleted patterns.</p><div id="fillPlayer"><div class="fill-actions"><button id="fillPlay" type="button">Play</button><button id="fillRepeat" type="button" aria-pressed="false">Repeat</button><button id="fillNext" type="button">Next idea</button><button id="fillBacking" type="button" aria-pressed="false">Chords off</button><button id="fillDrums" type="button" aria-pressed="true">Drums on</button></div><details id="fillDrumOptions"><summary>Drum sound and beat</summary><div class="fill-settings"><select id="fillDrumKit" aria-label="Drum sound"></select><select id="fillDrumGroove" aria-label="Drum beat"></select><label class="fill-drum-volume">Drum volume <input id="fillDrumVolume" type="range" min="0" max="100" step="1" value="45"><output id="fillDrumLevel">45%</output></label></div></details><p id="fillDrumNotice" hidden>Drums need a verified beat grid for recordings.</p><p id="fillRegister"></p><h3 id="fillHeading"></h3><p id="fillHarmony" hidden></p><p id="fillRating" hidden></p><p id="fillTip"></p><a id="fillSource" target="_blank" rel="noopener noreferrer" hidden></a>
+  <div id="fillCustom" class="my-fill-actions" hidden><input id="fillProgression" aria-label="Your progression" placeholder="e.g. 6 5 4 5 3"><button id="fillAddProgression" type="button">Add progression</button></div><p id="fillEmpty" hidden>No patterns in this group. Choose another group or restore deleted patterns.</p><div id="fillPlayer"><div class="fill-actions"><button id="fillPlay" type="button">Play</button><button id="fillRepeat" type="button" aria-pressed="false">Repeat</button><button id="fillNext" type="button">Next idea</button><button id="fillBacking" type="button" aria-pressed="true">Chords on</button><button id="fillDrums" type="button" aria-pressed="true">Drums on</button></div><p id="fillAccompaniment"></p><details id="fillDrumOptions"><summary>Band sound and style</summary><div class="fill-settings"><label class="fill-band-choice">Drum sound<select id="fillDrumKit" aria-label="Drum sound"></select></label><label class="fill-band-choice">Drum beat<select id="fillDrumGroove" aria-label="Drum beat"></select></label><label class="fill-band-choice">Keyboard style<select id="fillKeyStyle" aria-label="Keyboard style"></select></label><label class="fill-band-choice">Keyboard sound<select id="fillKeySound" aria-label="Keyboard sound"></select></label><label class="fill-drum-volume">Drum volume <input id="fillDrumVolume" type="range" min="0" max="100" step="1" value="45"><output id="fillDrumLevel">45%</output></label><label class="fill-drum-volume">Keys volume <input id="fillKeyVolume" type="range" min="0" max="100" step="1" value="80"><output id="fillKeyLevel">80%</output></label><button id="fillGenreReset" type="button">Use genre settings</button></div></details><p id="fillDrumNotice" hidden>Original recordings keep their own accompaniment. Added drums and keys need a verified beat grid.</p><p id="fillRegister"></p><h3 id="fillHeading"></h3><p id="fillHarmony" hidden></p><p id="fillRating" hidden></p><p id="fillTip"></p><a id="fillSource" target="_blank" rel="noopener noreferrer" hidden></a>
 
   <div id="fillNotes" aria-label="Bass fill notes"></div><p id="fillStatus" role="status"></p><details id="fillRatingGuide"><summary>About these studies</summary><p>Original exercises informed by the linked lessons. Ratings reflect melodic interest, groove and resolution, not audience votes or artist endorsements. Note playback demonstrates pitches and rhythm; add your own touch and articulation.</p></details></div><div class="my-fill-actions"><button id="fillDelete" type="button">Delete pattern</button><button id="fillRestore" type="button">Restore deleted</button></div><p id="fillManageStatus" role="status"></p>`;
   function option(id,value,label){const o=document.createElement('option');o.value=value;o.textContent=label;$(id).append(o);}
-  for(const [id,label] of B.kits)option('fillDrumKit',id,'Sound: '+label);for(const [id,label] of B.grooves)option('fillDrumGroove',id,'Beat: '+label);$('fillDrumKit').value=drumKit;$('fillDrumGroove').value=drumGroove;$('fillDrumVolume').value=Math.round(drumVolume*100);$('fillDrumLevel').textContent=Math.round(drumVolume*100)+'%';
-  for(const id of ['fillDrumKit','fillDrumGroove'])$(id).onchange=()=>{drumKit=$('fillDrumKit').value;drumGroove=$('fillDrumGroove').value;saveDrums();stop();rendered=null;$('fillStatus').textContent='Ready · '+plan.bpm+' BPM';};
+  for(const id of ['fillDrumKit','fillDrumGroove','fillKeyStyle','fillKeySound'])option(id,'auto','Auto · match genre');
+  for(const [id,label] of B.kits)option('fillDrumKit',id,'Sound: '+label);for(const [id,label] of B.grooves)option('fillDrumGroove',id,'Beat: '+label);for(const [id,p] of Object.entries(H.profiles))option('fillKeyStyle',id,'Keys: '+p.label);for(const [id,label] of [['piano','Grand piano'],['electric','Wurlitzer electric piano'],['organ','Drawbar organ']])option('fillKeySound',id,label);
+  $('fillDrumKit').value=drumKit;$('fillDrumGroove').value=drumGroove;$('fillKeyStyle').value=keyStyle;$('fillKeySound').value=keySound;$('fillDrumVolume').value=Math.round(drumVolume*100);$('fillDrumLevel').textContent=Math.round(drumVolume*100)+'%';$('fillKeyVolume').value=Math.round(keyVolume*100);$('fillKeyLevel').textContent=Math.round(keyVolume*100)+'%';
+  const changeSound=()=>{drumKit=$('fillDrumKit').value;drumGroove=$('fillDrumGroove').value;keyStyle=$('fillKeyStyle').value;keySound=$('fillKeySound').value;saveDrums();stop();rendered=null;soundSettings();if(plan)$('fillStatus').textContent='Ready · '+plan.bpm+' BPM';};
+  for(const id of ['fillDrumKit','fillDrumGroove','fillKeyStyle','fillKeySound'])$(id).onchange=changeSound;
+  $('fillGenreReset').onclick=()=>{for(const id of ['fillDrumKit','fillDrumGroove','fillKeyStyle','fillKeySound'])$(id).value='auto';changeSound();};
+  $('fillKeyVolume').oninput=()=>{keyVolume=Number($('fillKeyVolume').value)/100;$('fillKeyLevel').textContent=Math.round(keyVolume*100)+'%';transport?.level('chords',backing?keyVolume:0);saveDrums();};
   $('fillDrumVolume').oninput=()=>{drumVolume=Number($('fillDrumVolume').value)/100;$('fillDrumLevel').textContent=Math.round(drumVolume*100)+'%';transport?.level('drums',drums?drumVolume:0);saveDrums();};
   $('fillDrums').onclick=()=>{drums=!drums;saveDrums();transport?.level('drums',drums?drumVolume:0);state();};
   if(G){for(const [id,label] of G.groups)option('fillGroup',id,label);loadGroup();$('fillGroup').onchange=()=>{selectedGroups[kind]=$('fillGroup').value;try{localStorage.setItem(groupKey,JSON.stringify(selectedGroups));}catch{}ideaOptions();draw();};}
-  for(const [id,label] of [...D.groups,...U.groups.slice(1)])option('fillCollection',id,label);
+  for(const [id,label] of H.groups)option('fillCollection',id,label);
   for(let i=-12;i<=12;i++)option('fillClipTranspose',i,i===0?'Original key':(i>0?'+':'')+i+' semitone'+(Math.abs(i)===1?'':'s'));$('fillClipTranspose').value='0';clipOptions();
   $('fillCollection').onchange=()=>{clipOptions();ideaOptions();draw();};$('fillClip').onchange=()=>{partOptions();draw();};
   for(const id of ['fillExcerpt','fillClipSpeed','fillClipTranspose','fillClipSound'])$(id).onchange=draw;
@@ -145,14 +158,14 @@ window.BassFillTrainer=(()=>{
   for(const id of ['fillFrom','fillTo','fillKey','fillIdea','fillTempo'])$(id).onchange=draw;
   $('fillPlay').onclick=()=>void play();$('fillRepeat').onclick=()=>{if(repeating){stop();$('fillStatus').textContent='Repeat stopped';}else{repeating=true;if(!playing)void play();else{transport?.setRepeat(true);state();}}};
   $('fillNext').onclick=()=>{if(imported()){$('fillExcerpt').selectedIndex=$('fillExcerpt').options.length>1?($('fillExcerpt').selectedIndex>=$('fillExcerpt').options.length-1?1:$('fillExcerpt').selectedIndex+1):0;draw();void play();return;}$('fillIdea').selectedIndex=($('fillIdea').selectedIndex+1)%$('fillIdea').options.length;draw();void play();};
-  $('fillBacking').onclick=()=>{backing=!backing;transport?.level('chords',backing?1:0);state();};
+  $('fillBacking').onclick=()=>{backing=!backing;saveDrums();transport?.level('chords',backing?keyVolume:0);state();};
   $('fillDelete').onclick=()=>{const id=deletionKey();if(!id)return;try{D.remove(...id);stop();refreshDeleted();$('fillManageStatus').textContent='Deleted from this device. Restore any time.';}catch{$('fillManageStatus').textContent='Could not save deletion.';}};
   $('fillRestore').onclick=()=>{try{D.restore();refreshDeleted();$('fillManageStatus').textContent='Patterns restored';}catch{$('fillManageStatus').textContent='Could not restore patterns.';}};
-  $('fillAddProgression').onclick=()=>{try{const index=D.addProgression($('fillProgression').value,P.lines[Number($('fillIdea').value)]||P.lines[0]);$('fillCollection').value='studies';ideaOptions(index);draw();$('fillManageStatus').textContent='Progression added';}catch(e){$('fillManageStatus').textContent=e.message||'Could not save progression.';}};
+  $('fillAddProgression').onclick=()=>{try{const index=D.addProgression($('fillProgression').value,P.lines[Number($('fillIdea').value)]||P.lines[0]);$('fillCollection').value='personal';clipOptions();ideaOptions(index);draw();$('fillManageStatus').textContent='Progression added';}catch(e){$('fillManageStatus').textContent=e.message||'Could not save progression.';}};
   document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();});window.addEventListener('pagehide',stop);ideaOptions();draw();
  }
  function setKind(next){
-  stop();kind=['fills','runs','basslines'].includes(next)?next:'fills';$('fillSettings').hidden=false;$('fillNext').hidden=false;loadGroup();ideaOptions();draw();
+  stop();kind=['fills','runs','basslines'].includes(next)?next:'fills';if(kind==='basslines')clipOptions();$('fillSettings').hidden=false;$('fillNext').hidden=false;loadGroup();ideaOptions();draw();
  }
  return {init,stop,setKind};
 })();

@@ -21,7 +21,7 @@ for(const mode of ['notes','intervals','chords','progressions'])for(let level=1;
  const piano=E.make(mode,level,{sound:'piano',rng:rng(seed)}),oldPiano=legacy.window.BassEarTrainingCore.make(mode,level,{sound:'piano',rng:rng(seed)});assert.equal(JSON.stringify(piano),JSON.stringify(oldPiano));
 }
 for(const [id] of D.grooves)for(const beats of [4,8,20,64]){const a=D.events(beats,id);assert(a.length);assert(a.every(h=>h.beat>=0&&h.beat<beats&&h.velocity>0&&h.velocity<=100&&[1,2].includes(h.variant)));assert.equal(JSON.stringify(a),JSON.stringify(D.events(beats,id)));}
-assert(D.events(8,'swing').some(h=>Math.abs(h.beat-2/3)<1e-10));assert.equal(D.events(4,'reggae').filter(h=>h.hit==='kick')[0].beat,2);
+assert(D.events(8,'swing').some(h=>Math.abs(h.beat-(1+2/3))<1e-10));assert.equal(D.events(4,'reggae').filter(h=>h.hit==='kick')[0].beat,2);
 const sources=[],gain=()=>({gain:{value:1,setTargetAtTime(){}},connect(){return this;},disconnect(){}}),context={currentTime:10,destination:{},createGain:gain,createBufferSource(){const s={connect(){return this;},disconnect(){},start(t){this.at=t;},stop(){}};sources.push(s);return s;}};
 const rendered={stems:{bass:{},chords:{},drums:{}},seconds:Math.round(8*60/137*44100)/44100,gain:.7};
 const t=L.start(context,rendered,{repeat:true});assert.equal(sources.length,3);assert(sources.every(s=>s.at===10.08&&s.loop&&s.loopEnd===rendered.seconds&&s.loopStart===0));

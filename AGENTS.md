@@ -16,3 +16,5 @@ These communication preferences were explicitly requested by the user on 2 Novem
 ## Publishing preference
 
 On 17 November 2026, the user authorised publishing all Bass Stem Studio platform updates now and going forward, and explicitly asked for this permission to be remembered. This includes pushing completed updates to `dwayonbarnwell-del/bass-stem-studio-app` on `main` and deploying them to the existing live Render site. Continue to check changes before publishing and respect any later instruction that limits or withdraws this permission. This records the user's preference; it does not change tool approval controls.
+
+- Start practice with chords and drums on. Choose drum feel, acoustic kit voicing, keyboard rhythm and keyboard sound automatically for each study’s genre, with explicit manual overrides and a way back to Auto. Retain the single audio-clock loop and original harmony. Group Basslines in at most ten genre menus, mixing related practice studies and recordings without deleting either. Keep uncertain recordings clearly labelled.
