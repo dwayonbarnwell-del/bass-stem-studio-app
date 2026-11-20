@@ -13504,7 +13504,7 @@ window.BassPiano=(()=>{
   const low=Math.floor(use[0]/12)*12,high=Math.floor(use.at(-1)/12)*12+11;
   return Array.from({length:high-low+1},(_,i)=>high-i);
  }
- function metrics(){const s=state(),view=$('pianoRollViewport'),gridWidth=Math.max(60,view.clientWidth-58),step=s.step||1,columns=Math.max(1,Math.floor(gridWidth/70)),page=columns*step;return {view,gridWidth,step,page,scale:gridWidth/page,height:Math.max(1,view.clientHeight-80)};}
+ function metrics(){const s=state(),view=$('pianoRollViewport'),gridWidth=Math.max(60,view.clientWidth-58),step=s.step||1,columns=Math.max(1,Math.floor(gridWidth/70)),page=columns*step;return {view,gridWidth,step,page,scale:gridWidth/page,height:Math.max(1,view.clientHeight-$('pianoRollHeader').offsetHeight)};}
  function chordAt(chords,time){let current=null;for(const c of chords)if(c.start<=time&&time<c.end&&(!current||c.start>current.start))current=c;return current;}
  function updateReadout(){
   if(!$('pianoCurrentChord'))return;
@@ -13621,11 +13621,12 @@ window.BassPiano=(()=>{
 })();</script>
 <style id="rc240-spacing">html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot .progress-row-premium .progress-track{display:flex!important;align-items:center!important;height:24px!important;min-height:24px!important;max-height:24px!important;padding:0!important;margin:0!important;transform:none!important;}html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot .progress-row-premium input{margin:0!important;transform:none!important;align-self:center!important;}html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot .progress-row-premium{box-sizing:border-box!important;height:40px!important;min-height:40px!important;grid-template-rows:24px!important;padding:8px 0!important;margin:0!important;align-items:center!important;}html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #importBtn svg{width:32px!important;height:32px!important;min-width:32px!important;max-width:32px!important;}</style>
 <style id="rc242-piano">
-#appRoot #pianoViewPanel #pianoRollHeader{height:80px!important}
-html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel #pianoRollHeader{height:80px!important}
+#appRoot #pianoViewPanel #pianoRollHeader{height:52px!important}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel #pianoRollHeader{height:52px!important}
 html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel #pianoRollCorner{height:52px!important}
-html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel #pianoTimeline{top:80px!important}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel #pianoTimeline{top:52px!important}
 #pianoReadout{position:sticky!important;left:0!important;top:52px!important;width:var(--piano-visible-width)!important;height:28px!important;display:flex!important;align-items:center!important;justify-content:space-between!important;padding:0 12px!important;box-sizing:border-box!important;border-block:1px solid #52788d!important;background:#193b4d!important;color:#dcfaff!important;font:750 16px/1 system-ui!important;z-index:33!important}
+#pianoViewPanel #pianoReadout{display:none!important}
 #pianoCurrentNote{color:#ffd18b!important;min-width:42px!important;text-align:right!important}
 #pianoCurrentChord{min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
 #pianoSoundCredit{font:11px/1.4 system-ui!important;opacity:.8;margin:12px 0 0!important}
@@ -13724,6 +13725,8 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPan
 <style>
 #practiceSections:not([hidden]){display:grid;grid-auto-flow:column;grid-auto-columns:calc((100% - 16px)/5);gap:4px;box-sizing:border-box;padding:4px 0;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
 #practiceSections[hidden],#practiceSections::-webkit-scrollbar{display:none}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #practiceSections button{box-sizing:border-box!important;height:calc(var(--ff-control-h,44px)*.4)!important;min-height:0!important;max-height:none!important;padding:0 2px!important;line-height:1!important}
+html body.practice-controls-hidden #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #playerControls>.brand{display:none!important}
 #practiceSections button{appearance:none;min-width:0;width:100%;height:var(--ff-control-h,44px);padding:2px;border:1px solid #405970;border-radius:9px;background:#182c40;color:#e5eef6;font:600 clamp(11px,3vw,14px)/1.12 system-ui;white-space:normal;overflow-wrap:anywhere;scroll-snap-align:start}
 #practiceSections button[aria-pressed=true]{background:#205773;border:2px solid #83d3f3}
 #practiceSections button:focus-visible{outline:2px solid #f4c879;outline-offset:-3px}
@@ -15469,7 +15472,7 @@ window.BassBatch = (() => {
 <script src="./ear-source/study-ui-rc267.js?v=rc294"></script>
 <script src="./ear-source/trainer-rc266.js?v=rc294"></script>
 <script src="./fretflow-source/core.js?v=rc277"></script>
-<script src="./fretflow-source/backing.js?v=rc278"></script>
+<script src="./fretflow-source/backing.js?v=rc298"></script>
 <script src="./fretflow-source/view.js?v=rc278"></script>
 <script src="./fretflow-source/controls.js?v=rc278"></script>
 <script src="./song-view/core.js?v=rc288"></script>
@@ -15477,7 +15480,7 @@ window.BassBatch = (() => {
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC297';
+  const APP_VERSION='RC298';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;
@@ -20933,7 +20936,7 @@ window.BassBatch = (() => {
         localBassWorking=true;try{await estimateMissingBass(buffer,session);}finally{if(session===songSession)localBassWorking=false;}
         if(session!==songSession)return;
       }
-      if(!window.BassPiano.unfinished()){queueMelodyProjectSave();return;}
+      if(!window.BassPiano.unfinished()){queueMelodyProjectSave();await window.BassBacking.prepareForSong();return;}
 
       await window.BassPiano.analyse({automatic:true});
       if(session!==songSession)return;
@@ -20944,6 +20947,7 @@ window.BassBatch = (() => {
         await ensureSongStructure({maxChecks:2,pollMs:500});
         if(session===songSession&&songStructure)queueMelodyProjectSave(true);
       }
+      if(session===songSession)await window.BassBacking.prepareForSong();
     };
     automaticMelodyTimer=setTimeout(start,1000);
   }
@@ -20985,7 +20989,7 @@ window.BassBatch = (() => {
 
   window.BassBacking.init({
     get:()=>({session:songSession,loaded:!!buffer,duration:buffer?.duration||0,busy:aiBusy||songImportBusy,master:masterAudio,bassMuted:bassPracticeMuted}),
-    pause,encode:fileToBase64,setMuted:value=>{bassPracticeMuted=!!value;},
+    pause,save:()=>queueMelodyProjectSave(true),encode:fileToBase64,setMuted:value=>{bassPracticeMuted=!!value;},
     graph:()=>{ensureCtx();buildGraph();return {ctx,main:sourceBus,bass:[bassPitchDryGain,bassPitchShift.input]};},
     update:()=>{updateAudioParams();refreshBassPracticeToggle();window.BassFretFlow?.draw();},
     extract:(a,b,p,c)=>separatePracticeStem(a,b,p,c,'rehearsal')
@@ -21642,7 +21646,7 @@ window.BassBatch = (() => {
     host.replaceChildren();
     for(const part of parts){
       const b=document.createElement('button'),selected=core.rangeSelected(ranges,part.start,part.end);
-      b.type='button';b.textContent=part.name;b.setAttribute('aria-pressed',String(selected));
+      b.type='button';b.textContent=part.name.replace(/\b(pre[ -]?chorus|introduction|instrumental|interlude|verse|chorus|bridge|refrain|outro)\b/gi,word=>({'prechorus':'Pre. Ch.','introduction':'Intro','instrumental':'Inst.','interlude':'Inter.','verse':'Vr.','chorus':'Ch.','bridge':'Bri.','refrain':'Ref.','outro':'Outro'})[word.toLowerCase().replace(/[ -]/g,'')]);b.title=part.name;b.setAttribute('aria-label',part.name);b.setAttribute('aria-pressed',String(selected));
 
       b.onclick=()=>songViewRepeat(core.toggleRange(ranges,part.start,part.end,duration));host.append(b);
     }

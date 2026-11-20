@@ -71,7 +71,7 @@ window.BassPiano=(()=>{
   const low=Math.floor(use[0]/12)*12,high=Math.floor(use.at(-1)/12)*12+11;
   return Array.from({length:high-low+1},(_,i)=>high-i);
  }
- function metrics(){const s=state(),view=$('pianoRollViewport'),gridWidth=Math.max(60,view.clientWidth-58),step=s.step||1,columns=Math.max(1,Math.floor(gridWidth/70)),page=columns*step;return {view,gridWidth,step,page,scale:gridWidth/page,height:Math.max(1,view.clientHeight-80)};}
+ function metrics(){const s=state(),view=$('pianoRollViewport'),gridWidth=Math.max(60,view.clientWidth-58),step=s.step||1,columns=Math.max(1,Math.floor(gridWidth/70)),page=columns*step;return {view,gridWidth,step,page,scale:gridWidth/page,height:Math.max(1,view.clientHeight-$('pianoRollHeader').offsetHeight)};}
  function chordAt(chords,time){let current=null;for(const c of chords)if(c.start<=time&&time<c.end&&(!current||c.start>current.start))current=c;return current;}
  function updateReadout(){
   if(!$('pianoCurrentChord'))return;

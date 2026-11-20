@@ -1,6 +1,7 @@
 /* Independently mute bass and vocals using the shared playback clock. */
 window.BassBacking=(()=>{
  'use strict';
+ let attemptedSession=null;
  let api,enabled=false,busy=false,ready=false,message='',token=0,saved=null,gate=null,bassGate=null,vocalGate=null,vocalsMuted=false,session=null;
  const players=[new Audio(),new Audio(),new Audio()],urls=[];let startPending=false;
  players.forEach(p=>{p.preload='auto';p.preservesPitch=true;p.addEventListener('error',()=>{if(enabled)fail('Mute playback failed. Original track restored.');});});
@@ -43,7 +44,8 @@ window.BassBacking=(()=>{
  }
  async function prepare(target){
   const s=api.get();if(!s.loaded||s.busy)throw Error('Wait for the current song to finish loading or analysing.');
-  api.pause();const mine=++token;busy=true;session=s.session;enabled=false;stop();route();message='Preparing mute controls…';changed();
+  if(target)api.pause();
+  const mine=++token;busy=true;session=s.session;enabled=false;stop();route();message='Preparing mute controls…';changed();
   const cancelled=()=>mine!==token||api.get().session!==s.session;
   try{
    const parts=[[],[],[]],rate=44100;let frames=0;
@@ -57,9 +59,15 @@ window.BassBacking=(()=>{
    const blobs=parts.map(p=>wav(p,frames,rate));await load(blobs,mine,s.duration);if(cancelled())throw Error('Cancelled');
    const encoded=await Promise.all(blobs.map(api.encode));if(cancelled())throw Error('Cancelled');
    saved={version:2,duration:s.duration,mime:'audio/wav',accompanimentBase64:encoded[0],bassBase64:encoded[1],vocalsBase64:encoded[2]};
-   ready=true;enabled=true;vocalsMuted=target==='vocals';api.setMuted(target==='bass'||s.bassMuted);message='Mute controls ready. Save the song to keep them.';route();
+   ready=true;enabled=!!target;vocalsMuted=target==='vocals';if(target)api.setMuted(target==='bass'||s.bassMuted);message='';route();api.save();
   }catch(e){if(mine===token){ready=false;enabled=false;vocalsMuted=false;saved=null;api.setMuted(false);route();message=e.message==='Cancelled'?'Preparation cancelled.':e.message||'Could not prepare bass mute.';}}
   finally{if(mine===token){busy=false;changed();}}
+ }
+ async function prepareForSong(){
+  const s=api.get();
+  if(!s.loaded||s.busy||busy||enabled||saved?.version===2||attemptedSession===s.session)return;
+  attemptedSession=s.session;
+  await prepare(null);
  }
  async function toggle(target='bass'){try{
   if(busy)return;
@@ -77,5 +85,5 @@ window.BassBacking=(()=>{
   }catch{if(mine===token){ready=false;message='Saved bass mute is unavailable. You can prepare it again.';changed();}}
  }
  function init(hooks){api=hooks;const master=api.get().master;for(const event of ['play','pause','seeking','seeked','ratechange','ended'])master.addEventListener(event,()=>void sync(true));}
- return {init,toggle,cancel,reset,sync,restore,exportData:()=>saved,state:()=>({enabled,busy,ready,vocalsReady:ready&&saved?.version===2,vocalsMuted,bassMuted:!!api?.get().bassMuted,message}),pcmPart,wav};
+ return {init,prepareForSong,toggle,cancel,reset,sync,restore,exportData:()=>saved,state:()=>({enabled,busy,ready,vocalsReady:ready&&saved?.version===2,vocalsMuted,bassMuted:!!api?.get().bassMuted,message}),pcmPart,wav};
 })();
