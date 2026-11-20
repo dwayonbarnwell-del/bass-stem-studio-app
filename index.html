@@ -13402,9 +13402,9 @@ window.BassPianoAudio=(()=>{
   events.sort((a,b)=>a.t-b.t||a.off-b.off);const track=[0,0xff,0x51,3,7,0xa1,0x20,0,0xc0,sound==='bass'?33:0];let prev=0;for(const e of events){track.push(...vlq(e.t-prev),...e.bytes);prev=e.t;}track.push(0,0xff,0x2f,0);
   const n=track.length;return new Blob([new Uint8Array([77,84,104,100,0,0,0,6,0,0,0,1,1,224,77,84,114,107,(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255,...track])],{type:'audio/midi'});
  }
- function tracker(){let current=null,candidate=null,lastTime=0;const notes=[];
+ function tracker(minMidi=36,maxMidi=96){let current=null,candidate=null,lastTime=0;const notes=[];
   function finish(t){if(current){current.end=Math.max(current.start,t);if(current.end-current.start>=.12)notes.push(current);current=null;}}
-  function push(p,t,hop=.04){lastTime=t+hop;const m=p&&p.confidence>=.86&&p.midi>=36&&p.midi<=96?p.midi:null;
+  function push(p,t,hop=.04){lastTime=t+hop;const m=p&&p.confidence>=.86&&p.midi>=minMidi&&p.midi<=maxMidi?p.midi:null;
    if(m===null){finish(t);candidate=null;return;}
    if(current&&m===current.midi){current.end=t+hop;candidate=null;return;}
    if(!candidate||candidate.midi!==m)candidate={midi:m,start:t,count:1};else candidate.count++;
@@ -13536,6 +13536,10 @@ window.BassPiano=(()=>{
   $('pianoRecord').disabled=busy||s.busy||exporting;$('pianoExportCancel').hidden=!exporting;
   $('pianoExport').disabled=bassFlow;
   if(panel.hidden)return;
+  if(bassFlow){
+   $('pianoAnalyse').disabled=true;
+   $('pianoAnalyse').textContent=lineNotes().length?(lineNotes()[0].source==='estimated-bass'?'Estimated bass':'Bass ready'):s.busy||api.checkingBass()?'Finding bass':'No bass notes';
+  }
   const {view,gridWidth,page,scale,height,step}=metrics(),canvas=$('pianoRollCanvas'),grid=$('pianoTimeline'),keyboard=$('pianoKeyboard');
   const oldStart=view.scrollLeft/zoom;zoom=scale;
   const pages=Math.max(1,Math.ceil(s.duration/page)),width=pages*gridWidth;
@@ -13544,8 +13548,8 @@ window.BassPiano=(()=>{
   else if(render.scale!==scale)view.scrollLeft=oldStart*scale;
   render.scale=scale;
   const start=view.scrollLeft/zoom,end=start+page,keys=fitKeys(lineNotes(),start,end,height,s.transpose),row=height/keys.length,visible=lineNotes().map((n,index)=>({...n,index,midi:n.midi+s.transpose})).filter(n=>n.end>start&&n.start<end);
-  const sig=[keys.join(','),Math.round(height*100),zoom,s.duration,s.transpose,data.notes.length,data.done.length,visible.map(n=>n.index).join(',')].join('|');
-  $('pianoRollCorner').textContent=bassFlow?'Bass ▾':'Vocal ▾';panel.style.setProperty('--piano-row',row+'px');panel.style.setProperty('--piano-label',Math.min(14,Math.max(6,row-1))+'px');
+  const sig=[bassFlow,keys.join(','),Math.round(height*100),zoom,s.duration,s.transpose,data.notes.length,data.done.length,visible.map(n=>[n.index,n.start,n.end,n.midi]).join(',')].join('|');
+  $('pianoRollCorner').textContent=bassFlow?'Bass':'Vocal';panel.style.setProperty('--piano-row',row+'px');panel.style.setProperty('--piano-label',Math.min(14,Math.max(6,row-1))+'px');
   if(force||sig!==signature){signature=sig;grid.style.width=width+'px';grid.style.height=height+'px';grid.style.backgroundSize=step*zoom+'px '+row+'px';keyboard.style.height=height+'px';grid.replaceChildren();keyboard.replaceChildren();
    keys.forEach((m,i)=>{const k=document.createElement('button');k.className='piano-key '+(black(m)?'black':'white')+(i&&keys[i-1]-m>1?' pitch-gap':'');k.dataset.midi=m;k.textContent=label(m);k.setAttribute('aria-label','Play '+label(m));k.title='Play '+label(m);k.style.setProperty('top',i*row+'px','important');k.disabled=busy||exporting;k.onclick=()=>void audition(m);keyboard.append(k);});
    visible.forEach(n=>{const index=keys.indexOf(n.midi);if(index<0)return;const btn=document.createElement('button');btn.className='piano-note'+(n.uncertain&&!n.manual?' uncertain':'');const noteWidth=Math.max(5,(Math.min(n.end,end)-Math.max(n.start,start))*zoom);btn.textContent=noteWidth>=28?label(n.midi):'';btn.dataset.index=n.index;btn.dataset.start=n.start;btn.dataset.end=n.end;btn.style.setProperty('left',Math.max(n.start,start)*zoom+'px','important');btn.style.setProperty('top',index*row+1+'px','important');btn.style.setProperty('width',noteWidth+'px','important');btn.title=`${label(n.midi)}, ${n.start.toFixed(2)} to ${n.end.toFixed(2)} seconds. Tap to correct`;btn.setAttribute('aria-label',btn.title);btn.onclick=()=>bassFlow?audition(n.midi):edit(n.index);grid.append(btn);});
@@ -13572,7 +13576,7 @@ window.BassPiano=(()=>{
   lineNotes().forEach((n,i)=>{if(n.end<=s.time||n.start>s.time+.18*rate||scheduled.has(i))return;const age=Math.max(0,s.time-n.start)/rate,length=(n.end-n.start)/rate;scheduled.set(i,{end:n.end,voice:A().tone(voice,n.midi+s.transpose,now+Math.max(0,n.start-s.time)/rate,length,sound,age,n.velocity)});});
  }
  async function unlock(extra=[]){voice??=new AudioContext();const selected=sound,transpose=state().transpose,mine=soundToken;if(voice.state!=='running')await voice.resume();await A().prepare(selected,voice,{notes:[...lineNotes().map(n=>({...n,midi:n.midi+transpose})),...extra]});if(mine!==soundToken||selected!==sound)return false;preparedSound=selected;preparedTranspose=transpose;return true;}
- function setSolo(on){soundToken++;solo=!!on;stopVoices();if(timer)clearInterval(timer);timer=null;api?.solo(solo);if(solo||bassFlow){const mine=soundToken,resume=state().playing;if(!bassFlow)api?.pause();message('Loading piano');void unlock().then(ready=>{if(!ready||!(solo||bassFlow)||mine!==soundToken)return;message('Piano ready');if(resume&&!state().playing)api?.resume?.();transport();}).catch(()=>{if(mine===soundToken){bassFlow=false;setSolo(false);message('Sound unavailable');}});timer=setInterval(transport,35);}if(api){$('pianoSolo').setAttribute('aria-pressed',String(solo));$('pianoSolo').innerHTML=solo?'Hear<br>song':bassFlow?'Bass<br>only':'Melody<br>only';}}
+ function setSolo(on){soundToken++;solo=!!on;stopVoices();if(timer)clearInterval(timer);timer=null;api?.solo(solo);if(solo||bassFlow){const mine=soundToken,resume=state().playing;if(!bassFlow)api?.pause();message('Loading piano');void unlock().then(ready=>{if(!ready||!(solo||bassFlow)||mine!==soundToken)return;message('Piano ready');if(resume&&!state().playing)api?.resume?.();transport();}).catch(()=>{if(mine===soundToken){solo=false;api?.solo(false);stopVoices();message('Sound unavailable');}});timer=setInterval(transport,35);}if(api){$('pianoSolo').setAttribute('aria-pressed',String(solo));$('pianoSolo').innerHTML=solo?'Hear<br>song':bassFlow?'Bass<br>only':'Melody<br>only';}}
  async function audition(midi){const mine=soundToken;try{if(await unlock([{midi,velocity:80}])&&mine===soundToken){A().tone(voice,midi,voice.currentTime,.65,sound);clearTimeout(auditionTimer);auditionPitch=midi;render();auditionTimer=setTimeout(()=>{auditionPitch=null;render();},750);}}catch{message('Sound unavailable');}}
  function edit(index=null){if(busy||exporting)return message('Pause melody first');api.pause();editing=index;const s=state(),n=index===null?{midi:60,start:Math.min(s.time,Math.max(0,s.duration-.1)),end:Math.min(s.duration,s.time+.4)}:data.notes[index];$('pianoPitch').value=n.midi+s.transpose;$('pianoStart').value=n.start.toFixed(3);$('pianoEnd').value=n.end.toFixed(3);$('pianoDelete').hidden=index===null;$('pianoEditError').textContent='';$('pianoEditor').showModal();}
  function commit(remove=false){const s=state(),midi=Number($('pianoPitch').value)-s.transpose,start=Number($('pianoStart').value),end=Number($('pianoEnd').value);if(!remove&&(!Number.isInteger(midi)||midi<21||midi>108||!Number.isFinite(start+end)||start<0||end<=start||end>s.duration+.001)){$('pianoEditError').textContent='Check note times';return;}
@@ -13596,7 +13600,7 @@ window.BassPiano=(()=>{
  async function stopCapture(){if(stopping)return;if(!recording){recordToken++;micButtons(false);return;}stopping=true;const active=recording;recording=null;try{take=await active.stop();micURL=URL.createObjectURL(take.blob);$('pianoLivePreview').src=micURL;$('pianoLivePreview').hidden=false;micMessage(take.notes.length?take.notes.length+' notes captured':'No melody found');}finally{stopping=false;micButtons(false);}}
  async function useCapture(){if(!take?.notes.length||stopping)return;const chosen=take;$('pianoLiveUse').disabled=true;try{await api.openRecording(chosen,$('pianoLiveName').value.trim()||'Live melody');$('pianoLiveDialog').close();message('Melody saved');}catch(e){micMessage('Recording paused');$('pianoLiveUse').disabled=false;}}
  function init(hooks){api=hooks;
-  $('pianoRollCorner').onclick=()=>{bassFlow=!bassFlow;setSolo(false);signature='';render(true);};
+
   const select=$('pianoPitch');for(let m=21;m<=108;m++){const o=document.createElement('option');o.value=m;o.textContent=label(m);select.append(o);}
   $('pianoAnalyse').onclick=()=>{if(busy){token++;busy=false;message('Melody paused');render(true);}else return analyse();};
   $('pianoUndo').onclick=()=>{if(undo){data=undo;undo=null;stopVoices();$('pianoEditor').close();signature='';render(true);void persist();}};$('pianoSaveNote').onclick=()=>commit();$('pianoDelete').onclick=()=>commit(true);$('pianoCloseNote').onclick=()=>$('pianoEditor').close();
@@ -13611,8 +13615,9 @@ window.BassPiano=(()=>{
   document.addEventListener('visibilitychange',()=>{if(document.hidden&&recording)void stopCapture();});window.addEventListener('pagehide',()=>{if(recording)void recording.close();setSolo(false);});window.addEventListener('resize',refresh);new ResizeObserver(refresh).observe(view);render(true);
  }
  function follow(){if(!api||$('pianoViewPanel').hidden)return;render(true);const {view,gridWidth,page}=metrics(),pages=Math.max(1,Math.ceil(state().duration/page));view.scrollLeft=Math.min((pages-1)*gridWidth,Math.floor(state().time/page)*gridWidth);signature='';render(true);}
+ function setLine(bass){if(bassFlow===bass)return;bassFlow=bass;signature='';setSolo(false);render(true);}
  function leave(){bassFlow=false;const wasSolo=solo;setSolo(false);if(wasSolo)message('Song sound restored');}
- return {outputLatency:()=>solo&&voice?window.BassPlaybackTiming.outputDelay(voice):null,init,render,message,reset,analyse,unfinished,exportData,restore,range,keyCount,fitKeys,clean,join,isBusy:()=>busy||exporting,follow,transport,stopVoices,leave,isSolo:()=>solo,preparePlayback:()=>{if(solo||bassFlow)void unlock().catch(()=>message('Sound unavailable'));}};
+ return {outputLatency:()=>solo&&voice?window.BassPlaybackTiming.outputDelay(voice):null,init,render,message,reset,analyse,unfinished,exportData,restore,range,keyCount,fitKeys,clean,join,isBusy:()=>busy||exporting,follow,transport,stopVoices,setLine,leave,isSolo:()=>solo,preparePlayback:()=>{if(solo||bassFlow)void unlock().catch(()=>message('Sound unavailable'));}};
 })();</script>
 <style id="rc240-spacing">html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot .progress-row-premium .progress-track{display:flex!important;align-items:center!important;height:24px!important;min-height:24px!important;max-height:24px!important;padding:0!important;margin:0!important;transform:none!important;}html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot .progress-row-premium input{margin:0!important;transform:none!important;align-self:center!important;}html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot .progress-row-premium{box-sizing:border-box!important;height:40px!important;min-height:40px!important;grid-template-rows:24px!important;padding:8px 0!important;margin:0!important;align-items:center!important;}html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #importBtn svg{width:32px!important;height:32px!important;min-width:32px!important;max-width:32px!important;}</style>
 <style id="rc242-piano">
@@ -13716,7 +13721,14 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPan
 <link rel="stylesheet" href="./fretflow-source/controls.css?v=rc278">
 <link rel="stylesheet" href="./fretflow-source/view.css?v=rc278">
 <link rel="stylesheet" href="./song-view/view.css?v=rc288">
-</head>
+<style>
+#practiceSections:not([hidden]){display:grid;grid-auto-flow:column;grid-auto-columns:calc((100% - 16px)/5);gap:4px;box-sizing:border-box;padding:4px 0;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
+#practiceSections[hidden],#practiceSections::-webkit-scrollbar{display:none}
+#practiceSections button{appearance:none;min-width:0;width:100%;height:var(--ff-control-h,44px);padding:2px;border:1px solid #405970;border-radius:9px;background:#182c40;color:#e5eef6;font:600 clamp(11px,3vw,14px)/1.12 system-ui;white-space:normal;overflow-wrap:anywhere;scroll-snap-align:start}
+#practiceSections button[aria-pressed=true]{background:#205773;border:2px solid #83d3f3}
+#practiceSections button:focus-visible{outline:2px solid #f4c879;outline-offset:-3px}
+body.bass-roll-active :is(#pianoExport,#pianoRecord){display:none!important}
+</style></head>
 <body>
 <div id="sectionCompatibility" style="display:none" aria-hidden="true">
 <div id="sectionGrid"></div><button id="playSelected"></button><button id="clearSelected"></button><span id="selectedSummary"></span>
@@ -13821,13 +13833,14 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPan
 
 
   </div>
-  <section class="simple-timeline-card"><nav id="practiceSections" aria-label="Repeat song sections" style="overflow-x:auto;white-space:nowrap"></nav>
+  <section class="simple-timeline-card"><nav id="practiceSections" aria-label="Repeat song sections" hidden></nav>
     <div class="simple-timeline-head">
       <div class="practice-view-head" style="flex-wrap:nowrap!important">
         <div class="stacked-select-card practice-view-card" id="practiceViewCard">
           <select class="practice-view-select" id="practiceViewSelect" aria-label="Practice view">
             <option value="timeline" selected>Notes View</option>
             <option value="bass">Bass View</option>
+            <option value="bassroll">Bass Roll</option>
             <option value="piano">Piano View</option>
             <option value="fretflow">FretFlow View</option>
             <option value="song">Song View</option>
@@ -13851,7 +13864,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPan
 
 <div id="pianoViewPanel" hidden aria-label="Lead melody piano practice">
  <div id="pianoNotice" hidden><span id="pianoStatus" role="status"></span><button id="pianoDismiss" type="button" aria-label="Dismiss message">×</button></div>
- <div id="pianoRollViewport" tabindex="0" aria-label="Melody timeline. Follows playback automatically. Swipe horizontally when paused to review notes."><div id="pianoRollCanvas"><div id="pianoRollHeader"><button type="button" id="pianoRollCorner" aria-label="Switch between vocal melody and bass notes">Vocal ▾</button><div id="pianoTimeRuler"></div><div id="pianoChordRuler"></div><div id="pianoReadout"><span id="pianoCurrentChord" aria-label="Current chord">—</span><span id="pianoCurrentNote" aria-label="Current melody note">—</span></div></div><div id="pianoKeyboard" aria-label="Vertical piano keyboard. Tap a key to add a note at the playhead."></div><div id="pianoTimeline" aria-label="Melody notes along the song timeline"></div></div></div>
+ <div id="pianoRollViewport" tabindex="0" aria-label="Melody timeline. Follows playback automatically. Swipe horizontally when paused to review notes."><div id="pianoRollCanvas"><div id="pianoRollHeader"><span id="pianoRollCorner">Vocal</span><div id="pianoTimeRuler"></div><div id="pianoChordRuler"></div><div id="pianoReadout"><span id="pianoCurrentChord" aria-label="Current chord">—</span><span id="pianoCurrentNote" aria-label="Current melody note">—</span></div></div><div id="pianoKeyboard" aria-label="Vertical piano keyboard. Tap a key to add a note at the playhead."></div><div id="pianoTimeline" aria-label="Melody notes along the song timeline"></div></div></div>
 </div>
 
     <section id="fretFlowPanel" hidden aria-label="FretFlow bass practice"></section>
@@ -15464,7 +15477,7 @@ window.BassBatch = (() => {
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC295';
+  const APP_VERSION='RC297';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;
@@ -16154,7 +16167,7 @@ window.BassBatch = (() => {
           metronomeVolume:Number.isFinite(Number(metronomeVol?.value))?Number(metronomeVol.value):70,
           speed:Number.isFinite(Number(tempo?.value))?Number(tempo.value):100,
           timelineCellSeconds:Number(TIMELINE_CELL_SECONDS)||1,
-          practiceView:['timeline','bass','piano','fretflow','song'].includes(String(practiceVisualMode))?String(practiceVisualMode):'timeline',
+          practiceView:['timeline','bass','piano','bassroll','fretflow','song'].includes(String(practiceVisualMode))?String(practiceVisualMode):'timeline',
           fretFlowStrings:fretFlowStringCount,
           bassStringCount:[4,5,6].includes(Number(bassViewStringCount))?Number(bassViewStringCount):5,
           transposeSemitones,
@@ -16273,7 +16286,7 @@ window.BassBatch = (() => {
           metronomeVolume:Number.isFinite(Number(metronomeVol?.value))?Number(metronomeVol.value):70,
           speed:Number.isFinite(Number(tempo?.value))?Number(tempo.value):100,
           timelineCellSeconds:Number(TIMELINE_CELL_SECONDS)||1,
-          practiceView:['timeline','bass','piano','fretflow','song'].includes(String(practiceVisualMode))?String(practiceVisualMode):'timeline',
+          practiceView:['timeline','bass','piano','bassroll','fretflow','song'].includes(String(practiceVisualMode))?String(practiceVisualMode):'timeline',
           fretFlowStrings:fretFlowStringCount,
           bassStringCount:[4,5,6].includes(Number(bassViewStringCount))?Number(bassViewStringCount):5,
           transposeSemitones,
@@ -16488,7 +16501,7 @@ window.BassBatch = (() => {
       updateSectionKey(0);
       seek.value=0;curTime.textContent=fmt(0);
       setFretFlowStringCount([4,5,6].includes(Number(project.settings?.fretFlowStrings))?Number(project.settings.fretFlowStrings):5);
-      if(['fretflow','song'].includes(project.settings?.practiceView))setPracticeVisualMode(project.settings.practiceView);
+      if(['bass','bassroll','piano','fretflow','song'].includes(project.settings?.practiceView))setPracticeVisualMode(project.settings.practiceView);
       await window.BassBacking?.restore(project.analysis.bassBacking);
       if(request!==songLoadRequest)return false;
       status.className='status good';status.textContent='';
@@ -18592,9 +18605,9 @@ window.BassBatch = (() => {
   }
 
   function setPracticeVisualMode(mode){
-    const next=['bass','piano','fretflow','song'].includes(mode)?mode:'timeline';
+    const next=['bass','piano','bassroll','fretflow','song'].includes(mode)?mode:'timeline';
     practiceVisualMode=next;drawPracticeSections();
-    const bass=next==='bass',piano=next==='piano',flow=next==='fretflow',song=next==='song';
+    const bass=next==='bass',piano=next==='piano'||next==='bassroll',flow=next==='fretflow',song=next==='song';
     $('songViewPanel').hidden=!song;document.body.classList.toggle('song-view-active',song);
     document.body.classList.toggle('fretflow-view-active',flow);
     bassStringSelect.value=String(flow?fretFlowStringCount:bassViewStringCount);
@@ -18605,7 +18618,7 @@ window.BassBatch = (() => {
     document.body.classList.toggle('bass-view-active',bass);
     if(practiceViewSelect)practiceViewSelect.value=next;
     const viewDisplay=document.getElementById('practiceViewDisplayValue');
-    if(viewDisplay)viewDisplay.textContent=song?'Song':flow?'FretFlow':piano?'Piano':bass?'Bass':'Notes';
+    if(viewDisplay)viewDisplay.textContent=song?'Song':flow?'FretFlow':next==='bassroll'?'Bass Roll':piano?'Piano':bass?'Bass':'Notes';
     if(timelineScroll)timelineScroll.hidden=bass||piano||flow||song;
     if(bassViewPanel)bassViewPanel.hidden=!bass;
     if(bassStringSelector)bassStringSelector.hidden=false;
@@ -18617,7 +18630,9 @@ window.BassBatch = (() => {
       bassViewBtn.classList.toggle('active',bass);
       bassViewBtn.setAttribute('aria-pressed',bass?'true':'false');
     }
-    if(piano)window.BassPiano?.follow();else window.BassPiano?.leave();
+    document.body.classList.toggle('bass-roll-active',next==='bassroll');
+    if(next==='bassroll'&&loadedProjectName&&!notes.length&&!songImportBusy)queueAutomaticMelody();
+    if(piano){window.BassPiano?.setLine(next==='bassroll');window.BassPiano?.follow();}else window.BassPiano?.leave();
     if(bassTimeScroll){
       const parent=flow?$('fretFlowPanel'):bassViewPanel;
       if(parent&&bassTimeScroll.parentElement!==parent)parent.prepend(bassTimeScroll);
@@ -19531,7 +19546,7 @@ window.BassBatch = (() => {
       aiBusy=false;aiAnalyse.disabled=!buffer||songImportBusy;
       aiAnalyse.removeAttribute('aria-busy');
       updatePracticeLayoutState(true);
-      if(offlineAnalysisReady&&!window.BassBatch?.isRunning())queueAutomaticMelody();
+      if(offlineAnalysisReady&&!window.BassBatch?.isRunning()){queueMelodyProjectSave(true);queueAutomaticMelody();}
     }
   }
 
@@ -19596,7 +19611,7 @@ window.BassBatch = (() => {
     }finally{
       if(session!==songSession)return false;
       pendingResumeBusy=false;aiBusy=false;
-      if(offlineAnalysisReady&&!window.BassBatch?.isRunning())queueAutomaticMelody();
+      if(offlineAnalysisReady&&!window.BassBatch?.isRunning()){queueMelodyProjectSave(true);queueAutomaticMelody();}
       if(aiAnalyse){aiAnalyse.disabled=!buffer||songImportBusy;aiAnalyse.removeAttribute('aria-busy');}
       updatePracticeLayoutState(true);
       if(offlineAnalysisReady&&!songStructure&&!savedSectionRanges&&!window.BassBatch?.isRunning())ensureSongStructure();
@@ -20597,7 +20612,7 @@ window.BassBatch = (() => {
   function updateSongInfo(t){
     updatePlaybackBeat(t);
     void window.BassBacking?.sync();
-    if(practiceVisualMode==='piano'&&!playing&&updateSongInfo._pianoTime!==t)window.BassPiano.follow();
+    if(['piano','bassroll'].includes(practiceVisualMode)&&!playing&&updateSongInfo._pianoTime!==t)window.BassPiano.follow();
     updateSongInfo._pianoTime=t;
     updateSectionKey(t);
     const n=noteAtTime(t);
@@ -20609,7 +20624,7 @@ window.BassBatch = (() => {
       window.BassFretFlow?.draw(t);updateBassTimePlayhead(t);
     }else if(practiceVisualMode==='song'){
       window.BassSongView?.draw(t);
-    }else if(practiceVisualMode==='piano'){
+    }else if(['piano','bassroll'].includes(practiceVisualMode)){
       window.BassPiano.render();
     }else{
       updateSimpleTimeline(t);
@@ -20853,7 +20868,7 @@ window.BassBatch = (() => {
       }
       // Restored results, including edited notes, must never trigger a fresh paid run.
       if(offlineAnalysisReady||notes.length){queueAutomaticMelody();return;}
-      if(!storedRunPodKey()){queueAutomaticMelody();aiStatus('Connect bass analysis',0);return;}
+      if(!storedRunPodKey()){queueAutomaticMelody();return;}
       let pending;
       try{pending=selectSongAnalysisJob(activeAudioFile);}
       catch(error){aiStatus(error.message,0);return;}
@@ -20872,18 +20887,37 @@ window.BassBatch = (() => {
     automaticAudioTimer=setTimeout(start,250);
   }
 
-  async function saveCurrentSongResults(){
-    const session=songSession;
-    try{
-      const project=await captureStudyProject();
-      if(!project||session!==songSession)return false;
-      await window.BassLibrary.saveAnalysisProject(project);
-      if(session!==songSession)return false;
-      loadedProjectName=project.projectName;
-      return true;
-    }catch(error){if(session===songSession)toolsMessage('Results are ready. Save to Library: '+window.BassLibrary.errorText(error));return false;}
+  let localBassSession=-1,localBassWorking=false;
+  async function estimateMissingBass(source,session){
+    if(localBassSession===session)return;
+    localBassSession=session;
+    const rate=source.sampleRate,stride=Math.max(1,Math.floor(rate/2400)),sr=rate/stride;
+    const channels=Array.from({length:source.numberOfChannels},(_,i)=>source.getChannelData(i));
+    const hop=Math.round(sr*.04),frame=new Float32Array(Math.round(sr*.12));
+    const tracker=window.BassPianoAudio.tracker(23,59),alpha=1-Math.exp(-2*Math.PI*210/rate);
+    let low=0,filtered=0,offset=0;
+    for(let offsetTime=0;offsetTime<source.duration;offsetTime+=hop/sr){
+      if(session!==songSession||aiBusy||offlineAnalysisReady){if(localBassSession===session)localBassSession=-1;return;}
+      frame.copyWithin(0,hop);
+      const first=offset===0?0:frame.length-hop;
+      for(let j=first;j<frame.length;j++){
+        for(let k=0;k<stride;k++,offset++){
+          let sum=0;for(const channel of channels)sum+=channel[offset]||0;
+          low+=alpha*(sum/channels.length-low);filtered+=alpha*(low-filtered);
+        }
+        frame[j]=filtered;
+      }
+      tracker.push(window.BassPracticeDSP.pitch(frame,sr,29),offsetTime,hop/sr);
+      if(Math.round(offsetTime*sr/hop)%16===0)await new Promise(resolve=>setTimeout(resolve,0));
+    }
+    if(session!==songSession||aiBusy||offlineAnalysisReady){if(localBassSession===session)localBassSession=-1;return;}
+    const found=tracker.finish().map(n=>({...n,end:Math.min(source.duration,n.end),source:'estimated-bass'}));
+    if(found.length){
+      notes=found;analysedBassNotes=found.map(n=>({...n}));offlineAnalysisReady=true;
+      waveCacheDirty=true;rebuildSimpleTimeline._sig='';drawAll();updateProjectButtons();
+      queueMelodyProjectSave(true);
+    }
   }
-
   let automaticMelodyTimer=0;
   function queueAutomaticMelody(){
     clearTimeout(automaticMelodyTimer);
@@ -20895,18 +20929,21 @@ window.BassBatch = (() => {
       }
       if(window.BassPiano.isBusy()){automaticMelodyTimer=setTimeout(start,1200);return;}
 
+      if(!notes.length&&(!storedRunPodKey()||loadedProjectName&&practiceVisualMode==='bassroll')){
+        localBassWorking=true;try{await estimateMissingBass(buffer,session);}finally{if(session===songSession)localBassWorking=false;}
+        if(session!==songSession)return;
+      }
       if(!window.BassPiano.unfinished()){queueMelodyProjectSave();return;}
 
       await window.BassPiano.analyse({automatic:true});
       if(session!==songSession)return;
       // Save music first. Optional sections run afterwards and retain their own job ID.
-      await saveCurrentSongResults();
+      queueMelodyProjectSave(true);
       if(session!==songSession)return;
       if(!songStructure&&!savedSectionRanges){
         await ensureSongStructure({maxChecks:2,pollMs:500});
-        if(session===songSession&&songStructure)await saveCurrentSongResults();
+        if(session===songSession&&songStructure)queueMelodyProjectSave(true);
       }
-      if(session===songSession)queueMelodyProjectSave();
     };
     automaticMelodyTimer=setTimeout(start,1000);
   }
@@ -20926,19 +20963,22 @@ window.BassBatch = (() => {
     }catch{}
     if(session===songSession)window.BassPiano.restore(chosen);
   }
-  function queueMelodyProjectSave(){
+  let fullSaveSession=-1,autoWriting=false;
+  function queueMelodyProjectSave(full=false){
+    if(full)fullSaveSession=songSession;
     const version=++melodySaveVersion,session=songSession;
     clearTimeout(melodySaveTimer);
     const flush=async()=>{
       if(version!==melodySaveVersion||session!==songSession)return;
       if(window.BassBatch?.isRunning())return;
-      if(aiBusy||songImportBusy||projectSaveBusy||window.BassPiano.isBusy()){melodySaveTimer=setTimeout(flush,1200);return;}
-      const melody=window.BassPiano.exportData();if(!melody.notes.length&&!melody.done.length)return;
+      if(autoWriting||aiBusy||songImportBusy||projectSaveBusy||window.BassPiano.isBusy()){melodySaveTimer=setTimeout(flush,1200);return;}
+      const melody=window.BassPiano.exportData();if(fullSaveSession!==session&&!melody.notes.length&&!melody.done.length)return;
       try{
-        const project=await captureStudyProject();if(!project||session!==songSession||version!==melodySaveVersion)return;
-        await window.BassLibrary.saveMelodyProject(project);
-        if(session===songSession&&version===melodySaveVersion)window.BassPiano.message('Melody saved');
-      }catch(error){if(session===songSession&&version===melodySaveVersion)window.BassPiano.message('Save melody manually');}
+        autoWriting=true;const project=await captureStudyProject();if(!project||session!==songSession||version!==melodySaveVersion)return;
+        if(fullSaveSession===session){await window.BassLibrary.saveAnalysisProject(project);if(version===melodySaveVersion)fullSaveSession=-1;}
+        else await window.BassLibrary.saveMelodyProject(project);
+        if(session===songSession&&version===melodySaveVersion)window.BassPiano.message('Analysis saved');
+      }catch(error){if(session===songSession&&version===melodySaveVersion)window.BassPiano.message('Auto-save paused: '+window.BassLibrary.errorText(error));}finally{autoWriting=false;}
     };
     melodySaveTimer=setTimeout(flush,750);
   }
@@ -20985,7 +21025,7 @@ window.BassBatch = (() => {
   window.BassPracticeControls.init({get:()=>({view:practiceVisualMode,loaded:!!buffer,busy:aiBusy||songImportBusy,strings:practiceVisualMode==='fretflow'?fretFlowStringCount:bassViewStringCount}),setStrings:n=>practiceVisualMode==='fretflow'?setFretFlowStringCount(n):setBassStringCount(n)});
   window.BassUXContext=studySong;
   window.BassPiano.init({
-    bassNotes:()=>notes,cloudAvailable:()=>!!storedRunPodKey(),
+    checkingBass:()=>localBassWorking&&localBassSession===songSession, bassNotes:()=>notes,cloudAvailable:()=>!!storedRunPodKey(),
     get:()=>({buffer,session:songSession,busy:aiBusy||songImportBusy,time:displayTime(),transportTime:currentTime(),duration:buffer?.duration||0,playing,transpose:transposeSemitones,speed:Number(tempo.value),title:loadedProjectName||objectName||'Song',repeatRanges:(timeframeLoopMode?timeframeQueue:multiSectionMode?sectionQueue:loopEnabled?[{start:loopStart,end:loopEnd}]:[]).map(r=>({start:r.start,end:r.end})),loopStart:loopEnabled?loopStart:null,loopEnd:loopEnabled?loopEnd:null,step:TIMELINE_CELL_SECONDS,selection:[...selectedTimeframes].join(','),chords:detectedChordChanges.filter(reliableChord).map(c=>({...c,label:chordDisplayLabel(c)}))}),
     pause,resume:()=>void play(),cloud:analysePianoPassage,fmt,select:toggleTimeframeSelection,selected:a=>selectedTimeframes.has(a),
     solo:on=>{melodySolo=on;updateAudioParams();},encoder:ensureLargeSongEncoder,
@@ -21229,7 +21269,7 @@ window.BassBatch = (() => {
     baseSections=Object.fromEntries(next.segments.map(s=>[s.name,{start:s.originalStart,end:s.originalEnd}]));
     selectedSection=sections[selectedSection]?selectedSection:Object.keys(sections)[0];
     renderSectionControls();renderRepeatChooser();updateProjectButtons();
-    if(persist){persistSections();persistAnalysisRecovery();cacheSongStructure();}return true;
+    if(persist){persistSections();persistAnalysisRecovery();cacheSongStructure();queueMelodyProjectSave(true);}return true;
   }
   function resetSongStructure(){
     structureRequestController?.abort();structureRequestController=null;
@@ -21603,7 +21643,7 @@ window.BassBatch = (() => {
     for(const part of parts){
       const b=document.createElement('button'),selected=core.rangeSelected(ranges,part.start,part.end);
       b.type='button';b.textContent=part.name;b.setAttribute('aria-pressed',String(selected));
-      if(selected)b.style.setProperty('background','#206899','important');
+
       b.onclick=()=>songViewRepeat(core.toggleRange(ranges,part.start,part.end,duration));host.append(b);
     }
   }
