@@ -15,7 +15,6 @@ assert(settings.includes('[[1,1],[3,1],[1,2],[2,2],[3,2]]'));
 assert(settings.includes("style.setProperty(key,value,'important')"));
 assert(html.includes('grid-template-columns:repeat(3,minmax(0,1fr))!important'));
 assert(lib.includes("folder?'Change save folder':'Choose save folder'"));
-assert(lib.includes('rows=uniqueSongs([...found,...deviceRows])'));
 assert(html.includes("lyrics:window.BassLyrics?.exportData()||[]"));
 assert(html.includes('window.BassBatch.init'));
 console.log('PASS: dropdown close, one equal-height row of retained tools, equal-size 5 Settings cards and preservation.');

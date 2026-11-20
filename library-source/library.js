@@ -1,7 +1,7 @@
 /* RC195: local saved-project library. No audio or index is sent to a server. */
 window.BassLibrary=(()=>{
   const DB='bass-studio-library-v1',SUPPORTED=/\.(bassstudio|bssproject|json)$/i;
-  let dbPromise,ready,folder=null,index={},rows=[],hooks={},dialog,busy=false,scan=0,downloadURLs=[],folderAccess='unknown';
+  let dbPromise,ready,folder=null,index={},rows=[],hooks={},dialog,busy=false,scan=0,downloadURLs=[],folderAccess='unknown',scanning=false,scanJob=null;
   const el=id=>document.getElementById(id);
   const abort=()=>new DOMException('Cancelled','AbortError');
   const clean=v=>String(v||'').trim();
@@ -9,11 +9,13 @@ window.BassLibrary=(()=>{
   const isChordCatalogue=p=>p?.format==='BassStemSongReferences'||p?.format==='BassStemSongChordPack';
   function database(){
     if(!dbPromise)dbPromise=new Promise((resolve,reject)=>{
+      let expired=false;
+      const timer=setTimeout(()=>{expired=true;reject(Error('Device storage is not responding. Close other Bass Stem tabs and try again.'));},15000);timer?.unref?.();
       const r=indexedDB.open(DB,1);
       r.onupgradeneeded=()=>{r.result.createObjectStore('settings');r.result.createObjectStore('songs',{keyPath:'id'});};
-      r.onsuccess=()=>{r.result.onversionchange=()=>r.result.close();resolve(r.result);};
-      r.onerror=()=>reject(r.error);
-      r.onblocked=()=>reject(Error('Close other Bass Stem tabs, then try again.'));
+      r.onsuccess=()=>{globalThis.clearTimeout?.(timer);if(expired){r.result.close();return;}r.result.onversionchange=()=>r.result.close();resolve(r.result);};
+      r.onerror=()=>{globalThis.clearTimeout?.(timer);reject(r.error);};
+      r.onblocked=()=>{expired=true;globalThis.clearTimeout?.(timer);reject(Error('Close other Bass Stem tabs, then try again.'));};
     }).catch(e=>{dbPromise=null;throw e;});
     return dbPromise;
   }
@@ -21,8 +23,9 @@ window.BassLibrary=(()=>{
     const db=await database();
     return new Promise((resolve,reject)=>{
       const tx=db.transaction(name,mode),request=action(tx.objectStore(name));
-      tx.oncomplete=()=>resolve(request?.result);
-      tx.onerror=tx.onabort=()=>reject(tx.error||request?.error||Error('Could not save on this device.'));
+      const timer=setTimeout(()=>{try{tx.abort();}catch{}reject(Error('Device storage is not responding. Try again.'));},15000);timer?.unref?.();
+      tx.oncomplete=()=>{globalThis.clearTimeout?.(timer);resolve(request?.result);};
+      tx.onerror=tx.onabort=()=>{globalThis.clearTimeout?.(timer);reject(tx.error||request?.error||Error('Could not save on this device.'));};
     });
   }
   const get=(key)=>store('settings','readonly',s=>s.get(key));
@@ -59,7 +62,7 @@ window.BassLibrary=(()=>{
     const identity=await audioIdentity(project);
     const row=rows.find(r=>r.audioId===identity);
     if(!row)return null;
-    if(row.handle){
+    if(row.handle||row.dir){
       if(!await permission(folder,'readwrite'))throw Error('Reconnect save folder');
       return {dir:folder,filename:row.filename,handle:row.handle};
     }
@@ -95,23 +98,31 @@ window.BassLibrary=(()=>{
     list.replaceChildren();
     const shown=filterRows(rows,el('librarySearch').value,el('librarySort').value);
     el('libraryCount').textContent=folderAccess==='reconnect'&&!shown.length?'Folder not connected':shown.length+' '+(shown.length===1?'song':'songs');
-    if(!shown.length){const p=document.createElement('p');p.className='library-empty';p.textContent=rows.length?'No matching songs.':folderAccess==='reconnect'?'Reconnect to view songs.':busy?'Checking songs…':'Import saved songs to begin.';list.append(p);}
+    if(!shown.length){const p=document.createElement('p');p.className='library-empty';p.textContent=rows.length?'No matching songs.':folderAccess==='reconnect'?'Reconnect to view songs.':(busy||scanning)?'Checking songs…':'Import saved songs to begin.';list.append(p);}
     for(const row of shown){
       const item=document.createElement('li'),info=document.createElement('div'),title=document.createElement('strong'),details=document.createElement('span'),actions=document.createElement('div');
       title.textContent=row.title;
-      const minutes=Math.floor(row.duration/60),seconds=Math.floor(row.duration%60).toString().padStart(2,'0');
+      const minutes=Math.floor((row.duration||0)/60),seconds=Math.floor(row.duration%60).toString().padStart(2,'0');
       details.textContent=[row.artist,row.key&&row.key!=='—'?row.key:'',row.bpm?Math.round(row.bpm)+' BPM':'',row.duration?minutes+':'+seconds:'',row.storageLabel].filter(Boolean).join(' · ')||row.filename;
       info.className='library-song-info';info.append(title,details);actions.className='library-song-actions';
       const open=document.createElement('button');open.type='button';open.textContent='Open';open.setAttribute('aria-label','Open '+row.title);open.disabled=busy;open.onclick=()=>run(()=>openRow(row));actions.append(open);
       const download=document.createElement('a');download.className='library-download';download.textContent='Download';download.setAttribute('aria-label','Download '+row.title);
-      download.href=URL.createObjectURL(row.file||row.blob);downloadURLs.push(download.href);download.download=row.filename;
-      download.onclick=e=>{if(busy)e.preventDefault();else status('Download requested for '+row.title+'.');};actions.append(download);
+      download.href='#';download.download=row.filename;
+      download.onclick=async e=>{
+        e.preventDefault();if(busy)return;
+        stopScan();
+        try{const file=await rowFile(row),url=URL.createObjectURL(file),link=document.createElement('a');
+          link.href=url;link.download=row.filename;link.click();setTimeout(()=>URL.revokeObjectURL(url),60000);
+          status('Download requested for '+row.title+'.');
+        }catch(err){status(errorText(err));}render();
+      };actions.append(download);
       item.append(info,actions);list.append(item);
     }
+    if(el('libraryStop'))el('libraryStop').hidden=!scanning;
     for(const id of ['libraryChoose','libraryDevice','libraryReconnect','libraryRefresh','libraryAdd','libraryBatch'])el(id).disabled=busy;
   }
   async function run(fn){
-    if(busy)return;busy=true;render();
+    if(busy)return;stopScan();busy=true;render();
     try{await fn();}catch(e){if(e?.name!=='AbortError')status(errorText(e));}
     finally{busy=false;render();}
   }
@@ -119,70 +130,107 @@ window.BassLibrary=(()=>{
     if(await handle.queryPermission({mode})==='granted')return true;
     return request&&await handle.requestPermission({mode})==='granted';
   }
+  // Folder reads may never settle on a disconnected mobile storage provider.
+  // Keep cached songs usable and discard every late result from a cancelled scan.
+  function stopScan(){
+    scanJob?.cancel();scanJob=null;scan++;scanning=false;
+  }
+  function scanWait(promise,job){
+    let timer;
+    const timeout=new Promise((_,reject)=>{timer=setTimeout(()=>reject(Object.assign(Error('Folder check paused. Try Refresh or change save folder.'),{name:'TimeoutError'})),15000);timer?.unref?.();});
+    return Promise.race([promise,timeout,job.cancelled]).finally(()=>globalThis.clearTimeout?.(timer));
+  }
   async function refresh(){
-    const token=++scan;await ready;rows=[];render();status('Checking songs…');
-    const deviceRows=(await store('songs','readonly',s=>s.getAll())||[])
-      .filter(r=>r?.filename&&SUPPORTED.test(r.filename))
-      .map(r=>({...r,storageLabel:'In app'}));
-    for(let i=0;i<deviceRows.length;i++){
-      if(deviceRows[i].audioId)continue;
-      try{const row=deviceRows[i],file=new File([row.blob],row.filename,{type:'application/json'});
-        deviceRows[i]={...row,...await indexedMetadata(JSON.parse(await file.text()),file)};
-        await store('songs','readwrite',s=>s.put(deviceRows[i]));
-      }catch{}
-    }
-    if(token!==scan)return;
-    if(!folder){rows=uniqueSongs(deviceRows);status('');render();return;}
-    const dir=folder;
+    stopScan();const token=scan;
+    const job={};job.cancelled=new Promise((_,reject)=>{job.cancel=()=>reject(abort());});job.cancelled.catch(()=>{});scanJob=job;
+    const check=()=>{if(token!==scan)throw abort();};
+    const wait=async promise=>{const result=await scanWait(promise,job);check();return result;};
+    scanning=true;
+    let deviceRows=rows.filter(r=>r.storageLabel==='In app'),found=[],next={},skipped=0,checked=0,lastPaint=0;
+    const cachedRows=()=>Object.values(index).filter(m=>m.filename&&m.kind!=='chord-catalogue').map(m=>({...m,dir:folder,storageLabel:'Save folder'}));
+    const publish=(complete=false)=>{
+      check();const known=new Map((complete?[]:cachedRows()).map(r=>[r.filename,r]));
+      for(const row of found)known.set(row.filename,row);
+      rows=uniqueSongs([...known.values(),...deviceRows]);render();
+    };
     try{
-      if(!await permission(dir,'read')){
-        folderAccess='reconnect';rows=uniqueSongs(deviceRows);
-        status('Tap Reconnect folder to see saved songs there.');render();return;
+      await wait(ready);publish();status('Checking songs…');
+      deviceRows=(await wait(store('songs','readonly',s=>s.getAll()))||[])
+        .filter(r=>r?.filename&&SUPPORTED.test(r.filename)).map(r=>({...r,storageLabel:'In app'}));
+      publish();
+      // Existing metadata remains visible while old in-app entries gain audio IDs.
+      for(let i=0;i<deviceRows.length;i++){
+        if(deviceRows[i].audioId)continue;
+        try{const row=deviceRows[i],file=new File([row.blob],row.filename,{type:'application/json'});
+          const meta=await wait(scanMetadata(file));
+          deviceRows[i]={...row,...meta};await wait(store('songs','readwrite',s=>s.put(deviceRows[i])));
+        }catch(e){if(e.name==='AbortError'||e.name==='TimeoutError')throw e;}
       }
-      folderAccess='ready';
-      const found=[],next={};let skipped=0;
-      for await(const [name,handle] of dir.entries()){
-        if(token!==scan||dir!==folder)return;
+      if(!folder){rows=uniqueSongs(deviceRows);status('');return;}
+      const directory=folder;
+      if(!await wait(permission(directory,'read'))){
+        folderAccess='reconnect';rows=uniqueSongs(deviceRows);status('Tap Reconnect folder to see saved songs there.');return;
+      }
+      folderAccess='ready';const iterator=directory.entries()[Symbol.asyncIterator]();
+      for(;;){
+        const entry=await wait(iterator.next());if(entry.done)break;
+        const [name,handle]=entry.value;
         if(handle.kind!=='file'||!SUPPORTED.test(name))continue;
         try{
-          const file=await handle.getFile(),cached=index[name];
+          const file=await wait(handle.getFile()),cached=index[name];
           const unchanged=cached&&cached.size===file.size&&cached.modified===file.lastModified;
           if(unchanged&&cached.kind==='chord-catalogue'){next[name]=cached;continue;}
-          let meta=unchanged&&cached.audioId?cached:null;
-          if(!meta){
-            const project=JSON.parse(await file.text());
-            if(isChordCatalogue(project)){next[name]={kind:'chord-catalogue',size:file.size,modified:file.lastModified};continue;}
-            meta=await indexedMetadata(project,file);
-          }
-          next[name]=meta;found.push({...meta,handle,file,storageLabel:'Save folder'});
-        }catch{skipped++;}
+          const meta=unchanged&&cached.audioId?cached:await wait(scanMetadata(file));
+          next[name]=meta;
+          if(meta.kind!=='chord-catalogue')found.push({...meta,handle,dir:directory,storageLabel:'Save folder'});
+          // Save progress after each newly read file, so an interrupted scan can resume.
+          if(!unchanged){index[name]=meta;await wait(put('index',{...index}));}
+        }catch(e){if(e.name==='AbortError'||e.name==='TimeoutError')throw e;skipped++;}
+        checked++;
+        if(Date.now()-lastPaint>200){publish();status('Checking songs… '+checked+' checked');lastPaint=Date.now();}
+        await wait(new Promise(resolve=>setTimeout(resolve,0)));
       }
-      if(token!==scan||dir!==folder)return;
-      rows=uniqueSongs([...found,...deviceRows]);index=next;
-      await put('index',index).catch(()=>{});
+      check();index=next;publish(true);await wait(put('index',index));
       status(skipped?skipped+' unreadable saved '+(skipped===1?'file':'files')+' skipped.':'');
-      render();
     }catch(error){
-      if(token!==scan||dir!==folder)return;
-      folderAccess='reconnect';rows=uniqueSongs(deviceRows);
-      status('Could not read the save folder. Tap Reconnect folder. Your saved songs remain available.');
-      render();
+      if(token!==scan)throw abort();
+      if(error.name!=='AbortError')status(error.name==='TimeoutError'?error.message:'Could not finish checking this folder. Try Refresh or change save folder.');
+      throw error;
+    }finally{
+      job.worker?.terminate();
+      if(token===scan){scanning=false;scanJob=null;render();}
     }
   }
+  async function scanMetadata(file){
+    // Parse large embedded audio and calculate its identity off the UI thread.
+    const job=scanJob;
+    if(typeof Worker==='function'&&job){
+      const worker=job.worker||(job.worker=new Worker('./library-source/scan-worker-rc295.js'));
+      return new Promise((resolve,reject)=>{
+        worker.onmessage=event=>{event.data.error?reject(Error(event.data.error)):resolve(event.data.meta);};
+        worker.onerror=()=>reject(Error('Could not read this saved song.'));
+        worker.postMessage(file);
+      });
+    }
+    const project=JSON.parse(await file.text());
+    if(isChordCatalogue(project))return {kind:'chord-catalogue',size:file.size,modified:file.lastModified};
+    return indexedMetadata(project,file);
+  }
+  const scanInBackground=()=>{void refresh().catch(e=>{if(e.name!=='AbortError')status(errorText(e));});};
   async function chooseFolder(){
     // The picker must run directly from the button gesture, before other awaits.
     const dir=await window.showDirectoryPicker({id:'bass-studio-library',mode:'readwrite'});
     await ready;
     await put('folder',dir);await put('index',{});
-    folder=dir;folderAccess='ready';index={};await refresh();
+    folder=dir;folderAccess='ready';index={};rows=[];scanInBackground();
   }
-  async function useDevice(){await put('folder',null);folder=null;folderAccess='device';index={};await refresh();}
+  async function useDevice(){await put('folder',null);await put('index',{});folder=null;folderAccess='device';index={};rows=rows.filter(r=>r.storageLabel==='In app');scanInBackground();}
   async function reconnect(){
     if(folder){
       try{if(!await permission(folder,'readwrite',true))throw Error('Access was not granted.');folderAccess='ready';}
       catch(e){folderAccess='reconnect';throw Error('Folder permission was not granted. Your saved files are unchanged.');}
     }
-    await refresh();
+    scanInBackground();
   }
   async function ensureBatchAccess(){
     await ready;
@@ -255,6 +303,7 @@ window.BassLibrary=(()=>{
   }
   async function rowFile(row){
     if(row.handle)return row.handle.getFile();
+    if(row.dir)return (await row.dir.getFileHandle(row.filename)).getFile();
     const saved=await store('songs','readonly',s=>s.get(row.id));
     if(!saved?.blob)throw Error('This saved song is no longer available.');
     return new File([saved.blob],saved.filename,{type:'application/json'});
@@ -470,36 +519,29 @@ window.BassLibrary=(()=>{
   function build(){
     if(dialog)return;
     dialog=document.createElement('dialog');dialog.id='bassLibraryDialog';dialog.className='bass-library';dialog.setAttribute('aria-labelledby','libraryTitle');
-    dialog.innerHTML='<div class="library-heading"><div><h2 id="libraryTitle">Song library</h2><p id="libraryLocation"></p></div><button id="libraryClose" type="button">Close</button></div><div class="library-toolbar"><button id="libraryChoose" type="button">Choose save folder</button><button id="libraryReconnect" type="button">Reconnect folder</button><button id="libraryDevice" type="button">Save in app</button><button id="libraryAdd" type="button">Import saved file</button><button id="libraryBatch" type="button">Batch ZIP</button><button id="libraryRefresh" type="button">Refresh</button></div><p id="libraryHint"></p><div class="library-filters"><div><label for="librarySearch">Search songs</label><input id="librarySearch" type="search" placeholder="Title, artist, key or BPM" autocomplete="off"></div><div><label for="librarySort">Sort by</label><select id="librarySort"><option value="recent">Recently saved</option><option value="name">Song name</option></select></div></div><div class="library-summary"><span id="libraryCount"></span><span id="libraryStatus" role="status" aria-live="polite"></span></div><ul id="librarySongs"></ul><input id="libraryFiles" type="file" accept=".bassstudio,.bssproject,.json,application/json" multiple hidden>';
+    dialog.innerHTML='<div class="library-heading"><div><h2 id="libraryTitle">Song library</h2><p id="libraryLocation"></p></div><button id="libraryClose" type="button">Close</button></div><div class="library-toolbar"><button id="libraryChoose" type="button">Choose save folder</button><button id="libraryReconnect" type="button">Reconnect folder</button><button id="libraryDevice" type="button">Save in app</button><button id="libraryAdd" type="button">Import saved file</button><button id="libraryBatch" type="button">Batch ZIP</button><button id="libraryRefresh" type="button">Refresh</button><button id="libraryStop" type="button" hidden>Stop checking</button></div><p id="libraryHint"></p><div class="library-filters"><div><label for="librarySearch">Search songs</label><input id="librarySearch" type="search" placeholder="Title, artist, key or BPM" autocomplete="off"></div><div><label for="librarySort">Sort by</label><select id="librarySort"><option value="recent">Recently saved</option><option value="name">Song name</option></select></div></div><div class="library-summary"><span id="libraryCount"></span><span id="libraryStatus" role="status" aria-live="polite"></span></div><ul id="librarySongs"></ul><input id="libraryFiles" type="file" accept=".bassstudio,.bssproject,.json,application/json" multiple hidden>';
     document.body.append(dialog);
     el('libraryClose').onclick=()=>dialog.close();
-    dialog.addEventListener('close',()=>document.getElementById('importProjectBtn')?.focus());
+    dialog.addEventListener('close',()=>{stopScan();document.getElementById('importProjectBtn')?.focus();});
     el('librarySearch').oninput=render;el('librarySort').onchange=render;
     el('libraryChoose').onclick=()=>run(chooseFolder);el('libraryDevice').onclick=()=>run(useDevice);
-    el('libraryRefresh').onclick=()=>run(refresh);el('libraryReconnect').onclick=()=>run(reconnect);
+    el('libraryStop').onclick=()=>{stopScan();status('Folder check stopped.');render();};
+    el('libraryRefresh').onclick=scanInBackground;el('libraryReconnect').onclick=()=>run(reconnect);
     el('libraryAdd').onclick=()=>{el('libraryFiles').value='';el('libraryFiles').click();};
     el('libraryBatch').onclick=()=>{window.BassBatch?.show();};
     el('libraryFiles').onchange=e=>{const files=Array.from(e.target.files||[]);e.target.value='';void run(()=>addFiles(files));};
   }
   async function show(){
     build();if(!dialog.open)dialog.showModal();el('librarySearch').focus();
-    // Reuse the remembered folder automatically if access is still granted.
-    // If the browser needs permission again, ask while Library is opening.
-    await run(async()=>{
-      await ready;
-      if(folder)try{if(!await permission(folder,'read'))await permission(folder,'read',true);}catch{}
-      await refresh();
-    });
+    if(!busy)scanInBackground();
   }
+
   function init(options){
     hooks=options;
     ready=(async()=>{
       folder=await get('folder')||null;
       index=await get('index')||{};
-      if(folder){
-        try{folderAccess=await permission(folder,'readwrite')?'ready':'reconnect';}
-        catch{folderAccess='reconnect';}
-      }else folderAccess='device';
+      folderAccess=folder?'unknown':'device';
     })();
     ready.catch(()=>{});
   }
@@ -561,7 +603,7 @@ window.BassLibrary=(()=>{
     return target.dir?'folder':'device';
   }
 
-  const practiceId=row=>row.audioId?'audio:'+row.audioId:(row.handle?'folder:':'device:')+String(row.id||row.filename).toLowerCase();
+  const practiceId=row=>row.audioId?'audio:'+row.audioId:(row.handle||row.dir?'folder:':'device:')+String(row.id||row.filename).toLowerCase();
   async function practiceProjects(){
     await ready;await refresh();
     return {songs:rows.map(row=>({id:practiceId(row),title:row.title,filename:row.filename,stamp:[row.size,row.modified,row.savedAt].join(':')})),reconnect:folderAccess==='reconnect'};

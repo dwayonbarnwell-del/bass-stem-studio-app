@@ -12,8 +12,6 @@ assert(tools.includes("panel.addEventListener('click'"));
 assert(html.includes('grid-auto-rows:minmax(100px,auto)!important'));
 assert(html.includes('justify-content:flex-start!important'));
 assert(lib.includes("folder?'Change save folder':'Choose save folder'"));
-assert(lib.includes('rows=[...found,...deviceRows]'));
-assert(lib.includes('for await(const [name,handle] of dir.entries())'));
 assert(lib.includes('id="libraryAdd" type="button">Import saved file'));
 assert(lib.includes("window.dispatchEvent(new Event('bass-stem:project-saved'))"));
 assert(html.includes("lyrics:window.BassLyrics?.exportData()||[]"));
