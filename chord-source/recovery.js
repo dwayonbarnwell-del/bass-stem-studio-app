@@ -1,7 +1,7 @@
 /* RC254: automatic, on-device missing-chord suggestions. Never contacts RunPod. */
 (()=>{
 'use strict';
-const FFT_SIZE=4096, SAMPLE_RATE=11025, STEP=.25, SOURCE='on-device-chord-recovery-v1';
+const FFT_SIZE=8192, SAMPLE_RATE=11025, STEP=.25, NEARBY_FRAMES=2, SOURCE='on-device-chord-recovery-v1';
 const NAMES=['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B'];
 const FFT_BITS=Math.log2(FFT_SIZE);
 const bitReversed=new Uint16Array(FFT_SIZE),windowValues=new Float64Array(FFT_SIZE);
@@ -57,7 +57,7 @@ function extractChroma(samples){
    const ratio=row.frequency/lower.frequency,n=Math.round(ratio);
    if(n>=2&&n<=9&&Math.abs(12*Math.log2(ratio/n))<.3)overtone=Math.max(overtone,lower.weight/n);
   }
-  chroma[(row.midi%12+12)%12]+=Math.max(0,row.weight-overtone*1.05);
+  chroma[(row.midi%12+12)%12]+=Math.max(0,row.weight-overtone*.95);
  }
  return chroma;
 }
@@ -67,8 +67,13 @@ for(let rootPc=0;rootPc<12;rootPc++)for(const [quality,steps] of [['maj',[0,4,7]
 }
 function classify(evidence){
  const votes=[];
- // Use the evidence at this time instead of combining several different chords.
- for(const values of evidence){
+ // Give the current frame the most weight and use nearby frames for strummed notes.
+ for(let i=0;i<evidence.length;i++){
+  const values=new Float64Array(12);
+  for(let j=Math.max(0,i-NEARBY_FRAMES);j<=Math.min(evidence.length-1,i+NEARBY_FRAMES);j++){
+   const weight=NEARBY_FRAMES+1-Math.abs(i-j);
+   for(let pitch=0;pitch<12;pitch++)values[pitch]+=evidence[j][pitch]*weight;
+  }
   const total=values.reduce((a,b)=>a+b,0);
   if(total<.002){votes.push(null);continue;}
   for(let pitch=0;pitch<12;pitch++)values[pitch]/=total;
@@ -76,7 +81,7 @@ function classify(evidence){
   for(const template of templates){
    const inside=template.pitches.reduce((sum,p)=>sum+values[p],0);
    const lowest=Math.min(...template.pitches.map(p=>values[p]));
-   if(lowest<.045)continue;
+   if(lowest<.025)continue;
    const score=inside+.10*values[template.rootPc]+.05*lowest-.30*(1-inside);
    if(!best||score>best.score){second=best?.score??-Infinity;best={rootPc:template.rootPc,quality:template.quality,score,coverage:inside};}
    else if(score>second)second=score;

@@ -13419,9 +13419,9 @@ window.BassPianoAudio=(()=>{
   events.sort((a,b)=>a.t-b.t||a.off-b.off);const track=[0,0xff,0x51,3,7,0xa1,0x20,0,0xc0,sound==='bass'?33:0];let prev=0;for(const e of events){track.push(...vlq(e.t-prev),...e.bytes);prev=e.t;}track.push(0,0xff,0x2f,0);
   const n=track.length;return new Blob([new Uint8Array([77,84,104,100,0,0,0,6,0,0,0,1,1,224,77,84,114,107,(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255,...track])],{type:'audio/midi'});
  }
- function tracker(minMidi=36,maxMidi=96){let current=null,candidate=null,lastTime=0;const notes=[];
-  function finish(t){if(current){current.end=Math.max(current.start,t);if(current.end-current.start>=.12)notes.push(current);current=null;}}
-  function push(p,t,hop=.04){lastTime=t+hop;const m=p&&p.confidence>=.86&&p.midi>=minMidi&&p.midi<=maxMidi?p.midi:null;
+ function tracker(minMidi=36,maxMidi=96,{minDuration=.12,confidence=.86}={}){let current=null,candidate=null,lastTime=0;const notes=[];
+  function finish(t){if(current){current.end=Math.max(current.start,t);if(current.end-current.start>=minDuration-1e-9)notes.push(current);current=null;}}
+  function push(p,t,hop=.04){lastTime=t+hop;const m=p&&p.confidence>=confidence&&p.midi>=minMidi&&p.midi<=maxMidi?p.midi:null;
    if(m===null){finish(t);candidate=null;return;}
    if(current&&m===current.midi){current.end=t+hop;candidate=null;return;}
    if(!candidate||candidate.midi!==m)candidate={midi:m,start:t,count:1};else candidate.count++;
@@ -15674,7 +15674,7 @@ window.BassBatch = (() => {
 </dialog>
 
 <dialog id="pianoEditor" aria-labelledby="pianoEditTitle"><h2 id="pianoEditTitle">Correct melody note</h2><label>Note<select id="pianoPitch"></select></label><label>Start (seconds)<input id="pianoStart" type="number" min="0" step="0.01"></label><label>End (seconds)<input id="pianoEnd" type="number" min="0" step="0.01"></label><p id="pianoEditError" role="alert"></p><div class="piano-edit-actions"><button id="pianoSaveNote" type="button">Save note</button> <button id="pianoDelete" type="button">Delete note</button> <button id="pianoUndo" type="button" disabled>Undo last change</button> <button id="pianoCloseNote" type="button">Close</button></div></dialog>
-<script src="./chord-source/recovery.js?v=rc313"></script>
+<script src="./chord-source/recovery.js?v=rc314"></script>
 <script src="./ear-source/bass-register-rc292.js?v=rc292"></script>
 <script src="./ear-source/practice-audio-rc292.js?v=rc292"></script>
 <script src="./ear-source/drum-loops-data-rc294.js?v=rc294"></script>
@@ -15707,7 +15707,7 @@ window.BassBatch = (() => {
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC313';
+  const APP_VERSION='RC314';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;
@@ -20979,12 +20979,12 @@ window.BassBatch = (() => {
     if(aiBusy||songImportBusy)throw Error('Wait for the current analysis to finish');
     if(!storedRunPodKey()&&!part.job.id){
       // Estimate sustained lead pitches locally when cloud separation is unavailable.
-      const source=buffer,rate=source.sampleRate,track=window.BassPianoAudio.tracker();
+      const source=buffer,rate=source.sampleRate,track=window.BassPianoAudio.tracker(36,96,{minDuration:.08,confidence:.84});
       const left=source.getChannelData(0),right=source.getChannelData(source.numberOfChannels>1?1:0);
       const stride=Math.max(1,Math.floor(rate/8000)),sr=rate/stride;
-      const frame=new Float32Array(Math.round(sr*.055)),hop=.04;
+      const frame=new Float32Array(Math.round(sr*.064)),hop=.02;
       for(let i=0;part.from+i*hop<part.to;i++){
-        if(i%20===0){await new Promise(resolve=>setTimeout(resolve,0));if(cancelled())throw Error('Cancelled');}
+        if(i%40===0){await new Promise(resolve=>setTimeout(resolve,0));if(cancelled())throw Error('Cancelled');}
         const t=part.from+i*hop,offset=Math.round(t*rate);
         let low=0,high=0;
         for(let j=0;j<frame.length;j++){
@@ -20992,7 +20992,7 @@ window.BassBatch = (() => {
           low+=(1-Math.exp(-2*Math.PI*160/sr))*(x-low);
           high+=(1-Math.exp(-2*Math.PI*1100/sr))*(x-low-high);frame[j]=high;
         }
-        track.push(window.BassPracticeDSP.pitch(frame,sr,110),t,hop);
+        track.push(window.BassPracticeDSP.pitch(frame,sr,82),t,hop);
       }
       part.job.estimated=true;return track.finish().map(n=>({...n,source:'estimated-lead',uncertain:true}));
     }
@@ -21094,8 +21094,8 @@ window.BassBatch = (() => {
     localBassSession=session;
     const rate=source.sampleRate,stride=Math.max(1,Math.floor(rate/2400)),sr=rate/stride;
     const channels=Array.from({length:source.numberOfChannels},(_,i)=>source.getChannelData(i));
-    const hop=Math.round(sr*.04),frame=new Float32Array(Math.round(sr*.12));
-    const tracker=window.BassPianoAudio.tracker(23,59),alpha=1-Math.exp(-2*Math.PI*210/rate);
+    const hop=Math.round(sr*.02),frame=new Float32Array(Math.round(sr*.09));
+    const tracker=window.BassPianoAudio.tracker(23,59,{minDuration:.06}),alpha=1-Math.exp(-2*Math.PI*210/rate);
     let low=0,filtered=0,offset=0;
     for(let offsetTime=0;offsetTime<source.duration;offsetTime+=hop/sr){
       if(session!==songSession||aiBusy||offlineAnalysisReady){if(localBassSession===session)localBassSession=-1;return;}
@@ -21109,7 +21109,7 @@ window.BassBatch = (() => {
         frame[j]=filtered;
       }
       tracker.push(window.BassPracticeDSP.pitch(frame,sr,29),offsetTime,hop/sr);
-      if(Math.round(offsetTime*sr/hop)%16===0)await new Promise(resolve=>setTimeout(resolve,0));
+      if(Math.round(offsetTime*sr/hop)%32===0)await new Promise(resolve=>setTimeout(resolve,0));
     }
     if(session!==songSession||aiBusy||offlineAnalysisReady){if(localBassSession===session)localBassSession=-1;return;}
     const found=tracker.finish().map(n=>({...n,end:Math.min(source.duration,n.end),source:'estimated-bass'}));

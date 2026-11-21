@@ -37,8 +37,8 @@ function tone(notes,time,volume){
 function pitchAndTiming(actual,expected,onsetTolerance,endTolerance){
   assert.deepEqual(Array.from(actual,n=>n.midi),expected.map(n=>n.midi));
   actual.forEach((n,i)=>{
-    assert(Math.abs(n.start-expected[i].start)<=onsetTolerance,'note onset');
-    assert(Math.abs(n.end-expected[i].end)<=endTolerance,'note release');
+    assert(Math.abs(n.start-expected[i].start)<=onsetTolerance+1e-9,'note onset');
+    assert(Math.abs(n.end-expected[i].end)<=endTolerance+1e-9,'note release');
   });
 }
 (async()=>{

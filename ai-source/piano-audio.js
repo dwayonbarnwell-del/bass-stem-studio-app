@@ -62,9 +62,9 @@ window.BassPianoAudio=(()=>{
   events.sort((a,b)=>a.t-b.t||a.off-b.off);const track=[0,0xff,0x51,3,7,0xa1,0x20,0,0xc0,sound==='bass'?33:0];let prev=0;for(const e of events){track.push(...vlq(e.t-prev),...e.bytes);prev=e.t;}track.push(0,0xff,0x2f,0);
   const n=track.length;return new Blob([new Uint8Array([77,84,104,100,0,0,0,6,0,0,0,1,1,224,77,84,114,107,(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255,...track])],{type:'audio/midi'});
  }
- function tracker(minMidi=36,maxMidi=96){let current=null,candidate=null,lastTime=0;const notes=[];
-  function finish(t){if(current){current.end=Math.max(current.start,t);if(current.end-current.start>=.12)notes.push(current);current=null;}}
-  function push(p,t,hop=.04){lastTime=t+hop;const m=p&&p.confidence>=.86&&p.midi>=minMidi&&p.midi<=maxMidi?p.midi:null;
+ function tracker(minMidi=36,maxMidi=96,{minDuration=.12,confidence=.86}={}){let current=null,candidate=null,lastTime=0;const notes=[];
+  function finish(t){if(current){current.end=Math.max(current.start,t);if(current.end-current.start>=minDuration-1e-9)notes.push(current);current=null;}}
+  function push(p,t,hop=.04){lastTime=t+hop;const m=p&&p.confidence>=confidence&&p.midi>=minMidi&&p.midi<=maxMidi?p.midi:null;
    if(m===null){finish(t);candidate=null;return;}
    if(current&&m===current.midi){current.end=t+hop;candidate=null;return;}
    if(!candidate||candidate.midi!==m)candidate={midi:m,start:t,count:1};else candidate.count++;
