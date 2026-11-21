@@ -12117,13 +12117,30 @@ html body #appRoot#appRoot#appRoot#appRoot #liveReplay[hidden]{display:none!impo
  function init(){try{enabled=localStorage.getItem('bassSmoothLoops')!=='off';}catch{}$('smoothLoops').checked=enabled;$('smoothLoops').onchange=e=>{enabled=e.target.checked;reset();try{localStorage.setItem('bassSmoothLoops',enabled?'on':'off');}catch{}};}
  return {init,attach,prepare,seek,resume,reset};
 })();
-window.BassAwake=(()=>{let api,lock=null,pending=false,blocked=false,wasActive=false,generation=0;const $=id=>document.getElementById(id);
- function message(t){$('awakeStatus').textContent=t;}
- async function release(){++generation;const old=lock;lock=null;if(old)try{await old.release();}catch{}}
- async function sync(){if(!api)return;const active=api.active(),wanted=$('keepAwake').checked&&active&&!document.hidden;if(!active&&wasActive)blocked=false;wasActive=active;
- if(!navigator.wakeLock){message('Unavailable in this browser.');return;}if(!wanted){await release();message('');return;}if(lock){message('Screen staying awake.');return;}if(pending||blocked)return;pending=true;const mine=generation;
- try{const next=await navigator.wakeLock.request('screen');if(mine!==generation||!$('keepAwake').checked||document.hidden||!api.active()){await next.release();return;}lock=next;message('Screen staying awake.');next.addEventListener('release',()=>{if(lock===next){lock=null;blocked=true;message('Device released screen lock.');}});}catch{blocked=true;message('Not allowed. Check battery or browser settings.');}finally{pending=false;}}
- function init(hooks){api=hooks;try{$('keepAwake').checked=localStorage.getItem('bassKeepAwake')!=='off';}catch{}$('keepAwake').onchange=()=>{blocked=false;try{localStorage.setItem('bassKeepAwake',$('keepAwake').checked?'on':'off');}catch{}void sync();};document.addEventListener('visibilitychange',()=>{blocked=false;void sync();});window.addEventListener('pagehide',()=>void release());setInterval(()=>void sync(),750);void sync();}
+window.BassAwake=(()=>{
+ let lock=null,pending=false,generation=0;
+ async function release(){
+  generation++;
+  const previous=lock;lock=null;
+  if(previous)try{await previous.release();}catch{}
+ }
+ async function sync(){
+  if(document.hidden){await release();return;}
+  if(!navigator.wakeLock||pending||lock)return;
+  const mine=generation;pending=true;
+  try{
+   const next=await navigator.wakeLock.request('screen');
+   if(document.hidden||mine!==generation){await next.release();return;}
+   lock=next;next.addEventListener('release',()=>{if(lock===next)lock=null;});
+  }catch{}finally{pending=false;}
+ }
+ function init(){
+  document.addEventListener('visibilitychange',sync);
+  document.addEventListener('pointerdown',sync);
+  window.addEventListener('pageshow',sync);
+  window.addEventListener('pagehide',release);
+  void sync();
+ }
  return {init,sync,release};
 })();
 </script><script id="rc175-sound">window.BassSoundCheck=(()=>{
@@ -13940,7 +13957,7 @@ body.bass-roll-active :is(#pianoExport,#pianoRecord){display:none!important}
       </div>
       </div>
 
-<section id="liveAudioEntry" aria-label="Practice controls"><button id="openLiveAudio" type="button" aria-label="Live audio"><span>Live</span> <span>audio</span></button><button id="openEarTraining" type="button">Ear training</button><button id="openReview" type="button" aria-label="Review chords"><span>Review</span> <span>chords</span></button><button id="openMoreTools" type="button" aria-label="More tools" aria-expanded="false" aria-controls="moreTools"><span>More</span> <span>tools</span></button></section><div id="moreTools" hidden><div class="more-tools-select-row"><label for="moreToolsView" class="more-tools-select-label">Show tools</label><select id="moreToolsView" aria-label="More tools display"><option value="open">Tools open</option><option value="close">Close tools</option></select></div><div id="extraTools"><button id="openLyrics" type="button">Lyrics</button><button id="openRhythm" type="button">Rhythm / practice</button><button id="openSoundCheck" type="button">Sound check</button></div></div><div id="practiceComfort"><label title="Short fades soften loop joins"><input id="smoothLoops" type="checkbox" checked>Smooth loops</label><label><input id="keepAwake" type="checkbox" checked>Keep awake</label><small id="awakeStatus" role="status"></small></div>
+<section id="liveAudioEntry" aria-label="Practice controls"><button id="openLiveAudio" type="button" aria-label="Live audio"><span>Live</span> <span>audio</span></button><button id="openEarTraining" type="button">Ear training</button><button id="openReview" type="button" aria-label="Review chords"><span>Review</span> <span>chords</span></button><button id="openMoreTools" type="button" aria-label="More tools" aria-expanded="false" aria-controls="moreTools"><span>More</span> <span>tools</span></button></section><div id="moreTools" hidden><div class="more-tools-select-row"><label for="moreToolsView" class="more-tools-select-label">Show tools</label><select id="moreToolsView" aria-label="More tools display"><option value="open">Tools open</option><option value="close">Close tools</option></select></div><div id="extraTools"><button id="openLyrics" type="button">Lyrics</button><button id="openRhythm" type="button">Rhythm / practice</button><button id="openSoundCheck" type="button">Sound check</button></div></div><div id="practiceComfort"><label title="Short fades soften loop joins"><input id="smoothLoops" type="checkbox" checked>Smooth loops</label></div>
 <dialog id="soundCheckDialog" aria-labelledby="soundCheckTitle"><h2 id="soundCheckTitle">Sound check</h2><p id="checkStatus" role="status">Check the room, then your playing level.</p><div class="check-buttons"><button id="checkQuiet">1. Quiet room</button><button id="checkLevel" disabled>2. Playing level</button></div><div id="checkResults" aria-live="polite"></div><small>Each check takes 3 seconds. No audio is saved. This checks input levels, not every cause of distortion.</small><div class="check-buttons"><button id="checkCancel" disabled>Stop check</button><button id="checkClose">Back</button></div></dialog>
 <dialog id="reviewDialog" aria-labelledby="reviewTitle"><h2 id="reviewTitle">Review chords</h2><p id="reviewCount"></p><h3 id="reviewChord">—</h3><p id="reviewTime"></p><p id="reviewStatus" role="status"></p><div class="review-buttons"><button id="reviewHear">Hear passage</button><button id="reviewStop" disabled>Stop audio</button><button id="reviewEdit">Check / correct</button><button id="reviewPrev">Previous</button><button id="reviewNext">Next</button><button id="reviewClose">Close</button></div><small>Save the correct chord to remove it from this queue. Use Save song to keep your corrections.</small></dialog>
 
@@ -15474,7 +15491,7 @@ window.BassBatch = (() => {
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC300';
+  const APP_VERSION='RC301';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;
@@ -17146,6 +17163,27 @@ window.BassBatch = (() => {
   };
 
 
+  if(navigator.mediaSession){
+    for(const [action,handler] of [['play',()=>void play()],['pause',pause],['stop',stop]])
+      try{navigator.mediaSession.setActionHandler(action,handler);}catch{}
+    masterAudio.addEventListener('playing',()=>{
+      if(window.MediaMetadata)navigator.mediaSession.metadata=new MediaMetadata({title:loadedProjectName||objectName||'Bass Stem Studio'});
+    });
+  }
+  // Media events continue when the visual animation loop is suspended.
+  masterAudio.addEventListener('timeupdate',()=>{
+    if(!document.hidden||!playing||masterAudio.paused||masterAudio.seeking)return;
+    const t=currentTime();
+    if(loopEnd!==null&&t>=loopEnd){
+      if(timeframeLoopMode)advanceSelectedTimeframe();
+      else if(multiSectionMode)advanceSelectedSection();
+      else if(loopEnabled&&!window.BassTools?.onLoop(loopStart,loopEnd))seekTo(loopStart);
+    }
+    ensureAnalysisPartForTime(currentTime());
+    if(noBassReady)syncNoBass(false);
+    if(bassStemReady)syncBassStem(false);
+    void window.BassBacking?.sync();
+  });
   masterAudio.addEventListener('seeking',()=>{playbackDisplayFloor=currentTime();cancelMetronome();});
   masterAudio.addEventListener('seeked',()=>window.BassLoopFade?.resume());
   masterAudio.addEventListener('ended',()=>{
@@ -20697,7 +20735,7 @@ window.BassBatch = (() => {
       if(bassStemReady)syncBassStem(false);
       updateMetronome(t);
       if(offlineAnalysisReady)drawPlaybackFrame();else drawAll();
-      if(t<buffer.duration) raf=requestAnimationFrame(loop);
+      if(t<buffer.duration||masterAudio.loop) raf=requestAnimationFrame(loop);
     };
     raf=requestAnimationFrame(loop);
   }
@@ -21074,7 +21112,7 @@ window.BassBatch = (() => {
 
   window.BassMedia.init();
   window.BassLoopFade.init();
-  window.BassAwake.init({active:()=>playing||!document.getElementById('liveStop').disabled||!document.getElementById('reviewStop').disabled||!document.getElementById('checkCancel').disabled||Array.from(document.querySelectorAll('audio')).some(a=>!a.paused&&!a.ended)});
+  window.BassAwake.init();
   window.BassSoundCheck.init({pause:()=>{pause();document.getElementById('liveReplay').pause();},busy:()=>!document.getElementById('liveStop').disabled});
   window.BassChordReview.init({get:()=>({buffer,session:songSession,busy:aiBusy||songImportBusy,rows:detectedChordChanges.filter(c=>Number.isFinite(c.start)&&Number.isFinite(c.end)&&c.end>c.start&&!c.manual&&(c.uncertain||!reliableChord(c))).map(c=>({item:c,start:c.start,end:c.end,label:chordDisplayLabel(c)}))}),pause,edit:item=>openAnalysisEditor('chord',item)});
 
@@ -21633,11 +21671,13 @@ window.BassBatch = (() => {
         playSelected=$('playSelected'), clearSelected=$('clearSelected'), selectedSummary=$('selectedSummary'), sectionGrid=$('sectionGrid'),
         timeFrom=$('timeFrom'), timeTo=$('timeTo'), playTimeRange=$('playTimeRange');
 
-  function updateLoopUI(){drawPracticeSections();
+  function updateLoopUI(){
+    masterAudio.loop=!!buffer&&!loopEnabled&&!multiSectionMode&&!timeframeLoopMode;
+    drawPracticeSections();
     updateAnalysisToolsState();
     if(document.activeElement!==timeFrom&&document.activeElement!==timeTo){
-      timeFrom.value=loopStart===null?'':fmtShort(loopStart);
-      timeTo.value=loopEnd===null?'':fmtShort(loopEnd);
+      timeFrom.value=loopStart===null?(buffer?'0:00':''):fmtShort(loopStart);
+      timeTo.value=loopEnd===null?(buffer?fmt(buffer.duration):''):fmtShort(loopEnd);
     }
     const part=multiSectionMode?sectionQueue[queueIndex]?.name:selectedSections.size===1?[...selectedSections][0]:'';
     timeFrom.title=part?`${part}: repeat start`:'Repeat start';timeTo.title=part?`${part}: repeat end`:'Repeat end';
@@ -22559,7 +22599,7 @@ window.BassBatch = (() => {
   });
   exportAnalysis?.addEventListener('click',exportBassAnalysisCSV);
   document.addEventListener('visibilitychange',()=>{
-    if(document.visibilityState==='visible')checkSavedAnalysisSoon(150);
+    if(document.visibilityState==='visible'){if(playing)tick();checkSavedAnalysisSoon(150);}
   });
   window.addEventListener('pageshow',()=>checkSavedAnalysisSoon(350));
   window.addEventListener('focus',()=>checkSavedAnalysisSoon(250));
@@ -22753,6 +22793,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #moreTools .bs-featur
  dialog.setAttribute('aria-labelledby','settingsTitle');
  dialog.innerHTML='<h2 id="settingsTitle">Settings</h2><button id="settingsClose" type="button">Close</button>';
  document.body.append(dialog);dialog.insertBefore(controls,$('settingsClose'));controls.append(notes);
+ const smooth=$('smoothLoops').closest('label');smooth.title='Softens the join when a section repeats';dialog.insertBefore(smooth,$('settingsClose'));$('practiceComfort').remove();
  const seconds=document.createElement('label');seconds.className='settings-card-label';
  seconds.htmlFor='timelineSplitSelect';seconds.textContent='Seconds';
  $('timelineBreakdownControl').prepend(seconds);
