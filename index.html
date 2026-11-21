@@ -13475,11 +13475,13 @@ window.BassPiano=(()=>{
  function range(notes,count){const values=notes.map(n=>n.midi).sort((a,b)=>a-b),middle=values.length?values[Math.floor(values.length/2)]:66;let bottom=Math.floor((middle-(count-1)/2)/12)*12;bottom=Math.max(21,Math.min(109-count,bottom));return {low:bottom,high:bottom+count-1};}
  function join(notes){const out=[];for(const n of notes){const prev=out.at(-1);if(n.continuation&&!n.manual&&prev&&!prev.manual&&prev.midi===n.midi&&Math.abs(prev.end-n.start)<.025){prev.end=n.end;prev.confidence=Math.min(prev.confidence,n.confidence);prev.uncertain=prev.uncertain||n.uncertain;}else out.push({...n});}return out;}
  function exportData(){return {...clone(data),sound};}
- function restore(value){token++;busy=false;setSolo(false);data={version:2,updatedAt:Number(value?.updatedAt)||0,jobs:value?.jobs&&typeof value.jobs==='object'?clone(value.jobs):{},notes:clean(value?.notes,api?.get().duration||Infinity),done:(Array.isArray(value?.done)?value.done:[]).filter(r=>Number.isFinite(r.start)&&Number.isFinite(r.end)&&r.start>=0&&r.end>r.start)};sound=value?.sound==='bass'?'bass':'piano';keyboardRange=null;undo=null;signature='';if(api){$('pianoSound').value=sound;message('');$('pianoRollViewport').scrollLeft=0;render(true);}}
+ function restore(value){token++;busy=false;data={version:2,updatedAt:Number(value?.updatedAt)||0,jobs:value?.jobs&&typeof value.jobs==='object'?clone(value.jobs):{},notes:clean(value?.notes,api?.get().duration||Infinity),done:(Array.isArray(value?.done)?value.done:[]).filter(r=>Number.isFinite(r.start)&&Number.isFinite(r.end)&&r.start>=0&&r.end>r.start)};sound=value?.sound==='bass'?'bass':'piano';keyboardRange=null;undo=null;signature='';setSolo(false);if(api){$('pianoSound').value=sound;message('');$('pianoRollViewport').scrollLeft=0;render(true);}}
  function reset(){rollActive=false;bassFlow=false;clearTimeout(auditionTimer);auditionPitch=null;exportToken++;exporting=false;recordToken++;if(recording){void recording.close();recording=null;}take=null;stopping=false;$('pianoLiveDialog')?.close();$('pianoExportDialog')?.close();if(micURL){URL.revokeObjectURL(micURL);micURL=null;}restore(null);$('pianoEditor')?.close();}
  async function persist(){data.updatedAt=Date.now();await api.changed();}
- function usablePassage(r){return !r.estimated||!api.cloudAvailable?.();}
- function unfinished(){const duration=state().duration;for(let start=0;start<duration;start+=180)if(!data.done.some(r=>usablePassage(r)&&r.start<=start+.001&&r.end>=Math.min(start+180,duration)-.001))return true;return false;}
+ function passageDone(start,end,automatic){
+  return data.done.some(r=>(automatic||!r.estimated||!api.cloudAvailable?.())&&r.start<=start+.001&&r.end>=end-.1);
+ }
+ function unfinished(automatic=false){const duration=state().duration;for(let start=0;start<duration;start+=180)if(!passageDone(start,Math.min(start+180,duration),automatic))return true;return false;}
  function shortError(e){const t=String(e?.message||e);if(/key|401|403/i.test(t))return 'Check analysis key';if(/network|fetch|load failed|offline/i.test(t))return 'Connection interrupted';if(/repeat range/i.test(t))return 'Select repeat range';if(/No melody notes/i.test(t))return 'No melody notes';if(/cancel/i.test(t))return 'Melody paused';return 'Melody paused';}
  async function passage(part,cancelled,progress){
   for(let retry=0;;retry++){
@@ -13496,7 +13498,7 @@ window.BassPiano=(()=>{
   if(!automatic)api.pause();busy=true;const mine=++token,session=s.session;const cancelled=()=>mine!==token||state().session!==session;
   render(true);
   try{
-   for(let start=0;start<s.duration;start+=180){if(cancelled())return;const end=Math.min(start+180,s.duration);if(data.done.some(r=>usablePassage(r)&&r.start<=start+.001&&r.end>=end-.001))continue;
+   for(let start=0;start<s.duration;start+=180){if(cancelled())return;const end=Math.min(start+180,s.duration);if(passageDone(start,end,automatic))continue;
     const from=Math.max(0,start-.25),to=Math.min(s.duration,end+.25);
     const job=data.jobs[String(start)]??={};
     const progress=()=>message('Melody '+(Math.floor(start/180)+1)+'/'+Math.ceil(s.duration/180));progress();
@@ -14176,6 +14178,7 @@ html body #bassLibraryDialog #libraryClose{background:#413042!important;border-c
 #bassLibraryDialog .library-heading>div{min-width:0;flex:1}
 #bassLibraryDialog #libraryClose{flex-shrink:0}
 </style>
+<script src="./library-source/project-json.js?v=rc303"></script>
 <script id="rc195-library">
 /* RC195: local saved-project library. No audio or index is sent to a server. */
 window.BassLibrary=(()=>{
@@ -14202,7 +14205,7 @@ window.BassLibrary=(()=>{
     const db=await database();
     return new Promise((resolve,reject)=>{
       const tx=db.transaction(name,mode),request=action(tx.objectStore(name));
-      const timer=setTimeout(()=>{try{tx.abort();}catch{}reject(Error('Device storage is not responding. Try again.'));},15000);timer?.unref?.();
+      const timer=setTimeout(()=>{try{tx.abort();}catch{}reject(Error('Device storage is not responding. Try again.'));},name==='songs'&&mode==='readwrite'?90000:15000);timer?.unref?.();
       tx.oncomplete=()=>{globalThis.clearTimeout?.(timer);resolve(request?.result);};
       tx.onerror=tx.onabort=()=>{globalThis.clearTimeout?.(timer);reject(tx.error||request?.error||Error('Could not save on this device.'));};
     });
@@ -14236,16 +14239,42 @@ window.BassLibrary=(()=>{
     }
     return [...seen.values()];
   }
+  const openedFiles=new WeakMap();
+  let pendingWrite=Promise.resolve();
+  function inWriteOrder(action){
+    const result=pendingWrite.then(action);
+    pendingWrite=result.catch(()=>{});
+    return result;
+  }
+  function within(promise,ms=45000){
+    let timer;
+    return Promise.race([promise,new Promise((_,reject)=>{
+      timer=setTimeout(()=>reject(Error('Storage did not respond. Reconnect the folder or check free space, then tap Save.')),ms);
+      timer?.unref?.();
+    })]).finally(()=>globalThis.clearTimeout?.(timer));
+  }
   async function matchingTarget(project){
-    await refresh();
+    await ready;
     const identity=await audioIdentity(project);
-    const row=rows.find(r=>r.audioId===identity);
-    if(!row)return null;
-    if(row.handle||row.dir){
-      if(!await permission(folder,'readwrite'))throw Error('Reconnect save folder');
-      return {dir:folder,filename:row.filename,handle:row.handle};
+    let row=rows.find(r=>r.audioId===identity);
+    if(!row){await refresh();row=rows.find(r=>r.audioId===identity);}
+    return row?{...row,dir:row.dir||(row.handle?folder:null)}:null;
+  }
+  // Large recordings stay in separate Blob parts. The file is ordinary project JSON.
+  const readProject=file=>globalThis.BassProjectJSON?BassProjectJSON.read(file):file.text().then(JSON.parse);
+  function projectBlob(project){
+    const marker='bss'+crypto.randomUUID().replace(/-/g,'')+'_',audio=[];
+    const json=JSON.stringify(project,(key,value)=>{
+      if(!/base64$/i.test(key)||typeof value!=='string'||value.length<65536||/[^A-Za-z0-9+/=]/.test(value))return value;
+      audio.push(value);return marker+(audio.length-1);
+    });
+    const parts=[],pattern=new RegExp('"'+marker+'(\\d+)"','g');
+    let start=0;
+    for(const match of json.matchAll(pattern)){
+      parts.push(json.slice(start,match.index+1),audio[Number(match[1])]);start=match.index+match[0].length-1;
     }
-    return {dir:null,filename:row.filename,id:row.id};
+    parts.push(json.slice(start));
+    return new Blob(parts,{type:'application/json'});
   }
   function errorText(e){
     if(e?.name==='QuotaExceededError')return 'Device storage is full. Choose a folder or free some space, then save again.';
@@ -14384,14 +14413,14 @@ window.BassLibrary=(()=>{
     // Parse large embedded audio and calculate its identity off the UI thread.
     const job=scanJob;
     if(typeof Worker==='function'&&job){
-      const worker=job.worker||(job.worker=new Worker('./library-source/scan-worker-rc295.js'));
+      const worker=job.worker||(job.worker=new Worker('./library-source/scan-worker-rc295.js?v=rc303'));
       return new Promise((resolve,reject)=>{
         worker.onmessage=event=>{event.data.error?reject(Error(event.data.error)):resolve(event.data.meta);};
         worker.onerror=()=>reject(Error('Could not read this saved song.'));
         worker.postMessage(file);
       });
     }
-    const project=JSON.parse(await file.text());
+    const project=await readProject(file);
     if(isChordCatalogue(project))return {kind:'chord-catalogue',size:file.size,modified:file.lastModified};
     return indexedMetadata(project,file);
   }
@@ -14450,42 +14479,111 @@ window.BassLibrary=(()=>{
     if(await store('songs','readonly',s=>s.get(id))&&!await window.BassDialog.confirm('A saved song with this name already exists on this device.',{title:'Replace saved song',accept:'Replace'}))throw abort();
     return {dir:null,filename,id};
   }
-  async function save(project,blob,target){
-    const match=await matchingTarget(project);
+  function save(project,blob,target,options={}){
+    return inWriteOrder(()=>writeProject(project,blob,target,options));
+  }
+  async function writeProject(project,blob,target,{exact=false,requestAccess=false,alsoMelody=false,onProgress=()=>{}}={}){
+    await ready;
+    let match=exact?target:await matchingTarget(project);
     if(match)target=match;
-    // Protect an unrelated recording with the same title.
-    let existing;
-    if(target.dir){try{existing=await (await target.dir.getFileHandle(target.filename)).getFile();}catch(e){if(e.name!=='NotFoundError')throw e;}}
-    else existing=(await store('songs','readonly',s=>s.get(target.id)))?.blob;
-    if(existing&&!match){
-      const previous=JSON.parse(await existing.text());
+    if(!target?.filename)throw Error('Choose a save location for this song.');
+    const directory=target.dir,access=directory||target.handle;
+    if(access&&!await within(permission(access,'readwrite',requestAccess)))
+      throw Error(directory?'Reconnect the folder in Library, then tap Save.':'Tap Save and allow this file to be updated.');
+    onProgress('Saving '+target.filename+'…');
+    let handle=target.handle,existing,record;
+    if(access){
+      try{handle=handle||await within(directory.getFileHandle(target.filename));existing=await within(handle.getFile());}
+      catch(e){if(e.name!=='NotFoundError'||exact)throw e;}
+    }else{
+      record=await store('songs','readonly',s=>s.get(target.id));
+      existing=record?.blob;
+      if(exact&&!existing)throw Error('The saved song has moved. Reopen it from Library.');
+    }
+    const unchanged=match&&existing&&existing.size===match.size&&(access?existing.lastModified===match.modified:record.savedAt===match.savedAt);
+    let previous=null;
+    if(existing&&(!unchanged||alsoMelody||(!exact&&!project.analysis.bassBacking))){
+      previous=await readProject(existing);
       if(await audioIdentity(previous)!==await audioIdentity(project)){
+        if(exact||match)throw Error('This file now contains another recording. Reopen the correct song from Library.');
         const suffix=(await audioIdentity(project)).slice(0,12);
         target={...target,filename:target.filename.replace(SUPPORTED,'')+' - '+suffix+'.bassstudio'};
         target.id=target.filename.toLocaleLowerCase();
+        return writeProject(project,blob,target,{exact:false,alsoMelody,onProgress,requestAccess});
       }
     }
-    const f=new File([blob],target.filename,{type:'application/json',lastModified:Date.now()}),meta=await indexedMetadata(project,f);
-    if(target.dir){
-      const handle=await target.dir.getFileHandle(target.filename,{create:true});
-      const stream=await handle.createWritable();
-      try{await stream.write(blob);await stream.close();}catch(e){try{await stream.abort();}catch{}throw e;}
-      if(target.dir===folder){index[target.filename]=meta;await put('index',index).catch(()=>{});}
+    if(previous?.analysis?.bassBacking?.version===2&&project.analysis.bassBacking?.version!==2){
+      project={...project,analysis:{...project.analysis,bassBacking:previous.analysis.bassBacking}};blob=null;
+    }
+    if(previous?.analysis?.melody&&Number(previous.analysis.melody.updatedAt)>Number(project.analysis.melody?.updatedAt||0)){
+      project={...project,analysis:{...project.analysis,melody:previous.analysis.melody}};blob=null;
+    }
+    if(alsoMelody&&previous){
+      project={...previous,savedAt:project.savedAt,analysis:{...previous.analysis,melody:project.analysis.melody}};
+      blob=null;
+    }
+    blob=blob||projectBlob(project);
+    const f=new File([blob],target.filename,{type:'application/json',lastModified:Date.now()});
+    const meta={...metadata(project,f),audioId:unchanged&&match.audioId||await audioIdentity(project)};
+    if(access){
+      handle=handle||await within(directory.getFileHandle(target.filename,{create:true}));
+      const stream=await within(handle.createWritable());
+      try{
+        const chunk=4*1024*1024;
+        if(blob.size<=chunk)await within(stream.write(blob),90000);
+        else for(let offset=0;offset<blob.size;offset+=chunk){
+          const end=Math.min(offset+chunk,blob.size);
+          await within(stream.write(blob.slice(offset,end)),90000);
+          onProgress('Saving '+target.filename+' · '+Math.floor(99*end/blob.size)+'%');
+        }
+        onProgress('Finishing '+target.filename+'…');
+        await within(stream.close(),90000);
+      }catch(e){try{void Promise.resolve(stream.abort()).catch(()=>{});}catch{}throw e;}
+      const committed=await within(handle.getFile());
+      if(committed.size!==blob.size)throw Error('File size check failed. Reopen the folder and try Save again.');
+      meta.modified=committed.lastModified;
+      if(directory&&directory===folder){index[target.filename]=meta;void put('index',{...index}).catch(()=>{});}
     }else{
       await store('songs','readwrite',s=>s.put({...meta,id:target.id,blob}));
-      // This is advisory: some browsers do not grant persistent storage.
       try{void navigator.storage?.persist?.().catch(()=>{});}catch{}
     }
-    if(dialog?.open)await refresh().catch(e=>status(errorText(e)));
+    Object.assign(target,meta,{handle});
+    if(!access||directory===folder){
+      const updated={...target,storageLabel:access?'Save folder':'In app'};
+      rows=uniqueSongs([updated,...rows.filter(r=>!(r.dir===directory&&r.filename===target.filename))]);if(dialog?.open)render();
+    }
     window.dispatchEvent(new Event('bass-stem:project-saved'));
-    return target.dir?'folder “'+target.dir.name+'”':'this device';
+    return {target,location:access?(directory?'folder “'+directory.name+'”':'the selected file'):'this device'};
   }
   async function rowFile(row){
-    if(row.handle)return row.handle.getFile();
-    if(row.dir)return (await row.dir.getFileHandle(row.filename)).getFile();
-    const saved=await store('songs','readonly',s=>s.get(row.id));
-    if(!saved?.blob)throw Error('This saved song is no longer available.');
-    return new File([saved.blob],saved.filename,{type:'application/json'});
+    await pendingWrite;
+    let file;
+    if(row.handle||row.dir){
+      const handle=row.handle||await within(row.dir.getFileHandle(row.filename));
+      file=await within(handle.getFile());
+      row={...row,handle,dir:row.dir||(row.where==='your saved folder'?folder:null)};
+    }else{
+      const saved=await store('songs','readonly',s=>s.get(row.id));
+      if(!saved?.blob)throw Error('This saved song is no longer available.');
+      row={...row,filename:saved.filename,audioId:saved.audioId,size:saved.blob.size,savedAt:saved.savedAt};
+      file=new File([saved.blob],saved.filename,{type:'application/json'});
+    }
+    const {blob,...target}=row;
+    if((target.handle||target.dir)&&(file.size!==target.size||file.lastModified!==target.modified))delete target.audioId;
+    openedFiles.set(file,{...target,size:file.size,modified:file.lastModified});
+    return file;
+  }
+  function selectedFile(file,handle){openedFiles.set(file,{filename:file.name,size:file.size,modified:file.lastModified,handle});}
+  async function lastProject(ref){
+    await ready;
+    if(!ref?.filename||!ref?.audioId)return null;
+    if(ref.inFolder&&(!folder||folder.name!==ref.folder||!await within(permission(folder,'read'))))return null;
+    const row=ref.inFolder?{dir:folder,filename:ref.filename}:{id:ref.id,filename:ref.filename};
+    const file=await rowFile(row);
+    const target=openedFiles.get(file);
+    if(file.size!==ref.size||(ref.inFolder?file.lastModified!==ref.modified:target.savedAt!==ref.savedAt))return null;
+    target.audioId=ref.audioId;
+    return file;
   }
   async function openRow(row){
     if(hooks.isBusy?.())throw Error('Wait for the current song to finish, then open another.');
@@ -14498,7 +14596,7 @@ window.BassLibrary=(()=>{
     for(const file of files){
       try{
         status('Adding '+file.name+'…');
-        const p=JSON.parse(await file.text());
+        const p=await readProject(file);
         if(isChordCatalogue(p)){chordCatalogues++;continue;}
         metadata(p,file);
         if(await matchingTarget(p)){duplicates++;continue;}
@@ -14639,7 +14737,7 @@ window.BassLibrary=(()=>{
         let meta=entry;
         if(typeof meta.hasChordAnalysis!=='boolean'||typeof meta.hasBassAnalysis!=='boolean'){
           const file=new File([entry.blob],entry.filename,{type:'application/json'});
-          meta={...entry,...metadata(JSON.parse(await file.text()),file)};
+          meta={...entry,...metadata(await readProject(file),file)};
         }
         const id='device:'+String(entry.id||entry.filename).toLowerCase();
         if(seen.has(id))continue;
@@ -14661,7 +14759,7 @@ window.BassLibrary=(()=>{
               if(info?.kind==='chord-catalogue'&&info.size===file.size&&info.modified===file.lastModified)continue;
               if(!info||info.size!==file.size||info.modified!==file.lastModified
                 ||typeof info.hasBassAnalysis!=='boolean'||typeof info.hasChordAnalysis!=='boolean'){
-                const project=JSON.parse(await file.text());
+                const project=await readProject(file);
                 if(isChordCatalogue(project)){index[name]={kind:'chord-catalogue',size:file.size,modified:file.lastModified};updated=true;continue;}
                 info=metadata(project,file);
                 index[name]=info;updated=true;
@@ -14685,12 +14783,9 @@ window.BassLibrary=(()=>{
     let file;
     if(location==='folder'){
       if(!folder||!await permission(folder,'read'))throw Error('Open Library and reconnect your saved folder first.');
-      const handle=await folder.getFileHandle(id);
-      file=await handle.getFile();
+      file=await rowFile({dir:folder,filename:id});
     }else{
-      const record=await store('songs','readonly',s=>s.get(String(id).toLowerCase()));
-      if(!record?.blob)throw Error('This saved song is not available on the device.');
-      file=new File([record.blob],record.filename,{type:'application/json'});
+      file=await rowFile({id:String(id).toLowerCase()});
     }
     return !!await hooks.open(file);
   }
@@ -14740,7 +14835,7 @@ window.BassLibrary=(()=>{
     const row=rows.find(r=>String(r.id||r.filename).toLowerCase()===String(id).toLowerCase());
     if(!row)throw Error('The saved project is not available in your current library.');
     if(Number(row.size)>120*1024*1024)throw Error('This saved project is too large to chart on this device.');
-    const file=await rowFile(row),project=JSON.parse(await file.text());
+    const file=await rowFile(row),project=await readProject(file);
     if(project?.format!=='Bass Stem Studio Project'||!Array.isArray(project.analysis?.chords))
       throw Error('No compatible saved chord analysis was found.');
     // Never send the original source, audio, stems, lyrics or full note timeline to Song chords.
@@ -14756,30 +14851,17 @@ window.BassLibrary=(()=>{
   }
   // Update the exact saved song, without a naming prompt or new analysis.
   // A same-named project with different audio is never overwritten.
-  async function saveAnalysisProject(project){
-    await ready;
-    if(folder&&!await permission(folder,'readwrite'))throw Error('Reconnect save folder');
-    const filename=String(project.projectName||'Song').replace(/[\\/:*?"<>|]+/g,'_').trim().slice(0,100)+'.bassstudio';
-    const target=await matchingTarget(project)||{dir:folder,filename,id:filename.toLocaleLowerCase()};
-    return save(project,new Blob([JSON.stringify(project)],{type:'application/json'}),target);
+  function defaultTarget(project,openedName){
+    const filename=openedName&&SUPPORTED.test(openedName)&&!/[\\/]/.test(openedName)?openedName:String(project.projectName||'Song').replace(/[\\/:*?"<>|]+/g,'_').trim().slice(0,100)+'.bassstudio';
+    return {dir:folder,filename,id:filename.toLocaleLowerCase()};
   }
-
-  async function saveMelodyProject(project){
+  async function saveAnalysisProject(project,target,options={}){
     await ready;
-    if(folder&&!await permission(folder,'readwrite'))throw Error('Reconnect save folder');
-    const match=await matchingTarget(project);
-    let target=match;
-    if(match){
-      const file=match.handle?await match.handle.getFile():(await store('songs','readonly',s=>s.get(match.id))).blob;
-      const previous=JSON.parse(await file.text());
-      // Melody updates preserve all original bass, chords, sections and edits.
-      project={...previous,savedAt:project.savedAt,analysis:{...previous.analysis,melody:project.analysis.melody}};
-    }else{
-      const filename=String(project.projectName||'Song').replace(/[\\/:*?"<>|]+/g,'_').trim().slice(0,100)+'.bassstudio';
-      target={dir:folder,filename,id:filename.toLocaleLowerCase()};
-    }
-    await save(project,new Blob([JSON.stringify(project)],{type:'application/json'}),target);
-    return target.dir?'folder':'device';
+    return save(project,null,target||defaultTarget(project,options.openedName),{...options,exact:!!target});
+  }
+  async function saveMelodyProject(project,target,options={}){
+    await ready;
+    return save(project,null,target||defaultTarget(project,options.openedName),{...options,exact:!!target,alsoMelody:true});
   }
 
   const practiceId=row=>row.audioId?'audio:'+row.audioId:(row.handle||row.dir?'folder:':'device:')+String(row.id||row.filename).toLowerCase();
@@ -14797,7 +14879,7 @@ window.BassLibrary=(()=>{
   async function practiceProject(id){
     const row=await practiceRow(id);
     if(Number(row.size)>240*1024*1024)throw Error('Song too large to scan on this device.');
-    const project=JSON.parse(await (await rowFile(row)).text()),a=project.analysis||{};
+    const project=await readProject(await rowFile(row)),a=project.analysis||{};
     // Keep audio, stems and lyrics out of the transition catalogue.
     return {projectName:project.projectName,source:{duration:project.source?.duration},settings:{sections:project.settings?.sections||{}},analysis:{notes:a.notes,chords:a.chords,baseScale:a.baseScale,scale:a.scale,tempoBpm:a.tempoBpm,keySections:a.keySections,keyCorrections:a.keyCorrections,structure:{segments:a.structure?.segments||[]}}};
   }
@@ -14809,7 +14891,7 @@ window.BassLibrary=(()=>{
     if(!hooks.openPractice)throw Error('Reload the platform to open this part.');
     return !!await hooks.openPractice(file);
   }
-  return {init,show,prepareSave,save,saveAnalysisProject,saveMelodyProject,hasProject,ensureBatchAccess,errorText,chartProjects,chartProject,checkAudioImport,analysisSummary,openForAnalysis,practiceProjects,practiceProject,openPracticeSong};
+  return {init,show,presentOpened(file){if(dialog?.open&&openedFiles.has(file))dialog.close();},readProject,projectBlob,selectedFile,lastProject,targetFor:file=>openedFiles.get(file),prepareSave,save:(p,b,t)=>save(p,b,t).then(r=>r.location),saveAnalysisProject,saveMelodyProject,hasProject,ensureBatchAccess,errorText,chartProjects,chartProject,checkAudioImport,analysisSummary,openForAnalysis,practiceProjects,practiceProject,openPracticeSong};
 })();
 </script>
 <script id="rc196-batch">
@@ -15483,15 +15565,15 @@ window.BassBatch = (() => {
 <script src="./ear-source/study-ui-rc267.js?v=rc294"></script>
 <script src="./ear-source/trainer-rc266.js?v=rc294"></script>
 <script src="./fretflow-source/core.js?v=rc277"></script>
-<script src="./fretflow-source/backing.js?v=rc302"></script>
+<script src="./fretflow-source/backing.js?v=rc303"></script>
 <script src="./fretflow-source/view.js?v=rc278"></script>
-<script src="./fretflow-source/controls.js?v=rc300"></script>
+<script src="./fretflow-source/controls.js?v=rc303"></script>
 <script src="./song-view/core.js?v=rc288"></script>
 <script src="./song-view/view.js?v=rc288"></script>
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC302';
+  const APP_VERSION='RC303';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;
@@ -15535,7 +15617,7 @@ window.BassBatch = (() => {
     updateProjectButtons();updateAnalysisToolsState();refreshBassPracticeToggle();
   }
   function replaceSongSession({preservePending=false}={}){
-    songSession++;fretFlowStringCount=5;window.BassPracticeControls?.showControls();window.BassBacking?.reset();window.BassFretFlow?.invalidate();window.BassLoopFade?.reset();window.BassChordReview?.reset();window.BassSoundCheck?.cancel();window.BassTools?.cancelSession();window.BassRhythm?.cancel();window.BassLyrics?.cancel();window.BassPiano?.reset();
+    songSession++;currentProjectTarget=null;importedProjectFields=null;sourceEncoding=null;showProjectSave('');fretFlowStringCount=5;window.BassPracticeControls?.showControls();window.BassBacking?.reset();window.BassFretFlow?.invalidate();window.BassLoopFade?.reset();window.BassChordReview?.reset();window.BassSoundCheck?.cancel();window.BassTools?.cancelSession();window.BassRhythm?.cancel();window.BassLyrics?.cancel();window.BassPiano?.reset();
     resetSongStructure();
     aiBusy=false;pendingResumeBusy=false;offlineAnalysisRunning=false;
     if(aiAnalyse)aiAnalyse.removeAttribute('aria-busy');
@@ -15643,7 +15725,9 @@ window.BassBatch = (() => {
     try{return await new Promise((resolve,reject)=>{const tx=db.transaction(storeName,'readwrite');
       let result,request;try{request=operation(tx.objectStore(storeName));}catch(e){tx.abort();reject(e);return;}
       if(request)request.onsuccess=()=>{result=request.result;};
-      tx.oncomplete=()=>resolve(result);tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('Save interrupted.'));});}
+      const timer=setTimeout(()=>{try{tx.abort();}catch{}reject(Error('Device recovery storage took too long.'));},60000);
+      tx.oncomplete=()=>{clearTimeout(timer);resolve(result);};
+      tx.onerror=tx.onabort=()=>{clearTimeout(timer);reject(tx.error||Error('Device save interrupted.'));};});}
     finally{db.close();}
   }
   function persistAnalysisRecovery(force=false){
@@ -15692,7 +15776,9 @@ window.BassBatch = (() => {
   }
   function rememberLastOpenedSession(){
     if(!activeAudioFile||!buffer)return;
-    try{localStorage.setItem(LAST_OPENED_SESSION,JSON.stringify({signature:cloudFileSignature(activeAudioFile),name:activeAudioFile.name,openedAt:Date.now()}));}catch{}
+    const t=currentProjectTarget;
+    const project=t&&(t.dir||t.id)?{inFolder:!!t.dir,folder:t.dir?.name,filename:t.filename,id:t.id,audioId:t.audioId,size:t.size,modified:t.modified,savedAt:t.savedAt}:null;
+    try{localStorage.setItem(LAST_OPENED_SESSION,JSON.stringify({project,signature:cloudFileSignature(activeAudioFile),name:activeAudioFile.name,openedAt:Date.now()}));}catch{}
   }
   async function restoreLatestSession(){
     if(songImportBusy||buffer||activeAudioFile||pendingResumeBusy)return false;
@@ -15700,6 +15786,11 @@ window.BassBatch = (() => {
     pendingResumeBusy=true;
     try{
       const preferred=readLastOpenedSession();
+      if(preferred?.project){
+        const file=await window.BassLibrary.lastProject(preferred.project).catch(()=>null);
+        if(buffer||request!==songLoadRequest||session!==songSession)return false;
+        if(file&&await importBassStudioProject(file))return true;
+      }
       const saved=await recoveryStore(RUNPOD_RECOVERY_STORE,s=>s.getAll());
       const last=preferred?(saved||[]).find(row=>row.signature===preferred.signature):(saved||[]).sort((a,b)=>b.cachedAt-a.cachedAt)[0];
       if(!last?.blob||buffer||request!==songLoadRequest||session!==songSession)return false;
@@ -15722,7 +15813,7 @@ window.BassBatch = (() => {
     const range=keyCorrectionRange(scope);
     rememberAnalysis('Before key correction');
     keyCorrections.push({start:range.start,end:range.end,rootPc:root,mode,scaleText:scaleTextFor(root,mode)});
-    refreshEditedAnalysis();persistAnalysisRecovery();toolsMessage(`Key corrected: ${scaleTextFor(root,mode)}. Audio pitch unchanged.`);
+    refreshEditedAnalysis();queueMelodyProjectSave(true);persistAnalysisRecovery();toolsMessage(`Key corrected: ${scaleTextFor(root,mode)}. Audio pitch unchanged.`);
   }
   function splitAroundRange(items,start,end){
     return items.flatMap(item=>item.end<=start||item.start>=end?[{...item}]:[
@@ -15774,7 +15865,7 @@ window.BassBatch = (() => {
     rememberAnalysis('Before correction');manualCorrections.push({kind,original,value});
     if(kind==='note')notes=notes.filter(n=>!(n.start===original.start&&n.midi===original.midi));
     else detectedChordChanges=splitAroundRange(detectedChordChanges,original.start,original.end);
-    replayManualCorrections();refreshEditedAnalysis();persistAnalysisRecovery(true);$('analysisEditDialog').close();editingEvent=null;
+    replayManualCorrections();refreshEditedAnalysis();queueMelodyProjectSave(true);persistAnalysisRecovery(true);$('analysisEditDialog').close();editingEvent=null;
     toolsMessage('');
     }finally{analysisDeleteBusy=false;}
   }
@@ -15797,7 +15888,7 @@ window.BassBatch = (() => {
     rememberAnalysis('Before selection analysis');
     notes=notes.filter(n=>n.start<start||n.start>=end).concat(dedupeSegmentBoundaryNotes(replacement)).sort((a,b)=>a.start-b.start);
     detectedChordChanges=splitAroundRange(detectedChordChanges,start,end).concat(chords).sort((a,b)=>a.start-b.start);
-    replayManualCorrections();refreshEditedAnalysis();await persistAnalysisRecovery();
+    replayManualCorrections();refreshEditedAnalysis();queueMelodyProjectSave(true);await persistAnalysisRecovery();
     return {count:notes.length,partCount:pending.parts.length,bassStemReady:!!bassStemReady,selection:true};
   }
   async function analyseSelectedRange(){
@@ -15833,7 +15924,7 @@ window.BassBatch = (() => {
   function undoLastAnalysisEdit(){
     if(aiBusy)return;closeInlineNoteEditor();
     const previous=analysisHistory.pop();
-    if(previous){restoreAnalysisSnapshot(previous);persistAnalysisRecovery();toolsMessage('');}
+    if(previous){restoreAnalysisSnapshot(previous);queueMelodyProjectSave(true);persistAnalysisRecovery();toolsMessage('');}
   }
   let inlineNoteEditor=null;
   function closeInlineNoteEditor(){
@@ -15918,6 +16009,12 @@ window.BassBatch = (() => {
     if(rawMidi===null || rawMidi===undefined || rawMidi==='')return null;
     const midi=Math.round(Number(rawMidi));
     return Number.isFinite(midi) && midi>=0 && midi<=127 ? midi : null;
+  }
+
+  function savedBassPitch(note){
+    const displayed=mapPracticeMidi(note.midi),recorded=mapPracticeMidi(note.cloudMidi);
+    // Older saves could convert a missing source pitch to zero.
+    return note.manual||recorded===0&&displayed>0?displayed:(recorded??displayed);
   }
 
   function mapFreshCloudMidi(rawMidi){
@@ -16056,7 +16153,7 @@ window.BassBatch = (() => {
   }
 
   function updateProjectButtons(){
-    if(saveProjectBtn)saveProjectBtn.disabled=projectSaveBusy||songImportBusy||aiBusy||!(buffer && activeAudioFile && ((offlineAnalysisReady && notes.length) || detectedChordChanges.length || window.BassLyrics?.exportData().length || window.BassPiano?.exportData().notes.length || songStructure));
+    if(saveProjectBtn)saveProjectBtn.disabled=projectSaveBusy||autoWriting||songImportBusy||aiBusy||!(buffer && activeAudioFile && ((offlineAnalysisReady && notes.length) || detectedChordChanges.length || window.BassLyrics?.exportData().length || window.BassPiano?.exportData().notes.length || songStructure || window.BassBacking?.exportData()));
   }
 
   function arrayBufferToBase64(ab){
@@ -16084,135 +16181,54 @@ window.BassBatch = (() => {
     return null;
   }
 
-  let projectSaveBusy=false;
-  async function saveBassStudioProject({batchName=null}={}){
-    if(songImportBusy||aiBusy||projectSaveBusy){if(batchName)throw Error('Wait for the current song to finish.');return;}
-    if(!buffer || !activeAudioFile || (!(offlineAnalysisReady && notes.length) && !detectedChordChanges.length && !window.BassLyrics?.exportData().length && !window.BassPiano?.exportData().notes.length && !songStructure)){
-      if(batchName)throw Error('No complete analysis to save.');aiStatus('Analyse the song first, then save it.',0);return;
+  let projectSaveBusy=false,autoWriting=false;
+  let currentProjectTarget=null,importedProjectFields=null,sourceEncoding=null;
+  function showProjectSave(text){
+    window.BassPracticeControls?.setSaveStatus(text);
+    if(saveProjectBtn){
+      saveProjectBtn.textContent=!text?'Save':text.startsWith('Saved ')?'Saved ✓':text.startsWith('Song not saved')?'Retry save':'Saving…';
+      saveProjectBtn.title=text||'Save song';
     }
-    const defaultBase=safeProjectFilename((loadedProjectName||objectName||activeAudioFile.name||'Bass Studio Song').replace(/\.[^.]+$/,''));
-    const namingSession=songSession;
-    const chosen=batchName||await BassDialog.open({title:'Save song',label:'Song name',value:defaultBase,accept:'Save song'});
-    if(chosen===null||namingSession!==songSession||songImportBusy||aiBusy||projectSaveBusy)return;
+  }
+  async function saveBassStudioProject({batchName=null}={}){
+    if(!batchName&&autoWriting){showProjectSave('Saving this song…');return;}
+    if(songImportBusy||aiBusy||projectSaveBusy){if(batchName)throw Error('Wait for the current song to finish.');return;}
+    const session=songSession,existing=currentProjectTarget;
+    const base=safeProjectFilename(loadedProjectName||String(objectName||activeAudioFile?.name||'Song').replace(/\.[^.]+$/,''));
+    const chosen=batchName||(existing||loadedProjectName?base:await BassDialog.open({title:'Save song',label:'Song name',value:base,accept:'Save song'}));
+    if(chosen===null||session!==songSession||songImportBusy||aiBusy||projectSaveBusy)return;
     const projectName=safeProjectFilename(chosen);
-    const session=songSession;
-    projectSaveBusy=true;
+    let writing=false;
     try{
-      if(saveProjectBtn){saveProjectBtn.disabled=true;saveProjectBtn.textContent='Saving…';}
-      const saveTarget=await window.BassLibrary.prepareSave(projectName);
+      const project=await captureStudyProject();
+      if(!project||session!==songSession)return;
+      project.projectName=projectName;
+      projectSaveBusy=true;writing=true;updateProjectButtons();
+      if(saveProjectBtn)saveProjectBtn.textContent='Saving…';
+      showProjectSave('Saving this song…');
+      const result=await window.BassLibrary.saveAnalysisProject(project,existing,{requestAccess:true,openedName:importedProjectFields?.filename,onProgress:text=>{if(session===songSession)showProjectSave(text);}});
       if(session!==songSession)return;
-      aiStatus('Preparing saved song project…',92);
-      const audioAB=await activeAudioFile.arrayBuffer();
-      if(session!==songSession)return;
-      const audioBase64=arrayBufferToBase64(audioAB);
-      const sorted=notes.slice().sort((a,b)=>a.start-b.start);
-      const savedNotes=sorted.map((n,i)=>({
-        no:i+1,
-        midi:Math.round(Number(n.midi)),
-        note:midiName(Number(n.midi)),
-        scaleNumber:scaleDegreeLabel(Number(n.midi)+transposeSemitones)||n.scaleNumber||null,
-        start:Number(n.start),
-        end:Number(n.end),
-        duration:Math.max(0,Number(n.end)-Number(n.start)),
-        confidence:Number(n.confidence)||0,
-        isFill:!!n.isFill,
-        onsetSupported:!!n.onsetSupported,
-        cloudMidi:Number.isFinite(Number(n.cloudMidi))?Number(n.cloudMidi):null,
-        manual:!!n.manual,source:n.source||'Analysis'
-      }));
-      const project={
-        study:window.BassTools?.exportSong()||null,
-        format:'Bass Stem Studio Project',
-        schemaVersion:PROJECT_SCHEMA_VERSION,
-        appVersion:APP_VERSION,
-        projectName,
-        savedAt:new Date().toISOString(),
-        source:{
-          name:activeAudioFile.name||objectName||`${projectName}.mp3`,
-          type:activeAudioFile.type||'audio/mpeg',
-          size:Number(activeAudioFile.size)||audioAB.byteLength,
-          duration:Number(buffer.duration)||0,
-          sampleRate:Number(buffer.sampleRate)||0,
-          channels:Number(buffer.numberOfChannels)||0,
-          audioBase64
-        },
-        analysis:{
-          ready:true,melody:window.BassPiano?.exportData(),structure:copyAnalysis(songStructure),bassBacking:window.BassBacking?.exportData()||null,
-          history:analysisHistory,manualCorrections,keyCorrections,
-          keySections:audioKeySections,keyReady:audioKeyReady,baseScale:detectedBaseScale,
-          noteCount:savedNotes.length,
-          scale:String(detectedBaseScale?.scaleText||detectedScaleContext?.scaleText||'—'),
-          tempoBpm:currentTempoBpm(),
-          displayMode:noteDisplayMode,
-          numberingConvention,
-          bassAudioMime:analysisParts.length?null:(bassStemReady?bassStemMime:null),
-          bassAudioBase64:analysisParts.length?null:(bassStemReady?bassStemBase64:null),
-          noBassAudioMime:analysisParts.length?null:(noBassReady?noBassMime:null),
-          noBassAudioBase64:analysisParts.length?null:(noBassReady?noBassBase64:null),
-          rehearsalVersion:currentRehearsalVersion||null,
-          parts:analysisParts.length?analysisParts.map((p,i)=>({
-            index:i,
-            label:p.label||`P${i+1}`,
-            coreStart:Number(p.coreStart)||0,
-            coreEnd:Number(p.coreEnd)||0,
-            audioStart:Number(p.audioStart)||0,
-            audioEnd:Number(p.audioEnd)||0,
-            bassAudioMime:p.bassMime||null,
-            bassAudioBase64:p.bassBase64||null,
-            noBassAudioMime:p.noBassMime||null,
-            noBassAudioBase64:p.noBassBase64||null,
-            rehearsalVersion:p.rehearsalVersion||currentRehearsalVersion||null
-          })):[],
-          beatTimes:Array.isArray(detectedBeatTimes)?detectedBeatTimes.slice():[],
-          beatsPerBar:Number(detectedBeatsPerBar)||4,
-          downbeatPhase:Number(detectedDownbeatPhase)||0,
-          beatGridConfidence:Number.isFinite(Number(beatGridConfidence))?Number(beatGridConfidence):null,
-          chords:Array.isArray(detectedChordChanges)?detectedChordChanges.map(c=>({
-            start:Number(c.start)||0,end:Number(c.end)||0,rootPc:Number(c.rootPc),
-            quality:String(c.quality||''),label:String(c.label||''),confidence:Number(c.confidence)||0,
-            evidence_version:String(c.evidenceVersion||''),bassPc:c.bassPc??null,uncertain:!!c.uncertain,manual:!!c.manual,source:String(c.source||'')
-          })):[],
-          lyrics:window.BassLyrics?.exportData()||[],
-          notes:savedNotes
-        },
-        settings:{
-          mainVolume:Number.isFinite(Number(origVol?.value))?Number(origVol.value):70,
-          bassVolume:Number.isFinite(Number(bassVol?.value))?Number(bassVol.value):70,
-          metronomeVolume:Number.isFinite(Number(metronomeVol?.value))?Number(metronomeVol.value):70,
-          speed:Number.isFinite(Number(tempo?.value))?Number(tempo.value):100,
-          timelineCellSeconds:Number(TIMELINE_CELL_SECONDS)||1,
-          practiceView:['timeline','bass','piano','bassroll','fretflow','song'].includes(String(practiceVisualMode))?String(practiceVisualMode):'timeline',
-          fretFlowStrings:fretFlowStringCount,
-          bassStringCount:[4,5,6].includes(Number(bassViewStringCount))?Number(bassViewStringCount):5,
-          transposeSemitones,
-          selectedScale:String(songScale?.textContent||detectedScaleContext?.scaleText||'—'),
-          transposeSemitones:Number(transposeSemitones)||0,
-          bassMuted:!!bassPracticeMuted,
-          metronomeEnabled:!!metronomeEnabled,
-          sections:copyAnalysis(sections),
-          repeatRanges:Object.fromEntries(repeatRangeOverrides),
-          selectedSections:[...selectedSections],
-          selectedSection
-        }
-      };
-      const blob=new Blob([JSON.stringify(project)],{type:'application/json;charset=utf-8'});
-      const savedLocation=await window.BassLibrary.save(project,blob,saveTarget);
-      if(session!==songSession){if(batchName)throw Error('Song changed during save.');return;}
+      savedProjectResult(result);
       loadedProjectName=projectName;
-      aiStatus(`Saved “${projectName}” to ${savedLocation} · ${savedNotes.length} notes · ${Object.keys(sections).length} saved sections${songStructure?'':' · automatic sections not yet available'}`,100);
       const missing=[];
       if(!detectedChordChanges.length)missing.push('chords');
       if(window.BassPiano.unfinished())missing.push('melody');
       if(!songStructure?.segments?.length)missing.push('sections');
-      return {projectName,noteCount:savedNotes.length,sectionCount:Object.keys(sections).length,
+      return {projectName,noteCount:project.analysis.notes.length,sectionCount:Object.keys(sections).length,
         warning:missing.length?'Saved available results; '+missing.join(', ')+' pending. Open the song to continue.':''};
-    }catch(err){
-      if(session===songSession&&err?.name!=='AbortError'){console.error(err);aiStatus(window.BassLibrary.errorText(err),0);}
-      if(batchName)throw err;
+    }catch(error){
+      if(session===songSession)showProjectSave('Song not saved. '+window.BassLibrary.errorText(error));
+      if(batchName)throw error;
     }finally{
-      projectSaveBusy=false;
-      if(saveProjectBtn){saveProjectBtn.textContent='Save';updateProjectButtons();}
+      if(writing)projectSaveBusy=false;
+      updateProjectButtons();
     }
+  }
+  function savedProjectResult(result){
+    currentProjectTarget=result.target;
+    rememberLastOpenedSession();
+    const message='Saved '+result.target.filename+' to '+result.location+'.';
+    showProjectSave(message);aiStatus(message,100);
   }
 
   async function captureStudyProject(){
@@ -16221,9 +16237,9 @@ window.BassBatch = (() => {
     const session=songSession,projectName=safeProjectFilename(loadedProjectName||objectName||'Song');
     projectSaveBusy=true;updateProjectButtons();
     try{
-      const audioAB=await activeAudioFile.arrayBuffer();
+      const audioBase64=sourceEncoding||await fileToBase64(activeAudioFile);
       if(session!==songSession)return;
-      const audioBase64=arrayBufferToBase64(audioAB);
+      sourceEncoding=audioBase64;
       const sorted=notes.slice().sort((a,b)=>a.start-b.start);
       const savedNotes=sorted.map((n,i)=>({
         no:i+1,
@@ -16236,7 +16252,7 @@ window.BassBatch = (() => {
         confidence:Number(n.confidence)||0,
         isFill:!!n.isFill,
         onsetSupported:!!n.onsetSupported,
-        cloudMidi:Number.isFinite(Number(n.cloudMidi))?Number(n.cloudMidi):null,
+        cloudMidi:mapPracticeMidi(n.cloudMidi),
         manual:!!n.manual,source:n.source||'Analysis'
       }));
       const project={
@@ -16249,7 +16265,8 @@ window.BassBatch = (() => {
         source:{
           name:activeAudioFile.name||objectName||`${projectName}.mp3`,
           type:activeAudioFile.type||'audio/mpeg',
-          size:Number(activeAudioFile.size)||audioAB.byteLength,
+          lastModified:activeAudioFile.lastModified,
+          size:Number(activeAudioFile.size)||0,
           duration:Number(buffer.duration)||0,
           sampleRate:Number(buffer.sampleRate)||0,
           channels:Number(buffer.numberOfChannels)||0,
@@ -16314,6 +16331,11 @@ window.BassBatch = (() => {
           selectedSection
         }
       };
+      if(importedProjectFields){
+        project.library=importedProjectFields.library;
+        project.analysis={...importedProjectFields.analysis,...project.analysis};
+        project.settings={...importedProjectFields.settings,...project.settings};
+      }
       return project;
     }finally{projectSaveBusy=false;updateProjectButtons();}
   }
@@ -16325,7 +16347,7 @@ window.BassBatch = (() => {
     setSongImportBusy(true);
     try{
       aiStatus('Opening saved Bass Studio project…',8);
-      const project=JSON.parse(await file.text());
+      const project=await window.BassLibrary.readProject(file);
       if(request!==songLoadRequest)return false;
       if(project?.format!=='Bass Stem Studio Project' || !Array.isArray(project?.analysis?.notes))
         throw new Error('This is not a valid Bass Stem Studio saved project.');
@@ -16352,17 +16374,18 @@ window.BassBatch = (() => {
       // changing the currently open song. A damaged project must never clear
       // the working rehearsal stems or replace the current audio half-way.
       const restored=project.analysis.notes.map(n=>({
-        midi:mapPracticeMidi(n.manual?n.midi:(mapPracticeMidi(n.cloudMidi)??n.midi)),
+        midi:savedBassPitch(n),
         start:Number(n.start),end:Number(n.end),
         confidence:Number(n.confidence)||0,
         isFill:typeof n.isFill==='boolean'?n.isFill:false,
         onsetSupported:!!(n.onsetSupported??n.onset_supported),
         scaleNumber:(n.scaleNumber===null||n.scaleNumber===undefined||n.scaleNumber==='')?null:String(n.scaleNumber),
-        cloudMidi:mapPracticeMidi(n.cloudMidi)??mapPracticeMidi(n.midi),
+        cloudMidi:n.manual?mapPracticeMidi(n.cloudMidi):savedBassPitch(n),
         manual:!!n.manual,source:n.source||'Saved project'
       })).filter(n=>Number.isFinite(n.midi)&&Number.isFinite(n.start)&&Number.isFinite(n.end)&&n.end>n.start)
         .sort((a,b)=>a.start-b.start);
-      if(!restored.length&&!window.BassPiano.clean(project.analysis.melody?.notes,Number(src.duration)).length&&!window.BassLyrics.clean(project.analysis.lyrics).length&&!(project.analysis.chords||[]).some(c=>Number.isFinite(Number(c.rootPc??c.root_pc))&&CHORD_QUALITY_LABELS[c.quality]&&Number(c.end)>Number(c.start))&&!validLegacySharedLoop(project)&&!normaliseSongStructure(project.analysis.structure,Number(src.duration)))throw new Error('The saved project contains no usable notes, chords, lyrics or sections.');
+      if(!restored.length&&!window.BassBacking.canRestore(project.analysis.bassBacking,Number(src.duration))&&
+        !(project.analysis.melody?.done||[]).some(savedRange)&&!window.BassPiano.clean(project.analysis.melody?.notes,Number(src.duration)).length&&!window.BassLyrics.clean(project.analysis.lyrics).length&&!(project.analysis.chords||[]).some(c=>Number.isFinite(Number(c.rootPc??c.root_pc))&&CHORD_QUALITY_LABELS[c.quality]&&Number(c.end)>Number(c.start))&&!validLegacySharedLoop(project)&&!normaliseSongStructure(project.analysis.structure,Number(src.duration)))throw new Error('The saved project contains no usable notes, chords, lyrics or sections.');
 
       let bytes;
       try{
@@ -16393,8 +16416,12 @@ window.BassBatch = (() => {
       // Commit only after the candidate project has passed all destructive
       // validation above.
       replaceSongSession();
-      activeAudioFile=new File([audioBlob],audioName,{type,lastModified:Date.now()});
+      activeAudioFile=new File([audioBlob],audioName,{type,lastModified:Number(src.lastModified)||1});
       buffer=decodedBuffer;
+      currentProjectTarget=window.BassLibrary.targetFor(file)||null;
+      sourceEncoding=src.audioBase64;
+      const {bassBacking,bassAudioBase64,noBassAudioBase64,parts,...otherAnalysis}=project.analysis;
+      importedProjectFields={filename:file.name,library:project.library,analysis:otherAnalysis,settings:project.settings};
       if(mediaURL)URL.revokeObjectURL(mediaURL);
       mediaURL=URL.createObjectURL(audioBlob);
       masterAudio.src=mediaURL;masterAudio.load();masterAudio.preservesPitch=true;
@@ -16420,6 +16447,8 @@ window.BassBatch = (() => {
       }
 
       notes=restored;analysedBassNotes=restored.map(n=>({...n}));offlineAnalysisReady=restored.length>0;offlineAnalysisRunning=false;updatePracticeLayoutState(true);
+      window.BassPiano.restore(project.analysis.melody);
+      warmViewSounds();
       noteDisplayMode=project.analysis.displayMode==='numbers'?'numbers':'notes';
       numberingConvention=project.analysis.numberingConvention==='key'?'key':project.analysis.numberingConvention==='relative-major'?'relative-major':noteDisplayMode==='numbers'?'relative-major':'key';
       resetSongContext();
@@ -16440,6 +16469,8 @@ window.BassBatch = (() => {
       keyCorrections=Array.isArray(project.analysis.keyCorrections)?project.analysis.keyCorrections:[];
       if(Array.isArray(project.analysis.keySections)&&project.analysis.keyReady){audioKeySections=project.analysis.keySections;audioKeyReady=true;audioKeyBuffer=buffer;}
       renderAnalysisHistory();
+      window.BassPiano.restore(project.analysis.melody);
+      warmViewSounds();
       noteDisplayMode=project.analysis.displayMode==='numbers'?'numbers':'notes';refreshNoteNumberToggle();
 
       baseSections={};
@@ -16516,7 +16547,9 @@ window.BassBatch = (() => {
       seek.value=0;curTime.textContent=fmt(0);
       setFretFlowStringCount([4,5,6].includes(Number(project.settings?.fretFlowStrings))?Number(project.settings.fretFlowStrings):5);
       if(['bass','bassroll','piano','fretflow','song'].includes(project.settings?.practiceView))setPracticeVisualMode(project.settings.practiceView);
-      await window.BassBacking?.restore(project.analysis.bassBacking);
+      window.BassLibrary.presentOpened(file);
+      const melodyRecovery=restoreSavedMelody(project.analysis.melody,project.savedAt,true);
+      const backingLoad=window.BassBacking?.restore(project.analysis.bassBacking);
       if(request!==songLoadRequest)return false;
       status.className='status good';status.textContent='';
       aiStatus(`Opened “${loadedProjectName||audioName}” · ${restored.length} notes`,100);
@@ -16554,10 +16587,13 @@ window.BassBatch = (() => {
       const expectedNoBass=analysisParts.length?!!analysisParts[0].noBassBase64:!!project.analysis.noBassAudioBase64;
       const warning=(expectedBass&&!bassStemReady)||(expectedNoBass&&!noBassReady);
       aiStatus(`Saved results ready · ${restored.length} bass notes · ${detectedChordChanges.length} chords${warning?' · one saved track unavailable':''}. Press Play.`,100);
-      await cacheAudioForRecovery(activeAudioFile);
+      void cacheAudioForRecovery(activeAudioFile);
       if(request!==songLoadRequest)return false;
-      await restoreSavedMelody(project.analysis?.melody,project.savedAt);
-      await persistAnalysisRecovery();
+      const recoveredMelody=await melodyRecovery;
+      await backingLoad;
+      if(request!==songLoadRequest)return false;
+      if(recoveredMelody)queueMelodyProjectSave(true);
+      void persistAnalysisRecovery();
       if(project.study)window.BassTools?.restoreSong(project.study);
       if(validLegacySharedLoop(project)){
         selectedSections.clear();selectedSections.add('Shared loop');multiSectionMode=false;timeframeLoopMode=false;
@@ -16582,7 +16618,7 @@ window.BassBatch = (() => {
         if(projectFileInput)projectFileInput.value='';
         setSongImportBusy(false);updatePracticeLayoutState(true);
         if(importSucceeded&&findSections)startImportedSongSections();
-        if(importSucceeded){queueMutePreparation();queueAutomaticMelody();}
+        if(importSucceeded)queueAutomaticMelody();
       }
     }
   }
@@ -16616,6 +16652,7 @@ window.BassBatch = (() => {
       });
       if(!handle)return;
       file=await handle.getFile();
+      if(kind!=='audio')window.BassLibrary.selectedFile(file,handle);
     }catch(error){
       if(error?.name==='AbortError')return;
       input.click();return;
@@ -17151,7 +17188,7 @@ window.BassBatch = (() => {
       return false;
     }finally{if(request===songLoadRequest){
       if(!recoveryRestore)setSongImportBusy(false);
-      if(importSucceeded&&recoveryRestore&&!batchImport){queueMutePreparation();queueAutomaticMelody();}
+      if(importSucceeded&&recoveryRestore&&!batchImport)queueAutomaticMelody();
       if(importSucceeded&&!batchImport&&!recoveryRestore){startImportedSongSections({allowNewJob:false});queueAutomaticAudioAnalysis();}
     }}
   }
@@ -17866,8 +17903,12 @@ window.BassBatch = (() => {
         if(!db.objectStoreNames.contains(RUNPOD_RECOVERY_STORE))
           db.createObjectStore(RUNPOD_RECOVERY_STORE,{keyPath:'signature'});
       };
-      request.onsuccess=()=>resolve(request.result);
-      request.onerror=()=>reject(request.error||new Error('Could not open recovery storage.'));
+      let expired=false;
+      const unavailable=()=>{expired=true;clearTimeout(timer);reject(Error('Device recovery storage is unavailable.'));};
+      const timer=setTimeout(unavailable,15000);
+      request.onblocked=unavailable;
+      request.onsuccess=()=>{clearTimeout(timer);if(expired)request.result.close();else resolve(request.result);};
+      request.onerror=unavailable;
     });
   }
 
@@ -20907,7 +20948,6 @@ window.BassBatch = (() => {
     mutePreparationTimer=setTimeout(run,400);
   }
   function queueAutomaticAudioAnalysis(){
-    queueMutePreparation();
     clearTimeout(automaticAudioTimer);
     clearTimeout(automaticMelodyTimer);
     const session=songSession;
@@ -20924,15 +20964,15 @@ window.BassBatch = (() => {
       try{pending=selectSongAnalysisJob(activeAudioFile);}
       catch(error){aiStatus(error.message,0);return;}
       if(pending?.parts?.some(part=>part.failedStatus||part.submitting)){
-        aiStatus('Analysis needs review. Tap Analyse Bass.',0);return;
+        aiStatus('Analysis needs review. Tap Analyse Bass.',0);queueMutePreparation();return;
       }
       analysisStartPending=true;
       try{
         // Reuses matching pending jobs. Never clears a failed job or approves a paid retry.
         const result=await analyseBassWithAI();
-        if(session===songSession&&result&&offlineAnalysisReady)queueAutomaticMelody();
+        if(session===songSession){if(result&&offlineAnalysisReady)queueAutomaticMelody();else queueMutePreparation();}
       }catch(error){
-        if(session===songSession)aiStatus('Analysis needs review. Tap Analyse Bass.',0);
+        if(session===songSession){aiStatus('Analysis needs review. Tap Analyse Bass.',0);queueMutePreparation();}
       }finally{analysisStartPending=false;}
     };
     automaticAudioTimer=setTimeout(start,250);
@@ -20985,11 +21025,11 @@ window.BassBatch = (() => {
       }
       if(window.BassPiano.isBusy()){automaticMelodyTimer=setTimeout(start,1200);return;}
 
-      if(!notes.length&&(!storedRunPodKey()||loadedProjectName&&practiceVisualMode==='bassroll')){
+      if(!notes.length&&(!storedRunPodKey()||loadedProjectName)){
         localBassWorking=true;try{await estimateMissingBass(buffer,session);}finally{if(session===songSession)localBassWorking=false;}
         if(session!==songSession)return;
       }
-      if(!window.BassPiano.unfinished()){warmViewSounds();queueMelodyProjectSave();await window.BassBacking.prepareForSong();return;}
+      if(!window.BassPiano.unfinished(true)){warmViewSounds();await window.BassBacking.prepareForSong();return;}
 
       await window.BassPiano.analyse({automatic:true});
       if(session!==songSession)return;
@@ -21012,16 +21052,19 @@ window.BassBatch = (() => {
     const identity=await structureAudioIdentity(file);if(!identity||session!==songSession)return;
     await recoveryStore('results',s=>s.put({id:'piano-saved-v1:'+identity,melody,savedAt:Date.now()}));
   }
-  async function restoreSavedMelody(value,savedAt){
+  async function restoreSavedMelody(value,savedAt,alreadyRestored=false){
     const session=songSession,file=activeAudioFile;let chosen=value;
     try{const identity=await structureAudioIdentity(file),cached=identity?await recoveryStore('results',s=>s.get('piano-saved-v1:'+identity)):null;
       if(session!==songSession)return;
-      const timestamp=Number(value?.updatedAt)||Date.parse(savedAt)||0;
+      const hasMelody=value?.notes?.length||value?.done?.length;
+      const timestamp=Number(value?.updatedAt)||(hasMelody?Date.parse(savedAt):0)||0;
       if(cached?.melody&&Number(cached.melody.updatedAt||cached.savedAt)>timestamp)chosen=cached.melody;
     }catch{}
-    if(session===songSession)window.BassPiano.restore(chosen);
+    if(session!==songSession)return false;
+    if(!alreadyRestored||chosen!==value)window.BassPiano.restore(chosen);
+    return chosen!==value;
   }
-  let fullSaveSession=-1,autoWriting=false;
+  let fullSaveSession=-1;
   function queueMelodyProjectSave(full=false){
     if(full)fullSaveSession=songSession;
     const version=++melodySaveVersion,session=songSession;
@@ -21029,22 +21072,33 @@ window.BassBatch = (() => {
     const flush=async()=>{
       if(version!==melodySaveVersion||session!==songSession)return;
       if(window.BassBatch?.isRunning())return;
-      if(autoWriting||aiBusy||songImportBusy||projectSaveBusy||window.BassPiano.isBusy()){melodySaveTimer=setTimeout(flush,1200);return;}
+      if(autoWriting||aiBusy||songImportBusy||projectSaveBusy){melodySaveTimer=setTimeout(flush,500);return;}
       const melody=window.BassPiano.exportData();if(fullSaveSession!==session&&!melody.notes.length&&!melody.done.length)return;
       try{
-        autoWriting=true;const project=await captureStudyProject();if(!project||session!==songSession||version!==melodySaveVersion)return;
-        if(fullSaveSession===session){await window.BassLibrary.saveAnalysisProject(project);if(version===melodySaveVersion)fullSaveSession=-1;}
-        else await window.BassLibrary.saveMelodyProject(project);
-        if(session===songSession&&version===melodySaveVersion)window.BassPiano.message('Analysis saved');
-      }catch(error){if(session===songSession&&version===melodySaveVersion)window.BassPiano.message('Auto-save paused: '+window.BassLibrary.errorText(error));}finally{autoWriting=false;}
+        autoWriting=true;
+        showProjectSave('Saving this song…');
+        const target=currentProjectTarget,project=await captureStudyProject();
+        if(!project||session!==songSession)return;
+        const full=fullSaveSession===session||!!target;
+        const options={openedName:importedProjectFields?.filename,onProgress:text=>{if(session===songSession)showProjectSave(text);}};
+        const result=full?await window.BassLibrary.saveAnalysisProject(project,target,options):await window.BassLibrary.saveMelodyProject(project,target,options);
+        if(session===songSession){
+          currentProjectTarget=result.target;
+          if(version===melodySaveVersion){fullSaveSession=-1;savedProjectResult(result);}
+        }
+      }catch(error){if(session===songSession)showProjectSave('Song not saved. '+window.BassLibrary.errorText(error));}
+      finally{autoWriting=false;updateProjectButtons();}
+
     };
-    melodySaveTimer=setTimeout(flush,750);
+    if(full)void flush();else melodySaveTimer=setTimeout(flush,350);
   }
 
   window.BassBacking.init({
     get:()=>({session:songSession,loaded:!!buffer,duration:buffer?.duration||0,busy:aiBusy||songImportBusy,master:masterAudio,bassMuted:bassPracticeMuted}),
     cacheKey:async()=>{const file=activeAudioFile;if(!file)return '';const hash=await structureAudioIdentity(file);return hash?'mute-audio-v2:'+hash:'';},
     readCache:id=>recoveryStore('results',store=>store.get(id)),
+    writePart:(id,frames,parts)=>recoveryStore('results',store=>store.put({id,frames,parts})),
+    removePart:id=>recoveryStore('results',store=>store.delete(id)),
     writeCache:(id,duration,blobs)=>recoveryStore('results',store=>store.put({id,duration,blobs})),
     pause,save:()=>queueMelodyProjectSave(true),encode:fileToBase64,setMuted:value=>{bassPracticeMuted=!!value;},
     graph:()=>{ensureCtx();buildGraph();return {ctx,main:sourceBus,bass:[bassPitchDryGain,bassPitchShift.input]};},

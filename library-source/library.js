@@ -23,7 +23,7 @@ window.BassLibrary=(()=>{
     const db=await database();
     return new Promise((resolve,reject)=>{
       const tx=db.transaction(name,mode),request=action(tx.objectStore(name));
-      const timer=setTimeout(()=>{try{tx.abort();}catch{}reject(Error('Device storage is not responding. Try again.'));},15000);timer?.unref?.();
+      const timer=setTimeout(()=>{try{tx.abort();}catch{}reject(Error('Device storage is not responding. Try again.'));},name==='songs'&&mode==='readwrite'?90000:15000);timer?.unref?.();
       tx.oncomplete=()=>{globalThis.clearTimeout?.(timer);resolve(request?.result);};
       tx.onerror=tx.onabort=()=>{globalThis.clearTimeout?.(timer);reject(tx.error||request?.error||Error('Could not save on this device.'));};
     });
@@ -57,16 +57,42 @@ window.BassLibrary=(()=>{
     }
     return [...seen.values()];
   }
+  const openedFiles=new WeakMap();
+  let pendingWrite=Promise.resolve();
+  function inWriteOrder(action){
+    const result=pendingWrite.then(action);
+    pendingWrite=result.catch(()=>{});
+    return result;
+  }
+  function within(promise,ms=45000){
+    let timer;
+    return Promise.race([promise,new Promise((_,reject)=>{
+      timer=setTimeout(()=>reject(Error('Storage did not respond. Reconnect the folder or check free space, then tap Save.')),ms);
+      timer?.unref?.();
+    })]).finally(()=>globalThis.clearTimeout?.(timer));
+  }
   async function matchingTarget(project){
-    await refresh();
+    await ready;
     const identity=await audioIdentity(project);
-    const row=rows.find(r=>r.audioId===identity);
-    if(!row)return null;
-    if(row.handle||row.dir){
-      if(!await permission(folder,'readwrite'))throw Error('Reconnect save folder');
-      return {dir:folder,filename:row.filename,handle:row.handle};
+    let row=rows.find(r=>r.audioId===identity);
+    if(!row){await refresh();row=rows.find(r=>r.audioId===identity);}
+    return row?{...row,dir:row.dir||(row.handle?folder:null)}:null;
+  }
+  // Large recordings stay in separate Blob parts. The file is ordinary project JSON.
+  const readProject=file=>globalThis.BassProjectJSON?BassProjectJSON.read(file):file.text().then(JSON.parse);
+  function projectBlob(project){
+    const marker='bss'+crypto.randomUUID().replace(/-/g,'')+'_',audio=[];
+    const json=JSON.stringify(project,(key,value)=>{
+      if(!/base64$/i.test(key)||typeof value!=='string'||value.length<65536||/[^A-Za-z0-9+/=]/.test(value))return value;
+      audio.push(value);return marker+(audio.length-1);
+    });
+    const parts=[],pattern=new RegExp('"'+marker+'(\\d+)"','g');
+    let start=0;
+    for(const match of json.matchAll(pattern)){
+      parts.push(json.slice(start,match.index+1),audio[Number(match[1])]);start=match.index+match[0].length-1;
     }
-    return {dir:null,filename:row.filename,id:row.id};
+    parts.push(json.slice(start));
+    return new Blob(parts,{type:'application/json'});
   }
   function errorText(e){
     if(e?.name==='QuotaExceededError')return 'Device storage is full. Choose a folder or free some space, then save again.';
@@ -205,14 +231,14 @@ window.BassLibrary=(()=>{
     // Parse large embedded audio and calculate its identity off the UI thread.
     const job=scanJob;
     if(typeof Worker==='function'&&job){
-      const worker=job.worker||(job.worker=new Worker('./library-source/scan-worker-rc295.js'));
+      const worker=job.worker||(job.worker=new Worker('./library-source/scan-worker-rc295.js?v=rc303'));
       return new Promise((resolve,reject)=>{
         worker.onmessage=event=>{event.data.error?reject(Error(event.data.error)):resolve(event.data.meta);};
         worker.onerror=()=>reject(Error('Could not read this saved song.'));
         worker.postMessage(file);
       });
     }
-    const project=JSON.parse(await file.text());
+    const project=await readProject(file);
     if(isChordCatalogue(project))return {kind:'chord-catalogue',size:file.size,modified:file.lastModified};
     return indexedMetadata(project,file);
   }
@@ -271,42 +297,111 @@ window.BassLibrary=(()=>{
     if(await store('songs','readonly',s=>s.get(id))&&!await window.BassDialog.confirm('A saved song with this name already exists on this device.',{title:'Replace saved song',accept:'Replace'}))throw abort();
     return {dir:null,filename,id};
   }
-  async function save(project,blob,target){
-    const match=await matchingTarget(project);
+  function save(project,blob,target,options={}){
+    return inWriteOrder(()=>writeProject(project,blob,target,options));
+  }
+  async function writeProject(project,blob,target,{exact=false,requestAccess=false,alsoMelody=false,onProgress=()=>{}}={}){
+    await ready;
+    let match=exact?target:await matchingTarget(project);
     if(match)target=match;
-    // Protect an unrelated recording with the same title.
-    let existing;
-    if(target.dir){try{existing=await (await target.dir.getFileHandle(target.filename)).getFile();}catch(e){if(e.name!=='NotFoundError')throw e;}}
-    else existing=(await store('songs','readonly',s=>s.get(target.id)))?.blob;
-    if(existing&&!match){
-      const previous=JSON.parse(await existing.text());
+    if(!target?.filename)throw Error('Choose a save location for this song.');
+    const directory=target.dir,access=directory||target.handle;
+    if(access&&!await within(permission(access,'readwrite',requestAccess)))
+      throw Error(directory?'Reconnect the folder in Library, then tap Save.':'Tap Save and allow this file to be updated.');
+    onProgress('Saving '+target.filename+'…');
+    let handle=target.handle,existing,record;
+    if(access){
+      try{handle=handle||await within(directory.getFileHandle(target.filename));existing=await within(handle.getFile());}
+      catch(e){if(e.name!=='NotFoundError'||exact)throw e;}
+    }else{
+      record=await store('songs','readonly',s=>s.get(target.id));
+      existing=record?.blob;
+      if(exact&&!existing)throw Error('The saved song has moved. Reopen it from Library.');
+    }
+    const unchanged=match&&existing&&existing.size===match.size&&(access?existing.lastModified===match.modified:record.savedAt===match.savedAt);
+    let previous=null;
+    if(existing&&(!unchanged||alsoMelody||(!exact&&!project.analysis.bassBacking))){
+      previous=await readProject(existing);
       if(await audioIdentity(previous)!==await audioIdentity(project)){
+        if(exact||match)throw Error('This file now contains another recording. Reopen the correct song from Library.');
         const suffix=(await audioIdentity(project)).slice(0,12);
         target={...target,filename:target.filename.replace(SUPPORTED,'')+' - '+suffix+'.bassstudio'};
         target.id=target.filename.toLocaleLowerCase();
+        return writeProject(project,blob,target,{exact:false,alsoMelody,onProgress,requestAccess});
       }
     }
-    const f=new File([blob],target.filename,{type:'application/json',lastModified:Date.now()}),meta=await indexedMetadata(project,f);
-    if(target.dir){
-      const handle=await target.dir.getFileHandle(target.filename,{create:true});
-      const stream=await handle.createWritable();
-      try{await stream.write(blob);await stream.close();}catch(e){try{await stream.abort();}catch{}throw e;}
-      if(target.dir===folder){index[target.filename]=meta;await put('index',index).catch(()=>{});}
+    if(previous?.analysis?.bassBacking?.version===2&&project.analysis.bassBacking?.version!==2){
+      project={...project,analysis:{...project.analysis,bassBacking:previous.analysis.bassBacking}};blob=null;
+    }
+    if(previous?.analysis?.melody&&Number(previous.analysis.melody.updatedAt)>Number(project.analysis.melody?.updatedAt||0)){
+      project={...project,analysis:{...project.analysis,melody:previous.analysis.melody}};blob=null;
+    }
+    if(alsoMelody&&previous){
+      project={...previous,savedAt:project.savedAt,analysis:{...previous.analysis,melody:project.analysis.melody}};
+      blob=null;
+    }
+    blob=blob||projectBlob(project);
+    const f=new File([blob],target.filename,{type:'application/json',lastModified:Date.now()});
+    const meta={...metadata(project,f),audioId:unchanged&&match.audioId||await audioIdentity(project)};
+    if(access){
+      handle=handle||await within(directory.getFileHandle(target.filename,{create:true}));
+      const stream=await within(handle.createWritable());
+      try{
+        const chunk=4*1024*1024;
+        if(blob.size<=chunk)await within(stream.write(blob),90000);
+        else for(let offset=0;offset<blob.size;offset+=chunk){
+          const end=Math.min(offset+chunk,blob.size);
+          await within(stream.write(blob.slice(offset,end)),90000);
+          onProgress('Saving '+target.filename+' · '+Math.floor(99*end/blob.size)+'%');
+        }
+        onProgress('Finishing '+target.filename+'…');
+        await within(stream.close(),90000);
+      }catch(e){try{void Promise.resolve(stream.abort()).catch(()=>{});}catch{}throw e;}
+      const committed=await within(handle.getFile());
+      if(committed.size!==blob.size)throw Error('File size check failed. Reopen the folder and try Save again.');
+      meta.modified=committed.lastModified;
+      if(directory&&directory===folder){index[target.filename]=meta;void put('index',{...index}).catch(()=>{});}
     }else{
       await store('songs','readwrite',s=>s.put({...meta,id:target.id,blob}));
-      // This is advisory: some browsers do not grant persistent storage.
       try{void navigator.storage?.persist?.().catch(()=>{});}catch{}
     }
-    if(dialog?.open)await refresh().catch(e=>status(errorText(e)));
+    Object.assign(target,meta,{handle});
+    if(!access||directory===folder){
+      const updated={...target,storageLabel:access?'Save folder':'In app'};
+      rows=uniqueSongs([updated,...rows.filter(r=>!(r.dir===directory&&r.filename===target.filename))]);if(dialog?.open)render();
+    }
     window.dispatchEvent(new Event('bass-stem:project-saved'));
-    return target.dir?'folder “'+target.dir.name+'”':'this device';
+    return {target,location:access?(directory?'folder “'+directory.name+'”':'the selected file'):'this device'};
   }
   async function rowFile(row){
-    if(row.handle)return row.handle.getFile();
-    if(row.dir)return (await row.dir.getFileHandle(row.filename)).getFile();
-    const saved=await store('songs','readonly',s=>s.get(row.id));
-    if(!saved?.blob)throw Error('This saved song is no longer available.');
-    return new File([saved.blob],saved.filename,{type:'application/json'});
+    await pendingWrite;
+    let file;
+    if(row.handle||row.dir){
+      const handle=row.handle||await within(row.dir.getFileHandle(row.filename));
+      file=await within(handle.getFile());
+      row={...row,handle,dir:row.dir||(row.where==='your saved folder'?folder:null)};
+    }else{
+      const saved=await store('songs','readonly',s=>s.get(row.id));
+      if(!saved?.blob)throw Error('This saved song is no longer available.');
+      row={...row,filename:saved.filename,audioId:saved.audioId,size:saved.blob.size,savedAt:saved.savedAt};
+      file=new File([saved.blob],saved.filename,{type:'application/json'});
+    }
+    const {blob,...target}=row;
+    if((target.handle||target.dir)&&(file.size!==target.size||file.lastModified!==target.modified))delete target.audioId;
+    openedFiles.set(file,{...target,size:file.size,modified:file.lastModified});
+    return file;
+  }
+  function selectedFile(file,handle){openedFiles.set(file,{filename:file.name,size:file.size,modified:file.lastModified,handle});}
+  async function lastProject(ref){
+    await ready;
+    if(!ref?.filename||!ref?.audioId)return null;
+    if(ref.inFolder&&(!folder||folder.name!==ref.folder||!await within(permission(folder,'read'))))return null;
+    const row=ref.inFolder?{dir:folder,filename:ref.filename}:{id:ref.id,filename:ref.filename};
+    const file=await rowFile(row);
+    const target=openedFiles.get(file);
+    if(file.size!==ref.size||(ref.inFolder?file.lastModified!==ref.modified:target.savedAt!==ref.savedAt))return null;
+    target.audioId=ref.audioId;
+    return file;
   }
   async function openRow(row){
     if(hooks.isBusy?.())throw Error('Wait for the current song to finish, then open another.');
@@ -319,7 +414,7 @@ window.BassLibrary=(()=>{
     for(const file of files){
       try{
         status('Adding '+file.name+'…');
-        const p=JSON.parse(await file.text());
+        const p=await readProject(file);
         if(isChordCatalogue(p)){chordCatalogues++;continue;}
         metadata(p,file);
         if(await matchingTarget(p)){duplicates++;continue;}
@@ -460,7 +555,7 @@ window.BassLibrary=(()=>{
         let meta=entry;
         if(typeof meta.hasChordAnalysis!=='boolean'||typeof meta.hasBassAnalysis!=='boolean'){
           const file=new File([entry.blob],entry.filename,{type:'application/json'});
-          meta={...entry,...metadata(JSON.parse(await file.text()),file)};
+          meta={...entry,...metadata(await readProject(file),file)};
         }
         const id='device:'+String(entry.id||entry.filename).toLowerCase();
         if(seen.has(id))continue;
@@ -482,7 +577,7 @@ window.BassLibrary=(()=>{
               if(info?.kind==='chord-catalogue'&&info.size===file.size&&info.modified===file.lastModified)continue;
               if(!info||info.size!==file.size||info.modified!==file.lastModified
                 ||typeof info.hasBassAnalysis!=='boolean'||typeof info.hasChordAnalysis!=='boolean'){
-                const project=JSON.parse(await file.text());
+                const project=await readProject(file);
                 if(isChordCatalogue(project)){index[name]={kind:'chord-catalogue',size:file.size,modified:file.lastModified};updated=true;continue;}
                 info=metadata(project,file);
                 index[name]=info;updated=true;
@@ -506,12 +601,9 @@ window.BassLibrary=(()=>{
     let file;
     if(location==='folder'){
       if(!folder||!await permission(folder,'read'))throw Error('Open Library and reconnect your saved folder first.');
-      const handle=await folder.getFileHandle(id);
-      file=await handle.getFile();
+      file=await rowFile({dir:folder,filename:id});
     }else{
-      const record=await store('songs','readonly',s=>s.get(String(id).toLowerCase()));
-      if(!record?.blob)throw Error('This saved song is not available on the device.');
-      file=new File([record.blob],record.filename,{type:'application/json'});
+      file=await rowFile({id:String(id).toLowerCase()});
     }
     return !!await hooks.open(file);
   }
@@ -561,7 +653,7 @@ window.BassLibrary=(()=>{
     const row=rows.find(r=>String(r.id||r.filename).toLowerCase()===String(id).toLowerCase());
     if(!row)throw Error('The saved project is not available in your current library.');
     if(Number(row.size)>120*1024*1024)throw Error('This saved project is too large to chart on this device.');
-    const file=await rowFile(row),project=JSON.parse(await file.text());
+    const file=await rowFile(row),project=await readProject(file);
     if(project?.format!=='Bass Stem Studio Project'||!Array.isArray(project.analysis?.chords))
       throw Error('No compatible saved chord analysis was found.');
     // Never send the original source, audio, stems, lyrics or full note timeline to Song chords.
@@ -577,30 +669,17 @@ window.BassLibrary=(()=>{
   }
   // Update the exact saved song, without a naming prompt or new analysis.
   // A same-named project with different audio is never overwritten.
-  async function saveAnalysisProject(project){
-    await ready;
-    if(folder&&!await permission(folder,'readwrite'))throw Error('Reconnect save folder');
-    const filename=String(project.projectName||'Song').replace(/[\\/:*?"<>|]+/g,'_').trim().slice(0,100)+'.bassstudio';
-    const target=await matchingTarget(project)||{dir:folder,filename,id:filename.toLocaleLowerCase()};
-    return save(project,new Blob([JSON.stringify(project)],{type:'application/json'}),target);
+  function defaultTarget(project,openedName){
+    const filename=openedName&&SUPPORTED.test(openedName)&&!/[\\/]/.test(openedName)?openedName:String(project.projectName||'Song').replace(/[\\/:*?"<>|]+/g,'_').trim().slice(0,100)+'.bassstudio';
+    return {dir:folder,filename,id:filename.toLocaleLowerCase()};
   }
-
-  async function saveMelodyProject(project){
+  async function saveAnalysisProject(project,target,options={}){
     await ready;
-    if(folder&&!await permission(folder,'readwrite'))throw Error('Reconnect save folder');
-    const match=await matchingTarget(project);
-    let target=match;
-    if(match){
-      const file=match.handle?await match.handle.getFile():(await store('songs','readonly',s=>s.get(match.id))).blob;
-      const previous=JSON.parse(await file.text());
-      // Melody updates preserve all original bass, chords, sections and edits.
-      project={...previous,savedAt:project.savedAt,analysis:{...previous.analysis,melody:project.analysis.melody}};
-    }else{
-      const filename=String(project.projectName||'Song').replace(/[\\/:*?"<>|]+/g,'_').trim().slice(0,100)+'.bassstudio';
-      target={dir:folder,filename,id:filename.toLocaleLowerCase()};
-    }
-    await save(project,new Blob([JSON.stringify(project)],{type:'application/json'}),target);
-    return target.dir?'folder':'device';
+    return save(project,null,target||defaultTarget(project,options.openedName),{...options,exact:!!target});
+  }
+  async function saveMelodyProject(project,target,options={}){
+    await ready;
+    return save(project,null,target||defaultTarget(project,options.openedName),{...options,exact:!!target,alsoMelody:true});
   }
 
   const practiceId=row=>row.audioId?'audio:'+row.audioId:(row.handle||row.dir?'folder:':'device:')+String(row.id||row.filename).toLowerCase();
@@ -618,7 +697,7 @@ window.BassLibrary=(()=>{
   async function practiceProject(id){
     const row=await practiceRow(id);
     if(Number(row.size)>240*1024*1024)throw Error('Song too large to scan on this device.');
-    const project=JSON.parse(await (await rowFile(row)).text()),a=project.analysis||{};
+    const project=await readProject(await rowFile(row)),a=project.analysis||{};
     // Keep audio, stems and lyrics out of the transition catalogue.
     return {projectName:project.projectName,source:{duration:project.source?.duration},settings:{sections:project.settings?.sections||{}},analysis:{notes:a.notes,chords:a.chords,baseScale:a.baseScale,scale:a.scale,tempoBpm:a.tempoBpm,keySections:a.keySections,keyCorrections:a.keyCorrections,structure:{segments:a.structure?.segments||[]}}};
   }
@@ -630,5 +709,5 @@ window.BassLibrary=(()=>{
     if(!hooks.openPractice)throw Error('Reload the platform to open this part.');
     return !!await hooks.openPractice(file);
   }
-  return {init,show,prepareSave,save,saveAnalysisProject,saveMelodyProject,hasProject,ensureBatchAccess,errorText,chartProjects,chartProject,checkAudioImport,analysisSummary,openForAnalysis,practiceProjects,practiceProject,openPracticeSong};
+  return {init,show,presentOpened(file){if(dialog?.open&&openedFiles.has(file))dialog.close();},readProject,projectBlob,selectedFile,lastProject,targetFor:file=>openedFiles.get(file),prepareSave,save:(p,b,t)=>save(p,b,t).then(r=>r.location),saveAnalysisProject,saveMelodyProject,hasProject,ensureBatchAccess,errorText,chartProjects,chartProject,checkAudioImport,analysisSummary,openForAnalysis,practiceProjects,practiceProject,openPracticeSong};
 })();

@@ -1,6 +1,6 @@
 /* Shared rehearsal controls. Switching views keeps transport and mute state. */
 window.BassPracticeControls=(()=>{
- 'use strict';let api,root,controls,strings,stringCard,stringNumber,vocals,status,message,cancel,resize;
+ 'use strict';let saveStatus='';let api,root,controls,strings,stringCard,stringNumber,vocals,status,message,cancel,resize;
  function layout(){const r=document.getElementById('playBtn').getBoundingClientRect();for(const[k,v]of [['--ff-control-w',r.width],['--ff-control-h',r.height]]){const value=Math.round(v*100)/100+'px';if(root.style.getPropertyValue(k)!==value)root.style.setProperty(k,value);}}
  function update(){
   if(!api)return;const s=api.get(),b=window.BassBacking.state(),hasStrings=s.view==='bass'||s.view==='fretflow';
@@ -9,7 +9,8 @@ window.BassPracticeControls=(()=>{
   vocals.disabled=!s.loaded||s.busy||b.busy||(!b.vocalsReady&&!b.canRetry);vocals.setAttribute('aria-pressed',String(b.vocalsMuted));
   const label=b.vocalsMuted?'Restore vocals':'Mute vocals';vocals.setAttribute('aria-label',label);
   vocals.title=b.vocalsReady?'Mute or restore vocals independently of the bass':'Prepare vocal mute for this song';
-  message.textContent=b.message;status.hidden=!b.message&&!b.busy;cancel.hidden=!b.busy;layout();
+  const text=b.busy?b.message:[b.message,saveStatus].filter(Boolean).join(' ');
+  if(message.textContent!==text)message.textContent=text;status.hidden=!text&&!b.busy;cancel.hidden=!b.busy;layout();
  }
  function showControls(show=true){
   const card=document.getElementById('practiceViewCard'),head=document.querySelector('.practice-view-head'),transport=document.querySelector('.transport-main');
@@ -25,5 +26,5 @@ window.BassPracticeControls=(()=>{
   status=document.createElement('div');status.id='practiceMuteStatus';status.hidden=true;status.innerHTML='<span id="practiceMuteMessage" role="status"></span><button id="ffCancel" type="button" hidden>Cancel</button>';document.querySelector('.simple-timeline-head').after(status);message=status.querySelector('span');cancel=status.querySelector('button');cancel.onclick=()=>window.BassBacking.cancel();
   resize=new ResizeObserver(update);resize.observe(root);resize.observe(document.querySelector('.practice-view-head'));resize.observe(document.getElementById('playBtn'));update();
  }
- return {init,update,showControls};
+ return {init,update,showControls,setSaveStatus(text){saveStatus=text;update();}};
 })();
