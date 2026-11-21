@@ -15674,7 +15674,7 @@ window.BassBatch = (() => {
 </dialog>
 
 <dialog id="pianoEditor" aria-labelledby="pianoEditTitle"><h2 id="pianoEditTitle">Correct melody note</h2><label>Note<select id="pianoPitch"></select></label><label>Start (seconds)<input id="pianoStart" type="number" min="0" step="0.01"></label><label>End (seconds)<input id="pianoEnd" type="number" min="0" step="0.01"></label><p id="pianoEditError" role="alert"></p><div class="piano-edit-actions"><button id="pianoSaveNote" type="button">Save note</button> <button id="pianoDelete" type="button">Delete note</button> <button id="pianoUndo" type="button" disabled>Undo last change</button> <button id="pianoCloseNote" type="button">Close</button></div></dialog>
-<script src="./chord-source/recovery.js?v=rc254"></script>
+<script src="./chord-source/recovery.js?v=rc313"></script>
 <script src="./ear-source/bass-register-rc292.js?v=rc292"></script>
 <script src="./ear-source/practice-audio-rc292.js?v=rc292"></script>
 <script src="./ear-source/drum-loops-data-rc294.js?v=rc294"></script>
@@ -15707,7 +15707,7 @@ window.BassBatch = (() => {
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC312';
+  const APP_VERSION='RC313';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;
@@ -19435,7 +19435,7 @@ window.BassBatch = (() => {
   function round3(v){return Math.round(Number(v)*1000)/1000;}
 
   function chooseCombinedSongContext(partMeta,outputs){
-    const scaleVotes=new Map(),tempoValues=[],beats=[],meterVotes=new Map(),chordEvents=[];
+    const scaleVotes=new Map(),tempoValues=[],beats=[],meterVotes=new Map(),phaseAnchors=[],chordEvents=[];
     let bestMeterPhase=0,bestGridConfidence=-1,tempoConfidenceTotal=0,keyConfidenceTotal=0;
 
     outputs.forEach((out,i)=>{
@@ -19458,11 +19458,16 @@ window.BassBatch = (() => {
         tempoConfidenceTotal+=Number(out?.tempo_confidence)||0;
       }
 
-      (Array.isArray(out?.beat_times)?out.beat_times:[]).forEach(v=>{
+      let anchor=null;
+      (Array.isArray(out?.beat_times)?out.beat_times:[]).forEach((v,localIndex)=>{
+        if(v==null||v==='')return;
         const global=Number(v)+Number(meta.audioStart||0);
         const inCore=global>=meta.coreStart-.04 &&
           (i===partMeta.length-1?global<=meta.coreEnd+.04:global<meta.coreEnd-.04);
-        if(inCore&&Number.isFinite(global)&&global>=0)beats.push(global);
+        if(inCore&&Number.isFinite(global)&&global>=0){
+          beats.push(global);
+          if(!anchor)anchor={time:global,localIndex};
+        }
       });
 
       (Array.isArray(out?.chords)?out.chords:[]).forEach(c=>{
@@ -19479,10 +19484,7 @@ window.BassBatch = (() => {
       const meter=Math.max(1,Math.round(Number(out?.beats_per_bar)||4));
       const gridC=Number(out?.beat_grid_confidence)||.45;
       meterVotes.set(meter,(meterVotes.get(meter)||0)+gridC);
-      if(gridC>bestGridConfidence){
-        bestGridConfidence=gridC;
-        bestMeterPhase=Math.max(0,Math.round(Number(out?.downbeat_phase)||0));
-      }
+      if(anchor)phaseAnchors.push({...anchor,meter,gridC,phase:Math.max(0,Math.round(Number(out?.downbeat_phase)||0))});
     });
 
     let songScale='',bestScaleWeight=-1;
@@ -19537,6 +19539,17 @@ window.BassBatch = (() => {
     const deduped=[];
     for(const b of beats){
       if(!deduped.length||Math.abs(b-deduped[deduped.length-1])>.08)deduped.push(round3(b));
+    }
+
+    // The service numbers beats from the start of each uploaded excerpt.
+    // Align its bar accent with the same beat in the full-song grid.
+    for(const anchor of phaseAnchors){
+      if(anchor.meter!==beatsPerBar||anchor.gridC<=bestGridConfidence)continue;
+      const globalIndex=deduped.findIndex(time=>Math.abs(time-anchor.time)<=.081);
+      if(globalIndex<0)continue;
+      const phase=globalIndex+anchor.phase-anchor.localIndex;
+      bestMeterPhase=((phase%beatsPerBar)+beatsPerBar)%beatsPerBar;
+      bestGridConfidence=anchor.gridC;
     }
 
     chordEvents.sort((a,b)=>a.start-b.start||a.end-b.end);

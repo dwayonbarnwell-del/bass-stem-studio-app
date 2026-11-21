@@ -1,12 +1,13 @@
 /* RC254: automatic, on-device missing-chord suggestions. Never contacts RunPod. */
 (()=>{
 'use strict';
-const FFT_SIZE=8192, SAMPLE_RATE=11025, STEP=.5, SOURCE='on-device-chord-recovery-v1';
+const FFT_SIZE=4096, SAMPLE_RATE=11025, STEP=.25, SOURCE='on-device-chord-recovery-v1';
 const NAMES=['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B'];
+const FFT_BITS=Math.log2(FFT_SIZE);
 const bitReversed=new Uint16Array(FFT_SIZE),windowValues=new Float64Array(FFT_SIZE);
 for(let i=0;i<FFT_SIZE;i++){
  let value=i,reversed=0;
- for(let bit=0;bit<13;bit++){reversed=(reversed<<1)|(value&1);value>>=1;}
+ for(let bit=0;bit<FFT_BITS;bit++){reversed=(reversed<<1)|(value&1);value>>=1;}
  bitReversed[i]=reversed;
  windowValues[i]=.5-.5*Math.cos(2*Math.PI*i/(FFT_SIZE-1));
 }
@@ -41,7 +42,11 @@ function extractChroma(samples){
  for(let bin=minBin;bin<=maxBin;bin++){
   const power=real[bin]*real[bin]+imag[bin]*imag[bin];
   if(power<strongest*.006 || power<real[bin-1]**2+imag[bin-1]**2 || power<real[bin+1]**2+imag[bin+1]**2)continue;
-  const frequency=bin*SAMPLE_RATE/FFT_SIZE,midiFloat=69+12*Math.log2(frequency/440),midi=Math.round(midiFloat);
+  const left=Math.log(real[bin-1]**2+imag[bin-1]**2+1e-12);
+  const right=Math.log(real[bin+1]**2+imag[bin+1]**2+1e-12);
+  const centre=Math.log(power),denominator=left-2*centre+right;
+  const offset=denominator?Math.max(-.5,Math.min(.5,(left-right)/(2*denominator))):0;
+  const frequency=(bin+offset)*SAMPLE_RATE/FFT_SIZE,midiFloat=69+12*Math.log2(frequency/440),midi=Math.round(midiFloat);
   if(Math.abs(midiFloat-midi)>.34||midi<36||midi>90)continue;
   peakRows.push({frequency,midi,weight:Math.sqrt(power/strongest)});
  }
@@ -52,7 +57,7 @@ function extractChroma(samples){
    const ratio=row.frequency/lower.frequency,n=Math.round(ratio);
    if(n>=2&&n<=9&&Math.abs(12*Math.log2(ratio/n))<.3)overtone=Math.max(overtone,lower.weight/n);
   }
-  chroma[(row.midi%12+12)%12]+=Math.max(0,row.weight-overtone*.65);
+  chroma[(row.midi%12+12)%12]+=Math.max(0,row.weight-overtone*1.05);
  }
  return chroma;
 }
@@ -62,11 +67,8 @@ for(let rootPc=0;rootPc<12;rootPc++)for(const [quality,steps] of [['maj',[0,4,7]
 }
 function classify(evidence){
  const votes=[];
- for(let i=0;i<evidence.length;i++){
-  const values=new Float64Array(12);
-  for(let j=Math.max(0,i-4);j<=Math.min(evidence.length-1,i+4);j++){
-   for(let pitch=0;pitch<12;pitch++)values[pitch]+=evidence[j][pitch];
-  }
+ // Use the evidence at this time instead of combining several different chords.
+ for(const values of evidence){
   const total=values.reduce((a,b)=>a+b,0);
   if(total<.002){votes.push(null);continue;}
   for(let pitch=0;pitch<12;pitch++)values[pitch]/=total;
@@ -74,6 +76,7 @@ function classify(evidence){
   for(const template of templates){
    const inside=template.pitches.reduce((sum,p)=>sum+values[p],0);
    const lowest=Math.min(...template.pitches.map(p=>values[p]));
+   if(lowest<.045)continue;
    const score=inside+.10*values[template.rootPc]+.05*lowest-.30*(1-inside);
    if(!best||score>best.score){second=best?.score??-Infinity;best={rootPc:template.rootPc,quality:template.quality,score,coverage:inside};}
    else if(score>second)second=score;
@@ -84,7 +87,7 @@ function classify(evidence){
 }
 function intervalsFromVotes(votes){
  const ranges=[];let active=null;
- function finish(){if(active&&active.end-active.start>=1){ranges.push(active);}active=null;}
+ function finish(){if(active&&active.end-active.start>=2*STEP){ranges.push(active);}active=null;}
  for(let i=0;i<=votes.length;i++){
   const v=votes[i]||null;
   if(!v){finish();continue;}
@@ -115,7 +118,7 @@ function addOnlyMissing(candidateRanges,savedChords,duration){
    if(!pieces.length)break;
   }
   for(const part of pieces){
-   if(part.end-part.start<.75)continue;
+   if(part.end-part.start<2*STEP)continue;
    const quality=candidate.quality,rootPc=candidate.rootPc;
    added.push({start:Number(part.start.toFixed(3)),end:Number(part.end.toFixed(3)),rootPc,quality,
      label:NAMES[rootPc]+(quality==='min'?'m':''),confidence:Number(Math.min(.86,Math.max(.71,Number.isFinite(candidate.score)?.66+.6*candidate.score:Number(candidate.confidence)||.71)).toFixed(3)),

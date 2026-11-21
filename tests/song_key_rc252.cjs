@@ -36,7 +36,9 @@ for(const [analysis,expected] of [
  [{scale:'—'},undefined],
  [{baseScale:{rootPc:99,mode:'bad'},scale:'C major'},'C major']
 ])check(c.savedSongScaleContext(analysis)?.scaleText,expected,'saved key recovery');
-check((html.match(/scale:String\(detectedBaseScale\?\.scaleText\|\|detectedScaleContext\?\.scaleText\|\|'—'\)/g)||[]).length,2,'both exports preserve original song key');
+const capture=html.slice(html.indexOf('  async function captureStudyProject('));
+check(capture.includes("scale:String(detectedBaseScale?.scaleText||detectedScaleContext?.scaleText||'—')"),true,'shared project capture preserves original song key');
+check((html.match(/await captureStudyProject\(\)/g)||[]).length,2,'manual and automatic saves use shared capture');
 check(html.includes('song_scale:savedScale?.scaleText'),true,'import uses recovered base key');
 for(const m of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g))new vm.Script(m[1]);
 console.log(`PASS ${checks} song key checks: uncertainty, modulation, correction, transpose and saved key recovery; inline scripts parse.`);
