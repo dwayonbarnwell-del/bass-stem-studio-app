@@ -1,0 +1,9 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const html=fs.readFileSync('index.html','utf8'),a=html.indexOf("masterAudio.addEventListener('timeupdate',()=>{"),b=html.indexOf("masterAudio.addEventListener('seeking'",a),calls=[],handlers={};
+const c={masterAudio:{paused:false,seeking:false,addEventListener:(name,fn)=>handlers[name]=fn},document:{hidden:true},playing:true,time:8,loopStart:2,loopEnd:8,loopEnabled:true,timeframeLoopMode:false,multiSectionMode:false,noBassReady:true,bassStemReady:true,currentTime:()=>c.time,advanceSelectedTimeframe:()=>calls.push('timeframe'),advanceSelectedSection:()=>calls.push('section'),seekTo:t=>{c.time=t;calls.push('seek:'+t)},ensureAnalysisPartForTime:t=>calls.push('part:'+t),syncNoBass:()=>calls.push('noBass'),syncBassStem:()=>calls.push('bass'),window:{BassTools:{onLoop:()=>false},BassBacking:{sync:()=>calls.push('backing')}}};vm.createContext(c);vm.runInContext(html.slice(a,b),c);
+handlers.timeupdate();assert.deepEqual(calls,['seek:2','part:2','noBass','bass','backing']);
+for(const flag of ['timeframeLoopMode','multiSectionMode']){calls.length=0;c.time=8;c[flag]=true;handlers.timeupdate();assert.equal(calls[0],flag==='timeframeLoopMode'?'timeframe':'section');c[flag]=false;}
+for(const flag of ['paused','seeking']){calls.length=0;c.masterAudio[flag]=true;handlers.timeupdate();assert.equal(calls.length,0);c.masterAudio[flag]=false;}
+calls.length=0;c.document.hidden=false;handlers.timeupdate();assert.equal(calls.length,0);
+assert(html.includes('masterAudio.loop=!!buffer&&!loopEnabled&&!multiSectionMode&&!timeframeLoopMode;'));
+console.log('PASS hidden-page loop boundary, selected sections/timeframes, stem synchronisation, pause/seek protection and native whole-song repeat. OS screen-lock restrictions not simulated.');
