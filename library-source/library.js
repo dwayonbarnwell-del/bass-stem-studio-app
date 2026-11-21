@@ -61,7 +61,7 @@ window.BassLibrary=(()=>{
   let pendingWrite=Promise.resolve();
   const writes=new Set();
   function sameSong(row,target){
-    if(!target)return true;
+    if(!target)return false;
     if(row.audioId&&target.audioId&&row.audioId===target.audioId)return true;
     if(row.filename===target.filename||row.id&&row.id===target.id)return true;
     return false;
@@ -74,10 +74,10 @@ window.BassLibrary=(()=>{
     pendingWrite=job.done;
     return result;
   }
-  function within(promise,ms=45000){
+  function within(promise,ms=45000,message='Storage did not respond. Reconnect the folder or check free space, then tap Save.'){
     let timer;
     return Promise.race([promise,new Promise((_,reject)=>{
-      timer=setTimeout(()=>reject(Error('Storage did not respond. Reconnect the folder or check free space, then tap Save.')),ms);
+      timer=setTimeout(()=>reject(new DOMException(message,'TimeoutError')),ms);
       timer?.unref?.();
     })]).finally(()=>globalThis.clearTimeout?.(timer));
   }
@@ -151,7 +151,14 @@ window.BassLibrary=(()=>{
         const open=document.createElement('button');open.type='button';
         const download=document.createElement('a');download.className='library-download';download.textContent='Download';download.href='#';
         actions.append(open,download);item.append(info,actions);
-        entry={item,info,title,details,open,download,row};
+        const choose=document.createElement('button');choose.type='button';choose.textContent='Choose this file';choose.hidden=true;
+        item.append(choose);
+        choose.onclick=()=>{
+          const input=el('libraryOpenInput');
+          input.expectedRow=entry.row;
+          input.click();
+        };
+        entry={item,info,title,details,open,download,choose,row};
         songItems.set(key,entry);
         info.onclick=open.onclick=()=>run(()=>openRow(entry.row));
         item.onclick=e=>{if(e.target===item)info.click();};
@@ -164,12 +171,14 @@ window.BassLibrary=(()=>{
           }catch(err){status(errorText(err));}
         };
       }
-      const {item,info,title,details,open,download}=entry;entry.row=row;
+      const {item,info,title,details,open,download,choose}=entry;entry.row=row;
       if(title.textContent!==row.title)title.textContent=row.title;
       const minutes=Math.floor((row.duration||0)/60),seconds=Math.floor(row.duration%60).toString().padStart(2,'0');
       const detail=[row.artist,row.key&&row.key!=='—'?row.key:'',row.bpm?Math.round(row.bpm)+' BPM':'',row.duration?minutes+':'+seconds:'',row.storageLabel].filter(Boolean).join(' · ')||row.filename;
       const detailText=opening?.key===key&&opening.message||lastOpenError?.key===key&&lastOpenError.message||detail;
       if(details.textContent!==detailText)details.textContent=detailText;
+      choose.hidden=!(lastOpenError?.key===key&&lastOpenError.fileAccess||folderAccess==='reconnect'&&(row.dir||row.handle));
+      choose.disabled=busy;
       open.textContent=opening?.row===row?'Opening…':'Open';info.disabled=open.disabled=busy;
       info.setAttribute('aria-label','Open '+row.title);open.setAttribute('aria-label','Open '+row.title);
       download.setAttribute('aria-label','Download '+row.title);download.download=row.filename;
@@ -190,7 +199,7 @@ window.BassLibrary=(()=>{
   // Folder reads may never settle on a disconnected mobile storage provider.
   // Keep cached songs usable and discard every late result from a cancelled scan.
   function stopScan(){
-    scanJob?.cancel();scanJob=null;scan++;scanning=false;
+    scanJob?.cancel();scanJob?.worker?.terminate();scanJob=null;scan++;scanning=false;
   }
   function scanWait(promise,job){
     let timer;
@@ -212,8 +221,12 @@ window.BassLibrary=(()=>{
     };
     try{
       await wait(ready);publish();status('Checking songs…');
-      deviceRows=(await wait(store('songs','readonly',s=>s.getAll()))||[])
-        .filter(r=>r?.filename&&SUPPORTED.test(r.filename)).map(r=>({...r,storageLabel:'In app'}));
+      try{
+        deviceRows=(await wait(store('songs','readonly',s=>s.getAll()))||[])
+          .filter(r=>r?.filename&&SUPPORTED.test(r.filename)).map(r=>({...r,storageLabel:'In app'}));
+      }catch(error){
+        if(error.name==='AbortError'||!folder)throw error;
+      }
       publish();
       // Existing metadata remains visible while old in-app entries gain audio IDs.
       for(let i=0;i<deviceRows.length;i++){
@@ -226,9 +239,9 @@ window.BassLibrary=(()=>{
       if(!folder){rows=uniqueSongs(deviceRows);status('');return;}
       const directory=folder;
       if(!await wait(permission(directory,'read'))){
-        folderAccess='reconnect';rows=uniqueSongs(deviceRows);status('Tap Reconnect folder to see saved songs there.');return;
+        folderAccess='reconnect';publish();status('Reconnect the folder or choose a saved file directly.');return;
       }
-      folderAccess='ready';const iterator=directory.entries()[Symbol.asyncIterator]();
+      folderAccess='ready';const iterator=job.iterator=directory.entries()[Symbol.asyncIterator]();
       for(;;){
         const entry=await wait(iterator.next());if(entry.done)break;
         const [name,handle]=entry.value;
@@ -255,6 +268,7 @@ window.BassLibrary=(()=>{
       throw error;
     }finally{
       job.worker?.terminate();
+      if(job.iterator?.return)void Promise.resolve().then(()=>job.iterator.return()).catch(()=>{});
       if(token===scan){scanning=false;scanJob=null;render();}
     }
   }
@@ -284,7 +298,7 @@ window.BassLibrary=(()=>{
   async function useDevice(){await put('folder',null);await put('index',{});folder=null;folderAccess='device';index={};rows=rows.filter(r=>r.storageLabel==='In app');scanInBackground();}
   async function reconnect(){
     if(folder){
-      try{if(!await permission(folder,'readwrite',true))throw Error('Access was not granted.');folderAccess='ready';}
+      try{if(!await within(permission(folder,'readwrite',true),15000,'Folder access did not respond. Choose the folder again.'))throw Error('Access was not granted.');folderAccess='ready';}
       catch(e){folderAccess='reconnect';throw Error('Folder permission was not granted. Your saved files are unchanged.');}
     }
     scanInBackground();
@@ -407,12 +421,26 @@ window.BassLibrary=(()=>{
   }
   async function rowFile(row,onWait){
     const relevant=[...writes].filter(job=>sameSong(row,job.target));
-    if(relevant.length){onWait?.();await Promise.all(relevant.map(job=>job.done));}
+    if(relevant.length){
+      onWait?.();
+      // A stalled save must not hold the last committed file hostage.
+      await within(Promise.all(relevant.map(job=>job.done)),3000).catch(()=>{});
+    }
     let file;
     if(row.handle||row.dir){
-      const handle=row.handle||await within(row.dir.getFileHandle(row.filename));
-      file=await within(handle.getFile());
-      row={...row,handle,dir:row.dir||(row.where==='your saved folder'?folder:null)};
+      const dir=row.dir||(row.where==='your saved folder'?folder:null);
+      let handle=row.handle;
+      const message='The saved folder did not respond. Choose this file directly or reconnect the folder.';
+      const timeout=promise=>within(promise,6000,message);
+      try{
+        if(handle)file=await timeout(handle.getFile());
+        else handle=await timeout(dir.getFileHandle(row.filename));
+      }catch(error){
+        if(!dir||!row.handle||!['TimeoutError','NotFoundError','NotReadableError','InvalidStateError'].includes(error.name))throw error;
+        handle=await timeout(dir.getFileHandle(row.filename));
+      }
+      if(!file)file=await timeout(handle.getFile());
+      row={...row,handle,dir};
     }else{
       const saved=await store('songs','readonly',s=>s.get(row.id));
       if(!saved?.blob)throw Error('This saved song is no longer available.');
@@ -448,7 +476,7 @@ window.BassLibrary=(()=>{
       request.message=text;status(text);
       const entry=songItems.get(key);if(entry)entry.details.textContent=text;
     };
-    progress('Opening '+row.title+'…');
+    progress(selectedFile?'Opening '+row.title+'…':'Finding '+row.title+'…');
     try{
       const file=selectedFile||await Promise.race([rowFile(row,()=>progress('Finishing the save for '+row.title+'…')),closed]);
       if(controller.signal.aborted)throw abort();
@@ -461,7 +489,11 @@ window.BassLibrary=(()=>{
       if(ok){if(!request.ready&&dialog.open)dialog.close();}
       else if(!controller.signal.aborted)lastOpenError={key,message:request.message};
     }catch(error){
-      if(error.name!=='AbortError')lastOpenError={key,message:errorText(error)};
+      if(error.name!=='AbortError'){
+        const fileAccess=!request.file&&!selectedFile&&!!(row.handle||row.dir);
+        if(fileAccess)folderAccess='reconnect';
+        lastOpenError={key,message:errorText(error),fileAccess};
+      }
       throw error;
     }finally{if(opening===request)opening=null;}
   }
@@ -657,7 +689,7 @@ window.BassLibrary=(()=>{
     if(hooks.isBusy?.())throw Error('Finish the current song first.');
     let file;
     if(location==='folder'){
-      if(!folder||!await permission(folder,'read'))throw Error('Open Library and reconnect your saved folder first.');
+      if(!folder)throw Error('Open Library and reconnect your saved folder first.');
       file=await rowFile({dir:folder,filename:id});
     }else{
       file=await rowFile({id:String(id).toLowerCase()});
@@ -676,10 +708,18 @@ window.BassLibrary=(()=>{
     el('libraryChoose').onclick=()=>run(chooseFolder);el('libraryDevice').onclick=()=>run(useDevice);
     el('libraryStop').onclick=()=>{stopScan();status('Folder check stopped.');render();};
     el('libraryRefresh').onclick=scanInBackground;el('libraryReconnect').onclick=()=>run(reconnect);
-    el('libraryOpenFile').onclick=()=>el('libraryOpenInput').click();
+    el('libraryOpenFile').onclick=()=>{
+      const input=el('libraryOpenInput');input.expectedRow=null;input.click();
+    };
     el('libraryOpenInput').onchange=e=>{
-      const file=e.target.files?.[0];e.target.value='';
-      if(file)void run(()=>openRow({title:file.name,filename:file.name},file));
+      const file=e.target.files?.[0],expected=e.target.expectedRow;
+      e.target.value='';e.target.expectedRow=null;
+      if(!file)return;
+      if(expected&&file.name!==expected.filename){
+        status('Choose '+expected.filename+' to open this song.');
+        return;
+      }
+      void run(()=>openRow(expected||{title:file.name,filename:file.name},file));
     };
     el('libraryAdd').onclick=()=>{el('libraryFiles').value='';el('libraryFiles').click();};
     el('libraryBatch').onclick=()=>{window.BassBatch?.show();};

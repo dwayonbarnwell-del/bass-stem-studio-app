@@ -15,6 +15,12 @@ const put=(name,value)=>files.set(name,JSON.stringify(value));
 const keepAlive=setInterval(()=>{},1000);
 (async()=>{
  put('one.bassstudio',project);data.settings.set('folder',folder);lib.init({});await lib.refresh();
+ const scanned=lib.getRows()[0];
+ let retries=0;
+ const reopened=await lib.rowFile({...scanned,handle:{getFile:async()=>{throw new DOMException('Stale file','NotReadableError');}},
+   dir:{getFileHandle:async name=>{retries++;return handle(name);}}});
+ assert.equal(reopened.name,'one.bassstudio');assert.equal(retries,1,'failed file handle is refreshed without scanning the folder');
+ assert.deepEqual(JSON.parse(await reopened.text()),project);
  const before=reads;await lib.refresh();assert.equal(reads,before,'unchanged files are not parsed or hashed again');
  const originalEntries=folder.entries;let release;
  folder.entries=()=>({[Symbol.asyncIterator](){return this;},next(){return new Promise(r=>release=r);}});
