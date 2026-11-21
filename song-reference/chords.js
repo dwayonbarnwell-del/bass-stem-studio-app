@@ -725,13 +725,7 @@ function install(){
   library.__chordButtonHooked=true;
  }
  installLibraryShortcut();
- const more=$('extraTools');
- if(more&&!$('openSongChords')){
-  const b=button('Song chords','openSongChords');
-  b.setAttribute('title','Search your worship chord progressions offline');
-  b.onclick=()=>void show();more.prepend(b);
- }
- // Keep the approved four practice cards unchanged.
+
 }
 async function missingProgressions(){
  setup();if(!ready)ready=init();await ready;

@@ -13290,7 +13290,6 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRo
 <link rel="stylesheet" href="./song-reference/chords.css">
 <link rel="stylesheet" href="./ai-source/lyrics-ux.css">
 <link rel="stylesheet" href="./library-source/saved-audio-match.css">
-<link rel="stylesheet" href="./library-source/tools-layout.css?v=rc258">
 
 <style id="rc239-piano-preview-style">.piano-action{display:none!important;}
 html body.piano-view-active #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot .simple-timeline-head .practice-view-head{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:6px!important;width:100%!important;align-items:stretch!important;}
@@ -13990,7 +13989,7 @@ html body #appRoot #bassFretboard#bassFretboard#bassFretboard#bassFretboard .bas
       </div>
       </div>
 
-<section id="liveAudioEntry" aria-label="Practice controls"><button id="openLiveAudio" type="button" aria-label="Live audio"><span>Live</span> <span>audio</span></button><button id="openEarTraining" type="button">Ear training</button><button id="openReview" type="button" aria-label="Review chords"><span>Review</span> <span>chords</span></button><button id="openMoreTools" type="button" aria-label="More tools" aria-expanded="false" aria-controls="moreTools"><span>More</span> <span>tools</span></button></section><div id="moreTools" hidden><div class="more-tools-select-row"><label for="moreToolsView" class="more-tools-select-label">Show tools</label><select id="moreToolsView" aria-label="More tools display"><option value="open">Tools open</option><option value="close">Close tools</option></select></div><div id="extraTools"><button id="openRhythm" type="button">Rhythm / practice</button></div></div><div id="practiceComfort"><label title="Short fades soften loop joins"><input id="smoothLoops" type="checkbox" checked>Smooth loops</label></div>
+<section id="liveAudioEntry" aria-label="Practice controls"><button id="openLiveAudio" type="button" aria-label="Live audio"><span>Live</span> <span>audio</span></button><button id="openEarTraining" type="button">Ear training</button><button id="openReview" type="button" aria-label="Review chords"><span>Review</span> <span>chords</span></button><button id="openRhythm" type="button" aria-label="Loop" aria-haspopup="dialog" aria-controls="rhythmDialog">Loop</button></section><div id="practiceComfort"><label title="Short fades soften loop joins"><input id="smoothLoops" type="checkbox" checked>Smooth loops</label></div>
 <dialog id="soundCheckDialog" aria-labelledby="soundCheckTitle"><h2 id="soundCheckTitle">Sound check</h2><p id="checkStatus" role="status">Check the room, then your playing level.</p><div class="check-buttons"><button id="checkQuiet">1. Quiet room</button><button id="checkLevel" disabled>2. Playing level</button></div><div id="checkResults" aria-live="polite"></div><small>Each check takes 3 seconds. No audio is saved. This checks input levels, not every cause of distortion.</small><div class="check-buttons"><button id="checkCancel" disabled>Stop check</button><button id="checkClose">Back</button></div></dialog>
 <dialog id="reviewDialog" aria-labelledby="reviewTitle"><h2 id="reviewTitle">Review chords</h2><p id="reviewCount"></p><h3 id="reviewChord">—</h3><p id="reviewTime"></p><p id="reviewStatus" role="status"></p><div class="review-buttons"><button id="reviewHear">Hear passage</button><button id="reviewStop" disabled>Stop audio</button><button id="reviewEdit">Check / correct</button><button id="reviewPrev">Previous</button><button id="reviewNext">Next</button><button id="reviewClose">Close</button></div><small>Save the correct chord to remove it from this queue. Use Save song to keep your corrections.</small></dialog>
 
@@ -14000,7 +13999,7 @@ html body #appRoot #bassFretboard#bassFretboard#bassFretboard#bassFretboard .bas
 
 
 <dialog id="mediaImportDialog" class="rc178-dialog" aria-labelledby="mediaImportTitle"><h2 id="mediaImportTitle">Import media</h2><p id="mediaImportState" role="status">Opening audio…</p><p>Video imports use the audio track.</p><button id="mediaImportCancel" type="button">Cancel</button></dialog>
-<dialog id="rhythmDialog" aria-labelledby="rhythmTitle"><h2 id="rhythmTitle">Rhythm / practice</h2><p id="rhythmStatus" role="status">Extract drums from a short song loop.</p><div class="rhythm-options"><label>From (seconds)<input id="rhythmFrom" type="number" min="0" step="0.01"></label><label>To (seconds)<input id="rhythmTo" type="number" min="0" step="0.01"></label></div><div class="rhythm-buttons"><button id="rhythmSnap">Align to beats</button><button id="rhythmExtract">Extract drums</button><button id="rhythmCancel">Cancel</button><button id="rhythmSave">Save MP3</button><button id="rhythmWav">Save WAV</button></div><audio id="rhythmPlayer" controls loop hidden></audio><small>Up to 30 seconds. First use downloads the model. Some instrument bleed may remain. WAV is best for seamless loops.</small><p><label>Or import a drum loop<input id="rhythmImport" type="file" accept="audio/*"></label></p><button id="rhythmClose">Close</button></dialog>
+<dialog id="rhythmDialog" aria-labelledby="rhythmTitle"><h2 id="rhythmTitle">Loop</h2><p id="rhythmStatus" role="status">Extract drums from a short song loop.</p><div class="rhythm-options"><label>From (seconds)<input id="rhythmFrom" type="number" min="0" step="0.01"></label><label>To (seconds)<input id="rhythmTo" type="number" min="0" step="0.01"></label></div><div class="rhythm-buttons"><button id="rhythmSnap">Align to beats</button><button id="rhythmExtract">Extract drums</button><button id="rhythmCancel">Cancel</button><button id="rhythmSave">Save MP3</button><button id="rhythmWav">Save WAV</button></div><audio id="rhythmPlayer" controls loop hidden></audio><small>Up to 30 seconds. First use downloads the model. Some instrument bleed may remain. WAV is best for seamless loops.</small><p><label>Or import a drum loop<input id="rhythmImport" type="file" accept="audio/*"></label></p><button id="rhythmClose">Close</button></dialog>
 
 
 <dialog id="lyricsDialog" aria-labelledby="lyricsTitle">
@@ -15708,7 +15707,7 @@ window.BassBatch = (() => {
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC311';
+  const APP_VERSION='RC312';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;
@@ -22912,22 +22911,6 @@ new ResizeObserver(size).observe(play);size();})();
 #editPitch,#patternFret{min-height:44px;width:100%;font:inherit}
 select:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid #78c9ff;outline-offset:3px}
 </style>
-<script id="rc189-tools-toggle">
-(()=>{const button=document.getElementById('openMoreTools'),panel=document.getElementById('moreTools'),view=document.getElementById('moreToolsView');
- if(!button||!panel)return;
- const setOpen=open=>{
-  button.setAttribute('aria-expanded',String(open));
-  panel.hidden=!open;
-  if(view)view.value='open';
- };
- button.addEventListener('click',()=>setOpen(button.getAttribute('aria-expanded')!=='true'));
- view?.addEventListener('change',()=>{if(view.value==='close'){setOpen(false);button.focus({preventScroll:true});}});
- panel.addEventListener('click',event=>{
-  const target=event.target.closest('button');
-  if(target&&(target.closest('#extraTools')||target.closest('.bs-featured-tools')))setOpen(false);
- });
-})();
-</script>
 <style id="rc233-more-tools-layout">
 /* Premium tools panel: one compact dropdown and exactly three lower tool rows. */
 html body #appRoot #moreTools[hidden]{display:none!important}
@@ -23158,9 +23141,8 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #sourceCard #sourceFi
 html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #sourceCard #sourceFileDetails{flex:0 0 auto!important;white-space:nowrap!important}
 </style>
 <script defer src="./song-reference/data.js?v=rc282"></script>
-<script defer src="./song-reference/chords.js?v=rc310"></script>
-<script defer src="./library-source/tools-layout.js?v=rc310"></script>
-<script defer src="./library-source/practice-icons.js?v=rc259"></script>
+<script defer src="./song-reference/chords.js?v=rc312"></script>
+<script defer src="./library-source/practice-icons.js?v=rc312"></script>
 </body>
 </html>
 
