@@ -11890,7 +11890,7 @@ html body #appRoot#appRoot#appRoot .bass-view-foot{flex:0 0 auto!important;min-h
 <style id="rc161-all-notes-fit">
 html body #appRoot#appRoot#appRoot #chordRuler{height:var(--practice-chord-height,36px)!important;min-height:var(--practice-chord-height,36px)!important;max-height:var(--practice-chord-height,36px)!important;overflow:visible!important}
 html body #appRoot#appRoot#appRoot .chord-cell{grid-template-columns:minmax(0,1fr)!important;padding:5px 6px!important;gap:0 4px!important;align-content:start!important}
-html body #appRoot#appRoot#appRoot .chord-name{font-size:var(--practice-notation-font,var(--ui-font-size))!important;line-height:1.35!important;min-height:0!important;white-space:nowrap!important;overflow:visible!important;overflow-wrap:normal!important}
+html body #appRoot#appRoot#appRoot .chord-name{font-size:var(--practice-chord-font,var(--practice-notation-font,var(--ui-font-size)))!important;line-height:1.35!important;min-height:0!important;white-space:nowrap!important;overflow:visible!important;overflow-wrap:normal!important}
 html body #appRoot#appRoot#appRoot .simple-timeline-card .note-sequence{grid-template-columns:repeat(var(--cell-note-columns,1),minmax(0,1fr))!important}
 html body #appRoot#appRoot#appRoot .simple-timeline-card .note-token{font-size:var(--practice-notation-font,var(--ui-font-size))!important;line-height:1.35!important;padding:2px!important;white-space:nowrap!important;overflow:visible!important;text-overflow:clip!important;border-radius:7px!important}
 html body #appRoot#appRoot#appRoot .note-time-cell{padding:6px!important}
@@ -15708,7 +15708,7 @@ window.BassBatch = (() => {
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC309';
+  const APP_VERSION='RC310';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;
@@ -22287,9 +22287,8 @@ window.BassBatch = (() => {
     const longestTime=measure.measureText(fmtShort(buffer.duration)).width;
     // Text width plus a small margin, never stretched to fill the viewport.
     measure.font=`900 ${Math.min(10,requestedFont)}px ${family}`;
-    const readableNoteWidth=Math.ceil(Math.max(24,...noteLabels.map(label=>measure.measureText(label).width)))+8;
-    const denseNoteMinimum=Math.max(...counts)>6?2*readableNoteWidth+gap+16:0;
-    const unit=Math.min(pageWidth,Math.ceil(Math.max(48,longestChord+8,longestNote+8,longestTime+8,denseNoteMinimum)));
+
+    const unit=Math.min(pageWidth,Math.ceil(Math.max(40,longestNote+12,longestTime+8)));
     const slots=Math.max(1,Math.floor(pageWidth/unit)),pages=[];
     practiceCells=Array(count);
     const noteWidthByFont=new Map();
@@ -22311,7 +22310,7 @@ window.BassBatch = (() => {
       const {noteWidth,chordHeight,noteSpace,minCardHeight,maxRows}=metrics;
       const cardHeight=Math.max(minCardHeight,Math.min(36,Math.floor((noteSpace-gap*(maxRows-1))/maxRows)));
       const rowsFit=Math.max(1,Math.floor((noteSpace+gap)/(cardHeight+gap)));
-      pages.push({...metrics,cardHeight});
+      pages.push({...metrics,cardHeight,chordFont:Math.min(font,requestedFont*(unit-8)/Math.max(1,longestChord))});
       for(let i=start;i<end;i++)practiceCells[i]={left:i*unit,width:unit,noteColumns:Math.max(1,Math.ceil(counts[i]/rowsFit)),chordColumns:1};
     }
     practiceLayoutWidth=Math.max(width,(Math.ceil(count/slots)-1)*slots*unit+width);
@@ -22326,10 +22325,11 @@ window.BassBatch = (() => {
     const page=clamp(Math.floor((timelineScroll.scrollLeft+.5)/(practiceCellWidth*fit.slots)),0,fit.pages.length-1);
     if(fit.appliedPage===page)return;
     fit.appliedPage=page;
-    const {font,noteWidth,chordHeight,noteSpace,cardHeight}=fit.pages[page],root=document.documentElement;
+    const {font,noteWidth,chordHeight,noteSpace,cardHeight,chordFont}=fit.pages[page],root=document.documentElement;
     root.style.setProperty('--practice-note-height',cardHeight+'px');
     root.style.setProperty('--practice-card-width',noteWidth+'px');
     root.style.setProperty('--practice-notation-font',font+'px');
+    root.style.setProperty('--practice-chord-font',chordFont+'px');
     root.style.setProperty('--practice-note-space',Math.max(0,noteSpace+12)+'px');
     root.style.setProperty('--practice-chord-height',chordHeight+'px');
     root.style.setProperty('--time-row-height',fit.rulerHeight+'px');
@@ -22945,7 +22945,7 @@ html body #appRoot #moreTools #moreToolsView{display:block!important;box-sizing:
 html body #appRoot #moreTools #moreToolsView:focus-visible{outline:2px solid #8ce4d5;outline-offset:3px}
 html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #extraTools{display:flex!important;flex-direction:column!important;align-items:stretch!important;justify-content:flex-start!important;gap:10px!important;padding:0 0 6px!important}
 html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #extraTools>.bs-other-row{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;margin:0!important;padding:0!important;width:100%!important;min-width:0!important;align-items:stretch!important}
-html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #extraTools>.bs-other-row:last-of-type{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #extraTools>.bs-other-row:last-of-type{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #extraTools>.bs-other-row>button,
 html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #moreTools .bs-featured-tools>button{box-sizing:border-box!important;display:flex!important;align-items:center!important;justify-content:center!important;width:100%!important;min-width:0!important;height:68px!important;min-height:68px!important;max-height:68px!important;margin:0!important;padding:8px 6px!important;font:750 14px/1.25 system-ui,sans-serif!important;white-space:normal!important;text-align:center!important;border-radius:11px!important}
 html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #moreTools .bs-featured-tools{margin:0 0 10px!important;gap:9px!important}
@@ -23166,8 +23166,8 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #sourceCard #sourceFi
 html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #sourceCard #sourceFileDetails{flex:0 0 auto!important;white-space:nowrap!important}
 </style>
 <script defer src="./song-reference/data.js?v=rc282"></script>
-<script defer src="./song-reference/chords.js?v=rc283"></script>
-<script defer src="./library-source/tools-layout.js?v=rc258"></script>
+<script defer src="./song-reference/chords.js?v=rc310"></script>
+<script defer src="./library-source/tools-layout.js?v=rc310"></script>
 <script defer src="./library-source/practice-icons.js?v=rc259"></script>
 </body>
 </html>

@@ -726,12 +726,6 @@ function install(){
  }
  installLibraryShortcut();
  const more=$('extraTools');
- if(more&&!$('bassHelpShare')){
-  const b=button('Help & share','bassHelpShare');
-  b.setAttribute('title','Getting started guide and share link for Bass Stem Studio');
-  b.onclick=()=>window.open(new URL('./guide.html',window.location.href).href,'_blank','noopener,noreferrer');
-  more.prepend(b);
- }
  if(more&&!$('openSongChords')){
   const b=button('Song chords','openSongChords');
   b.setAttribute('title','Search your worship chord progressions offline');
