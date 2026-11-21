@@ -35,5 +35,5 @@ assert(!R.visible('runs',reloaded.BassPracticeCore.runs.findIndex(r=>r.id==='23'
 D.restore();assert.equal(G.matching('runs','african').length,6);
 assert.equal(G.migrate('pentatonic'),'blues');assert.equal(G.migrate('fusion'),'funk');assert.equal(G.migrate('bad'),'gospel');
 const ui=fs.readFileSync('ear-source/study-ui-rc267.js','utf8');for(const id of ['fillQuality','fillStyle','fillPack','fillFilterPanel'])assert(!ui.includes('id="'+id+'"'));
-for(const file of ['groups-rc290.js?v=rc290','curated-rc289.js?v=rc290','study-ui-rc267.js?v=rc290','trainer-rc267.css?v=rc290'])for(const p of ['index.html','sw.js'])assert(fs.readFileSync(p,'utf8').includes(file));
+for(const file of ['groups-rc290.js?v=rc290','curated-rc289.js?v=rc294','study-ui-rc267.js?v=rc294','trainer-rc267.css?v=rc294'])for(const p of ['index.html','sw.js'])assert(fs.readFileSync(p,'utf8').includes(file));
 console.log(`PASS: 100 runs + 100 fills, five groups each, 200 distinct pitch sequences, ${preserved} preserved arrangements, ${cases} playable arrangements, stable IDs and saved deletions.`);

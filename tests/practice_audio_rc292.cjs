@@ -22,8 +22,11 @@ for(const mode of ['notes','intervals','chords','progressions'])for(let level=1;
 }
 for(const [id] of D.grooves)for(const beats of [4,8,20,64]){const a=D.events(beats,id);assert(a.length);assert(a.every(h=>h.beat>=0&&h.beat<beats&&h.velocity>0&&h.velocity<=100&&[1,2].includes(h.variant)));assert.equal(JSON.stringify(a),JSON.stringify(D.events(beats,id)));}
 assert(D.events(8,'swing').some(h=>Math.abs(h.beat-(1+2/3))<1e-10));assert.equal(D.events(4,'reggae').filter(h=>h.hit==='kick')[0].beat,2);
-const sources=[],gain=()=>({gain:{value:1,setTargetAtTime(){}},connect(){return this;},disconnect(){}}),context={currentTime:10,destination:{},createGain:gain,createBufferSource(){const s={connect(){return this;},disconnect(){},start(t){this.at=t;},stop(){}};sources.push(s);return s;}};
-const rendered={stems:{bass:{},chords:{},drums:{}},seconds:Math.round(8*60/137*44100)/44100,gain:.7};
-const t=L.start(context,rendered,{repeat:true});assert.equal(sources.length,3);assert(sources.every(s=>s.at===10.08&&s.loop&&s.loopEnd===rendered.seconds&&s.loopStart===0));
-t.setRepeat(false);assert(sources.every(s=>!s.loop));t.setRepeat(true);assert(sources.every(s=>s.loop));assert.equal(sources.length,3,'No timer-created repeat sources');t.stop();
+const sources=[],gain=()=>({gain:{value:1,setTargetAtTime(){},setValueAtTime(){},linearRampToValueAtTime(){},cancelScheduledValues(){}},connect(){return this;},disconnect(){}}),context={currentTime:10,destination:{},createGain:gain,createBufferSource(){const s={connect(){return this;},disconnect(){},start(t,offset){this.at=t;this.offset=offset;},stop(){this.stopped=true;}};sources.push(s);return s;}};
+const seconds=Math.round(8*60/137*44100)/44100;
+const rendered={stems:{bass:{duration:seconds},chords:{duration:seconds},drums:{duration:seconds*4}},seconds,beatSeconds:seconds/8,gain:.7};
+const t=L.start(context,rendered,{repeat:true});assert.equal(sources.length,3);assert(sources.every(s=>s.at===10.08&&s.loop&&s.loopEnd===s.buffer.duration&&s.loopStart===0&&s.offset===0));
+t.setRepeat(false);assert.equal(sources[0].loop,false);assert(sources.slice(1).every(s=>s.loop),'backing continues until the bass phrase ends');
+t.setRepeat(true);assert(sources.every(s=>s.loop));assert.equal(sources.length,3,'No timer-created repeat sources');t.stop();assert(sources.every(s=>s.stopped));
+const next=L.start(context,rendered,{when:12,offsetBeats:3});assert(sources.slice(3).every(s=>s.at===12&&Math.abs(s.offset-3*rendered.beatSeconds)<1e-8),'replacement starts on one clock at the matching beat');next.stop();
 console.log(JSON.stringify({pass:true,arrangements:checked,atOrBelowB2:low,widePhrasesRevoiced:revoiced,bassQuestions:3000,pianoQuestionsUnchanged:3000,drumBeats:D.grooves.length,sharedClock:true}));

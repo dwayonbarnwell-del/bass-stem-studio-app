@@ -72,7 +72,7 @@ window.BassPiano=(()=>{
   const all=pitches(notes),current=pitches(notes.filter(n=>n.end>start&&n.start<end));
   let use=all.length&&all.at(-1)-all[0]<24?all:current;
   if(!use.length){const near=notes.find(n=>n.end>start)||notes.at(-1);use=near?[near.midi+transpose]:[60,64,67];}
-  const low=Math.floor(use[0]/12)*12,high=Math.floor(use.at(-1)/12)*12+11;
+  const low=Math.floor(use[0]/12)*12,high=Math.max(low+23,Math.floor(use.at(-1)/12)*12+11);
   return Array.from({length:high-low+1},(_,i)=>high-i);
  }
  function metrics(){const s=state(),view=$('pianoRollViewport'),gridWidth=Math.max(60,view.clientWidth-58),step=s.step||1,columns=Math.max(1,Math.floor(gridWidth/70)),page=columns*step;return {view,gridWidth,step,page,scale:gridWidth/page,height:Math.max(1,view.clientHeight-$('pianoRollHeader').offsetHeight)};}

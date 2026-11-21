@@ -17,7 +17,7 @@ function setup(){
  t=setup();t.ctx.queueAutomaticAudioAnalysis();t.ctx.songSession++;await t.tick();assert.equal(t.runs,0);
  t=setup();t.ctx.storedRunPodKey=()=>'';t.ctx.queueAutomaticAudioAnalysis();await t.tick();assert.equal(t.runs,0);
  t=setup();t.ctx.window.BassBatch.isRunning=()=>true;t.ctx.queueAutomaticAudioAnalysis();await t.tick();assert.equal(t.runs,0);assert.equal(t.timers.size,0);
- t=setup();t.fail=true;t.ctx.queueAutomaticAudioAnalysis();await t.tick();assert.equal(t.runs,1);assert.equal(t.melodies,0);assert.equal(t.timers.size,0);
+ t=setup();t.fail=true;t.ctx.queueAutomaticAudioAnalysis();await t.tick();assert.equal(t.runs,1);assert.equal(t.melodies,0);assert.equal(t.timers.size,1,'mute preparation remains queued after bass analysis failure');
  t=setup();t.ctx.queueAutomaticAudioAnalysis();t.ctx.queueAutomaticAudioAnalysis();assert.equal(t.timers.size,1);
  assert.match(html,/if\(importSucceeded&&!batchImport&&!recoveryRestore\)\{startImportedSongSections\(\{allowNewJob:false\}\);queueAutomaticAudioAnalysis\(\);\}/);
  console.log('PASS automatic audio: sequencing, saved reuse, locking, pending recovery, failure protection, batch exclusion and stale songs');

@@ -6,7 +6,7 @@ function pipeline(){
  const storage=new Map(),results=new Map(),events=[],held=[];let pending=null;
  const file={name:'new.mp3',size:100,lastModified:1};
  const c={RUNPOD_ENDPOINT:"test-endpoint",console:{error(){}},Date,Error,JSON,Math,File,Blob,songSession:1,buffer:{duration:360},activeAudioFile:file,fileInput:{},aiBusy:false,songImportBusy:false,offlineAnalysisReady:false,notes:[],songStructure:null,savedSectionRanges:null,
-  assertSongSession:s=>assert.equal(s,1),cloudFileSignature:f=>f.name,storedRunPodKey:()=> 'test',getRunPodKey:async()=> 'test',cloudSleep:async()=>{},aiAnalyse:{setAttribute(){},removeAttribute(){}},aiStatus:()=>{},updatePracticeLayoutState:()=>{},queueAutomaticMelody:()=>events.push('melody queued'),window:{BassBatch:{isRunning:()=>false}},
+  assertSongSession:s=>assert.equal(s,1),cloudFileSignature:f=>f.name,storedRunPodKey:()=> 'test',getRunPodKey:async()=> 'test',cloudSleep:async()=>{},aiAnalyse:{setAttribute(){},removeAttribute(){}},aiStatus:()=>{},updatePracticeLayoutState:()=>{},queueMelodyProjectSave:()=>{},queueAutomaticMelody:()=>events.push('melody queued'),window:{BassBatch:{isRunning:()=>false}},
   readPendingRunPodJob:()=>pending,savePendingRunPodJob:p=>pending=p,clearPendingRunPodJob:()=>pending=null,
   holdBatchPendingJob:()=>{held.push(pending);pending=null},activateBatchHeldJob:s=>{pending=held.find(x=>x.signature===s)||null},removeBatchHeldJob:s=>{const i=held.findIndex(x=>x.signature===s);if(i>=0)held.splice(i,1)},
   makePendingPartGroup:()=>({signature:file.name,quality:'accuracy',parts:[{index:0,label:'P1'},{index:1,label:'P2'}]}),cacheAudioForRecovery:async()=>{},prepareAnalysisPartUpload:async(f,p)=>({file:{name:p.label},bitrate:256}),fileToBase64:async f=>f.name,
