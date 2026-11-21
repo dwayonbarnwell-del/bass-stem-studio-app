@@ -60,13 +60,13 @@ async function main(){
   const project={format:'Bass Stem Studio Project',schemaVersion:2,projectName:'Song',source:{name:'fixture.wav',duration,audioBase64:source.toString('base64')},
     analysis:{notes:[{midi:35,start:0,end:1}],melody:{notes:[{midi:73,start:0,end:1}],done:[{start:0,end:duration}]},chords:[{start:0,end:2,label:'B'}]},settings:{practiceView:'bassroll'}};
   const backingSource=await code('fretflow-source/backing.js');
-  let session=1,calls=[],saves=0,cancelAt,muted=false;
+  let session=1,calls=[],saves=0,cancelAt,muted=false,stemHandoffs=[];
   const master=new Audio();
   function freshBacking(){
     vm.runInContext(backingSource,ctx);
     const backing=ctx.window.BassBacking;
     const gain=()=>({gain:{setTargetAtTime(){}},connect(){return this;}});
-    backing.init({get:()=>({session,duration,loaded:true,busy:false,master,bassMuted:muted}),pause(){},update(){},setMuted(v){muted=v;},
+    backing.init({get:()=>({session,duration,loaded:true,busy:false,master,bassMuted:muted}),pause(){},update(){},bassStemReady:(blob,session)=>stemHandoffs.push({blob,session}),setMuted(v){muted=v;},
       graph:()=>({ctx:{createGain:gain,createMediaElementSource:gain},bass:[]}),
       cacheKey:async()=>'mute-audio-v2:same-audio',readCache:async k=>cache.get(k),
       writePart:async(id,frames,parts)=>cache.set(id,{frames,parts}),removePart:async k=>cache.delete(k),
@@ -90,11 +90,13 @@ async function main(){
     assert.equal(target.filename,filename);
     let backing=freshBacking();cancelAt=3;
     await backing.prepareForSong();
-    assert.equal(calls.length,3);assert.equal(saves,0);assert.equal(cache.size,2);
+    assert.equal(calls.length,3);assert.equal(saves,0);assert.equal(cache.size,2);assert.equal(stemHandoffs.length,0);
     session++;cancelAt=null;calls=[];backing=freshBacking();
     await backing.prepareForSong();
     assert.equal(calls.length,11,'resume skips the two finished passages');assert.equal(saves,1);
     assert(backing.state().vocalsReady);
+    assert.equal(stemHandoffs.length,1);assert.equal(stemHandoffs[0].session,session);
+    assert.equal(stemHandoffs[0].blob.type,'audio/wav');
     project.analysis.bassBacking=backing.exportData();
     let committed=false,release;
     holdClose=new Promise(r=>{release=r;});
@@ -123,6 +125,8 @@ async function main(){
     assert.equal(restored.analysis.notes[0].midi,35);assert.equal(restored.analysis.melody.notes[0].midi,73);
     assert.deepEqual(JSON.parse(JSON.stringify(restored.settings)),project.settings);
     await backing.restore(restored.analysis.bassBacking);await backing.prepareForSong();
+    assert.equal(stemHandoffs.length,2);assert.equal(stemHandoffs[1].session,session);
+    assert.equal(stemHandoffs[1].blob.size,stemHandoffs[0].blob.size);
     await backing.toggle('vocals');assert(backing.state().vocalsMuted);await backing.toggle('bass');assert(muted);
     assert.deepEqual(calls,[],'cold reopen and both mute buttons perform no separation');assert.equal(saves,1,'cold reopen does not write again');
     session++;backing=freshBacking();metadataFailure=true;

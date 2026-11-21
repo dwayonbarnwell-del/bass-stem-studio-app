@@ -114,6 +114,7 @@ window.BassBacking=(()=>{
    if(cancelled())return;
    ready=true;enabled=!!target;vocalsMuted=target==='vocals';if(target)api.setMuted(target==='bass'||s.bassMuted);
    message='Mute controls ready.';route();
+   void api.bassStemReady?.(blobs[1],s.session);
   }catch(e){if(mine===token){ready=false;enabled=false;vocalsMuted=false;api.setMuted(false);route();message=availableBlobs?'Mute audio could not load. Tap Vocals to retry.':e.message||'Could not prepare mute controls.';}}
   finally{if(mine===token){busy=false;changed();}}
  }
@@ -153,6 +154,7 @@ window.BassBacking=(()=>{
    session=s.session;saved=value;if(value.version===2){availableBlobs=blobs;attemptedSession=session;}
    await load(blobs,mine,s.duration);if(mine!==token)return;
    ready=true;message=value.version===2?'Saved mute controls ready.':'Bass mute ready.';changed();
+   void api.bassStemReady?.(blobs[1],s.session);
   }catch{if(mine===token){ready=false;message=availableBlobs?'Saved mute audio could not load. Tap Vocals to retry.':'Saved mute audio is incomplete.';changed();}}
  }
  function init(hooks){api=hooks;const master=api.get().master;for(const event of ['play','pause','seeking','seeked','ratechange','ended'])master.addEventListener(event,()=>void sync(true));}

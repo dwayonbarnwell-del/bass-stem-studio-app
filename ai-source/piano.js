@@ -100,7 +100,7 @@ window.BassPiano=(()=>{
   if(panel.hidden)return;
   if(bassFlow){
    $('pianoAnalyse').disabled=true;
-   $('pianoAnalyse').textContent=lineNotes().length?(lineNotes()[0].source==='estimated-bass'?'Estimated bass':'Bass ready'):s.busy||api.checkingBass()?'Finding bass':'No bass notes';
+   $('pianoAnalyse').textContent=lineNotes().length?(lineNotes()[0].source?.startsWith('estimated-bass')?'Estimated bass':'Bass ready'):s.busy||api.checkingBass()?'Finding bass':'No bass notes';
   }
   const {view,gridWidth,page,scale,height,step}=metrics(),canvas=$('pianoRollCanvas'),grid=$('pianoTimeline'),keyboard=$('pianoKeyboard');
   const oldStart=view.scrollLeft/zoom;zoom=scale;

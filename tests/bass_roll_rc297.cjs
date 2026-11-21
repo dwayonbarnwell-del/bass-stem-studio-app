@@ -25,6 +25,6 @@ vm.runInContext(part('  let localBassSession', '  let automaticMelodyTimer'), co
   });
   await context.estimateMissingBass({sampleRate:rate,numberOfChannels:1,duration:2,getChannelData:()=>samples},1);
   assert.deepEqual(Array.from(context.notes,n=>n.midi),[23,28]);
-  assert.ok(context.notes.every(n=>n.source==='estimated-bass' && n.end<=2));
+  assert.ok(context.notes.every(n=>n.source==='estimated-bass-stem' && n.end<=2));
   console.log('PASS low B and E bass notes with a simultaneous A4 melody');
 })().catch(error=>{console.error(error);process.exitCode=1;});
