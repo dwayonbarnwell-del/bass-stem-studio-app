@@ -100,14 +100,25 @@ async function main(){
     holdClose=new Promise(r=>{release=r;});
     const writing=lib.saveAnalysisProject(project,target).then(r=>{committed=true;return r;});
     while(!writes)await new Promise(r=>setTimeout(r,10));
-    assert(!committed,'no success before file close');release();holdClose=null;
+    assert(!committed,'no success before file close');
+    await lib.openForAnalysis('folder','Older copy.json');
+    assert.equal(opened.name,'Older copy.json','an unrelated file can open during a pending write');
+    let sameOpened=false;
+    const sameRead=lib.openForAnalysis('folder',filename).then(()=>{sameOpened=true;});
+    await new Promise(r=>setImmediate(r));
+    assert(!sameOpened,'a read of the file being written waits for its commit');
+    release();holdClose=null;await sameRead;
     const result=await writing;
     assert.equal(result.target.filename,filename);assert.equal(enumerations,0,'no catalogue scan for the opened file');
     assert(result.target.size>175000000,'full length stereo WAV audio in portable JSON');
     assert.equal(JSON.parse(await fs.readFile(path.join(tmp,'Older copy.json'))).analysis.bassBacking,undefined);
     cache.clear();calls=[];session++;backing=freshBacking();
     await lib.openForAnalysis('folder',filename);
-    const restored=await lib.readProject(opened);
+    const progress=[];
+    const restored=await lib.readProject(opened,{playback:true,onProgress:p=>progress.push(p)});
+    assert.equal(progress.at(-1),100);assert(progress.length>1);
+    assert(restored.analysis.bassBacking.bassBase64 instanceof Blob,'opening the notes does not allocate the mute strings');
+    restored.analysis.bassBacking=await ctx.BassProjectJSON.loadBacking(restored.analysis.bassBacking);
     assert.equal(restored.source.audioBase64,project.source.audioBase64);
     assert.equal(restored.analysis.notes[0].midi,35);assert.equal(restored.analysis.melody.notes[0].midi,73);
     assert.deepEqual(JSON.parse(JSON.stringify(restored.settings)),project.settings);
@@ -134,6 +145,16 @@ async function main(){
     const bytes=new TextEncoder().encode(escaped);
     const chunked={size:20000000,stream:()=>new ReadableStream({start(c){for(let i=0;i<bytes.length;i+=5)c.enqueue(bytes.slice(i,i+5));c.close();}})};
     assert.deepEqual(JSON.parse(JSON.stringify(await parse.read(chunked))),JSON.parse(escaped));
+    const controller=new AbortController();
+    controller.abort();
+    await assert.rejects(parse.playback(new File(['{}'],'cancel.json'),{signal:controller.signal}),{name:'AbortError'});
+    const field='a'.repeat(65540),wide={format:'Project 🌍',prefix:'ü'.repeat(8*1024*1024),notes:[{title:'saved "take"'}],
+      analysis:{bassBacking:{bassBase64:field,vocalsBase64:field}},other:{bassBase64:field}};
+    const largeFile=new File([JSON.stringify(wide)],'unicode.json');
+    const parsed=await parse.playback(largeFile);
+    assert.equal(parsed.format,wide.format);assert.equal(parsed.other.bassBase64,field);
+    assert.equal(parsed.notes[0].title,wide.notes[0].title);
+    assert.equal((await parse.loadBacking(parsed.analysis.bassBacking)).vocalsBase64,field);
     console.log('PASS 4:10 portable JSON, interrupted preparation, exact folder/device saves, failed commit and retry, cold reopen, bass and melody data, both mutes and saved audio retry.');
   }finally{await fs.rm(tmp,{recursive:true,force:true});}
 }

@@ -1,4 +1,4 @@
-importScripts('./project-json.js?v=rc303');
+importScripts('./project-json.js?v=rc304');
 const SUPPORTED=/\.(bassstudio|bssproject|json)$/i;
 const clean=v=>String(v||'').trim();
   function metadata(p,file){
@@ -20,4 +20,4 @@ const clean=v=>String(v||'').trim();
     return {...metadata(project,file),audioId:await audioIdentity(project)};
   }
 
-self.onmessage=async ({data:file})=>{try{const p=await BassProjectJSON.read(file);const meta=(p?.format==='BassStemSongReferences'||p?.format==='BassStemSongChordPack')?{kind:'chord-catalogue',size:file.size,modified:file.lastModified}:await indexedMetadata(p,file);self.postMessage({meta});}catch(e){self.postMessage({error:e.message});}};
+self.onmessage=async ({data:file})=>{try{const p=await BassProjectJSON.read(file,{playback:true});const meta=(p?.format==='BassStemSongReferences'||p?.format==='BassStemSongChordPack')?{kind:'chord-catalogue',size:file.size,modified:file.lastModified}:await indexedMetadata(p,file);self.postMessage({meta});}catch(e){self.postMessage({error:e.message});}};

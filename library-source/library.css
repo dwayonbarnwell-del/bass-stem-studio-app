@@ -16,7 +16,8 @@ html body #bassLibraryDialog input,html body #bassLibraryDialog select{box-sizin
 #bassLibraryDialog #libraryCount{font-weight:700;color:#a7e8d2}
 #bassLibraryDialog ul{display:grid;gap:10px;padding:0;margin:0;list-style:none}
 #bassLibraryDialog li{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px;border:1px solid #304c5e;border-radius:12px;background:#142936}
-#bassLibraryDialog .library-song-info{min-width:0;flex:1}
+html body dialog#bassLibraryDialog button.library-song-info{min-width:0!important;max-width:none!important;min-height:44px!important;width:auto!important;height:auto!important;flex:1;display:block!important;padding:3px!important;text-align:left!important;color:inherit!important;background:transparent!important;border:0!important;box-shadow:none!important;cursor:pointer}
+#bassLibraryDialog .library-song-info:focus-visible{outline:2px solid #a7e8d2;outline-offset:2px}
 #bassLibraryDialog strong,#bassLibraryDialog .library-song-info span{display:block;overflow-wrap:anywhere}
 #bassLibraryDialog .library-song-info span{font-size:13px;color:#bdcdd8;margin-top:4px}
 #bassLibraryDialog .library-song-actions{display:flex;gap:8px}

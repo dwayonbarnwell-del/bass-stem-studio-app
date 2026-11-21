@@ -59,9 +59,19 @@ window.BassLibrary=(()=>{
   }
   const openedFiles=new WeakMap();
   let pendingWrite=Promise.resolve();
-  function inWriteOrder(action){
-    const result=pendingWrite.then(action);
-    pendingWrite=result.catch(()=>{});
+  const writes=new Set();
+  function sameSong(row,target){
+    if(!target)return true;
+    if(row.audioId&&target.audioId&&row.audioId===target.audioId)return true;
+    if(row.filename===target.filename||row.id&&row.id===target.id)return true;
+    return false;
+  }
+  function inWriteOrder(action,target){
+    const job={target};
+    writes.add(job);
+    const result=pendingWrite.then(()=>action(job));
+    job.done=result.catch(()=>{}).finally(()=>writes.delete(job));
+    pendingWrite=job.done;
     return result;
   }
   function within(promise,ms=45000){
@@ -79,7 +89,7 @@ window.BassLibrary=(()=>{
     return row?{...row,dir:row.dir||(row.handle?folder:null)}:null;
   }
   // Large recordings stay in separate Blob parts. The file is ordinary project JSON.
-  const readProject=file=>globalThis.BassProjectJSON?BassProjectJSON.read(file):file.text().then(JSON.parse);
+  const readProject=(file,options)=>globalThis.BassProjectJSON?BassProjectJSON.read(file,options):file.text().then(JSON.parse);
   function projectBlob(project){
     const marker='bss'+crypto.randomUUID().replace(/-/g,'')+'_',audio=[];
     const json=JSON.stringify(project,(key,value)=>{
@@ -117,32 +127,53 @@ window.BassLibrary=(()=>{
     return list.filter(r=>words.every(w=>[r.title,r.artist,r.filename,r.key,r.bpm].join(' ').toLocaleLowerCase().includes(w)))
       .sort((a,b)=>sort==='name'?a.title.localeCompare(b.title):((Date.parse(b.savedAt)||b.modified)-(Date.parse(a.savedAt)||a.modified))||a.title.localeCompare(b.title));
   }
+  const songItems=new Map();
+  let opening=null,lastOpenError=null;
+  const rowKey=row=>row.storageLabel+':'+row.filename;
   function render(){
-    if(!dialog)return;paintLocation();
+    if(!dialog?.open)return;paintLocation();
     const list=el('librarySongs');
     const oldURLs=downloadURLs;downloadURLs=[];setTimeout(()=>oldURLs.forEach(url=>URL.revokeObjectURL(url)),60000);
-    list.replaceChildren();
+
     const shown=filterRows(rows,el('librarySearch').value,el('librarySort').value);
     el('libraryCount').textContent=folderAccess==='reconnect'&&!shown.length?'Folder not connected':shown.length+' '+(shown.length===1?'song':'songs');
+    const visible=new Set(shown.map(rowKey));
+    for(const [key,entry] of songItems)if(!visible.has(key)){entry.item.remove();songItems.delete(key);}
+    list.querySelector('.library-empty')?.remove();
     if(!shown.length){const p=document.createElement('p');p.className='library-empty';p.textContent=rows.length?'No matching songs.':folderAccess==='reconnect'?'Reconnect to view songs.':(busy||scanning)?'Checking songs…':'Import saved songs to begin.';list.append(p);}
-    for(const row of shown){
-      const item=document.createElement('li'),info=document.createElement('div'),title=document.createElement('strong'),details=document.createElement('span'),actions=document.createElement('div');
-      title.textContent=row.title;
+    for(const [position,row] of shown.entries()){
+      const key=rowKey(row);
+      let entry=songItems.get(key);
+      if(!entry){
+        const item=document.createElement('li'),info=document.createElement('button'),title=document.createElement('strong'),details=document.createElement('span'),actions=document.createElement('div');
+        info.type='button';info.className='library-song-info';info.append(title,details);
+        actions.className='library-song-actions';
+        const open=document.createElement('button');open.type='button';
+        const download=document.createElement('a');download.className='library-download';download.textContent='Download';download.href='#';
+        actions.append(open,download);item.append(info,actions);
+        entry={item,info,title,details,open,download,row};
+        songItems.set(key,entry);
+        info.onclick=open.onclick=()=>run(()=>openRow(entry.row));
+        item.onclick=e=>{if(e.target===item)info.click();};
+        download.onclick=async e=>{
+          e.preventDefault();if(busy)return;stopScan();
+          try{
+            const file=await rowFile(entry.row),url=URL.createObjectURL(file),link=document.createElement('a');
+            link.href=url;link.download=entry.row.filename;link.click();setTimeout(()=>URL.revokeObjectURL(url),60000);
+            status('Download requested for '+entry.row.title+'.');
+          }catch(err){status(errorText(err));}
+        };
+      }
+      const {item,info,title,details,open,download}=entry;entry.row=row;
+      if(title.textContent!==row.title)title.textContent=row.title;
       const minutes=Math.floor((row.duration||0)/60),seconds=Math.floor(row.duration%60).toString().padStart(2,'0');
-      details.textContent=[row.artist,row.key&&row.key!=='—'?row.key:'',row.bpm?Math.round(row.bpm)+' BPM':'',row.duration?minutes+':'+seconds:'',row.storageLabel].filter(Boolean).join(' · ')||row.filename;
-      info.className='library-song-info';info.append(title,details);actions.className='library-song-actions';
-      const open=document.createElement('button');open.type='button';open.textContent='Open';open.setAttribute('aria-label','Open '+row.title);open.disabled=busy;open.onclick=()=>run(()=>openRow(row));actions.append(open);
-      const download=document.createElement('a');download.className='library-download';download.textContent='Download';download.setAttribute('aria-label','Download '+row.title);
-      download.href='#';download.download=row.filename;
-      download.onclick=async e=>{
-        e.preventDefault();if(busy)return;
-        stopScan();
-        try{const file=await rowFile(row),url=URL.createObjectURL(file),link=document.createElement('a');
-          link.href=url;link.download=row.filename;link.click();setTimeout(()=>URL.revokeObjectURL(url),60000);
-          status('Download requested for '+row.title+'.');
-        }catch(err){status(errorText(err));}render();
-      };actions.append(download);
-      item.append(info,actions);list.append(item);
+      const detail=[row.artist,row.key&&row.key!=='—'?row.key:'',row.bpm?Math.round(row.bpm)+' BPM':'',row.duration?minutes+':'+seconds:'',row.storageLabel].filter(Boolean).join(' · ')||row.filename;
+      const detailText=opening?.key===key&&opening.message||lastOpenError?.key===key&&lastOpenError.message||detail;
+      if(details.textContent!==detailText)details.textContent=detailText;
+      open.textContent=opening?.row===row?'Opening…':'Open';info.disabled=open.disabled=busy;
+      info.setAttribute('aria-label','Open '+row.title);open.setAttribute('aria-label','Open '+row.title);
+      download.setAttribute('aria-label','Download '+row.title);download.download=row.filename;
+      if(list.children[position]!==item)list.insertBefore(item,list.children[position]||null);
     }
     if(el('libraryStop'))el('libraryStop').hidden=!scanning;
     for(const id of ['libraryChoose','libraryDevice','libraryReconnect','libraryRefresh','libraryAdd','libraryBatch'])el(id).disabled=busy;
@@ -231,14 +262,14 @@ window.BassLibrary=(()=>{
     // Parse large embedded audio and calculate its identity off the UI thread.
     const job=scanJob;
     if(typeof Worker==='function'&&job){
-      const worker=job.worker||(job.worker=new Worker('./library-source/scan-worker-rc295.js?v=rc303'));
+      const worker=job.worker||(job.worker=new Worker('./library-source/scan-worker-rc295.js?v=rc304'));
       return new Promise((resolve,reject)=>{
         worker.onmessage=event=>{event.data.error?reject(Error(event.data.error)):resolve(event.data.meta);};
         worker.onerror=()=>reject(Error('Could not read this saved song.'));
         worker.postMessage(file);
       });
     }
-    const project=await readProject(file);
+    const project=await readProject(file,{playback:true});
     if(isChordCatalogue(project))return {kind:'chord-catalogue',size:file.size,modified:file.lastModified};
     return indexedMetadata(project,file);
   }
@@ -298,13 +329,14 @@ window.BassLibrary=(()=>{
     return {dir:null,filename,id};
   }
   function save(project,blob,target,options={}){
-    return inWriteOrder(()=>writeProject(project,blob,target,options));
+    return inWriteOrder(job=>writeProject(project,blob,target,{...options,job}),options.exact?target:null);
   }
-  async function writeProject(project,blob,target,{exact=false,requestAccess=false,alsoMelody=false,onProgress=()=>{}}={}){
+  async function writeProject(project,blob,target,{exact=false,requestAccess=false,alsoMelody=false,onProgress=()=>{},job}={}){
     await ready;
     let match=exact?target:await matchingTarget(project);
     if(match)target=match;
     if(!target?.filename)throw Error('Choose a save location for this song.');
+    if(job)job.target=target;
     const directory=target.dir,access=directory||target.handle;
     if(access&&!await within(permission(access,'readwrite',requestAccess)))
       throw Error(directory?'Reconnect the folder in Library, then tap Save.':'Tap Save and allow this file to be updated.');
@@ -327,7 +359,7 @@ window.BassLibrary=(()=>{
         const suffix=(await audioIdentity(project)).slice(0,12);
         target={...target,filename:target.filename.replace(SUPPORTED,'')+' - '+suffix+'.bassstudio'};
         target.id=target.filename.toLocaleLowerCase();
-        return writeProject(project,blob,target,{exact:false,alsoMelody,onProgress,requestAccess});
+        return writeProject(project,blob,target,{exact:false,alsoMelody,onProgress,requestAccess,job});
       }
     }
     if(previous?.analysis?.bassBacking?.version===2&&project.analysis.bassBacking?.version!==2){
@@ -373,8 +405,9 @@ window.BassLibrary=(()=>{
     window.dispatchEvent(new Event('bass-stem:project-saved'));
     return {target,location:access?(directory?'folder “'+directory.name+'”':'the selected file'):'this device'};
   }
-  async function rowFile(row){
-    await pendingWrite;
+  async function rowFile(row,onWait){
+    const relevant=[...writes].filter(job=>sameSong(row,job.target));
+    if(relevant.length){onWait?.();await Promise.all(relevant.map(job=>job.done));}
     let file;
     if(row.handle||row.dir){
       const handle=row.handle||await within(row.dir.getFileHandle(row.filename));
@@ -404,10 +437,33 @@ window.BassLibrary=(()=>{
     return file;
   }
   async function openRow(row){
-    if(hooks.isBusy?.())throw Error('Wait for the current song to finish, then open another.');
-    status('Opening '+row.title+'…');
-    const ok=await hooks.open(await rowFile(row));
-    if(ok){dialog.close();return;}status('The song could not be opened. Check the message on the main screen.');
+    const key=rowKey(row),reason=hooks.openBlocked?.();
+    if(reason){lastOpenError={key,message:reason};throw Error(reason);}
+    lastOpenError=null;
+    const controller=new AbortController(),request={row,key,controller,ready:false};
+    const closed=new Promise((_,reject)=>controller.signal.addEventListener('abort',()=>reject(abort()),{once:true}));
+    opening=request;render();
+    const progress=text=>{
+      if(opening!==request||!dialog.open)return;
+      request.message=text;status(text);
+      const entry=songItems.get(key);if(entry)entry.details.textContent=text;
+    };
+    progress('Opening '+row.title+'…');
+    try{
+      const file=await Promise.race([rowFile(row,()=>progress('Finishing the save for '+row.title+'…')),closed]);
+      if(controller.signal.aborted)throw abort();
+      let present;
+      const presented=new Promise(resolve=>{present=resolve;});
+      request.file=file;
+      request.present=()=>{request.ready=true;dialog.close();present(true);};
+      const imported=hooks.open(file,{onStatus:progress,signal:controller.signal});
+      const ok=await Promise.race([imported,presented,closed]);
+      if(ok){if(!request.ready&&dialog.open)dialog.close();}
+      else if(!controller.signal.aborted)lastOpenError={key,message:request.message};
+    }catch(error){
+      if(error.name!=='AbortError')lastOpenError={key,message:errorText(error)};
+      throw error;
+    }finally{if(opening===request)opening=null;}
   }
   async function addFiles(files){
     let added=0,failed=0,cancelled=0,duplicates=0,chordCatalogues=0;
@@ -614,7 +670,7 @@ window.BassLibrary=(()=>{
     dialog.innerHTML='<div class="library-heading"><div><h2 id="libraryTitle">Song library</h2><p id="libraryLocation"></p></div><button id="libraryClose" type="button">Close</button></div><div class="library-toolbar"><button id="libraryChoose" type="button">Choose save folder</button><button id="libraryReconnect" type="button">Reconnect folder</button><button id="libraryDevice" type="button">Save in app</button><button id="libraryAdd" type="button">Import saved file</button><button id="libraryBatch" type="button">Batch ZIP</button><button id="libraryRefresh" type="button">Refresh</button><button id="libraryStop" type="button" hidden>Stop checking</button></div><p id="libraryHint"></p><div class="library-filters"><div><label for="librarySearch">Search songs</label><input id="librarySearch" type="search" placeholder="Title, artist, key or BPM" autocomplete="off"></div><div><label for="librarySort">Sort by</label><select id="librarySort"><option value="recent">Recently saved</option><option value="name">Song name</option></select></div></div><div class="library-summary"><span id="libraryCount"></span><span id="libraryStatus" role="status" aria-live="polite"></span></div><ul id="librarySongs"></ul><input id="libraryFiles" type="file" accept=".bassstudio,.bssproject,.json,application/json" multiple hidden>';
     document.body.append(dialog);
     el('libraryClose').onclick=()=>dialog.close();
-    dialog.addEventListener('close',()=>{stopScan();document.getElementById('importProjectBtn')?.focus();});
+    dialog.addEventListener('close',()=>{if(opening&&!opening.ready)opening.controller.abort();stopScan();document.getElementById('importProjectBtn')?.focus();});
     el('librarySearch').oninput=render;el('librarySort').onchange=render;
     el('libraryChoose').onclick=()=>run(chooseFolder);el('libraryDevice').onclick=()=>run(useDevice);
     el('libraryStop').onclick=()=>{stopScan();status('Folder check stopped.');render();};
@@ -709,5 +765,5 @@ window.BassLibrary=(()=>{
     if(!hooks.openPractice)throw Error('Reload the platform to open this part.');
     return !!await hooks.openPractice(file);
   }
-  return {init,show,presentOpened(file){if(dialog?.open&&openedFiles.has(file))dialog.close();},readProject,projectBlob,selectedFile,lastProject,targetFor:file=>openedFiles.get(file),prepareSave,save:(p,b,t)=>save(p,b,t).then(r=>r.location),saveAnalysisProject,saveMelodyProject,hasProject,ensureBatchAccess,errorText,chartProjects,chartProject,checkAudioImport,analysisSummary,openForAnalysis,practiceProjects,practiceProject,openPracticeSong};
+  return {init,show,presentOpened(file){if(opening?.file===file)opening.present();else if(dialog?.open&&!opening&&openedFiles.has(file))dialog.close();},readProject,projectBlob,selectedFile,lastProject,targetFor:file=>openedFiles.get(file),prepareSave,save:(p,b,t)=>save(p,b,t).then(r=>r.location),saveAnalysisProject,saveMelodyProject,hasProject,ensureBatchAccess,errorText,chartProjects,chartProject,checkAudioImport,analysisSummary,openForAnalysis,practiceProjects,practiceProject,openPracticeSong};
 })();

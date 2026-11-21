@@ -14163,7 +14163,8 @@ html body #bassLibraryDialog input,html body #bassLibraryDialog select{box-sizin
 #bassLibraryDialog #libraryCount{font-weight:700;color:#a7e8d2}
 #bassLibraryDialog ul{display:grid;gap:10px;padding:0;margin:0;list-style:none}
 #bassLibraryDialog li{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px;border:1px solid #304c5e;border-radius:12px;background:#142936}
-#bassLibraryDialog .library-song-info{min-width:0;flex:1}
+html body dialog#bassLibraryDialog button.library-song-info{min-width:0!important;max-width:none!important;min-height:44px!important;width:auto!important;height:auto!important;flex:1;display:block!important;padding:3px!important;text-align:left!important;color:inherit!important;background:transparent!important;border:0!important;box-shadow:none!important;cursor:pointer}
+#bassLibraryDialog .library-song-info:focus-visible{outline:2px solid #a7e8d2;outline-offset:2px}
 #bassLibraryDialog strong,#bassLibraryDialog .library-song-info span{display:block;overflow-wrap:anywhere}
 #bassLibraryDialog .library-song-info span{font-size:13px;color:#bdcdd8;margin-top:4px}
 #bassLibraryDialog .library-song-actions{display:flex;gap:8px}
@@ -14178,7 +14179,7 @@ html body #bassLibraryDialog #libraryClose{background:#413042!important;border-c
 #bassLibraryDialog .library-heading>div{min-width:0;flex:1}
 #bassLibraryDialog #libraryClose{flex-shrink:0}
 </style>
-<script src="./library-source/project-json.js?v=rc303"></script>
+<script src="./library-source/project-json.js?v=rc304"></script>
 <script id="rc195-library">
 /* RC195: local saved-project library. No audio or index is sent to a server. */
 window.BassLibrary=(()=>{
@@ -14241,9 +14242,19 @@ window.BassLibrary=(()=>{
   }
   const openedFiles=new WeakMap();
   let pendingWrite=Promise.resolve();
-  function inWriteOrder(action){
-    const result=pendingWrite.then(action);
-    pendingWrite=result.catch(()=>{});
+  const writes=new Set();
+  function sameSong(row,target){
+    if(!target)return true;
+    if(row.audioId&&target.audioId&&row.audioId===target.audioId)return true;
+    if(row.filename===target.filename||row.id&&row.id===target.id)return true;
+    return false;
+  }
+  function inWriteOrder(action,target){
+    const job={target};
+    writes.add(job);
+    const result=pendingWrite.then(()=>action(job));
+    job.done=result.catch(()=>{}).finally(()=>writes.delete(job));
+    pendingWrite=job.done;
     return result;
   }
   function within(promise,ms=45000){
@@ -14261,7 +14272,7 @@ window.BassLibrary=(()=>{
     return row?{...row,dir:row.dir||(row.handle?folder:null)}:null;
   }
   // Large recordings stay in separate Blob parts. The file is ordinary project JSON.
-  const readProject=file=>globalThis.BassProjectJSON?BassProjectJSON.read(file):file.text().then(JSON.parse);
+  const readProject=(file,options)=>globalThis.BassProjectJSON?BassProjectJSON.read(file,options):file.text().then(JSON.parse);
   function projectBlob(project){
     const marker='bss'+crypto.randomUUID().replace(/-/g,'')+'_',audio=[];
     const json=JSON.stringify(project,(key,value)=>{
@@ -14299,32 +14310,53 @@ window.BassLibrary=(()=>{
     return list.filter(r=>words.every(w=>[r.title,r.artist,r.filename,r.key,r.bpm].join(' ').toLocaleLowerCase().includes(w)))
       .sort((a,b)=>sort==='name'?a.title.localeCompare(b.title):((Date.parse(b.savedAt)||b.modified)-(Date.parse(a.savedAt)||a.modified))||a.title.localeCompare(b.title));
   }
+  const songItems=new Map();
+  let opening=null,lastOpenError=null;
+  const rowKey=row=>row.storageLabel+':'+row.filename;
   function render(){
-    if(!dialog)return;paintLocation();
+    if(!dialog?.open)return;paintLocation();
     const list=el('librarySongs');
     const oldURLs=downloadURLs;downloadURLs=[];setTimeout(()=>oldURLs.forEach(url=>URL.revokeObjectURL(url)),60000);
-    list.replaceChildren();
+
     const shown=filterRows(rows,el('librarySearch').value,el('librarySort').value);
     el('libraryCount').textContent=folderAccess==='reconnect'&&!shown.length?'Folder not connected':shown.length+' '+(shown.length===1?'song':'songs');
+    const visible=new Set(shown.map(rowKey));
+    for(const [key,entry] of songItems)if(!visible.has(key)){entry.item.remove();songItems.delete(key);}
+    list.querySelector('.library-empty')?.remove();
     if(!shown.length){const p=document.createElement('p');p.className='library-empty';p.textContent=rows.length?'No matching songs.':folderAccess==='reconnect'?'Reconnect to view songs.':(busy||scanning)?'Checking songs…':'Import saved songs to begin.';list.append(p);}
-    for(const row of shown){
-      const item=document.createElement('li'),info=document.createElement('div'),title=document.createElement('strong'),details=document.createElement('span'),actions=document.createElement('div');
-      title.textContent=row.title;
+    for(const [position,row] of shown.entries()){
+      const key=rowKey(row);
+      let entry=songItems.get(key);
+      if(!entry){
+        const item=document.createElement('li'),info=document.createElement('button'),title=document.createElement('strong'),details=document.createElement('span'),actions=document.createElement('div');
+        info.type='button';info.className='library-song-info';info.append(title,details);
+        actions.className='library-song-actions';
+        const open=document.createElement('button');open.type='button';
+        const download=document.createElement('a');download.className='library-download';download.textContent='Download';download.href='#';
+        actions.append(open,download);item.append(info,actions);
+        entry={item,info,title,details,open,download,row};
+        songItems.set(key,entry);
+        info.onclick=open.onclick=()=>run(()=>openRow(entry.row));
+        item.onclick=e=>{if(e.target===item)info.click();};
+        download.onclick=async e=>{
+          e.preventDefault();if(busy)return;stopScan();
+          try{
+            const file=await rowFile(entry.row),url=URL.createObjectURL(file),link=document.createElement('a');
+            link.href=url;link.download=entry.row.filename;link.click();setTimeout(()=>URL.revokeObjectURL(url),60000);
+            status('Download requested for '+entry.row.title+'.');
+          }catch(err){status(errorText(err));}
+        };
+      }
+      const {item,info,title,details,open,download}=entry;entry.row=row;
+      if(title.textContent!==row.title)title.textContent=row.title;
       const minutes=Math.floor((row.duration||0)/60),seconds=Math.floor(row.duration%60).toString().padStart(2,'0');
-      details.textContent=[row.artist,row.key&&row.key!=='—'?row.key:'',row.bpm?Math.round(row.bpm)+' BPM':'',row.duration?minutes+':'+seconds:'',row.storageLabel].filter(Boolean).join(' · ')||row.filename;
-      info.className='library-song-info';info.append(title,details);actions.className='library-song-actions';
-      const open=document.createElement('button');open.type='button';open.textContent='Open';open.setAttribute('aria-label','Open '+row.title);open.disabled=busy;open.onclick=()=>run(()=>openRow(row));actions.append(open);
-      const download=document.createElement('a');download.className='library-download';download.textContent='Download';download.setAttribute('aria-label','Download '+row.title);
-      download.href='#';download.download=row.filename;
-      download.onclick=async e=>{
-        e.preventDefault();if(busy)return;
-        stopScan();
-        try{const file=await rowFile(row),url=URL.createObjectURL(file),link=document.createElement('a');
-          link.href=url;link.download=row.filename;link.click();setTimeout(()=>URL.revokeObjectURL(url),60000);
-          status('Download requested for '+row.title+'.');
-        }catch(err){status(errorText(err));}render();
-      };actions.append(download);
-      item.append(info,actions);list.append(item);
+      const detail=[row.artist,row.key&&row.key!=='—'?row.key:'',row.bpm?Math.round(row.bpm)+' BPM':'',row.duration?minutes+':'+seconds:'',row.storageLabel].filter(Boolean).join(' · ')||row.filename;
+      const detailText=opening?.key===key&&opening.message||lastOpenError?.key===key&&lastOpenError.message||detail;
+      if(details.textContent!==detailText)details.textContent=detailText;
+      open.textContent=opening?.row===row?'Opening…':'Open';info.disabled=open.disabled=busy;
+      info.setAttribute('aria-label','Open '+row.title);open.setAttribute('aria-label','Open '+row.title);
+      download.setAttribute('aria-label','Download '+row.title);download.download=row.filename;
+      if(list.children[position]!==item)list.insertBefore(item,list.children[position]||null);
     }
     if(el('libraryStop'))el('libraryStop').hidden=!scanning;
     for(const id of ['libraryChoose','libraryDevice','libraryReconnect','libraryRefresh','libraryAdd','libraryBatch'])el(id).disabled=busy;
@@ -14413,14 +14445,14 @@ window.BassLibrary=(()=>{
     // Parse large embedded audio and calculate its identity off the UI thread.
     const job=scanJob;
     if(typeof Worker==='function'&&job){
-      const worker=job.worker||(job.worker=new Worker('./library-source/scan-worker-rc295.js?v=rc303'));
+      const worker=job.worker||(job.worker=new Worker('./library-source/scan-worker-rc295.js?v=rc304'));
       return new Promise((resolve,reject)=>{
         worker.onmessage=event=>{event.data.error?reject(Error(event.data.error)):resolve(event.data.meta);};
         worker.onerror=()=>reject(Error('Could not read this saved song.'));
         worker.postMessage(file);
       });
     }
-    const project=await readProject(file);
+    const project=await readProject(file,{playback:true});
     if(isChordCatalogue(project))return {kind:'chord-catalogue',size:file.size,modified:file.lastModified};
     return indexedMetadata(project,file);
   }
@@ -14480,13 +14512,14 @@ window.BassLibrary=(()=>{
     return {dir:null,filename,id};
   }
   function save(project,blob,target,options={}){
-    return inWriteOrder(()=>writeProject(project,blob,target,options));
+    return inWriteOrder(job=>writeProject(project,blob,target,{...options,job}),options.exact?target:null);
   }
-  async function writeProject(project,blob,target,{exact=false,requestAccess=false,alsoMelody=false,onProgress=()=>{}}={}){
+  async function writeProject(project,blob,target,{exact=false,requestAccess=false,alsoMelody=false,onProgress=()=>{},job}={}){
     await ready;
     let match=exact?target:await matchingTarget(project);
     if(match)target=match;
     if(!target?.filename)throw Error('Choose a save location for this song.');
+    if(job)job.target=target;
     const directory=target.dir,access=directory||target.handle;
     if(access&&!await within(permission(access,'readwrite',requestAccess)))
       throw Error(directory?'Reconnect the folder in Library, then tap Save.':'Tap Save and allow this file to be updated.');
@@ -14509,7 +14542,7 @@ window.BassLibrary=(()=>{
         const suffix=(await audioIdentity(project)).slice(0,12);
         target={...target,filename:target.filename.replace(SUPPORTED,'')+' - '+suffix+'.bassstudio'};
         target.id=target.filename.toLocaleLowerCase();
-        return writeProject(project,blob,target,{exact:false,alsoMelody,onProgress,requestAccess});
+        return writeProject(project,blob,target,{exact:false,alsoMelody,onProgress,requestAccess,job});
       }
     }
     if(previous?.analysis?.bassBacking?.version===2&&project.analysis.bassBacking?.version!==2){
@@ -14555,8 +14588,9 @@ window.BassLibrary=(()=>{
     window.dispatchEvent(new Event('bass-stem:project-saved'));
     return {target,location:access?(directory?'folder “'+directory.name+'”':'the selected file'):'this device'};
   }
-  async function rowFile(row){
-    await pendingWrite;
+  async function rowFile(row,onWait){
+    const relevant=[...writes].filter(job=>sameSong(row,job.target));
+    if(relevant.length){onWait?.();await Promise.all(relevant.map(job=>job.done));}
     let file;
     if(row.handle||row.dir){
       const handle=row.handle||await within(row.dir.getFileHandle(row.filename));
@@ -14586,10 +14620,33 @@ window.BassLibrary=(()=>{
     return file;
   }
   async function openRow(row){
-    if(hooks.isBusy?.())throw Error('Wait for the current song to finish, then open another.');
-    status('Opening '+row.title+'…');
-    const ok=await hooks.open(await rowFile(row));
-    if(ok){dialog.close();return;}status('The song could not be opened. Check the message on the main screen.');
+    const key=rowKey(row),reason=hooks.openBlocked?.();
+    if(reason){lastOpenError={key,message:reason};throw Error(reason);}
+    lastOpenError=null;
+    const controller=new AbortController(),request={row,key,controller,ready:false};
+    const closed=new Promise((_,reject)=>controller.signal.addEventListener('abort',()=>reject(abort()),{once:true}));
+    opening=request;render();
+    const progress=text=>{
+      if(opening!==request||!dialog.open)return;
+      request.message=text;status(text);
+      const entry=songItems.get(key);if(entry)entry.details.textContent=text;
+    };
+    progress('Opening '+row.title+'…');
+    try{
+      const file=await Promise.race([rowFile(row,()=>progress('Finishing the save for '+row.title+'…')),closed]);
+      if(controller.signal.aborted)throw abort();
+      let present;
+      const presented=new Promise(resolve=>{present=resolve;});
+      request.file=file;
+      request.present=()=>{request.ready=true;dialog.close();present(true);};
+      const imported=hooks.open(file,{onStatus:progress,signal:controller.signal});
+      const ok=await Promise.race([imported,presented,closed]);
+      if(ok){if(!request.ready&&dialog.open)dialog.close();}
+      else if(!controller.signal.aborted)lastOpenError={key,message:request.message};
+    }catch(error){
+      if(error.name!=='AbortError')lastOpenError={key,message:errorText(error)};
+      throw error;
+    }finally{if(opening===request)opening=null;}
   }
   async function addFiles(files){
     let added=0,failed=0,cancelled=0,duplicates=0,chordCatalogues=0;
@@ -14796,7 +14853,7 @@ window.BassLibrary=(()=>{
     dialog.innerHTML='<div class="library-heading"><div><h2 id="libraryTitle">Song library</h2><p id="libraryLocation"></p></div><button id="libraryClose" type="button">Close</button></div><div class="library-toolbar"><button id="libraryChoose" type="button">Choose save folder</button><button id="libraryReconnect" type="button">Reconnect folder</button><button id="libraryDevice" type="button">Save in app</button><button id="libraryAdd" type="button">Import saved file</button><button id="libraryBatch" type="button">Batch ZIP</button><button id="libraryRefresh" type="button">Refresh</button><button id="libraryStop" type="button" hidden>Stop checking</button></div><p id="libraryHint"></p><div class="library-filters"><div><label for="librarySearch">Search songs</label><input id="librarySearch" type="search" placeholder="Title, artist, key or BPM" autocomplete="off"></div><div><label for="librarySort">Sort by</label><select id="librarySort"><option value="recent">Recently saved</option><option value="name">Song name</option></select></div></div><div class="library-summary"><span id="libraryCount"></span><span id="libraryStatus" role="status" aria-live="polite"></span></div><ul id="librarySongs"></ul><input id="libraryFiles" type="file" accept=".bassstudio,.bssproject,.json,application/json" multiple hidden>';
     document.body.append(dialog);
     el('libraryClose').onclick=()=>dialog.close();
-    dialog.addEventListener('close',()=>{stopScan();document.getElementById('importProjectBtn')?.focus();});
+    dialog.addEventListener('close',()=>{if(opening&&!opening.ready)opening.controller.abort();stopScan();document.getElementById('importProjectBtn')?.focus();});
     el('librarySearch').oninput=render;el('librarySort').onchange=render;
     el('libraryChoose').onclick=()=>run(chooseFolder);el('libraryDevice').onclick=()=>run(useDevice);
     el('libraryStop').onclick=()=>{stopScan();status('Folder check stopped.');render();};
@@ -14891,7 +14948,7 @@ window.BassLibrary=(()=>{
     if(!hooks.openPractice)throw Error('Reload the platform to open this part.');
     return !!await hooks.openPractice(file);
   }
-  return {init,show,presentOpened(file){if(dialog?.open&&openedFiles.has(file))dialog.close();},readProject,projectBlob,selectedFile,lastProject,targetFor:file=>openedFiles.get(file),prepareSave,save:(p,b,t)=>save(p,b,t).then(r=>r.location),saveAnalysisProject,saveMelodyProject,hasProject,ensureBatchAccess,errorText,chartProjects,chartProject,checkAudioImport,analysisSummary,openForAnalysis,practiceProjects,practiceProject,openPracticeSong};
+  return {init,show,presentOpened(file){if(opening?.file===file)opening.present();else if(dialog?.open&&!opening&&openedFiles.has(file))dialog.close();},readProject,projectBlob,selectedFile,lastProject,targetFor:file=>openedFiles.get(file),prepareSave,save:(p,b,t)=>save(p,b,t).then(r=>r.location),saveAnalysisProject,saveMelodyProject,hasProject,ensureBatchAccess,errorText,chartProjects,chartProject,checkAudioImport,analysisSummary,openForAnalysis,practiceProjects,practiceProject,openPracticeSong};
 })();
 </script>
 <script id="rc196-batch">
@@ -15573,7 +15630,7 @@ window.BassBatch = (() => {
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC303';
+  const APP_VERSION='RC304';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;
@@ -16233,6 +16290,8 @@ window.BassBatch = (() => {
 
   async function captureStudyProject(){
     if(songImportBusy||aiBusy||projectSaveBusy)throw Error('Wait for analysis to finish.');
+    if(importedProjectFields?.awaitingBacking&&!window.BassBacking?.exportData())
+      throw Error('The saved mute audio is unavailable. Reopen the song to save your changes safely.');
     if(!buffer||!activeAudioFile||(!(offlineAnalysisReady&&notes.length)&&!detectedChordChanges.length&&!window.BassLyrics?.exportData().length&&!window.BassPiano?.exportData().notes.length&&!window.BassPiano?.exportData().done.length&&!songStructure&&!window.BassBacking?.exportData()))throw Error('Analyse or transcribe this song first.');
     const session=songSession,projectName=safeProjectFilename(loadedProjectName||objectName||'Song');
     projectSaveBusy=true;updateProjectButtons();
@@ -16273,7 +16332,7 @@ window.BassBatch = (() => {
           audioBase64
         },
         analysis:{
-          ready:true,melody:window.BassPiano?.exportData(),structure:copyAnalysis(songStructure),bassBacking:window.BassBacking?.exportData()||null,
+          ready:true,melody:window.BassPiano?.exportData(),structure:copyAnalysis(songStructure),bassBacking:window.BassBacking?.exportData()||importedProjectFields?.savedBacking||null,
           history:analysisHistory,manualCorrections,keyCorrections,
           keySections:audioKeySections,keyReady:audioKeyReady,baseScale:detectedBaseScale,
           noteCount:savedNotes.length,
@@ -16340,14 +16399,21 @@ window.BassBatch = (() => {
     }finally{projectSaveBusy=false;updateProjectButtons();}
   }
 
-  async function importBassStudioProject(file,{findSections=false,practiceOnly=false}={}){
+  async function importBassStudioProject(file,{findSections=false,practiceOnly=false,onStatus=()=>{},signal}={}){
     if(!file)return false;
     const request=++songLoadRequest;
     let importSucceeded=false;
     setSongImportBusy(true);
     try{
       aiStatus('Opening saved Bass Studio project…',8);
-      const project=await window.BassLibrary.readProject(file);
+      const title=file.name||'saved song';
+      const cancelled=()=>signal?.aborted||request!==songLoadRequest;
+      let lastProgress=-1;
+      onStatus('Reading '+title+'…');
+      const project=await window.BassLibrary.readProject(file,{playback:true,signal,onProgress:percent=>{
+        if(!cancelled()&&percent!==lastProgress){lastProgress=percent;onStatus('Reading '+title+' · '+percent+'%');}
+      }});
+      if(cancelled())return false;
       if(request!==songLoadRequest)return false;
       if(project?.format!=='Bass Stem Studio Project' || !Array.isArray(project?.analysis?.notes))
         throw new Error('This is not a valid Bass Stem Studio saved project.');
@@ -16384,9 +16450,7 @@ window.BassBatch = (() => {
         manual:!!n.manual,source:n.source||'Saved project'
       })).filter(n=>Number.isFinite(n.midi)&&Number.isFinite(n.start)&&Number.isFinite(n.end)&&n.end>n.start)
         .sort((a,b)=>a.start-b.start);
-      if(!restored.length&&!window.BassBacking.canRestore(project.analysis.bassBacking,Number(src.duration))&&
-        !(project.analysis.melody?.done||[]).some(savedRange)&&!window.BassPiano.clean(project.analysis.melody?.notes,Number(src.duration)).length&&!window.BassLyrics.clean(project.analysis.lyrics).length&&!(project.analysis.chords||[]).some(c=>Number.isFinite(Number(c.rootPc??c.root_pc))&&CHORD_QUALITY_LABELS[c.quality]&&Number(c.end)>Number(c.start))&&!validLegacySharedLoop(project)&&!normaliseSongStructure(project.analysis.structure,Number(src.duration)))throw new Error('The saved project contains no usable notes, chords, lyrics or sections.');
-
+      onStatus('Opening audio in '+title+'…');
       let bytes;
       try{
         bytes=base64ToUint8Array(src.audioBase64);
@@ -16398,15 +16462,23 @@ window.BassBatch = (() => {
       const audioBlob=new Blob([bytes],{type});
       const audioName=src.name||`${project.projectName||'Saved Song'}.mp3`;
       ensureCtx();
-      const decodeAB=bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength);
+
       let decodedBuffer;
       try{
-        decodedBuffer=await ctx.decodeAudioData(decodeAB.slice(0));
+        let timer;
+        try{
+          decodedBuffer=await Promise.race([ctx.decodeAudioData(bytes.buffer),new Promise((_,reject)=>{
+            timer=setTimeout(()=>reject(new DOMException('The phone took too long to open the original audio. Try opening this song again.','TimeoutError')),90000);
+          })]);
+        }finally{clearTimeout(timer);}
+
       }catch(e){
+        if(e?.name==='TimeoutError')throw e;
         throw new Error('This saved Bass Studio project contains damaged or unsupported audio.');
       }
 
-      if(request!==songLoadRequest)return false;
+      if(cancelled())return false;
+      onStatus('Opening saved notes…');
 
       if(project.analysis.notes.length!==restored.length||restored.some(n=>n.start<0||n.end>decodedBuffer.duration+.1||!Number.isInteger(n.midi)))
         throw Error('Saved note timings are outside this song. Your open song is unchanged.');
@@ -16421,7 +16493,8 @@ window.BassBatch = (() => {
       currentProjectTarget=window.BassLibrary.targetFor(file)||null;
       sourceEncoding=src.audioBase64;
       const {bassBacking,bassAudioBase64,noBassAudioBase64,parts,...otherAnalysis}=project.analysis;
-      importedProjectFields={filename:file.name,library:project.library,analysis:otherAnalysis,settings:project.settings};
+      importedProjectFields={filename:file.name,library:project.library,analysis:otherAnalysis,settings:project.settings,
+        awaitingBacking:!!project.analysis.bassBacking};
       if(mediaURL)URL.revokeObjectURL(mediaURL);
       mediaURL=URL.createObjectURL(audioBlob);
       masterAudio.src=mediaURL;masterAudio.load();masterAudio.preservesPitch=true;
@@ -16447,8 +16520,6 @@ window.BassBatch = (() => {
       }
 
       notes=restored;analysedBassNotes=restored.map(n=>({...n}));offlineAnalysisReady=restored.length>0;offlineAnalysisRunning=false;updatePracticeLayoutState(true);
-      window.BassPiano.restore(project.analysis.melody);
-      warmViewSounds();
       noteDisplayMode=project.analysis.displayMode==='numbers'?'numbers':'notes';
       numberingConvention=project.analysis.numberingConvention==='key'?'key':project.analysis.numberingConvention==='relative-major'?'relative-major':noteDisplayMode==='numbers'?'relative-major':'key';
       resetSongContext();
@@ -16470,7 +16541,6 @@ window.BassBatch = (() => {
       if(Array.isArray(project.analysis.keySections)&&project.analysis.keyReady){audioKeySections=project.analysis.keySections;audioKeyReady=true;audioKeyBuffer=buffer;}
       renderAnalysisHistory();
       window.BassPiano.restore(project.analysis.melody);
-      warmViewSounds();
       noteDisplayMode=project.analysis.displayMode==='numbers'?'numbers':'notes';refreshNoteNumberToggle();
 
       baseSections={};
@@ -16499,9 +16569,7 @@ window.BassBatch = (() => {
           }
         }else if(project.settings.selectedScale)selectScaleByText(String(project.settings.selectedScale));
         const savedStringCount=Number(project.settings.bassStringCount);
-        if([4,5,6].includes(savedStringCount))setBassStringCount(savedStringCount);
-        const savedPracticeView=String(project.settings.practiceView||'');
-        setPracticeVisualMode('timeline');
+        if([4,5,6].includes(savedStringCount))setBassStringCount(savedStringCount,false);
         bassPracticeMuted=!!project.settings.bassMuted && noBassReady;
         metronomeEnabled=false;
         refreshBassPracticeToggle();refreshMetronomeToggle();updateAudioParams();
@@ -16538,18 +16606,30 @@ window.BassBatch = (() => {
       // Force a complete visual rebuild from the saved analysis. No service call
       // is required: notes, detected scale, selected rehearsal key and tempo are
       // already inside the .bassstudio project.
+      setFretFlowStringCount([4,5,6].includes(Number(project.settings?.fretFlowStrings))?Number(project.settings.fretFlowStrings):5);
+      setPracticeVisualMode(project.settings.practiceView);
       rebuildSimpleTimeline._sig='';
       drawAll();
-      rebuildSimpleTimeline();
       updateSongInfo(0);
       updateButtons();updateProjectButtons();
       updateSectionKey(0);
       seek.value=0;curTime.textContent=fmt(0);
-      setFretFlowStringCount([4,5,6].includes(Number(project.settings?.fretFlowStrings))?Number(project.settings.fretFlowStrings):5);
-      if(['bass','bassroll','piano','fretflow','song'].includes(project.settings?.practiceView))setPracticeVisualMode(project.settings.practiceView);
       window.BassLibrary.presentOpened(file);
       const melodyRecovery=restoreSavedMelody(project.analysis.melody,project.savedAt,true);
-      const backingLoad=window.BassBacking?.restore(project.analysis.bassBacking);
+      const session=songSession;
+      const backingLoad=(async()=>{
+        await new Promise(resolve=>setTimeout(resolve,0));
+        if(session!==songSession)return;
+        warmViewSounds();
+        try{
+          const backing=window.BassProjectJSON?await window.BassProjectJSON.loadBacking(project.analysis.bassBacking):project.analysis.bassBacking;
+          if(session===songSession){
+            importedProjectFields.awaitingBacking=false;
+            importedProjectFields.savedBacking=backing;
+            await window.BassBacking?.restore(backing);
+          }
+        }catch(error){if(session===songSession)aiStatus('Saved mute audio could not be opened.',0);}
+      })();
       if(request!==songLoadRequest)return false;
       status.className='status good';status.textContent='';
       aiStatus(`Opened “${loadedProjectName||audioName}” · ${restored.length} notes`,100);
@@ -16606,11 +16686,12 @@ window.BassBatch = (() => {
       return true;
     }catch(err){
       if(request!==songLoadRequest)return false;
+      if(signal?.aborted||err?.name==='AbortError')return false;
       console.error(err);
       const message=err instanceof SyntaxError
         ? 'This saved Bass Studio project is damaged or invalid.'
         : (err?.message||'Could not open this saved Bass Studio project.');
-      aiStatus(message,0);
+      onStatus(message);aiStatus(message,0);
       status.className='status warn';status.textContent=message;
       return false;
     }finally{
@@ -18661,7 +18742,7 @@ window.BassBatch = (() => {
     }
   }
 
-  function setBassStringCount(count){
+  function setBassStringCount(count,redraw=true){
     const n=Number(count);
     if(![4,5,6].includes(n))return;
     bassViewStringCount=n;
@@ -18669,6 +18750,7 @@ window.BassBatch = (() => {
     const stringDisplay=document.getElementById('bassStringDisplayValue');
     if(stringDisplay)stringDisplay.textContent=String(n);
     try{localStorage.setItem('bassStemBassStringCount',String(n))}catch(e){}
+    if(!redraw)return;
     if(practiceVisualMode==='bass')renderBassFretboard();
     rebuildSimpleTimeline._sig='';
     drawAll();window.BassPracticeControls?.update();
@@ -22248,7 +22330,7 @@ window.BassBatch = (() => {
 
   // ---------- Controls ----------
   refreshNoteNumberToggle();refreshStemMixerUI();updatePracticeLayoutState(true);
-  window.BassLibrary.init({open:file=>importBassStudioProject(file,{findSections:false}),openPractice:file=>importBassStudioProject(file,{findSections:false,practiceOnly:true}),isBusy:()=>songImportBusy||aiBusy||projectSaveBusy});
+  window.BassLibrary.init({open:(file,options)=>importBassStudioProject(file,{findSections:false,...options}),openBlocked:()=>window.BassBatch?.isRunning()?'Finish the batch before opening a song.':aiBusy&&!window.BassBacking?.state().busy?'Analysis is running. Wait for it to finish before opening another song.':null,openPractice:file=>importBassStudioProject(file,{findSections:false,practiceOnly:true}),isBusy:()=>songImportBusy||aiBusy||projectSaveBusy});
   // GET /health checks connection without submitting a paid analysis.
   async function checkBatchRunPodConnection(){
     const key=await getRunPodKey();
