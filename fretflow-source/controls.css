@@ -16,7 +16,7 @@
  #ffStringsCard .ff-string-display :is(strong,span){font:600 12px/1.15 system-ui!important;color:#f4f1e8!important}
  body.practice-controls-ready #ffControls{grid-column:5!important;grid-row:1!important}
  body.practice-controls-ready #ffCancel{width:var(--ff-control-w,50px)!important;height:var(--ff-control-h,44px)!important;flex:none!important}
- #ffHeaderTools :is(select,button),#ffCancel{width:100%!important;min-width:0!important;max-width:none!important;height:var(--ff-control-h,44px)!important;min-height:var(--ff-control-h,44px)!important;max-height:var(--ff-control-h,44px)!important;padding:3px!important;font:600 12px/1.15 system-ui!important;border:1px solid #567487!important;border-radius:var(--rc120-radius,9px)!important;text-align:center!important;white-space:normal!important;background:#172d3d!important;color:#f4f1e8!important;box-sizing:border-box!important}
+ #ffHeaderTools :is(select,button),#ffControls,#ffCancel{width:100%!important;min-width:0!important;max-width:none!important;height:var(--ff-control-h,44px)!important;min-height:var(--ff-control-h,44px)!important;max-height:var(--ff-control-h,44px)!important;padding:3px!important;font:600 12px/1.15 system-ui!important;border:1px solid #567487!important;border-radius:var(--rc120-radius,9px)!important;text-align:center!important;white-space:normal!important;background:#172d3d!important;color:#f4f1e8!important;box-sizing:border-box!important}
  #ffHeaderTools button:focus-visible{outline:2px solid #f2d281!important;outline-offset:-3px!important}
  body.practice-controls-ready #bassPracticeText{position:static!important;clip:auto!important;clip-path:none!important;width:auto!important;height:auto!important;overflow:visible!important;font:600 11px/1.1 system-ui!important;white-space:normal!important;color:inherit!important;text-align:center!important}
  body.practice-controls-ready #bassPracticeToggle .bass-state-icon{width:24px!important;height:24px!important;min-height:0!important}
@@ -53,4 +53,23 @@
   body.practice-controls-ready.practice-controls-hidden #bassPracticeToggle{grid-column:3!important;grid-row:1!important}
   body.practice-controls-ready.practice-controls-hidden #vocalPracticeToggle{grid-column:1!important}
  }
+}
+
+@layer compactPractice {
+ #practiceWorkspace{gap:3px!important}
+ #practiceSections:not([hidden]){padding:2px 0!important}
+ #practiceSections button{height:clamp(22px,calc(var(--ff-control-h,44px)*.5),28px)!important;min-height:0!important;max-height:none!important;padding:0 2px!important;white-space:nowrap!important}
+ #practiceViewCard{border:1px solid #58778b!important;border-radius:9px!important;background:#152c3c!important;color:#eef7fc!important;box-shadow:none!important;position:relative!important}
+ #practiceViewCard::after{right:3px!important;font-size:8px!important}
+ #practiceViewCard .stacked-select-display{padding:0 5px!important;text-align:center!important}
+ #vocalPracticeToggle>span:first-child{font-size:16px;line-height:1}
+ body.practice-controls-hidden #playerControls>.brand,body.practice-controls-hidden .simple-timeline-head{display:none!important}
+ body.practice-controls-hidden .transport-main{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;grid-template-rows:var(--ff-control-h,44px)!important;gap:3px!important;height:auto!important;min-height:0!important}
+ body.practice-controls-hidden .transport-main :is(#practiceViewCard,#ffControls,#playBtn,#pauseBtn,#bassPracticeToggle,#vocalPracticeToggle){grid-row:1!important;min-width:0!important;width:100%!important;max-width:none!important}
+ body.practice-controls-hidden .transport-main #practiceViewCard{grid-column:1!important}
+ body.practice-controls-hidden .transport-main #playBtn{grid-column:2!important}
+ body.practice-controls-hidden .transport-main #pauseBtn{grid-column:3!important}
+ body.practice-controls-hidden .transport-main #bassPracticeToggle{grid-column:4!important}
+ body.practice-controls-hidden .transport-main #vocalPracticeToggle{grid-column:5!important}
+ body.practice-controls-hidden .transport-main #ffControls{grid-column:6!important}
 }

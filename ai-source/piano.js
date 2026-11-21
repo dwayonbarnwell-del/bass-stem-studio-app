@@ -72,15 +72,6 @@ window.BassPiano=(()=>{
   return Array.from({length:high-low+1},(_,i)=>high-i);
  }
  function metrics(){const s=state(),view=$('pianoRollViewport'),gridWidth=Math.max(60,view.clientWidth-58),step=s.step||1,columns=Math.max(1,Math.floor(gridWidth/70)),page=columns*step;return {view,gridWidth,step,page,scale:gridWidth/page,height:Math.max(1,view.clientHeight-$('pianoRollHeader').offsetHeight)};}
- function chordAt(chords,time){let current=null;for(const c of chords)if(c.start<=time&&time<c.end&&(!current||c.start>current.start))current=c;return current;}
- function updateReadout(){
-  if(!$('pianoCurrentChord'))return;
-  const s=state(),{view,gridWidth}=metrics(),a=view.scrollLeft/zoom,b=a+gridWidth/zoom,t=s.playing||s.time>=a&&s.time<b?s.time:a;
-  const chord=chordAt(s.chords,t),pitch=lineNotes().find(n=>n.start<=t&&n.end>t);
-  $('pianoCurrentChord').textContent=chord?.label||'—';
-  $('pianoCurrentChord').setAttribute('aria-label',chord?'Current chord '+chord.label:'No confirmed chord');
-  $('pianoCurrentNote').textContent=pitch?label(pitch.midi+s.transpose):'—';
- }
  function highlightChord(time){
   for(const el of $('pianoChordRuler').children){
    const current=time>=Number(el.dataset.start)&&time<Number(el.dataset.end);
@@ -89,7 +80,7 @@ window.BassPiano=(()=>{
   }
  }
  function ruler(){if(!api)return;const s=state(),{view,gridWidth,step}=metrics(),time=$('pianoTimeRuler'),chords=$('pianoChordRuler'),a=Math.max(0,view.scrollLeft/zoom),b=Math.min(s.duration,a+gridWidth/zoom);
-  updateReadout();const sig=[Math.round(view.scrollLeft),step,s.selection,zoom,JSON.stringify(s.chords)].join('|');if(time.dataset.signature===sig){highlightChord(s.time);return;}time.dataset.signature=sig;time.replaceChildren();chords.replaceChildren();
+  const sig=[Math.round(view.scrollLeft),step,s.selection,zoom,JSON.stringify(s.chords)].join('|');if(time.dataset.signature===sig){highlightChord(s.time);return;}time.dataset.signature=sig;time.replaceChildren();chords.replaceChildren();
   for(let t=Math.floor(a/step)*step;t<s.duration&&t<=b;t+=step){const btn=document.createElement('button');btn.className='piano-time';btn.textContent=api.fmt(t);btn.title='Select this repeat interval';btn.style.setProperty('left',t*zoom+'px','important');btn.style.setProperty('width',step*zoom+'px','important');btn.classList.toggle('selected',api.selected(t));btn.onclick=()=>{api.select(t);ruler();};time.append(btn);}
   for(const c of s.chords){if(c.end<=a||c.start>=b)continue;const el=document.createElement('div');el.className='piano-chord';el.dataset.start=c.start;el.dataset.end=c.end;const space=(Math.min(c.end,b)-Math.max(a,c.start))*zoom;el.textContent=space>=c.label.length*8+10?c.label:'';el.title=c.label;el.setAttribute('aria-label',c.label);const left=Math.max(c.start,a);el.style.left=left*zoom+'px';el.style.width=Math.max(0,(Math.min(c.end,b)-left)*zoom)+'px';chords.append(el);}
   highlightChord(s.time);

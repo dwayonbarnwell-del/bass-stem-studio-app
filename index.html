@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
+<style>@layer compactPractice;</style>
 <meta name="referrer" content="no-referrer">
 <meta charset="utf-8">
 <script src="./library-source/navigation.js"></script>
@@ -13505,15 +13506,6 @@ window.BassPiano=(()=>{
   return Array.from({length:high-low+1},(_,i)=>high-i);
  }
  function metrics(){const s=state(),view=$('pianoRollViewport'),gridWidth=Math.max(60,view.clientWidth-58),step=s.step||1,columns=Math.max(1,Math.floor(gridWidth/70)),page=columns*step;return {view,gridWidth,step,page,scale:gridWidth/page,height:Math.max(1,view.clientHeight-$('pianoRollHeader').offsetHeight)};}
- function chordAt(chords,time){let current=null;for(const c of chords)if(c.start<=time&&time<c.end&&(!current||c.start>current.start))current=c;return current;}
- function updateReadout(){
-  if(!$('pianoCurrentChord'))return;
-  const s=state(),{view,gridWidth}=metrics(),a=view.scrollLeft/zoom,b=a+gridWidth/zoom,t=s.playing||s.time>=a&&s.time<b?s.time:a;
-  const chord=chordAt(s.chords,t),pitch=lineNotes().find(n=>n.start<=t&&n.end>t);
-  $('pianoCurrentChord').textContent=chord?.label||'—';
-  $('pianoCurrentChord').setAttribute('aria-label',chord?'Current chord '+chord.label:'No confirmed chord');
-  $('pianoCurrentNote').textContent=pitch?label(pitch.midi+s.transpose):'—';
- }
  function highlightChord(time){
   for(const el of $('pianoChordRuler').children){
    const current=time>=Number(el.dataset.start)&&time<Number(el.dataset.end);
@@ -13522,7 +13514,7 @@ window.BassPiano=(()=>{
   }
  }
  function ruler(){if(!api)return;const s=state(),{view,gridWidth,step}=metrics(),time=$('pianoTimeRuler'),chords=$('pianoChordRuler'),a=Math.max(0,view.scrollLeft/zoom),b=Math.min(s.duration,a+gridWidth/zoom);
-  updateReadout();const sig=[Math.round(view.scrollLeft),step,s.selection,zoom,JSON.stringify(s.chords)].join('|');if(time.dataset.signature===sig){highlightChord(s.time);return;}time.dataset.signature=sig;time.replaceChildren();chords.replaceChildren();
+  const sig=[Math.round(view.scrollLeft),step,s.selection,zoom,JSON.stringify(s.chords)].join('|');if(time.dataset.signature===sig){highlightChord(s.time);return;}time.dataset.signature=sig;time.replaceChildren();chords.replaceChildren();
   for(let t=Math.floor(a/step)*step;t<s.duration&&t<=b;t+=step){const btn=document.createElement('button');btn.className='piano-time';btn.textContent=api.fmt(t);btn.title='Select this repeat interval';btn.style.setProperty('left',t*zoom+'px','important');btn.style.setProperty('width',step*zoom+'px','important');btn.classList.toggle('selected',api.selected(t));btn.onclick=()=>{api.select(t);ruler();};time.append(btn);}
   for(const c of s.chords){if(c.end<=a||c.start>=b)continue;const el=document.createElement('div');el.className='piano-chord';el.dataset.start=c.start;el.dataset.end=c.end;const space=(Math.min(c.end,b)-Math.max(a,c.start))*zoom;el.textContent=space>=c.label.length*8+10?c.label:'';el.title=c.label;el.setAttribute('aria-label',c.label);const left=Math.max(c.start,a);el.style.left=left*zoom+'px';el.style.width=Math.max(0,(Math.min(c.end,b)-left)*zoom)+'px';chords.append(el);}
   highlightChord(s.time);
@@ -13719,7 +13711,7 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPan
 </style>
 <link rel="stylesheet" href="./ear-source/trainer-rc267.css?v=rc294">
 <style id="rc260-key-audition">@layer bass-piano-audition-260{#appRoot #pianoKeyboard .piano-key.auditioning{background:#248bd1!important;color:white!important;box-shadow:inset 0 0 0 1px #b7e4ff!important}}</style>
-<link rel="stylesheet" href="./fretflow-source/controls.css?v=rc278">
+<link rel="stylesheet" href="./fretflow-source/controls.css?v=rc299">
 <link rel="stylesheet" href="./fretflow-source/view.css?v=rc278">
 <link rel="stylesheet" href="./song-view/view.css?v=rc288">
 <style>
@@ -13789,7 +13781,7 @@ body.bass-roll-active :is(#pianoExport,#pianoRecord){display:none!important}
           <path class="mute-slash" d="M18 14l40 44"/>
         </g>
       </svg>
-      <span id="bassPracticeText" class="visually-hidden">Mute</span>
+      <span id="bassPracticeText" class="visually-hidden">Bass</span>
     </button>
     <button class="btn stacked-control" id="metronomeToggle" type="button" disabled aria-pressed="false" hidden aria-hidden="true" tabindex="-1" style="display:none!important"><span>Metro</span><strong id="metronomeText">Off</strong></button>
 
@@ -13842,10 +13834,10 @@ body.bass-roll-active :is(#pianoExport,#pianoRecord){display:none!important}
         <div class="stacked-select-card practice-view-card" id="practiceViewCard">
           <select class="practice-view-select" id="practiceViewSelect" aria-label="Practice view">
             <option value="timeline" selected>Notes View</option>
-            <option value="bass">Bass View</option>
-            <option value="bassroll">Bass Roll</option>
+            <option value="bass">Fretboard View</option>
+            <option value="bassroll">Bass View</option>
             <option value="piano">Piano View</option>
-            <option value="fretflow">FretFlow View</option>
+            <option value="fretflow">Fret View</option>
             <option value="song">Song View</option>
           </select>
           <span class="stacked-select-display" aria-hidden="true"><strong id="practiceViewDisplayValue">Notes</strong><span>View</span></span>
@@ -13867,7 +13859,7 @@ body.bass-roll-active :is(#pianoExport,#pianoRecord){display:none!important}
 
 <div id="pianoViewPanel" hidden aria-label="Lead melody piano practice">
  <div id="pianoNotice" hidden><span id="pianoStatus" role="status"></span><button id="pianoDismiss" type="button" aria-label="Dismiss message">×</button></div>
- <div id="pianoRollViewport" tabindex="0" aria-label="Melody timeline. Follows playback automatically. Swipe horizontally when paused to review notes."><div id="pianoRollCanvas"><div id="pianoRollHeader"><span id="pianoRollCorner">Vocal</span><div id="pianoTimeRuler"></div><div id="pianoChordRuler"></div><div id="pianoReadout"><span id="pianoCurrentChord" aria-label="Current chord">—</span><span id="pianoCurrentNote" aria-label="Current melody note">—</span></div></div><div id="pianoKeyboard" aria-label="Vertical piano keyboard. Tap a key to add a note at the playhead."></div><div id="pianoTimeline" aria-label="Melody notes along the song timeline"></div></div></div>
+ <div id="pianoRollViewport" tabindex="0" aria-label="Melody timeline. Follows playback automatically. Swipe horizontally when paused to review notes."><div id="pianoRollCanvas"><div id="pianoRollHeader"><span id="pianoRollCorner">Vocal</span><div id="pianoTimeRuler"></div><div id="pianoChordRuler"></div></div><div id="pianoKeyboard" aria-label="Vertical piano keyboard. Tap a key to add a note at the playhead."></div><div id="pianoTimeline" aria-label="Melody notes along the song timeline"></div></div></div>
 </div>
 
     <section id="fretFlowPanel" hidden aria-label="FretFlow bass practice"></section>
@@ -15474,13 +15466,13 @@ window.BassBatch = (() => {
 <script src="./fretflow-source/core.js?v=rc277"></script>
 <script src="./fretflow-source/backing.js?v=rc298"></script>
 <script src="./fretflow-source/view.js?v=rc278"></script>
-<script src="./fretflow-source/controls.js?v=rc278"></script>
+<script src="./fretflow-source/controls.js?v=rc299"></script>
 <script src="./song-view/core.js?v=rc288"></script>
 <script src="./song-view/view.js?v=rc288"></script>
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC298';
+  const APP_VERSION='RC299';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;
@@ -16913,7 +16905,7 @@ window.BassBatch = (() => {
     const ready=!!buffer&&(noBassReady||backing?.ready||canPrepare)&&!backing?.busy;
     if(!buffer)bassPracticeMuted=false;
     bassPracticeToggle.disabled=!ready;
-    bassPracticeText.textContent=bassPracticeMuted?'Restore bass':'Mute bass';
+    bassPracticeText.textContent='Bass';
     bassPracticeToggle.setAttribute('aria-pressed',bassPracticeMuted?'true':'false');
     bassPracticeToggle.setAttribute('aria-label',bassPracticeMuted?'Restore bass':'Mute bass');
     bassPracticeToggle.title=ready
@@ -18621,7 +18613,7 @@ window.BassBatch = (() => {
     document.body.classList.toggle('bass-view-active',bass);
     if(practiceViewSelect)practiceViewSelect.value=next;
     const viewDisplay=document.getElementById('practiceViewDisplayValue');
-    if(viewDisplay)viewDisplay.textContent=song?'Song':flow?'FretFlow':next==='bassroll'?'Bass Roll':piano?'Piano':bass?'Bass':'Notes';
+    if(viewDisplay)viewDisplay.textContent=song?'Song':flow?'Fret':next==='bassroll'?'Bass':piano?'Piano':bass?'Fretboard':'Notes';
     if(timelineScroll)timelineScroll.hidden=bass||piano||flow||song;
     if(bassViewPanel)bassViewPanel.hidden=!bass;
     if(bassStringSelector)bassStringSelector.hidden=false;
@@ -21646,7 +21638,7 @@ window.BassBatch = (() => {
     host.replaceChildren();
     for(const part of parts){
       const b=document.createElement('button'),selected=core.rangeSelected(ranges,part.start,part.end);
-      b.type='button';b.textContent=part.name.replace(/\b(pre[ -]?chorus|introduction|instrumental|interlude|verse|chorus|bridge|refrain|outro)\b/gi,word=>({'prechorus':'Pre. Ch.','introduction':'Intro','instrumental':'Inst.','interlude':'Inter.','verse':'Vr.','chorus':'Ch.','bridge':'Bri.','refrain':'Ref.','outro':'Outro'})[word.toLowerCase().replace(/[ -]/g,'')]);b.title=part.name;b.setAttribute('aria-label',part.name);b.setAttribute('aria-pressed',String(selected));
+      b.type='button';b.textContent=part.name.replace(/\b(pre[ -]?chorus|introduction|instrumental|interlude|verse|chorus|bridge|refrain|outro)\b/gi,word=>({'prechorus':'Pre. Ch.','introduction':'Intro','instrumental':'Inst.','interlude':'Inter.','verse':'Vr','chorus':'Ch','bridge':'Bri.','refrain':'Ref.','outro':'Outro'})[word.toLowerCase().replace(/[ -]/g,'')]);b.title=part.name;b.setAttribute('aria-label',part.name);b.setAttribute('aria-pressed',String(selected));
 
       b.onclick=()=>songViewRepeat(core.toggleRange(ranges,part.start,part.end,duration));host.append(b);
     }
