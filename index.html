@@ -12155,7 +12155,7 @@ window.BassAwake=(()=>{
  while(performance.now()-start<3000){if(mine!==run)return;analyser.getFloatTimeDomainData(data);for(const x of data){const a=Math.abs(x);sum+=x*x;peak=Math.max(peak,a);if(a>=.98)clipped++;count++;}$('checkStatus').textContent=(kind==='quiet'?'Stay quiet':'Sing or play normally')+' · '+Math.max(1,Math.ceil((3000-performance.now()+start)/1000))+'s';await new Promise(r=>setTimeout(r,50));}
  if(mine!==run)return;const result={rms:Math.sqrt(sum/count),peak,clipped:clipped/count};if(kind==='quiet'){noise=result;$('checkStatus').textContent='Quiet check done. Now check your playing level.';}else{level=result;$('checkStatus').textContent='Sound check complete.';for(const line of assess(noise,level)){const p=document.createElement('p');p.textContent=line;$('checkResults').append(p);}const p=document.createElement('small');p.textContent='Noise '+Math.round(db(noise.rms))+' dBFS · Peak '+Math.round(db(level.peak))+' dBFS';$('checkResults').append(p);}
  }catch(e){if(mine===run)$('checkStatus').textContent=e.name==='NotAllowedError'?'Microphone permission is needed.':e.name==='NotFoundError'?'No microphone found.':'Could not check this input. Try again.';}finally{if(mine===run){release();busy=false;controls();}}}
- function init(hooks){api=hooks;const open=from=>{origin=from;if(api.busy()){$('liveStatus').textContent='Stop listening or recording before the sound check.';return;}noise=null;level=null;$('checkResults').replaceChildren();$('checkStatus').textContent='First, check the room while you stay quiet.';if(from==='live')$('liveAudioDialog').close();$('soundCheckDialog').showModal();controls();};$('openSoundCheck').onclick=()=>open('tools');$('checkQuiet').onclick=()=>void measure('quiet');$('checkLevel').onclick=()=>void measure('level');$('checkCancel').onclick=()=>cancel('Check stopped.');$('checkClose').onclick=()=>{cancel();$('soundCheckDialog').close();if(origin==='live')$('liveAudioDialog').showModal();};$('soundCheckDialog').oncancel=e=>{e.preventDefault();$('checkClose').click();};document.addEventListener('visibilitychange',()=>{if(document.hidden&&busy)cancel('Check stopped. Keep the app visible to try again.');});controls();}
+ function init(hooks){api=hooks;const open=from=>{origin=from;if(api.busy()){$('liveStatus').textContent='Stop listening or recording before the sound check.';return;}noise=null;level=null;$('checkResults').replaceChildren();$('checkStatus').textContent='First, check the room while you stay quiet.';if(from==='live')$('liveAudioDialog').close();$('soundCheckDialog').showModal();controls();};if($('openSoundCheck'))$('openSoundCheck').onclick=()=>open('tools');$('checkQuiet').onclick=()=>void measure('quiet');$('checkLevel').onclick=()=>void measure('level');$('checkCancel').onclick=()=>cancel('Check stopped.');$('checkClose').onclick=()=>{cancel();$('soundCheckDialog').close();if(origin==='live')$('liveAudioDialog').showModal();};$('soundCheckDialog').oncancel=e=>{e.preventDefault();$('checkClose').click();};document.addEventListener('visibilitychange',()=>{if(document.hidden&&busy)cancel('Check stopped. Keep the app visible to try again.');});controls();}
  return {init,cancel,assess,db};
 })();
 </script><script id="rc175-review">window.BassChordReview=(()=>{
@@ -12370,7 +12370,7 @@ window.BassAwake=(()=>{
  }
 function init(hooks){
   api=hooks;
-  $('openLyrics').onclick=()=>{current();render();$('lyricsEdit').hidden=true;$('lyricsDialog').showModal();$('lyricsDialog').scrollTop=0;status(!api.get().buffer?'Import audio first.':words.length?'Press Play to follow the words.':'Play the song or choose Find all words.');};
+  if($('openLyrics'))$('openLyrics').onclick=()=>{current();render();$('lyricsEdit').hidden=true;$('lyricsDialog').showModal();$('lyricsDialog').scrollTop=0;status(!api.get().buffer?'Import audio first.':words.length?'Press Play to follow the words.':'Play the song or choose Find all words.');};
   $('lyricsDetect').onclick=detect;$('lyricsCancel').onclick=()=>{cancel();status('Stopped. Completed words kept.');};
   $('lyricsClose').onclick=()=>{cancel();$('lyricsDialog').close();};$('lyricsDialog').addEventListener('cancel',e=>{e.preventDefault();$('lyricsClose').click();});
   $('lyricsApply').onclick=()=>{if(busy||selected<0)return;const s=current(),w=words[selected],start=Number($('lyricsTime').value),end=Number($('lyricsEnd').value),text=$('lyricsText').value.trim();if(!w||!text||!Number.isFinite(start)||!Number.isFinite(end)||start<0||end<=start||end>s.buffer.duration){status('Check the word and times.');return;}words[selected]={text:text.slice(0,120),start,end,chord:$('lyricsChord').value.trim().slice(0,24)};words=clean(words,s.buffer.duration);selected=-1;$('lyricsEdit').hidden=true;render();api.changed?.();status('Correction saved in this song.');};
@@ -13523,7 +13523,7 @@ window.BassPiano=(()=>{
   const all=pitches(notes),current=pitches(notes.filter(n=>n.end>start&&n.start<end));
   let use=all.length&&all.at(-1)-all[0]<24?all:current;
   if(!use.length){const near=notes.find(n=>n.end>start)||notes.at(-1);use=near?[near.midi+transpose]:[60,64,67];}
-  const low=Math.floor(use[0]/12)*12,high=Math.floor(use.at(-1)/12)*12+11;
+  const low=Math.floor(use[0]/12)*12,high=Math.max(low+23,Math.floor(use.at(-1)/12)*12+11);
   return Array.from({length:high-low+1},(_,i)=>high-i);
  }
  function metrics(){const s=state(),view=$('pianoRollViewport'),gridWidth=Math.max(60,view.clientWidth-58),step=s.step||1,columns=Math.max(1,Math.floor(gridWidth/70)),page=columns*step;return {view,gridWidth,step,page,scale:gridWidth/page,height:Math.max(1,view.clientHeight-$('pianoRollHeader').offsetHeight)};}
@@ -13744,7 +13744,38 @@ html body.practice-controls-hidden #appRoot#appRoot#appRoot#appRoot#appRoot#appR
 #practiceSections button[aria-pressed=true]{background:#205773;border:2px solid #83d3f3}
 #practiceSections button:focus-visible{outline:2px solid #f4c879;outline-offset:-3px}
 body.bass-roll-active :is(#pianoExport,#pianoRecord){display:none!important}
-</style></head>
+</style>
+<style id="rc309-compact-views">
+#songViewPanel .song-view-readout,#songViewRepeatStatus{display:none!important}
+html body #appRoot #bassFretboard#bassFretboard#bassFretboard#bassFretboard{
+ display:grid!important;grid-template-columns:24px repeat(var(--bass-string-count),minmax(0,1fr))!important;
+ grid-template-rows:32px repeat(12,minmax(0,1fr))!important;gap:0!important;
+ width:100%!important;min-width:0!important;height:100%!important;min-height:0!important;
+ padding:0 8px 8px 0!important;background:linear-gradient(125deg,#242831,#151c26)!important;border:1px solid #46515a!important;border-radius:12px!important;
+}
+html body #appRoot #bassFretboard#bassFretboard#bassFretboard#bassFretboard :is(.bass-string-row,.bass-fret-numbers){display:contents!important}
+html body #appRoot #bassFretboard#bassFretboard#bassFretboard#bassFretboard :is(.bass-fret-cell,.bass-string-label){
+ grid-column:var(--string-column)!important;min-width:0!important;min-height:0!important;width:auto!important;height:auto!important;
+ padding:0!important;margin:0!important;position:relative!important;border:0!important;border-radius:0!important;background:transparent!important;
+ display:flex!important;align-items:center!important;justify-content:center!important;overflow:visible!important;
+}
+html body #appRoot #bassFretboard#bassFretboard#bassFretboard#bassFretboard .bass-fret-cell{border-bottom:1px solid #a49975!important}
+html body #appRoot #bassFretboard#bassFretboard#bassFretboard#bassFretboard .bass-fret-cell::before{
+ left:50%!important;top:0!important;bottom:0!important;width:3px!important;height:100%!important;transform:translateX(-50%)!important;background:#c7c9c2!important;box-shadow:none!important;
+}
+html body #appRoot #bassFretboard#bassFretboard#bassFretboard#bassFretboard .bass-string-label{grid-row:1!important;font:600 12px system-ui!important;color:#dce8f1!important}
+html body #appRoot #bassFretboard#bassFretboard#bassFretboard#bassFretboard .bass-string-number{display:none!important}
+html body #appRoot #bassFretboard#bassFretboard#bassFretboard#bassFretboard .bass-fret-number{
+ display:flex!important;align-items:center!important;justify-content:center!important;min-width:0!important;min-height:0!important;height:auto!important;padding:0!important;
+ background:transparent!important;border:0!important;font:500 12px system-ui!important;color:#b8c3ce!important;
+}
+html body #appRoot #bassFretboard#bassFretboard#bassFretboard#bassFretboard .bass-tuning-head{display:none!important}
+html body #appRoot #bassFretboard#bassFretboard#bassFretboard#bassFretboard .bass-position-marker{
+ position:absolute!important;left:50%!important;top:50%!important;transform:translate(-50%,-50%)!important;
+ min-width:0!important;width:30px!important;height:30px!important;padding:0!important;font:700 12px system-ui!important;z-index:3!important;
+}
+</style>
+</head>
 <body>
 <div id="sectionCompatibility" style="display:none" aria-hidden="true">
 <div id="sectionGrid"></div><button id="playSelected"></button><button id="clearSelected"></button><span id="selectedSummary"></span>
@@ -13959,7 +13990,7 @@ body.bass-roll-active :is(#pianoExport,#pianoRecord){display:none!important}
       </div>
       </div>
 
-<section id="liveAudioEntry" aria-label="Practice controls"><button id="openLiveAudio" type="button" aria-label="Live audio"><span>Live</span> <span>audio</span></button><button id="openEarTraining" type="button">Ear training</button><button id="openReview" type="button" aria-label="Review chords"><span>Review</span> <span>chords</span></button><button id="openMoreTools" type="button" aria-label="More tools" aria-expanded="false" aria-controls="moreTools"><span>More</span> <span>tools</span></button></section><div id="moreTools" hidden><div class="more-tools-select-row"><label for="moreToolsView" class="more-tools-select-label">Show tools</label><select id="moreToolsView" aria-label="More tools display"><option value="open">Tools open</option><option value="close">Close tools</option></select></div><div id="extraTools"><button id="openLyrics" type="button">Lyrics</button><button id="openRhythm" type="button">Rhythm / practice</button><button id="openSoundCheck" type="button">Sound check</button></div></div><div id="practiceComfort"><label title="Short fades soften loop joins"><input id="smoothLoops" type="checkbox" checked>Smooth loops</label></div>
+<section id="liveAudioEntry" aria-label="Practice controls"><button id="openLiveAudio" type="button" aria-label="Live audio"><span>Live</span> <span>audio</span></button><button id="openEarTraining" type="button">Ear training</button><button id="openReview" type="button" aria-label="Review chords"><span>Review</span> <span>chords</span></button><button id="openMoreTools" type="button" aria-label="More tools" aria-expanded="false" aria-controls="moreTools"><span>More</span> <span>tools</span></button></section><div id="moreTools" hidden><div class="more-tools-select-row"><label for="moreToolsView" class="more-tools-select-label">Show tools</label><select id="moreToolsView" aria-label="More tools display"><option value="open">Tools open</option><option value="close">Close tools</option></select></div><div id="extraTools"><button id="openRhythm" type="button">Rhythm / practice</button></div></div><div id="practiceComfort"><label title="Short fades soften loop joins"><input id="smoothLoops" type="checkbox" checked>Smooth loops</label></div>
 <dialog id="soundCheckDialog" aria-labelledby="soundCheckTitle"><h2 id="soundCheckTitle">Sound check</h2><p id="checkStatus" role="status">Check the room, then your playing level.</p><div class="check-buttons"><button id="checkQuiet">1. Quiet room</button><button id="checkLevel" disabled>2. Playing level</button></div><div id="checkResults" aria-live="polite"></div><small>Each check takes 3 seconds. No audio is saved. This checks input levels, not every cause of distortion.</small><div class="check-buttons"><button id="checkCancel" disabled>Stop check</button><button id="checkClose">Back</button></div></dialog>
 <dialog id="reviewDialog" aria-labelledby="reviewTitle"><h2 id="reviewTitle">Review chords</h2><p id="reviewCount"></p><h3 id="reviewChord">—</h3><p id="reviewTime"></p><p id="reviewStatus" role="status"></p><div class="review-buttons"><button id="reviewHear">Hear passage</button><button id="reviewStop" disabled>Stop audio</button><button id="reviewEdit">Check / correct</button><button id="reviewPrev">Previous</button><button id="reviewNext">Next</button><button id="reviewClose">Close</button></div><small>Save the correct chord to remove it from this queue. Use Save song to keep your corrections.</small></dialog>
 
@@ -14027,16 +14058,16 @@ body.bass-roll-active :is(#pianoExport,#pianoRecord){display:none!important}
           <div class="mix-icon">♫</div>
           <div class="mix-body">
             <label for="origVol" class="track-name">Main Track</label>
-            <input id="origVol" aria-label="Main track volume" type="range" min="0" max="100" value="70">
-            <span id="origVolText" class="track-value">70%</span>
+            <input id="origVol" aria-label="Main track volume" type="range" min="0" max="100" value="7">
+            <span id="origVolText" class="track-value">7%</span>
           </div>
         </div>
         <div class="mix-row" id="bassTrackPanel">
           <div class="mix-icon bass">B</div>
           <div class="mix-body">
             <label for="bassVol" class="track-name">Bass Track</label>
-            <input id="bassVol" aria-label="Bass track volume" type="range" min="0" max="100" value="70">
-            <span id="bassVolText" class="track-value">70%</span>
+            <input id="bassVol" aria-label="Bass track volume" type="range" min="0" max="100" value="100">
+            <span id="bassVolText" class="track-value">100%</span>
           </div>
         </div>
         <div class="mix-row" id="metronomePanel" hidden aria-hidden="true" style="display:none!important">
@@ -15677,7 +15708,7 @@ window.BassBatch = (() => {
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC308';
+  const APP_VERSION='RC309';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;
@@ -16418,8 +16449,8 @@ window.BassBatch = (() => {
           notes:savedNotes
         },
         settings:{
-          mainVolume:Number.isFinite(Number(origVol?.value))?Number(origVol.value):70,
-          bassVolume:Number.isFinite(Number(bassVol?.value))?Number(bassVol.value):70,
+          mainVolume:Number.isFinite(Number(origVol?.value))?Number(origVol.value):7,
+          bassVolume:Number.isFinite(Number(bassVol?.value))?Number(bassVol.value):100,
           metronomeVolume:Number.isFinite(Number(metronomeVol?.value))?Number(metronomeVol.value):70,
           speed:Number.isFinite(Number(tempo?.value))?Number(tempo.value):100,
           timelineCellSeconds:Number(TIMELINE_CELL_SECONDS)||1,
@@ -16537,6 +16568,7 @@ window.BassBatch = (() => {
       replaceSongSession();
       activeAudioFile=new File([audioBlob],audioName,{type,lastModified:Number(src.lastModified)||1});
       buffer=decodedBuffer;
+      origVol.value='7';bassVol.value='100';origVolText.textContent='7%';bassVolText.textContent='100%';
       currentProjectTarget=window.BassLibrary.targetFor(file)||null;
       sourceEncoding=src.audioBase64;
       const {bassBacking,bassAudioBase64,noBassAudioBase64,parts,...otherAnalysis}=project.analysis;
@@ -16593,12 +16625,10 @@ window.BassBatch = (() => {
 
       baseSections={};
       sections=cloneSections(baseSections);
-      origVol.value='70';bassVol.value='70';metronomeVol.value='70';tempo.value='100';
+      origVol.value='7';bassVol.value='100';metronomeVol.value='70';tempo.value='100';
       project.settings=project.settings&&typeof project.settings==='object'?project.settings:{};
       setTimelineCellSeconds(1,{clearSelection:false,rebuild:false});
       if(project.settings){
-        if(Number.isFinite(Number(project.settings.mainVolume)))origVol.value=String(Math.max(0,Math.min(100,Number(project.settings.mainVolume))));
-        if(Number.isFinite(Number(project.settings.bassVolume)))bassVol.value=String(Math.max(0,Math.min(100,Number(project.settings.bassVolume))));
         if(Number.isFinite(Number(project.settings.metronomeVolume)))metronomeVol.value=String(Math.max(0,Math.min(100,Number(project.settings.metronomeVolume))));
         else metronomeVol.value='70';
         if(Number.isFinite(Number(project.settings.speed)))setPracticeSpeed(project.settings.speed);
@@ -17279,6 +17309,7 @@ window.BassBatch = (() => {
     try{
       status.className='status';status.textContent=recoveryRestore?'Restoring audio for saved analysis…':'Decoding audio…';
       buffer=decodedBuffer;
+      origVol.value='7';bassVol.value='100';origVolText.textContent='7%';bassVolText.textContent='100%';
       if(mediaURL)URL.revokeObjectURL(mediaURL);
       mediaURL=URL.createObjectURL(f);
       masterAudio.src=mediaURL;masterAudio.load();masterAudio.preservesPitch=true;
@@ -18602,20 +18633,20 @@ window.BassBatch = (() => {
       if(activePosition)bassFretWindowStart=bassFretPageStart(activePosition.fret);
       else if((Number(t)||0)<=0)bassFretWindowStart=1;
       const firstFret=bassFretWindowStart;
-      const maxFret=firstFret+7;
+      const maxFret=firstFret+11;
       bassRenderedWindowStart=firstFret;
       bassFretboard.setAttribute('aria-label',`Bass fretboard, frets ${firstFret} to ${maxFret}`);
 
       bassFretboard.innerHTML='';
       bassFretboard.style.setProperty('--bass-string-count',String(rows.length));
-      bassFretboard.style.setProperty('--bass-fret-count','8');
+      bassFretboard.style.setProperty('--bass-fret-count','12');
       const neckViewport=bassFretboard.closest('.bass-fretboard-wrap');
       if(neckViewport)neckViewport.scrollLeft=0;
 
       // Fewer required frets should not merely remove columns: use the freed
       // neck length to make each remaining fret, fret number and live note
       // marker materially larger and easier to read.
-      const expansion=Math.max(1,Math.min(1.75,12/8));
+      const expansion=1;
       const markerSize=Math.round(34*Math.sqrt(expansion));
       const markerMobile=Math.round(24*Math.sqrt(expansion));
       const markerFont=Math.round(13*Math.sqrt(expansion));
@@ -18639,7 +18670,7 @@ window.BassBatch = (() => {
       for(let fret=firstFret;fret<=maxFret;fret++){
         const n=document.createElement('span');
         n.className='bass-fret-number';
-        n.dataset.fret=String(fret);
+        n.dataset.fret=String(fret);n.style.gridRow=String(fret-firstFret+2);n.style.gridColumn='1';
         n.textContent=String(fret);
         numbers.appendChild(n);
       }
@@ -18649,6 +18680,7 @@ window.BassBatch = (() => {
         const row=document.createElement('div');
         row.className='bass-string-row';
         row.dataset.stringIndex=String(stringIndex);
+        row.style.setProperty('--string-column',String(rows.length-stringIndex+1));
         row.style.setProperty('--string-thickness',(1.45+(rows.length-stringIndex-1)*.62).toFixed(2)+'px');
 
         const stringNumber=stringIndex+1;
@@ -18666,6 +18698,7 @@ window.BassBatch = (() => {
           cell.className='bass-fret-cell'+([3,5,7,9,12,15,17,19,21,24].includes(fret)?' inlay':'')+([12,24].includes(fret)?' double-inlay':'');
           if(fret===firstFret)cell.classList.add('window-first');
           if(fret===maxFret)cell.classList.add('window-last');
+          cell.style.gridRow=String(fret-firstFret+2);
           cell.dataset.stringIndex=String(stringIndex);
           cell.dataset.fret=String(fret);
           cell.dataset.midi=String(s.openMidi+fret);
@@ -18841,7 +18874,7 @@ window.BassBatch = (() => {
   }
 
   function bassFretPageStart(fret){
-    return fret<=0 ? 1 : 1+Math.floor((Math.min(24,fret)-1)/8)*8;
+    return fret<=0 ? 1 : 1+Math.floor((Math.min(24,fret)-1)/12)*12;
   }
 
   function updateBassView(t){
@@ -22256,7 +22289,7 @@ window.BassBatch = (() => {
     measure.font=`900 ${Math.min(10,requestedFont)}px ${family}`;
     const readableNoteWidth=Math.ceil(Math.max(24,...noteLabels.map(label=>measure.measureText(label).width)))+8;
     const denseNoteMinimum=Math.max(...counts)>6?2*readableNoteWidth+gap+16:0;
-    const unit=Math.min(pageWidth,Math.ceil(Math.max(60,longestChord+20,longestNote+22,longestTime+16,denseNoteMinimum)));
+    const unit=Math.min(pageWidth,Math.ceil(Math.max(48,longestChord+8,longestNote+8,longestTime+8,denseNoteMinimum)));
     const slots=Math.max(1,Math.floor(pageWidth/unit)),pages=[];
     practiceCells=Array(count);
     const noteWidthByFont=new Map();
