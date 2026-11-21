@@ -45,21 +45,38 @@ window.BassBacking=(()=>{
  async function prepare(target){
   const s=api.get();if(!s.loaded||s.busy)throw Error('Wait for the current song to finish loading or analysing.');
   if(target)api.pause();
-  const mine=++token;busy=true;session=s.session;enabled=false;stop();route();message='Preparing mute controls…';changed();
+  const mine=++token;busy=true;session=s.session;enabled=false;stop();route();message='Checking saved mute controls…';changed();
   const cancelled=()=>mine!==token||api.get().session!==s.session;
   try{
-   const parts=[[],[],[]],rate=44100;let frames=0;
-   for(let from=0;from<s.duration;from+=20){
-    const to=Math.min(s.duration,from+20),audioStart=Math.max(0,from-.4),audioEnd=Math.min(s.duration,to+.4),audio=await api.extract(audioStart,audioEnd,p=>{message='Preparing mute controls '+Math.min(99,Math.round((from+(to-from)*p/100)/s.duration*100))+'%';changed();},cancelled);
-    if(cancelled())throw Error('Cancelled');
-    if(audio.numberOfChannels!==6||audio.sampleRate!==rate)throw Error('Instrumental output is incomplete.');
-    const first=Math.round((from-audioStart)*rate),last=first+Math.round((to-from)*rate);
-    for(let i=0;i<3;i++)parts[i].push(pcmPart(audio,i*2,first,last));frames+=last-first;
+   const key=await api.cacheKey().catch(()=>'');
+   if(cancelled())return;
+   const cached=key?await api.readCache(key).catch(()=>null):null;
+   if(cancelled())return;
+   let blobs=cached?.duration===s.duration&&cached.blobs?.length===3?cached.blobs:null;
+   if(blobs){
+    try{await load(blobs,mine,s.duration);}catch{blobs=null;}
+    if(cancelled())return;
    }
-   const blobs=parts.map(p=>wav(p,frames,rate));await load(blobs,mine,s.duration);if(cancelled())throw Error('Cancelled');
-   const encoded=await Promise.all(blobs.map(api.encode));if(cancelled())throw Error('Cancelled');
+   let stored=!!blobs;
+   if(!blobs){
+    const parts=[[],[],[]],rate=44100;let frames=0;
+    for(let from=0;from<s.duration;from+=20){
+     const to=Math.min(s.duration,from+20),audioStart=Math.max(0,from-.4),audioEnd=Math.min(s.duration,to+.4),audio=await api.extract(audioStart,audioEnd,p=>{message='Preparing mute controls '+Math.min(99,Math.round((from+(to-from)*p/100)/s.duration*100))+'%';changed();},cancelled);
+     if(cancelled())throw Error('Cancelled');
+     if(audio.numberOfChannels!==6||audio.sampleRate!==rate)throw Error('Instrumental output is incomplete.');
+     const first=Math.round((from-audioStart)*rate),last=first+Math.round((to-from)*rate);
+     for(let i=0;i<3;i++)parts[i].push(pcmPart(audio,i*2,first,last));frames+=last-first;
+    }
+    blobs=parts.map(p=>wav(p,frames,rate));
+    message='Saving mute controls…';changed();
+    if(key)try{await api.writeCache(key,s.duration,blobs);stored=true;}catch{}
+    if(cancelled())return;
+    await load(blobs,mine,s.duration);
+    if(cancelled())return;
+   }
+   const encoded=[];for(const blob of blobs){encoded.push(await api.encode(blob));if(cancelled())return;}if(cancelled())throw Error('Cancelled');
    saved={version:2,duration:s.duration,mime:'audio/wav',accompanimentBase64:encoded[0],bassBase64:encoded[1],vocalsBase64:encoded[2]};
-   ready=true;enabled=!!target;vocalsMuted=target==='vocals';if(target)api.setMuted(target==='bass'||s.bassMuted);message='';route();api.save();
+   ready=true;enabled=!!target;vocalsMuted=target==='vocals';if(target)api.setMuted(target==='bass'||s.bassMuted);message=stored?'Mute controls saved on this device.':'Device copy unavailable. Check that the song finishes saving.';route();api.save();
   }catch(e){if(mine===token){ready=false;enabled=false;vocalsMuted=false;saved=null;api.setMuted(false);route();message=e.message==='Cancelled'?'Preparation cancelled.':e.message||'Could not prepare bass mute.';}}
   finally{if(mine===token){busy=false;changed();}}
  }

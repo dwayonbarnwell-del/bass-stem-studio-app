@@ -15483,7 +15483,7 @@ window.BassBatch = (() => {
 <script src="./ear-source/study-ui-rc267.js?v=rc294"></script>
 <script src="./ear-source/trainer-rc266.js?v=rc294"></script>
 <script src="./fretflow-source/core.js?v=rc277"></script>
-<script src="./fretflow-source/backing.js?v=rc300"></script>
+<script src="./fretflow-source/backing.js?v=rc302"></script>
 <script src="./fretflow-source/view.js?v=rc278"></script>
 <script src="./fretflow-source/controls.js?v=rc300"></script>
 <script src="./song-view/core.js?v=rc288"></script>
@@ -15491,7 +15491,7 @@ window.BassBatch = (() => {
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC301';
+  const APP_VERSION='RC302';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;
@@ -21043,6 +21043,9 @@ window.BassBatch = (() => {
 
   window.BassBacking.init({
     get:()=>({session:songSession,loaded:!!buffer,duration:buffer?.duration||0,busy:aiBusy||songImportBusy,master:masterAudio,bassMuted:bassPracticeMuted}),
+    cacheKey:async()=>{const file=activeAudioFile;if(!file)return '';const hash=await structureAudioIdentity(file);return hash?'mute-audio-v2:'+hash:'';},
+    readCache:id=>recoveryStore('results',store=>store.get(id)),
+    writeCache:(id,duration,blobs)=>recoveryStore('results',store=>store.put({id,duration,blobs})),
     pause,save:()=>queueMelodyProjectSave(true),encode:fileToBase64,setMuted:value=>{bassPracticeMuted=!!value;},
     graph:()=>{ensureCtx();buildGraph();return {ctx,main:sourceBus,bass:[bassPitchDryGain,bassPitchShift.input]};},
     update:()=>{updateAudioParams();refreshBassPracticeToggle();window.BassFretFlow?.draw();},
