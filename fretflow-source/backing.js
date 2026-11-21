@@ -129,7 +129,7 @@ window.BassBacking=(()=>{
   if(target==='vocals')vocalsMuted=!vocalsMuted;else api.setMuted(!api.get().bassMuted);
   enabled=!!api.get().bassMuted||vocalsMuted;message='';route();if(enabled)void sync(true);else stop();changed();
  }catch(e){message=e.message||'Could not prepare mute controls.';changed();}}
- function cancel(){if(!busy)return;token++;busy=false;enabled=false;vocalsMuted=false;api.setMuted(false);stop();message='Preparation cancelled.';route();changed();}
+ function cancel(){if(!busy)return;token++;api.stopWork?.();busy=false;enabled=false;vocalsMuted=false;api.setMuted(false);stop();message='Preparation cancelled.';route();changed();}
  async function restore(value){
   if(!value)return;const mine=token,s=api.get();
   try{

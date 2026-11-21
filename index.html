@@ -15622,7 +15622,8 @@ window.BassBatch = (() => {
 <script src="./ear-source/study-ui-rc267.js?v=rc294"></script>
 <script src="./ear-source/trainer-rc266.js?v=rc294"></script>
 <script src="./fretflow-source/core.js?v=rc277"></script>
-<script src="./fretflow-source/backing.js?v=rc303"></script>
+<script src="./fretflow-source/practice-stems.js?v=rc305"></script>
+<script src="./fretflow-source/backing.js?v=rc305"></script>
 <script src="./fretflow-source/view.js?v=rc278"></script>
 <script src="./fretflow-source/controls.js?v=rc303"></script>
 <script src="./song-view/core.js?v=rc288"></script>
@@ -15630,7 +15631,7 @@ window.BassBatch = (() => {
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC304';
+  const APP_VERSION='RC305';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;
@@ -15674,7 +15675,7 @@ window.BassBatch = (() => {
     updateProjectButtons();updateAnalysisToolsState();refreshBassPracticeToggle();
   }
   function replaceSongSession({preservePending=false}={}){
-    songSession++;currentProjectTarget=null;importedProjectFields=null;sourceEncoding=null;showProjectSave('');fretFlowStringCount=5;window.BassPracticeControls?.showControls();window.BassBacking?.reset();window.BassFretFlow?.invalidate();window.BassLoopFade?.reset();window.BassChordReview?.reset();window.BassSoundCheck?.cancel();window.BassTools?.cancelSession();window.BassRhythm?.cancel();window.BassLyrics?.cancel();window.BassPiano?.reset();
+    releasePracticeWorker();songSession++;currentProjectTarget=null;importedProjectFields=null;sourceEncoding=null;showProjectSave('');fretFlowStringCount=5;window.BassPracticeControls?.showControls();window.BassBacking?.reset();window.BassFretFlow?.invalidate();window.BassLoopFade?.reset();window.BassChordReview?.reset();window.BassSoundCheck?.cancel();window.BassTools?.cancelSession();window.BassRhythm?.cancel();window.BassLyrics?.cancel();window.BassPiano?.reset();
     resetSongStructure();
     aiBusy=false;pendingResumeBusy=false;offlineAnalysisRunning=false;
     if(aiAnalyse)aiAnalyse.removeAttribute('aria-busy');
@@ -17465,35 +17466,8 @@ window.BassBatch = (() => {
     return await oc.startRendering();
   }
 
-  function fftInPlace(re,im){
-    const n=re.length;
-    for(let i=1,j=0;i<n;i++){
-      let bit=n>>1;
-      for(;j&bit;bit>>=1)j^=bit;
-      j^=bit;
-      if(i<j){let q=re[i];re[i]=re[j];re[j]=q;q=im[i];im[i]=im[j];im[j]=q}
-    }
-    for(let len=2;len<=n;len<<=1){
-      const ang=-2*Math.PI/len,wr0=Math.cos(ang),wi0=Math.sin(ang);
-      for(let i=0;i<n;i+=len){
-        let wr=1,wi=0;
-        for(let j=0;j<len/2;j++){
-          const u=i+j,v=u+len/2,vr=re[v]*wr-im[v]*wi,vi=re[v]*wi+im[v]*wr;
-          re[v]=re[u]-vr;im[v]=im[u]-vi;re[u]+=vr;im[u]+=vi;
-          const nw=wr*wr0-wi*wi0;wi=wr*wi0+wi*wr0;wr=nw;
-        }
-      }
-    }
-  }
+  const {fftInPlace,ifftInPlace,reflectIndex}=window.BassStemTransforms;
 
-  function reflectIndex(i,n){
-    if(n<=1)return 0;
-    while(i<0||i>=n){
-      if(i<0)i=-i;
-      if(i>=n)i=2*n-2-i;
-    }
-    return i;
-  }
 
   function makeSCNetInput(left,right,startSample){
     const out=new Float32Array(4*AI_BINS*AI_FRAMES);
@@ -17573,12 +17547,6 @@ window.BassBatch = (() => {
   }
 
 
-  function ifftInPlace(re,im){
-    for(let i=0;i<im.length;i++)im[i]=-im[i];
-    fftInPlace(re,im);
-    const inv=1/re.length;
-    for(let i=0;i<re.length;i++){re[i]*=inv;im[i]=-im[i]*inv}
-  }
 
   function bassMaskToMono(inputSpec,modelOut){
     // Reconstruct the isolated bass stem from SCNet before pitch estimation.
@@ -20865,76 +20833,51 @@ window.BassBatch = (() => {
 
   initAnalysisTools();
   renderBassFretboard();
-  async function separatePracticeStem(from,to,progress,cancelled,stem=0){
-      if(aiBusy||songImportBusy)throw Error('Wait for analysis to finish.');
-      const session=songSession,original=buffer;if(!original)throw Error('Import a song first.');
-      aiBusy=true;try{
-        const length=Math.ceil((to-from)*AI_SR),off=new OfflineAudioContext(2,length,AI_SR),src=off.createBufferSource();src.buffer=original;src.connect(off.destination);src.start(0,from,to-from);const input=await off.startRendering();
-        await ensureAiSession(false);assertSongSession(session);if(cancelled())throw Error('Cancelled.');
-        const pad=AI_CHUNK-Math.floor(AI_CHUNK/2),step=Math.floor(AI_CHUNK/2),fade=Math.floor(AI_CHUNK/10),n=input.length+2*pad;
-        const channels=[0,1].map(c=>{const a=new Float32Array(n),x=input.getChannelData(c);for(let i=0;i<n;i++)a[i]=x[reflectIndex(i-pad,x.length)];return a;});
-        const mixes=stem==='rehearsal'?[[0,2],[1],[3]]:stem==='practice'?[[0,2,3],[1]]:[[stem]],channelsOut=mixes.length*2;
-        const output=Array.from({length:channelsOut},()=>new Float32Array(n)),weight=new Float32Array(n),starts=[];
-        for(let s=0;s<n;s+=step)starts.push(s);
-        for(let ci=0;ci<starts.length;ci++){
-          assertSongSession(session);if(cancelled())throw Error('Cancelled.');progress(Math.round(ci/starts.length*100));
-          const s=starts[ci],spec=makeDrumInput(channels[0],channels[1],s),tensor=new ort.Tensor('float32',spec,[1,4,AI_BINS,AI_FRAMES]);let result;
-          try{result=await aiSession.run({[aiSession.inputNames[0]]:tensor});
-            const data=result[aiSession.outputNames[0]].data;
-            for(let c=0;c<channelsOut;c++){
-              const audio=new Float32Array(AI_CHUNK),envelope=new Float32Array(AI_CHUNK),re=new Float32Array(AI_NFFT),im=new Float32Array(AI_NFFT);
-              for(let t=0;t<AI_FRAMES;t++){
-                for(let k=0;k<AI_BINS;k++){re[k]=0;im[k]=0;for(const part of mixes[Math.floor(c/2)]){const j=(((part*2+c%2)*AI_BINS+k)*AI_FRAMES+t)*2;re[k]+=data[j]*Math.sqrt(AI_NFFT);im[k]+=data[j+1]*Math.sqrt(AI_NFFT);}}
-                for(let k=AI_BINS;k<AI_NFFT;k++){re[k]=re[AI_NFFT-k];im[k]=-im[AI_NFFT-k];}ifftInPlace(re,im);
-                for(let j=0;j<AI_NFFT;j++){const p=t*AI_HOP+j-AI_NFFT/2;if(p>=0&&p<AI_CHUNK){audio[p]+=re[j];envelope[p]++;}}
-              }
-              for(let j=0;j<AI_CHUNK&&s+j<n;j++){
-                let w=1;if(ci>0&&j<fade)w=j/fade;if(ci<starts.length-1&&j>=AI_CHUNK-fade)w=Math.min(w,(AI_CHUNK-1-j)/fade);
-                const value=audio[j]/Math.max(1,envelope[j]);if(!Number.isFinite(value))throw Error('Invalid model output.');output[c][s+j]+=value*w;if(c===0)weight[s+j]+=w;
-              }
-            }
-          }finally{tensor.dispose?.();if(result)Object.values(result).forEach(t=>t.dispose?.());}
-          await new Promise(r=>setTimeout(r,0));
-        }
-        assertSongSession(session);if(cancelled())throw Error('Cancelled.');
-        const rendered=new AudioBuffer({numberOfChannels:channelsOut,length:input.length,sampleRate:AI_SR});let peak=0;
-        for(let c=0;c<channelsOut;c++){const target=rendered.getChannelData(c);for(let i=0;i<target.length;i++){target[i]=output[c][i+pad]/Math.max(1e-6,weight[i+pad]);peak=Math.max(peak,Math.abs(target[i]));}}
-        if(stem!=='practice'&&stem!=='rehearsal'&&peak>.95)for(let c=0;c<channelsOut;c++){const x=rendered.getChannelData(c);for(let i=0;i<x.length;i++)x[i]*=.95/peak;}
-        return rendered;
-      }finally{if(session===songSession){aiBusy=false;updateAnalysisToolsState();}}
-
+  let practiceWorker=null,activeWork=null,workerIdleTimer=0;
+  function releasePracticeWorker(reason){
+    clearTimeout(workerIdleTimer);
+    practiceWorker?.terminate();practiceWorker=null;
+    activeWork?.reject(Error(reason||'Preparation cancelled.'));activeWork=null;
   }
-  function makeDrumInput(left,right,startSample){
-    const out=new Float32Array(4*AI_BINS*AI_FRAMES);
-    const re=new Float32Array(AI_NFFT),im=new Float32Array(AI_NFFT);
-    const scale=1/Math.sqrt(AI_NFFT);
-    for(let c=0;c<2;c++){
-      const sig=c===0?left:right;
-      for(let t=0;t<AI_FRAMES;t++){
-        const center=t*AI_HOP;
-        for(let j=0;j<AI_NFFT;j++){
-          const local=center+j-(AI_NFFT>>1);
-          let v=0;
-          {
-            let srcLocal=local;
-            if(srcLocal<0) srcLocal=reflectIndex(srcLocal,AI_PADDED);
-            else if(srcLocal>=AI_PADDED) srcLocal=reflectIndex(srcLocal,AI_PADDED);
-            if(srcLocal<AI_CHUNK){
-              const gi=startSample+srcLocal;
-              if(gi>=0&&gi<sig.length)v=sig[gi];
-            }
-          }
-          re[j]=v;im[j]=0;
-        }
-        fftInPlace(re,im);
-        const rc=c*2,ic=rc+1;
-        for(let k=0;k<AI_BINS;k++){
-          out[(rc*AI_BINS+k)*AI_FRAMES+t]=re[k]*scale;
-          out[(ic*AI_BINS+k)*AI_FRAMES+t]=im[k]*scale;
-        }
+  async function separatePracticeStem(from,to,progress,cancelled,stem=0){
+    if(aiBusy||songImportBusy)throw Error('Wait for analysis to finish.');
+    const session=songSession,original=buffer;
+    if(!original)throw Error('Import a song first.');
+    aiBusy=true;
+    let watch;
+    try{
+      const length=Math.ceil((to-from)*AI_SR),off=new OfflineAudioContext(2,length,AI_SR);
+      const src=off.createBufferSource();src.buffer=original;src.connect(off.destination);src.start(0,from,to-from);
+      const input=await off.startRendering();
+      assertSongSession(session);if(cancelled())throw Error('Preparation cancelled.');
+      clearTimeout(workerIdleTimer);
+      const worker=practiceWorker||=new Worker('./fretflow-source/practice-stems.js?v=rc305');
+      const samples=[input.getChannelData(0).slice(),input.getChannelData(1).slice()];
+      const channels=await new Promise((resolve,reject)=>{
+        activeWork={reject};
+        worker.onmessage=({data})=>{
+          if(worker!==practiceWorker)return;
+          if(data.error){releasePracticeWorker(data.error);return;}
+          if(data.channels)resolve(data.channels);else progress(data.progress);
+        };
+        worker.onerror=()=>{if(worker===practiceWorker)releasePracticeWorker('Mute audio preparation could not run. Tap Vocals to retry.');};
+        worker.onmessageerror=()=>{if(worker===practiceWorker)releasePracticeWorker('Mute audio could not be read.');};
+        watch=setInterval(()=>{if(worker===practiceWorker&&(session!==songSession||cancelled()))releasePracticeWorker();},100);
+        progress(0);
+        worker.postMessage({model:AI_MODEL_URL,samples,stem},samples.map(channel=>channel.buffer));
+      });
+      assertSongSession(session);if(cancelled())throw Error('Preparation cancelled.');
+      const audio=new AudioBuffer({numberOfChannels:channels.length,length,sampleRate:AI_SR});
+      channels.forEach((data,i)=>audio.copyToChannel(data,i));
+      return audio;
+    }finally{
+      clearInterval(watch);
+      if(session===songSession){
+        activeWork=null;clearTimeout(workerIdleTimer);
+        workerIdleTimer=setTimeout(()=>releasePracticeWorker(),60000);
+        aiBusy=false;updateAnalysisToolsState();
       }
     }
-    return out;
   }
 
   window.BassRhythm.init({pause,get:()=>({buffer,session:songSession,beats:detectedBeatTimes.slice(),start:loopStart??currentTime(),end:loopEnd??Math.min(buffer?.duration||0,currentTime()+8)}),
@@ -21182,7 +21125,7 @@ window.BassBatch = (() => {
     writePart:(id,frames,parts)=>recoveryStore('results',store=>store.put({id,frames,parts})),
     removePart:id=>recoveryStore('results',store=>store.delete(id)),
     writeCache:(id,duration,blobs)=>recoveryStore('results',store=>store.put({id,duration,blobs})),
-    pause,save:()=>queueMelodyProjectSave(true),encode:fileToBase64,setMuted:value=>{bassPracticeMuted=!!value;},
+    stopWork:()=>releasePracticeWorker(),pause,save:()=>queueMelodyProjectSave(true),encode:fileToBase64,setMuted:value=>{bassPracticeMuted=!!value;},
     graph:()=>{ensureCtx();buildGraph();return {ctx,main:sourceBus,bass:[bassPitchDryGain,bassPitchShift.input]};},
     update:()=>{updateAudioParams();refreshBassPracticeToggle();window.BassFretFlow?.draw();},
     extract:(a,b,p,c)=>separatePracticeStem(a,b,p,c,'rehearsal')
