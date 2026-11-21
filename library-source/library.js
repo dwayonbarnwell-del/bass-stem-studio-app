@@ -176,7 +176,7 @@ window.BassLibrary=(()=>{
       if(list.children[position]!==item)list.insertBefore(item,list.children[position]||null);
     }
     if(el('libraryStop'))el('libraryStop').hidden=!scanning;
-    for(const id of ['libraryChoose','libraryDevice','libraryReconnect','libraryRefresh','libraryAdd','libraryBatch'])el(id).disabled=busy;
+    for(const id of ['libraryChoose','libraryDevice','libraryReconnect','libraryRefresh','libraryOpenFile','libraryAdd','libraryBatch'])el(id).disabled=busy;
   }
   async function run(fn){
     if(busy)return;stopScan();busy=true;render();
@@ -436,7 +436,7 @@ window.BassLibrary=(()=>{
     target.audioId=ref.audioId;
     return file;
   }
-  async function openRow(row){
+  async function openRow(row,selectedFile){
     const key=rowKey(row),reason=hooks.openBlocked?.();
     if(reason){lastOpenError={key,message:reason};throw Error(reason);}
     lastOpenError=null;
@@ -450,7 +450,7 @@ window.BassLibrary=(()=>{
     };
     progress('Opening '+row.title+'…');
     try{
-      const file=await Promise.race([rowFile(row,()=>progress('Finishing the save for '+row.title+'…')),closed]);
+      const file=selectedFile||await Promise.race([rowFile(row,()=>progress('Finishing the save for '+row.title+'…')),closed]);
       if(controller.signal.aborted)throw abort();
       let present;
       const presented=new Promise(resolve=>{present=resolve;});
@@ -467,6 +467,7 @@ window.BassLibrary=(()=>{
   }
   async function addFiles(files){
     let added=0,failed=0,cancelled=0,duplicates=0,chordCatalogues=0;
+    let firstError;
     for(const file of files){
       try{
         status('Adding '+file.name+'…');
@@ -475,10 +476,10 @@ window.BassLibrary=(()=>{
         metadata(p,file);
         if(await matchingTarget(p)){duplicates++;continue;}
         const target=await prepareSave(clean(p.projectName)||file.name.replace(SUPPORTED,''));
-        await save(p,file,target);added++;
-      }catch(e){if(e?.name==='AbortError')cancelled++;else failed++;}
+        await save(p,projectBlob(p),target);added++;
+      }catch(e){if(e?.name==='AbortError')cancelled++;else{failed++;firstError??=errorText(e);}}
     }
-    await refresh();status(added+' added'+(duplicates?' · '+duplicates+' already saved':'')+(cancelled?' · '+cancelled+' cancelled':'')+(failed?' · '+failed+' could not be added; check the file format, folder access and free space.':'.')+(chordCatalogues?' Open chord backups in Song Chords → Import charts / backup.':''));
+    await refresh();status(added+' added'+(duplicates?' · '+duplicates+' already saved':'')+(cancelled?' · '+cancelled+' cancelled':'')+(failed?' · '+failed+' could not be added. '+firstError:'.')+(chordCatalogues?' Open chord backups in Song Chords → Import charts / backup.':''));
   }
 
   /* RC227: Reuse saved analysed songs before loading audio or creating a paid job. */
@@ -667,7 +668,7 @@ window.BassLibrary=(()=>{
   function build(){
     if(dialog)return;
     dialog=document.createElement('dialog');dialog.id='bassLibraryDialog';dialog.className='bass-library';dialog.setAttribute('aria-labelledby','libraryTitle');
-    dialog.innerHTML='<div class="library-heading"><div><h2 id="libraryTitle">Song library</h2><p id="libraryLocation"></p></div><button id="libraryClose" type="button">Close</button></div><div class="library-toolbar"><button id="libraryChoose" type="button">Choose save folder</button><button id="libraryReconnect" type="button">Reconnect folder</button><button id="libraryDevice" type="button">Save in app</button><button id="libraryAdd" type="button">Import saved file</button><button id="libraryBatch" type="button">Batch ZIP</button><button id="libraryRefresh" type="button">Refresh</button><button id="libraryStop" type="button" hidden>Stop checking</button></div><p id="libraryHint"></p><div class="library-filters"><div><label for="librarySearch">Search songs</label><input id="librarySearch" type="search" placeholder="Title, artist, key or BPM" autocomplete="off"></div><div><label for="librarySort">Sort by</label><select id="librarySort"><option value="recent">Recently saved</option><option value="name">Song name</option></select></div></div><div class="library-summary"><span id="libraryCount"></span><span id="libraryStatus" role="status" aria-live="polite"></span></div><ul id="librarySongs"></ul><input id="libraryFiles" type="file" accept=".bassstudio,.bssproject,.json,application/json" multiple hidden>';
+    dialog.innerHTML='<div class="library-heading"><div><h2 id="libraryTitle">Song library</h2><p id="libraryLocation"></p></div><button id="libraryClose" type="button">Close</button></div><div class="library-toolbar"><button id="libraryChoose" type="button">Choose save folder</button><button id="libraryReconnect" type="button">Reconnect folder</button><button id="libraryDevice" type="button">Save in app</button><button id="libraryOpenFile" type="button">Open saved file</button><button id="libraryAdd" type="button">Import saved file</button><button id="libraryBatch" type="button">Batch ZIP</button><button id="libraryRefresh" type="button">Refresh</button><button id="libraryStop" type="button" hidden>Stop checking</button></div><p id="libraryHint"></p><div class="library-filters"><div><label for="librarySearch">Search songs</label><input id="librarySearch" type="search" placeholder="Title, artist, key or BPM" autocomplete="off"></div><div><label for="librarySort">Sort by</label><select id="librarySort"><option value="recent">Recently saved</option><option value="name">Song name</option></select></div></div><div class="library-summary"><span id="libraryCount"></span><span id="libraryStatus" role="status" aria-live="polite"></span></div><ul id="librarySongs"></ul><input id="libraryOpenInput" type="file" accept=".bassstudio,.bssproject,.json,application/json" hidden><input id="libraryFiles" type="file" accept=".bassstudio,.bssproject,.json,application/json" multiple hidden>';
     document.body.append(dialog);
     el('libraryClose').onclick=()=>dialog.close();
     dialog.addEventListener('close',()=>{if(opening&&!opening.ready)opening.controller.abort();stopScan();document.getElementById('importProjectBtn')?.focus();});
@@ -675,6 +676,11 @@ window.BassLibrary=(()=>{
     el('libraryChoose').onclick=()=>run(chooseFolder);el('libraryDevice').onclick=()=>run(useDevice);
     el('libraryStop').onclick=()=>{stopScan();status('Folder check stopped.');render();};
     el('libraryRefresh').onclick=scanInBackground;el('libraryReconnect').onclick=()=>run(reconnect);
+    el('libraryOpenFile').onclick=()=>el('libraryOpenInput').click();
+    el('libraryOpenInput').onchange=e=>{
+      const file=e.target.files?.[0];e.target.value='';
+      if(file)void run(()=>openRow({title:file.name,filename:file.name},file));
+    };
     el('libraryAdd').onclick=()=>{el('libraryFiles').value='';el('libraryFiles').click();};
     el('libraryBatch').onclick=()=>{window.BassBatch?.show();};
     el('libraryFiles').onchange=e=>{const files=Array.from(e.target.files||[]);e.target.value='';void run(()=>addFiles(files));};
