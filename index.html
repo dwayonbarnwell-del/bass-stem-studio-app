@@ -15672,12 +15672,12 @@ window.BassBatch = (() => {
 <script src="./fretflow-source/backing.js?v=rc305"></script>
 <script src="./fretflow-source/view.js?v=rc278"></script>
 <script src="./fretflow-source/controls.js?v=rc303"></script>
-<script src="./song-view/core.js?v=rc288"></script>
+<script src="./song-view/core.js?v=rc308"></script>
 <script src="./song-view/view.js?v=rc288"></script>
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC307';
+  const APP_VERSION='RC308';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;
@@ -21202,7 +21202,7 @@ window.BassBatch = (() => {
     if(current){if(t<current.start||t>=current.end-.003)seekTo(current.start);if(!playing)void play();}
   }
   window.BassSongView.init({
-    get:()=>({loaded:!!buffer,busy:aiBusy||songImportBusy||!$('liveStop').disabled||!$('pianoLiveStop').disabled,session:songSession,title:loadedProjectName||objectName||'Song',time:displayTime(),duration:buffer?.duration||0,notes,chords:detectedChordChanges,sections,parts:analysisParts,transpose:transposeSemitones,repeatRanges:timeframeLoopMode?timeframeQueue:multiSectionMode?sectionQueue:loopEnabled?[{start:loopStart,end:loopEnd}]:[],noteFormat:noteDisplayMode+':'+numberingConvention+':'+JSON.stringify([detectedBaseScale,audioKeySections,keyCorrections])}),
+    get:()=>({loaded:!!buffer,busy:aiBusy||songImportBusy||!$('liveStop').disabled||!$('pianoLiveStop').disabled,session:songSession,title:loadedProjectName||objectName||'Song',time:displayTime(),duration:buffer?.duration||0,notes,chords:detectedChordChanges,sections:practiceArrangement(),transpose:transposeSemitones,repeatRanges:timeframeLoopMode?timeframeQueue:multiSectionMode?sectionQueue:loopEnabled?[{start:loopStart,end:loopEnd}]:[],noteFormat:noteDisplayMode+':'+numberingConvention+':'+JSON.stringify([detectedBaseScale,audioKeySections,keyCorrections])}),
     validChord:reliableChord,
     noteLabel:n=>{const pitch=practiceDisplayMidi(n.midi);return noteDisplayMode==='numbers'?(scaleDegreeLabel(pitch,songViewScaleAt(n.start))||midiName(pitch)):midiName(pitch);},
     chordLabel:c=>chordDisplayLabel(c,songViewScaleAt(c.start)),seek:seekTo,pause,wholeSong:songViewWhole,repeat:songViewRepeat,
@@ -21822,17 +21822,27 @@ window.BassBatch = (() => {
     window.BassSongView?.draw();
   }
   function cloneSections(obj){return JSON.parse(JSON.stringify(obj));}
+  var practiceEstimateCache;
+  function practiceArrangement(){
+    if(Object.keys(sections).length)return sections;
+    const duration=buffer?.duration||0,tempo=currentTempoBpm();
+    const previous=practiceEstimateCache;
+    if(previous?.session===songSession&&previous.duration===duration&&previous.tempo===tempo&&previous.chords===detectedChordChanges&&previous.count===detectedChordChanges.length&&previous.beats===detectedBeatTimes)return previous.parts;
+    const parts=window.BassSongViewCore.estimateSections({duration,tempo,chords:detectedChordChanges,beats:detectedBeatTimes,meter:detectedBeatsPerBar,phase:detectedDownbeatPhase});
+    practiceEstimateCache={session:songSession,duration,tempo,chords:detectedChordChanges,count:detectedChordChanges.length,beats:detectedBeatTimes,parts};
+    return parts;
+  }
   function drawPracticeSections(){
     const host=$('practiceSections'),core=window.BassSongViewCore;
     if(!host||!core)return;
-    const duration=buffer?.duration||0,parts=core.sections({sections,parts:analysisParts,duration});
-    host.hidden=practiceVisualMode==='song'||parts.length<2;
+    const duration=buffer?.duration||0,parts=core.sections({sections:practiceArrangement(),duration});
+    host.hidden=!parts.some(part=>part.sourceId>=0);
     if(host.hidden)return;
     const ranges=timeframeLoopMode?timeframeQueue:multiSectionMode?sectionQueue:loopEnabled?[{start:loopStart,end:loopEnd}]:[];
     host.replaceChildren();
     for(const part of parts){
       const b=document.createElement('button'),selected=core.rangeSelected(ranges,part.start,part.end);
-      b.type='button';b.textContent=part.name.replace(/\b(pre[ -]?chorus|introduction|instrumental|interlude|verse|chorus|bridge|refrain|outro)\b/gi,word=>({'prechorus':'Pre. Ch.','introduction':'Intro','instrumental':'Inst.','interlude':'Inter.','verse':'Vr','chorus':'Ch','bridge':'Bri.','refrain':'Ref.','outro':'Outro'})[word.toLowerCase().replace(/[ -]/g,'')]);b.title=part.name;b.setAttribute('aria-label',part.name);b.setAttribute('aria-pressed',String(selected));
+      b.type='button';b.textContent=part.name.replace(/\b(pre[ -]?chorus|introduction|instrumental|interlude|verse|chorus|bridge|refrain|outro)\b/gi,word=>({'prechorus':'Pre. Ch.','introduction':'Intro','instrumental':'Inst.','interlude':'Inter.','verse':'Vr','chorus':'Ch','bridge':'Br.','refrain':'Ref.','outro':'Outro'})[word.toLowerCase().replace(/[ -]/g,'')]);b.title=Object.keys(sections).length?part.name:part.name+' (estimated)';b.setAttribute('aria-label',b.title);b.setAttribute('aria-pressed',String(selected));
 
       b.onclick=()=>songViewRepeat(core.toggleRange(ranges,part.start,part.end,duration));host.append(b);
     }
