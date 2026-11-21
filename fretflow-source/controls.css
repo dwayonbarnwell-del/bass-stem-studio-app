@@ -73,3 +73,14 @@
  body.practice-controls-hidden .transport-main #vocalPracticeToggle{grid-column:5!important}
  body.practice-controls-hidden .transport-main #ffControls{grid-column:6!important}
 }
+
+@layer compactPractice {
+ #loopToggle{display:none!important}
+ body.practice-controls-ready:not(.practice-controls-hidden) :is(.transport-main,.loop-range-row){display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;grid-template-rows:auto!important;gap:6px!important;height:auto!important;min-height:0!important}
+ body.practice-controls-ready:not(.practice-controls-hidden) :is(.transport-main,.loop-range-row) :is(button,input,.song-context-pill){grid-row:1!important;min-width:0!important;width:100%!important;max-width:none!important}
+ body.practice-controls-ready:not(.practice-controls-hidden) :is(#importBtn,#songTempoWrap){grid-column:1!important}
+ body.practice-controls-ready:not(.practice-controls-hidden) :is(#playBtn,#timeFrom){grid-column:2!important}
+ body.practice-controls-ready:not(.practice-controls-hidden) :is(#pauseBtn,#timeTo){grid-column:3!important}
+ body.practice-controls-ready:not(.practice-controls-hidden) :is(#bassPracticeToggle,#clearLoop){grid-column:4!important}
+ body.practice-controls-ready:not(.practice-controls-hidden) :is(#vocalPracticeToggle,#songScaleWrap){grid-column:5!important}
+}

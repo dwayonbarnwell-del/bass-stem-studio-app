@@ -85,5 +85,5 @@ window.BassBacking=(()=>{
   }catch{if(mine===token){ready=false;message='Saved bass mute is unavailable. You can prepare it again.';changed();}}
  }
  function init(hooks){api=hooks;const master=api.get().master;for(const event of ['play','pause','seeking','seeked','ratechange','ended'])master.addEventListener(event,()=>void sync(true));}
- return {init,prepareForSong,toggle,cancel,reset,sync,restore,exportData:()=>saved,state:()=>({enabled,busy,ready,vocalsReady:ready&&saved?.version===2,vocalsMuted,bassMuted:!!api?.get().bassMuted,message}),pcmPart,wav};
+ return {init,prepareForSong,toggle,cancel,reset,sync,restore,exportData:()=>saved,state:()=>({enabled,busy,ready,vocalsReady:ready&&saved?.version===2,canRetry:attemptedSession!==null&&attemptedSession===api?.get().session&&!busy,vocalsMuted,bassMuted:!!api?.get().bassMuted,message}),pcmPart,wav};
 })();

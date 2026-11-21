@@ -6,7 +6,7 @@ window.BassPracticeControls=(()=>{
   if(!api)return;const s=api.get(),b=window.BassBacking.state(),hasStrings=s.view==='bass'||s.view==='fretflow';
   document.body.classList.toggle('practice-no-strings',!hasStrings);stringCard.hidden=!hasStrings;
   strings.value=String(s.strings);stringNumber.textContent=String(s.strings);
-  vocals.disabled=!s.loaded||s.busy||b.busy;vocals.setAttribute('aria-pressed',String(b.vocalsMuted));
+  vocals.disabled=!s.loaded||s.busy||b.busy||(!b.vocalsReady&&!b.canRetry);vocals.setAttribute('aria-pressed',String(b.vocalsMuted));
   const label=b.vocalsMuted?'Restore vocals':'Mute vocals';vocals.setAttribute('aria-label',label);
   vocals.title=b.vocalsReady?'Mute or restore vocals independently of the bass':'Prepare vocal mute for this song';
   message.textContent=b.message;status.hidden=!b.message&&!b.busy;cancel.hidden=!b.busy;layout();
