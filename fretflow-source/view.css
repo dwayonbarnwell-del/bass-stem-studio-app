@@ -20,3 +20,11 @@
  #fretFlowPanel .bass-time-cell{min-height:30px!important;height:30px!important;padding:4px!important;font:600 11px/1.2 system-ui!important}
 }
 #fretFlowPanel #bassTimeScroll::-webkit-scrollbar{display:none}
+
+/* Fret View 2 expands the same coloured map to the full available width. */
+#fretFlowPanel.ff-single-board .ff-stage{grid-template-columns:minmax(0,1fr);gap:0}
+#fretFlowPanel.ff-single-board .ff-neck-wrap,
+#fretFlowPanel.ff-single-board .ff-connector{display:none}
+#fretFlowPanel .ff-map{min-height:290px}
+#fretFlowPanel .ff-stage{min-height:325px}
+#fretFlowPanel{overflow-y:auto}

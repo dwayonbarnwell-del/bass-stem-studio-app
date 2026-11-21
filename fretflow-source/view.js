@@ -46,7 +46,7 @@ window.BassFretFlow=(()=>{
   const colour=C.colour(primary.midi),map=point(primary),neck=neckPoint(primary,count),stage=nodes.stage.getBoundingClientRect(),nr=nodes.neck.getBoundingClientRect(),mr=nodes.map.getBoundingClientRect();
   const x1=nr.left-stage.left+neck.x/110*nr.width+5,y1=nr.top-stage.top+neck.y/650*nr.height,x2=mr.left-stage.left+map.x-16,y2=mr.top-stage.top+map.y,mid=(x1+x2)/2;
   nodes.connector.setAttribute('viewBox',`0 0 ${stage.width} ${stage.height}`);
-  add(nodes.connector,'path',{d:`M ${x1} ${y1} C ${mid} ${y1}, ${mid} ${y2}, ${x2} ${y2}`,fill:'none',stroke:colour,'stroke-width':1.5,'stroke-dasharray':'3 4',opacity:.75,'data-midi':primary.midi,class:'ff-neck-connection'});
+  if(!panel.classList.contains('ff-single-board'))add(nodes.connector,'path',{d:`M ${x1} ${y1} C ${mid} ${y1}, ${mid} ${y2}, ${x2} ${y2}`,fill:'none',stroke:colour,'stroke-width':1.5,'stroke-dasharray':'3 4',opacity:.75,'data-midi':primary.midi,class:'ff-neck-connection'});
   if(onPage(next)&&(next.position.string!==primary.position.string||next.position.fret!==primary.position.fret)){const end=point(next);line(nodes.mapLinks,map.x,map.y,end.x,end.y,colour,1.4).setAttribute('stroke-dasharray','3 4');}
  }
  function prepare(s){
@@ -56,7 +56,7 @@ window.BassFretFlow=(()=>{
  function draw(t){
   if(!api||panel.hidden)return;const s=api.get();prepare(s);const time=Number.isFinite(t)?t:s.time;
   const active=C.active(rows,time),primary=active.at(-1),future=C.nearby(rows,time,2,3).filter(n=>!active.includes(n)).sort((a,b)=>Math.abs(a.start-time)-Math.abs(b.start-time)),focus=primary||future.find(n=>n.start>time);
-  const frets=nodes.map.clientHeight<290?6:12,first=1+Math.floor(Math.max(0,(focus?.position?.fret||1)-1)/frets)*frets,key=s.strings+':'+first+':'+frets+':'+nodes.map.clientWidth+':'+nodes.map.clientHeight;
+  const frets=12,first=1+Math.floor(Math.max(0,(focus?.position?.fret||1)-1)/frets)*frets,key=s.strings+':'+first+':'+frets+':'+nodes.map.clientWidth+':'+nodes.map.clientHeight;
   if(lastBoard!==key){makeNeck(s.strings);makeMap(s.strings,first,frets);lastBoard=key;signature='';}
   const sign=active.map(n=>n.id).join(',')+'|'+future.map(n=>n.id).join(',')+'|'+key;
   if(sign!==signature){
