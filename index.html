@@ -13774,6 +13774,18 @@ html body #appRoot #bassFretboard#bassFretboard#bassFretboard#bassFretboard .bas
  min-width:0!important;width:30px!important;height:30px!important;padding:0!important;font:700 12px system-ui!important;z-index:3!important;
 }
 </style>
+
+<style id="session-action-colours">
+@layer session-actions {
+  :is(#reviewDialog, #rhythmDialog) button {
+    background: linear-gradient(135deg, var(--action-start, #34495a), var(--action-end, #2e374c)) !important;
+    color: #f4f7fa !important;
+  }
+  :is(#reviewHear, #rhythmExtract, #rhythmSave, #rhythmWav) { --action-start: #31544d; --action-end: #273f48; }
+  :is(#reviewEdit, #rhythmSnap) { --action-start: #50465d; --action-end: #363d52; }
+  :is(#reviewStop, #reviewClose, #rhythmCancel, #rhythmClose) { --action-start: #53414b; --action-end: #3e3848; }
+}
+</style>
 </head>
 <body>
 <div id="sectionCompatibility" style="display:none" aria-hidden="true">
@@ -15759,7 +15771,7 @@ window.BassBatch = (() => {
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC329';
+  const APP_VERSION='RC330';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;
@@ -16371,6 +16383,7 @@ window.BassBatch = (() => {
   let currentProjectTarget=null,importedProjectFields=null,sourceEncoding=null;
   function showProjectSave(text){
     window.BassPracticeControls?.setSaveStatus(text);
+    if(text?.startsWith('Song not saved'))aiStatus(text);
     if(saveProjectBtn){
       saveProjectBtn.textContent=!text?'Save':text.startsWith('Saved ')?'Saved ✓':text.startsWith('Song not saved')?'Retry save':'Saving…';
       saveProjectBtn.title=text||'Save song';
