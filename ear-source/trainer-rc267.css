@@ -200,3 +200,21 @@
  #earTrainerDialog #fillDrumOptions summary{padding:4px 0!important}
  @media(min-width:580px){#earTrainerDialog #earBassSections{grid-template-columns:repeat(4,minmax(0,1fr))!important}}
 }
+
+#earTrainerDialog #earSectionRehearsal{grid-column:1/-1;background:#294a62!important;border-color:#7ea9c5!important}
+#earTrainerDialog #earSectionRehearsal[aria-pressed="true"]{background:#305d79!important;border-color:#b2e2f4!important}
+#earTrainerDialog #earRehearsal:not([hidden]),#earTrainerDialog #rehearsalEditor:not([hidden]){display:grid;gap:10px;min-width:0}
+#earTrainerDialog .rehearsal-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+#earTrainerDialog .rehearsal-times{grid-template-columns:repeat(3,minmax(0,1fr))}
+#earTrainerDialog #earRehearsal label{display:grid;gap:4px;font-size:.85em;color:#ceebf1}
+#earTrainerDialog #earRehearsal :is(input:not([type="range"]),select,button){width:100%;min-width:0}
+#earTrainerDialog #earRehearsal input:not([type="range"]){min-height:var(--ear-control);background:#142b3d;color:#eefaff;border:1px solid #60819a;border-radius:9px;padding:4px 6px}
+#earTrainerDialog #earRehearsal .rehearsal-level{grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px}
+#earTrainerDialog #earRehearsal p{margin:0;overflow-wrap:anywhere}
+#earTrainerDialog #rehearsalTitle{font-weight:700}
+#earTrainerDialog #rehearsalPlay{background:#285c4b!important;border-color:#84c8a7!important}
+#earTrainerDialog #rehearsalGuide[aria-pressed="true"]{background:#375481!important;border-color:#a5bff0!important}
+#earTrainerDialog #rehearsalTime{color:#bad1e6;font-variant-numeric:tabular-nums}
+#earTrainerDialog #rehearsalStatus,#earTrainerDialog #rehearsalNotes{font-size:.88em;color:#f5dba9}
+#earTrainerDialog .rehearsal-corrections[open]{display:grid;gap:8px}
+#earTrainerDialog #rehearsalCue{font-weight:700;color:#a7e5d9}

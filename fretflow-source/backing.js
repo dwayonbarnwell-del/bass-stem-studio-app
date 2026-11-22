@@ -157,6 +157,27 @@ window.BassBacking=(()=>{
    void api.bassStemReady?.(blobs[1],s.session);
   }catch{if(mine===token){ready=false;message=availableBlobs?'Saved mute audio could not load. Tap Vocals to retry.':'Saved mute audio is incomplete.';changed();}}
  }
+ async function bandExcerpt(start,end){
+  if(session!==api?.get().session||availableBlobs?.length!==3||!(start>=0&&end>start))return null;
+  const mine=token,stems=[availableBlobs[0],availableBlobs[2]];
+  const headers=await Promise.all(stems.map(async blob=>new DataView(await blob.slice(0,44).arrayBuffer())));
+  if(mine!==token||headers.some(h=>h.byteLength!==44||h.getUint32(36)!==0x64617461||
+    h.getUint16(20,true)!==1||h.getUint16(22,true)!==2||h.getUint16(34,true)!==16))return null;
+  const rate=headers[0].getUint32(24,true);
+  const from=Math.round(start*rate),to=Math.round(end*rate),length=to-from;
+  if(!length||headers.some((h,i)=>h.getUint32(24,true)!==rate||44+to*4>stems[i].size))return null;
+  const pcm=await Promise.all(stems.map(async blob=>new DataView(await blob.slice(44+from*4,44+to*4).arrayBuffer())));
+  if(mine!==token)return null;
+  const audio=new AudioBuffer({numberOfChannels:2,length,sampleRate:rate});
+  for(let c=0;c<2;c++){
+    const samples=audio.getChannelData(c);
+    for(let i=0;i<length;i++){
+      const pos=(i*2+c)*2;
+      samples[i]=(pcm[0].getInt16(pos,true)+pcm[1].getInt16(pos,true))/32768;
+    }
+  }
+  return audio;
+ }
  function init(hooks){api=hooks;const master=api.get().master;for(const event of ['play','pause','seeking','seeked','ratechange','ended'])master.addEventListener(event,()=>void sync(true));}
- return {init,canRestore,prepareForSong,toggle,cancel,reset,sync,restore,exportData:()=>saved,state:()=>({enabled,busy,ready,vocalsReady:ready&&saved?.version===2,canRetry:attemptedSession!==null&&attemptedSession===api?.get().session&&!busy,vocalsMuted,bassMuted:!!api?.get().bassMuted,message}),pcmPart,wav};
+ return {init,canRestore,prepareForSong,toggle,cancel,reset,sync,restore,bandExcerpt,exportData:()=>saved,state:()=>({enabled,busy,ready,vocalsReady:ready&&saved?.version===2,canRetry:attemptedSession!==null&&attemptedSession===api?.get().session&&!busy,vocalsMuted,bassMuted:!!api?.get().bassMuted,message}),pcmPart,wav};
 })();

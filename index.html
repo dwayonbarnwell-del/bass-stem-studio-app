@@ -13729,7 +13729,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 html body #appRoot #songTempoWrap.on-beat{box-shadow:inset 0 0 0 3px #b9f3da!important}
 html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel .piano-chord.current-chord{background:#a7e8d2!important;color:#102b25!important;font-weight:800!important;box-shadow:inset 0 -3px #fff!important}
 </style>
-<link rel="stylesheet" href="./ear-source/trainer-rc267.css?v=rc294">
+<link rel="stylesheet" href="./ear-source/trainer-rc267.css?v=rc317">
 <style id="rc260-key-audition">@layer bass-piano-audition-260{#appRoot #pianoKeyboard .piano-key.auditioning{background:#248bd1!important;color:white!important;box-shadow:inset 0 0 0 1px #b7e4ff!important}}</style>
 <link rel="stylesheet" href="./fretflow-source/controls.css?v=rc300">
 <link rel="stylesheet" href="./fretflow-source/view.css?v=rc311">
@@ -15723,11 +15723,13 @@ window.BassBatch = (() => {
 <script src="./ear-source/african-data-rc274.js?v=rc274"></script>
 <script src="./ear-source/uploaded-core-rc267.js?v=rc294"></script>
 <script src="./ear-source/study-ui-rc267.js?v=rc294"></script>
-<script src="./ear-source/trainer-rc266.js?v=rc294"></script>
+<script src="./ear-source/rehearsal-core.js?v=rc317"></script>
+<script src="./ear-source/rehearsal.js?v=rc317"></script>
+<script src="./ear-source/trainer-rc266.js?v=rc317"></script>
 <script src="./fretflow-source/core.js?v=rc277"></script>
 <script src="./fretflow-source/practice-stems.js?v=rc305"></script>
 <script src="./fretflow-source/bass-evidence.js?v=rc315"></script>
-<script src="./fretflow-source/backing.js?v=rc315"></script>
+<script src="./fretflow-source/backing.js?v=rc317"></script>
 <script src="./fretflow-source/view.js?v=rc311"></script>
 <script src="./fretflow-source/controls.js?v=rc303"></script>
 <script src="./song-view/core.js?v=rc308"></script>
@@ -15735,7 +15737,7 @@ window.BassBatch = (() => {
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC316';
+  const APP_VERSION='RC317';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;
@@ -16811,23 +16813,22 @@ window.BassBatch = (() => {
   }
 
   // Separate stable picker IDs keep audio and project folder histories independent.
-  async function importAudioCheckingLibrary(file){
+  async function importAudioCheckingLibrary(file,{automaticAnalysis=true}={}){
     if(!file)return false;
     const choice=await window.BassLibrary.checkAudioImport(file);
     if(choice==='opened'){
       // A saved draft can contain audio without finished bass analysis.
       // Keep its saved content and use the normal guarded automatic runner.
-      if(!offlineAnalysisReady&&!notes.length){
+      if(automaticAnalysis&&!offlineAnalysisReady&&!notes.length){
         aiStatus('Finishing saved analysis',0);
         queueAutomaticAudioAnalysis();
       }
       return true;
     }
-    if(choice==='audio')return loadAudioFile(file);
+    if(choice==='audio')return loadAudioFile(file,{automaticAnalysis});
     return false;
   }
-  async function chooseImportFile(kind){
-    const input=kind==='audio'?fileInput:projectFileInput;
+  async function chooseImportFile(kind,{input=kind==='audio'?fileInput:projectFileInput,onAudio=importAudioCheckingLibrary}={}){
     input.value='';
     if(typeof window.showOpenFilePicker!=='function'){input.click();return;}
     let file;
@@ -16843,7 +16844,7 @@ window.BassBatch = (() => {
       if(error?.name==='AbortError')return;
       input.click();return;
     }
-    if(kind==='audio')await importAudioCheckingLibrary(file);else await importBassStudioProject(file);
+    if(kind==='audio')await onAudio(file);else await importBassStudioProject(file);
   }
 
   // ---------- Audio Graph ----------
@@ -17295,7 +17296,7 @@ window.BassBatch = (() => {
   }
 
   // ---------- File Load ----------
-  async function loadAudioFile(f,{cacheForRecovery=true,recoveryRestore=false,batchImport=false}={}){
+  async function loadAudioFile(f,{cacheForRecovery=true,recoveryRestore=false,batchImport=false,automaticAnalysis=true}={}){
     if(!f)return false;
     const request=recoveryRestore?songLoadRequest:++songLoadRequest;
     const session=songSession;
@@ -17376,7 +17377,7 @@ window.BassBatch = (() => {
     }finally{if(request===songLoadRequest){
       if(!recoveryRestore)setSongImportBusy(false);
       if(importSucceeded&&recoveryRestore&&!batchImport)queueAutomaticMelody();
-      if(importSucceeded&&!batchImport&&!recoveryRestore){startImportedSongSections({allowNewJob:false});queueAutomaticAudioAnalysis();}
+      if(importSucceeded&&!batchImport&&!recoveryRestore&&automaticAnalysis){startImportedSongSections({allowNewJob:false});queueAutomaticAudioAnalysis();}
     }}
   }
 
@@ -21314,7 +21315,33 @@ window.BassBatch = (() => {
   });
 
   window.BassTools.init({get:studySong});
-  window.BassEarTrainer.init({pause:()=>{pause();window.BassPiano.leave();},busy:()=>songImportBusy||aiBusy||!$('liveStop').disabled||!$('pianoLiveStop').disabled||window.BassPiano.isBusy(),openSongs:()=>{setPracticeVisualMode('song');void window.BassSongView.openLibrary();}});
+  window.BassEarTrainer.init({
+    pause:()=>{pause();window.BassPiano.leave();},
+    busy:()=>songImportBusy||aiBusy||!$('liveStop').disabled||!$('pianoLiveStop').disabled||window.BassPiano.isBusy(),
+    openSongs:()=>{setPracticeVisualMode('song');void window.BassSongView.openLibrary();},
+    rehearsal:{
+      get:()=>({...studySong(),buffer,phase:detectedDownbeatPhase,confidence:beatGridConfidence}),
+      session:()=>songSession,
+      pickAudio:(input,onAudio)=>chooseImportFile('audio',{input,onAudio}),
+      importAudio:file=>importAudioCheckingLibrary(file,{automaticAnalysis:false}),
+      openLibrary:async()=>{
+        await window.BassLibrary.show();
+        $('bassLibraryDialog')?.addEventListener('close',()=>window.BassRehearsal.refresh(),{once:true});
+      },
+      band:async(start,end,progress,cancelled)=>{
+        const saved=await window.BassBacking.bandExcerpt(start,end);
+        if(cancelled())throw Error('Preparation cancelled.');
+        if(saved)return saved;
+        const separated=await separatePracticeStem(start,end,progress,cancelled,'rehearsal');
+        const mix=new AudioBuffer({numberOfChannels:2,length:separated.length,sampleRate:separated.sampleRate});
+        for(let c=0;c<2;c++){
+          const a=separated.getChannelData(c),v=separated.getChannelData(c+4),out=mix.getChannelData(c);
+          for(let i=0;i<out.length;i++)out[i]=a[i]+v[i];
+        }
+        return mix;
+      }
+    }
+  });
 
   function displayTime(){
     const position=currentTime();
