@@ -15725,7 +15725,7 @@ window.BassBatch = (() => {
 <script src="./ear-source/study-ui-rc267.js?v=rc294"></script>
 <script src="./ear-source/rehearsal-core.js?v=rc318"></script>
 <script src="./ear-source/rehearsal.js?v=rc318"></script>
-<script src="./ear-source/trainer-rc266.js?v=rc317"></script>
+<script src="./ear-source/trainer-rc266.js?v=rc319"></script>
 <script src="./fretflow-source/core.js?v=rc277"></script>
 <script src="./fretflow-source/practice-stems.js?v=rc305"></script>
 <script src="./fretflow-source/bass-evidence.js?v=rc315"></script>
@@ -15737,7 +15737,7 @@ window.BassBatch = (() => {
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC318';
+  const APP_VERSION='RC319';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;
@@ -21317,7 +21317,9 @@ window.BassBatch = (() => {
   window.BassTools.init({get:studySong});
   window.BassEarTrainer.init({
     pause:()=>{pause();window.BassPiano.leave();},
-    busy:()=>songImportBusy||aiBusy||!$('liveStop').disabled||!$('pianoLiveStop').disabled||window.BassPiano.isBusy(),
+    // Exercises use their own audio. Preparing song stems must not block Ear Training.
+    busy:()=>!$('liveStop').disabled||!$('pianoLiveStop').disabled,
+    songBusy:()=>songImportBusy||aiBusy||window.BassPiano.isBusy(),
     openSongs:()=>{setPracticeVisualMode('song');void window.BassSongView.openLibrary();},
     rehearsal:{
       get:()=>({...studySong(),buffer,tempo:detectedTempoBpm,phase:detectedDownbeatPhase,confidence:beatGridConfidence}),
