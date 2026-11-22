@@ -183,7 +183,7 @@ window.BassBacking=(()=>{
  const rehearsalBlocks=new Map();
  function cancelRehearsalBand(){rehearsalVersion++;return rehearsalQueue;}
  async function rehearsalBand(start,end,progress,cancelled){
-  const song=api.get(),rate=44100,blockSeconds=8,version=rehearsalVersion;
+  const song=api.get(),rate=44100,blockSeconds=10,version=rehearsalVersion;
   const stopped=()=>version!==rehearsalVersion||song.session!==api.get().session;
   const abandoned=()=>cancelled()||stopped();
   const check=()=>{if(abandoned())throw new DOMException('Preparation cancelled.','AbortError');};
@@ -203,10 +203,32 @@ window.BassBacking=(()=>{
     const job=rehearsalQueue.then(async()=>{
      check();
      if(rehearsalBlocks.has(block))return rehearsalBlocks.get(block);
-     while(api.get().busy){
-      await new Promise(resolve=>setTimeout(resolve,120));
+     const key=busy?await api.cacheKey?.().catch(()=>''):'';
+     while(api.get().busy||busy){
+      if(key){
+       const base=Math.floor(block/(20*rate))*20;
+       const shared=await api.readCache(key+':part:'+base).catch(()=>null);
+       check();
+       const offset=(block-base*rate)*4,bytes=(finish-block)*4;
+       if(shared?.parts?.[0]?.size>=offset+bytes&&shared.parts[2]?.size>=offset+bytes){
+        const pcm=await Promise.all([shared.parts[0],shared.parts[2]].map(async blob=>new DataView(await blob.slice(offset,offset+bytes).arrayBuffer())));
+        check();
+        const stereo=[new Float32Array(bytes/4),new Float32Array(bytes/4)];
+        for(let c=0;c<2;c++)for(let i=0;i<stereo[c].length;i++){
+         const pos=(i*2+c)*2;
+         stereo[c][i]=(pcm[0].getInt16(pos,true)+pcm[1].getInt16(pos,true))/32768;
+        }
+        return remember(block,stereo);
+       }
+      }
+      await new Promise(resolve=>setTimeout(resolve,160));
       check();
       const ready=await bandExcerpt(start,end);
+      if(ready)return {ready};
+     }
+     if(key){
+      const ready=await bandExcerpt(start,end);
+      check();
       if(ready)return {ready};
      }
      const a=Math.max(0,block/rate-.4),b=Math.min(song.duration,finish/rate+.4);
@@ -219,9 +241,7 @@ window.BassBacking=(()=>{
       const music=audio.getChannelData(c),voice=audio.getChannelData(c+4);
       for(let i=0;i<length;i++)stereo[c][i]=music[offset+i]+voice[offset+i];
      }
-     rehearsalBlocks.set(block,stereo);
-     if(rehearsalBlocks.size>8)rehearsalBlocks.delete(rehearsalBlocks.keys().next().value);
-     return stereo;
+     return remember(block,stereo);
     });
     rehearsalQueue=job.catch(()=>{});
     pcm=await job;
@@ -231,6 +251,11 @@ window.BassBacking=(()=>{
    for(let c=0;c<2;c++)dest[c].set(pcm[c].subarray(first-block,last-block),first-from);
   }
   return output;
+  function remember(block,stereo){
+   rehearsalBlocks.set(block,stereo);
+   if(rehearsalBlocks.size>6)rehearsalBlocks.delete(rehearsalBlocks.keys().next().value);
+   return stereo;
+  }
  }
  function init(hooks){api=hooks;const master=api.get().master;for(const event of ['play','pause','seeking','seeked','ratechange','ended'])master.addEventListener(event,()=>void sync(true));}
  return {init,canRestore,prepareForSong,toggle,cancel,reset,sync,restore,bandExcerpt,rehearsalBand,cancelRehearsalBand,exportData:()=>saved,state:()=>({enabled,busy,ready,vocalsReady:ready&&saved?.version===2,canRetry:attemptedSession!==null&&attemptedSession===api?.get().session&&!busy,vocalsMuted,bassMuted:!!api?.get().bassMuted,message}),pcmPart,wav};
