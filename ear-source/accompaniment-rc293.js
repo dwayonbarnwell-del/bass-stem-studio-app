@@ -1,7 +1,13 @@
 /* Original genre-informed practice arrangements, not transcriptions of recordings. */
 window.BassAccompaniment=(()=>{
  'use strict';
- const groups=[['worship','Worship'],['gospel','Gospel & Soul'],['praise','Praise'],['reggae','Reggae'],['highlife','Highlife & Afrobeat'],['makossa','Makossa'],['congolese','Soukous & Seben'],['african','Other African styles'],['caribbean','Soca & Zouk'],['personal','My progressions & Unsorted']];
+ const groups=[['worship','Worship'],['gospel','Gospel & Soul'],['praise','Praise'],['reggae','Reggae'],['highlife','Highlife & Afrobeat'],['makossa','Makossa'],['congolese','Soukous & Seben'],['african','Other African styles'],['caribbean','Soca & Zouk']];
+ const recordingStyles={
+  'recorded-worship':'worship','recorded-reggae':'reggae','recorded-makossa':'makossa',
+  'recorded-soukous':'soukous','recorded-seben':'soukous','recorded-congolese':'soukous',
+  'recorded-praise':'praise','recorded-soca':'soca','recorded-zouk':'zouk'
+ };
+ const recordedStyle=item=>recordingStyles[item.collection]||null;
  // The menu combines related genres. Each individual study still gets its own feel.
  const profiles={
   worship:{label:'Worship',kit:'vintage',groove:'worship',sound:'piano'},
@@ -32,16 +38,17 @@ window.BassAccompaniment=(()=>{
   return'gospel';
  }
  function category(item,recording=false){
-  if(item.id?.startsWith('custom-'))return'personal';
+  if(item.id?.startsWith('custom-'))return null;
   const c=item.collection||item.group;
-  if(recording&&['recorded-review'].includes(c))return'personal';
+  if(recording&&c==='recorded-review')return null;
   if(recording&&['recorded-african','recorded-nigerian'].includes(c))return'african';
-  const id=identify(item);
+  const id=recording?recordedStyle(item)||identify(item):identify(item);
   return {worship:'worship',gospel:'gospel',soul:'gospel',jazz:'gospel',blues:'gospel',fusion:'gospel',praise:'praise',reggae:'reggae',highlife:'highlife',afrobeat:'highlife',makossa:'makossa',soukous:'congolese',mbalax:'african',mbaqanga:'african',sungura:'african',soca:'caribbean',zouk:'caribbean'}[id];
  }
  function profile(plan){
   const item=plan.kind==='basslines'?window.BassPracticeCore.lines[plan.idea]:plan.kind==='runs'?window.BassPracticeCore.runs[plan.idea]:plan.kind==='fills'?window.BassFillCore.styles[plan.idea]:plan;
-  const id=identify(item);return {id,style:id,...profiles[id]};
+  const id=plan.kind==='uploaded'?recordedStyle(plan)||'soul':identify(item);
+  return {id,style:id,...profiles[id]};
  }
  function resolve(plan,options={}){
   const p=profile(plan),valid=(value,values,fallback)=>values.includes(value)?value:fallback;
@@ -91,5 +98,5 @@ window.BassAccompaniment=(()=>{
   }
   return out;
  }
- return {groups,profiles,identify,category,profile,resolve,arrange};
+ return {groups,profiles,identify,category,recordedStyle,profile,resolve,arrange};
 })();

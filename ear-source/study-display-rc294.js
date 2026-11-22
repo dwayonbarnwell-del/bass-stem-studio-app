@@ -14,7 +14,12 @@ window.BassStudyDisplay=(()=>{
   }
   return short(row?.[0]);
  }
- const clip=row=>short(row?.title||row?.originalTitle||'Recording');
+ function clip(row){
+  if(!row)return 'Recording';
+  const series=row.originalTitle?.match(/^(Bass Lady - Makossa|Bassmatics - Seben) (\d+)$/);
+  if(series)return (series[1].startsWith('Bass Lady')?'Makossa':'Seben')+' '+series[2];
+  return row.title;
+ }
  function segments(plan){
   if(!plan?.chords?.length)return[];const map=new Map();
   for(const n of plan.chords){if(!map.has(n.beat))map.set(n.beat,[]);map.get(n.beat).push(n.midi);}

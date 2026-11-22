@@ -185,15 +185,30 @@ window.BassRehearsal=(()=>{
 
  function close(){resetClip();song=null;return api.cancelBand?.();}
 
- function shapes(style){
-  const P=window.BassPracticeCore,D=window.BassPracticeCatalogue,H=window.BassAccompaniment;
+ const recordingShapes=new Map();
+ function shapes(style,grid,rhythm,automatic=false){
+  const P=window.BassPracticeCore,D=window.BassPracticeCatalogue,H=window.BassAccompaniment,U=window.BassUploadedCore;
   const used=new Set(),rows=[];
+  if(grid?.meter===4&&U){
+   const recordings=[];
+   for(const item of U.items){
+    if(!D.visible('uploaded',item.id)||H.recordedStyle(item)!==style)continue;
+    const excerpt=U.loop(item.id);
+    if(!excerpt||Math.abs(Math.log(grid.bpm*excerpt.step/60))>.24)continue;
+    if(!recordingShapes.has(item.id))recordingShapes.set(item.id,U.rehearsalShape(item.id));
+    const shape=recordingShapes.get(item.id),score=C.patternScore(grid,rhythm,shape);
+    if(!shape.length||automatic&&score<.05)continue;
+    recordings.push({id:'clip:'+item.id,label:window.BassStudyDisplay.clip(item)+' · adapted',shape,recorded:true,score});
+   }
+   rows.push(...recordings.sort((a,b)=>b.score-a.score).slice(0,4));
+  }
+  let generated=0;
   if(style!=='roots')for(const [i,line] of P.lines.entries()){
    if(!D.visible('basslines',line.id)||H.identify(line)!==style)continue;
    const shape=C.pattern(line,P,i),key=shape.map(n=>[n.beat,n.role,n.length].join(':')).join('|');
    if(!shape.length||used.has(key))continue;
    used.add(key);rows.push({id:line.id,shape});
-   if(rows.length===12)break;
+   if(++generated===12)break;
   }
   return rows;
  }
@@ -203,16 +218,18 @@ window.BassRehearsal=(()=>{
   const style=chosen==='auto'?clip?.suggested||'roots':chosen;
   const picker=$('rehearsalPattern'),previous=picker.dataset.style===style?picker.value:'';
   picker.dataset.style=style;
-  featured=shapes(style);
+  featured=shapes(style,clip?.grid,clip?.rhythm,chosen==='auto');
   if(chosen==='auto'&&clip)featured.sort((a,b)=>C.patternScore(clip.grid,clip.rhythm,b.shape)-C.patternScore(clip.grid,clip.rhythm,a.shape));
-  picker.replaceChildren(...featured.map((p,i)=>new Option('Pattern '+(i+1),p.id)));
+  let number=0;
+  picker.replaceChildren(...featured.map(p=>new Option(p.label||'Pattern '+(++number),p.id)));
   picker.add(new Option('Roots','roots'));
   if(chosen!=='auto'&&(previous==='roots'||featured.some(p=>p.id===previous)))picker.value=previous;
   else picker.selectedIndex=0;
  }
 
  function plan(){
-  return C.fit({...clip,shape:featured.find(p=>p.id===$('rehearsalPattern').value)?.shape,
+  const pattern=featured.find(p=>p.id===$('rehearsalPattern').value);
+  return C.fit({...clip,shape:pattern?.shape,recorded:pattern?.recorded,
    fill:$('rehearsalFill').value});
  }
 
@@ -311,7 +328,7 @@ window.BassRehearsal=(()=>{
   let suggested=preferred;
   if(grid){
    const candidates=C.styles.filter(([name])=>name!=='auto'&&name!=='roots');
-   const ranked=candidates.map(([name])=>({name,score:Math.max(-1,...shapes(name).map(
+   const ranked=candidates.map(([name])=>({name,score:Math.max(-1,...shapes(name,grid,rhythm,true).map(
     row=>C.patternScore(grid,rhythm,row.shape)))+(name===preferred?.15:0)}));
    suggested=ranked.sort((a,b)=>b.score-a.score)[0]?.name||preferred;
   }

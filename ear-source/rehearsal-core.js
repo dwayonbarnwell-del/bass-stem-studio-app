@@ -4,7 +4,7 @@
  const styles=[
   ['auto','Suggested'],['roots','Roots'],['worship','Worship'],['gospel','Gospel'],
   ['praise','Praise'],['afrobeat','Afrobeat'],['highlife','Highlife'],['makossa','Makossa'],
-  ['reggae','Reggae'],['soukous','Soukous']
+  ['reggae','Reggae'],['soukous','Soukous & Seben'],['soca','Soca'],['zouk','Zouk']
  ];
  const pc=n=>(n%12+12)%12;
  const median=values=>{const sorted=[...values].sort((a,b)=>a-b);return sorted[Math.floor(sorted.length/2)]||0;};
@@ -258,7 +258,7 @@
   return points[index]+(fraction>1e-7?(points[index+1]-points[index])*fraction:0);
  }
 
- function fit({chords,start,end,grid,shape=[],fill='bar',transpose=0,quiet=[],roots=[],rhythm}){
+ function fit({chords,start,end,grid,shape=[],recorded=false,fill='bar',transpose=0,quiet=[],roots=[],rhythm}){
   const notes=[],picked=chords.filter(c=>c.end>start&&c.start<end&&Number.isInteger(c.rootPc))
    .sort((a,b)=>a.start-b.start);
   const active=t=>picked.findLast(c=>c.start<=t+.018&&c.end>t+.012)||
@@ -267,7 +267,7 @@
   const target=c=>safePitch(bassPc(c)+transpose);
   const isQuiet=time=>quiet.some(r=>time>=r.start&&time<r.end);
   function push(time,stop,midi,role,accent=0){
-   if(time<start-.002||isQuiet(time))return;
+   if(time<start-.002||isQuiet(time)||recorded&&midi===null)return;
    const nextQuiet=quiet.find(r=>r.start>time);
    stop=Math.min(end,stop,nextQuiet?.start??end);
    if(stop-time>=.032)notes.push({time:Math.max(start,time),stop,midi,role,accent});
@@ -298,8 +298,9 @@
   }
 
   const {points,meter}=grid;
-  // Keep each beat audible before adding the selected syncopation.
-  for(let b=0;b<points.length-1;b++){
+  // Generated patterns have a steady root behind the syncopation.
+  // Recorded rhythms keep their own attacks and rests.
+  if(!recorded)for(let b=0;b<points.length-1;b++){
    const time=points[b],length=points[b+1]-time;
    const kick=rhythm?bestHit(rhythm,time,length*.14,'kick').strength:0;
    add(time,time+length*.76,'root',b%meter===0?1:Math.min(1,kick*.65));
@@ -307,11 +308,11 @@
   for(let bar=0;bar<points.length-1;bar+=meter){
    for(const hit of shape){
     const beat=bar+hit.beat*meter/4;
-    if(Math.abs(beat-Math.round(beat))<.04)continue;
+    if(!recorded&&Math.abs(beat-Math.round(beat))<.04)continue;
     const count=Math.floor(beat),nominal=beatTime(grid,beat);
     const step=points[count+1]-points[count];
     const kick=rhythm?bestHit(rhythm,nominal,Math.min(.065,step*.14),'kick'):null;
-    const time=grid.snap&&kick?.strength>=.65?kick.time:nominal;
+    const time=grid.snap&&kick?.strength>=.65?Math.max(points[bar],kick.time):nominal;
     const stop=beatTime(grid,Math.min(bar+meter,beat+hit.length*meter/4));
     add(time,Math.max(time+.045,stop),hit.role,kick?Math.min(1,kick.strength*.6):0);
    }

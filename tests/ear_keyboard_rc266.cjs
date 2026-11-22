@@ -25,13 +25,18 @@ const app=fs.readFileSync('index.html','utf8');
 const earSetup=app.match(/^  window\.BassEarTrainer\.init\(\{[\s\S]+?^  \}\);/m)?.[0];
 assert(earSetup,'Ear Training is wired into the main app');
 const mic={disabled:true},pianoMic={disabled:true};
-let hooks;
-vm.runInNewContext(earSetup,{
- window:{BassEarTrainer:{init:value=>{hooks=value;}},BassPiano:{isBusy:()=>true}},
- aiBusy:true,songImportBusy:true,$:id=>({liveStop:mic,pianoLiveStop:pianoMic})[id]
-});
+let hooks,buffer={},view,libraryOpens=0;
+const environment={
+ window:{BassEarTrainer:{init:value=>{hooks=value;}},BassPiano:{isBusy:()=>true},BassSongView:{openLibrary:()=>libraryOpens++}},
+ aiBusy:true,songImportBusy:true,buffer,setPracticeVisualMode:value=>{view=value;},$:id=>({liveStop:mic,pianoLiveStop:pianoMic})[id]
+};
+vm.runInNewContext(earSetup,environment);
 assert.equal(hooks.busy(),false,'background song and piano work must not block Ear Training');
-assert.equal(hooks.songBusy(),true,'switching songs still waits for the current song work');
+hooks.openSongs();
+assert.equal(view,'song','show the loaded song while processing continues');
+assert.equal(libraryOpens,0);
+environment.buffer=null;hooks.openSongs();
+assert.equal(libraryOpens,1,'offer the song picker when no song is loaded');
 mic.disabled=false;
 assert.equal(hooks.busy(),true,'keep the live audio recording guard');
 mic.disabled=true;
