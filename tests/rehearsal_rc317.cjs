@@ -43,40 +43,41 @@ const highlife=C.fit({...options,shape:rhythm('highlife'),fill:'ends'});
 const makossa=C.fit({...options,shape:rhythm('makossa'),fill:'off'});
 assert.notDeepEqual(highlife.map(n=>n.time),makossa.map(n=>n.time));
 assert.equal(highlife.find(n=>Math.abs(n.time-3)<.02).midi%12,11,'inversion guides the landing');
-assert.equal(highlife.filter(n=>n.role==='fill').length,3);
-assert(highlife.filter(n=>n.role==='fill').every(n=>n.time>2.5&&n.stop<=3));
-assert.equal(C.fit({...options,chords:[{...manualChords[0],end:2.5},manualChords[1]],shape:rhythm('makossa')}).some(n=>n.time>=2.5&&n.time<3),false);
+assert.equal(highlife.filter(n=>n.role==='fill').length,6,'fills also lead into the loop restart');
+assert(highlife.filter(n=>n.role==='fill').every(n=>n.time>2.5&&n.stop<=3||n.time>4.5&&n.stop<=5));
+assert(C.fit({...options,chords:[{...manualChords[0],end:2.5},manualChords[1]],shape:rhythm('makossa')}).filter(n=>n.time>=2.5&&n.time<3).every(n=>n.midi===null),'unknown harmony keeps an unpitched rhythm');
 assert(C.fit({...options,grid:null,shape:[]}).every(n=>n.role==='root'));
 const quiet=C.fit({...options,shape:rhythm('makossa'),quiet:[{start:2,end:3.5}]});
 assert(quiet.every(n=>n.stop<=2||n.time>=3.5),'the guide leaves genuine quiet gaps empty');
-assert(highlife.every(n=>n.midi>=23&&n.midi<=59&&n.stop<=5));
+assert(highlife.every(n=>(n.midi===null||n.midi>=23&&n.midi<=59)&&n.stop<=5));
 console.log('PASS silence, detected pulse, variable timing, tap/manual grid, style library, chord inversions, fills and rests.');
 
 async function playerTest(){
   const items=new Map(),scheduled=[],bands=[],intervals=new Map();
   let now=0,clock=0,songSession=0,mixRequests=0,library=false;
   class Control{
-    constructor(){this.value='';this.dataset={};this.options=[];this.attrs=new Map();}
+    constructor(){this.value='';this.dataset={};this.options=[];this.children=[];this.attrs=new Map();}
     add(option){this.options.push(option);if(this.options.length===1)this.value=option.value;}
-    replaceChildren(...opts){this.options=[];this.value='';opts.forEach(o=>this.add(o));}
+    replaceChildren(...opts){this.options=[];this.children=[];this.value='';opts.forEach(o=>this.add(o));}
+    append(...children){this.children.push(...children);}
     setAttribute(key,value){this.attrs.set(key,value);}
     getAttribute(key){return this.attrs.get(key);}
     set selectedIndex(i){this.value=this.options[i]?.value||'';}
   }
-  const host={hidden:false,querySelector(id){if(!items.has(id))items.set(id,new Control());return items.get(id);}};
+  const host={hidden:false,dataset:{},querySelector(id){if(!items.has(id))items.set(id,new Control());return items.get(id);}};
   const $=id=>host.querySelector('#'+id);
   function value(id,text){$(id).value=text;}
   const clip={...buffer,duration:4,length:4*sampleRate,getChannelData:()=>pcm.subarray(8*sampleRate,12*sampleRate)};
   const song={title:'Fixture',session:0,buffer:clip,duration:4,chords:[],sections:[]};
   Object.assign(context.window,{BassRehearsalCore:C,BassChordRecovery:{scan:async()=>({added:[]})},
-    BassPracticeAudio:{prepare:async()=>{},tone:(ctx,midi,when)=>{scheduled.push({midi,when});return {stop(){}};}}});
-  Object.assign(context,{Option:class{constructor(text,value){this.text=text;this.value=String(value);}},
+    BassPracticeAudio:{prepare:async()=>{},muted:(ctx,when)=>{scheduled.push({midi:null,when});return {stop(){}};},tone:(ctx,midi,when)=>{scheduled.push({midi,when});return {stop(){}};}}});
+  Object.assign(context,{document:{createElement:()=>new Control()},Option:class{constructor(text,value){this.text=text;this.value=String(value);}},
     setInterval:fn=>{intervals.set(++clock,fn);return clock;},clearInterval:id=>intervals.delete(id),
     AudioContext:class{
       get currentTime(){return now;}
       async resume(){}
       createBufferSource(){return {connect(gain){return gain;},start(when,offset){bands.push({node:this,when,offset});},stop(){this.stopped=true;},disconnect(){}};}
-      createGain(){return {gain:{},connect(){}};}
+      createGain(){return {gain:{setValueAtTime(){},linearRampToValueAtTime(){}},connect(){},disconnect(){}};}
     }});
   vm.runInContext(fs.readFileSync('ear-source/rehearsal.js','utf8'),context);
   const panel=context.window.BassRehearsal;
@@ -89,23 +90,33 @@ async function playerTest(){
   await $('rehearsalImport').onclick();
   assert.equal($('rehearsalTitle').textContent,'Imported fixture');
   value('rehearsalStart','0:00');value('rehearsalEnd','0:04');value('rehearsalBpm','120');
-  value('rehearsalChords','C G/B');value('rehearsalMix','full');value('rehearsalGain','70');
-  value('rehearsalStyle','highlife');value('rehearsalFill','ends');
+  $('rehearsalBpm').onchange();value('rehearsalChords','C G/B');value('rehearsalGain','100');
+  value('rehearsalStyle','highlife');value('rehearsalFill','bar');
   $('rehearsalGuide').setAttribute('aria-pressed','true');
   $('rehearsalPlay').onclick();await new Promise(resolve=>setImmediate(resolve));
   assert.equal($('rehearsalPlay').textContent,'Pause');
+  assert.equal(host.dataset.playing,'true','setup collapses while the loop plays');
   assert.equal(bands.length,1);
   assert.equal(bands[0].node.loopEnd-bands[0].node.loopStart,4);
   assert(scheduled.length&&/Fill at/.test($('rehearsalNotes').textContent));
+  assert.equal($('rehearsalBars').children.length,2);
+  assert.equal($('rehearsalBars').children[0].children[1].children[0].textContent,'Bassline');
+  assert.equal($('rehearsalBars').children[0].children[2].children[0].textContent,'Fill');
+  assert($('rehearsalBars').children[0].children[2].children[1].textContent.includes('·'));
   const firstPattern=$('rehearsalPattern').value;value('rehearsalStyle','makossa');$('rehearsalStyle').onchange();
   assert.notEqual($('rehearsalPattern').value,firstPattern);
   for(let i=1;i<=53;i++){now=i*.08;for(const run of [...intervals.values()])run();}
   assert.equal(bands.length,1,'the original band continues when the style switches');
   assert(scheduled.some(n=>n.when>=4),'bass continues after the recording loop');
-  $('rehearsalPlay').onclick();
+  $('rehearsalMix').onclick();await new Promise(resolve=>setImmediate(resolve));
+  assert.equal($('rehearsalMix').getAttribute('aria-pressed'),'true');
+  assert.equal(bands.length,2,'removing original bass switches audio on the running loop');
   assert(bands[0].node.stopped);
-  value('rehearsalMix','noBass');$('rehearsalPlay').onclick();await new Promise(resolve=>setImmediate(resolve));
+  assert(Math.abs(bands[1].offset-(bands[1].when-bands[0].when)%4)<.001,'band switch preserves the loop position');
   assert.equal(mixRequests,1);
+  $('rehearsalPlay').onclick();
+  assert.equal(host.dataset.playing,'false');
+  $('rehearsalPlay').onclick();await new Promise(resolve=>setImmediate(resolve));
   $('rehearsalPlay').onclick();$('rehearsalPlay').onclick();await new Promise(resolve=>setImmediate(resolve));
   assert.equal(mixRequests,1,'already prepared rehearsal audio is reused');
   $('rehearsalLibrary').onclick();assert(library&&bands.at(-1).node.stopped);

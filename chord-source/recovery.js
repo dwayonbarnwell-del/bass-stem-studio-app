@@ -28,7 +28,7 @@ function fft(real,imag){
   }
  }
 }
-function extractChroma(samples){
+function extractChroma(samples,lowChroma){
  const real=new Float64Array(FFT_SIZE),imag=new Float64Array(FFT_SIZE),chroma=new Float64Array(12);
  for(let i=0;i<FFT_SIZE;i++)real[i]=samples[i]*windowValues[i];
  fft(real,imag);
@@ -57,7 +57,9 @@ function extractChroma(samples){
    const ratio=row.frequency/lower.frequency,n=Math.round(ratio);
    if(n>=2&&n<=9&&Math.abs(12*Math.log2(ratio/n))<.3)overtone=Math.max(overtone,lower.weight/n);
   }
-  chroma[(row.midi%12+12)%12]+=Math.max(0,row.weight-overtone*.95);
+  const pitch=(row.midi%12+12)%12,weight=Math.max(0,row.weight-overtone*.95);
+  chroma[pitch]+=weight;
+  if(lowChroma&&row.midi<=59)lowChroma[pitch]+=weight;
  }
  return chroma;
 }
@@ -132,12 +134,29 @@ function addOnlyMissing(candidateRanges,savedChords,duration){
  }
  return {added,old};
 }
-async function scan(buffer,{progress=()=>{},stillCurrent=()=>true,existing=[]}={}){
+function guideRoots(evidence,low,windows){
+ const guesses=windows.map(({start,end})=>{
+  const a=Math.max(0,Math.floor((start+.02)/STEP)),b=Math.min(evidence.length,Math.ceil((end-.03)/STEP));
+  const strength=new Float64Array(12),lowStrength=new Float64Array(12);
+  for(let i=a;i<b;i++)for(let pc=0;pc<12;pc++){strength[pc]+=evidence[i][pc];lowStrength[pc]+=low[i][pc];}
+  const total=strength.reduce((s,n)=>s+n,0),lowTotal=lowStrength.reduce((s,n)=>s+n,0);
+  if(total<.2||lowTotal<.12)return null;
+  const rank=Array.from(strength,(n,pc)=>({pc,score:.38*n/total+.62*lowStrength[pc]/lowTotal})).sort((a,b)=>b.score-a.score);
+  const [first,second]=rank;
+  const margin=first.score-second.score;
+  if(first.score<.19||margin<.025||strength[first.pc]/total<.09)return null;
+  return {start,end,rootPc:first.pc,rootOnly:true,uncertain:true,confidence:first.score,margin};
+ });
+ // Require a persistent pitch or an especially clear individual beat.
+ return guesses.filter((g,i)=>g&&(g.confidence>=.34&&g.margin>=.1||
+  guesses[i-1]?.rootPc===g.rootPc||guesses[i+1]?.rootPc===g.rootPc));
+}
+async function scan(buffer,{progress=()=>{},stillCurrent=()=>true,existing=[],rootWindows=[]}={}){
  if(!buffer||!Number.isFinite(buffer.duration)||buffer.duration<2||!Number.isFinite(buffer.sampleRate))throw Error('Open a saved song with audio first.');
  const sr=buffer.sampleRate,length=buffer.length,channels=[];
  for(let i=0;i<Math.min(2,buffer.numberOfChannels);i++)channels.push(buffer.getChannelData(i));
  if(!channels.length)throw Error('No playable audio was found.');
- const frame=new Float32Array(FFT_SIZE),evidence=[];
+ const frame=new Float32Array(FFT_SIZE),evidence=[],low=[];
  const count=Math.ceil(buffer.duration/STEP),ratio=sr/SAMPLE_RATE;
  for(let sample=0;sample<count;sample++){
   if(!stillCurrent())throw Error('Song changed. No chords were added.');
@@ -149,13 +168,17 @@ async function scan(buffer,{progress=()=>{},stillCurrent=()=>true,existing=[]}={
    for(const channel of channels)value+=channel[index]*(1-fraction)+channel[index+1]*fraction;
    frame[n]=value/channels.length;
   }
-  evidence.push(extractChroma(frame));
+  const bassChroma=rootWindows.length?new Float64Array(12):undefined;
+  evidence.push(extractChroma(frame,bassChroma));
+  if(bassChroma)low.push(bassChroma);
   if(sample%24===0){progress(Math.round(sample/count*100));await new Promise(resolve=>setTimeout(resolve,0));}
  }
  if(!stillCurrent())throw Error('Song changed. No chords were added.');
  progress(100);
  const pieces=intervalsFromVotes(classify(evidence));
- return addOnlyMissing(pieces,existing,buffer.duration);
+ const result=addOnlyMissing(pieces,existing,buffer.duration);
+ if(rootWindows.length)result.roots=guideRoots(evidence,low,rootWindows);
+ return result;
 }
 let hooks=null,timer=0,running=false,completedSession=null,queuedSession=null;
 function queue(){

@@ -216,5 +216,29 @@
 #earTrainerDialog #rehearsalGuide[aria-pressed="true"]{background:#375481!important;border-color:#a5bff0!important}
 #earTrainerDialog #rehearsalTime{color:#bad1e6;font-variant-numeric:tabular-nums}
 #earTrainerDialog #rehearsalStatus,#earTrainerDialog #rehearsalNotes{font-size:.88em;color:#f5dba9}
-#earTrainerDialog .rehearsal-corrections[open]{display:grid;gap:8px}
+#earTrainerDialog #earRehearsal[data-playing="true"] :is(.rehearsal-setup,#rehearsalTitle){display:none!important}
+#earTrainerDialog:has(#earRehearsal[data-playing="true"]) #earSections{display:none!important}
+#earTrainerDialog #earRehearsal .rehearsal-times label{
+ min-width:0;gap:1px;padding:5px 7px;border:1px solid #60819a;border-radius:9px;background:#142b3d;text-align:center;cursor:text;
+}
+#earTrainerDialog #earRehearsal .rehearsal-times label span{font-size:.8em;font-weight:700}
+#earTrainerDialog #earRehearsal .rehearsal-times label input{
+ padding:0!important;margin:0!important;min-height:24px!important;height:auto!important;font-size:1em!important;
+ border:0!important;background:transparent!important;text-align:center;font-variant-numeric:tabular-nums;box-shadow:none!important;
+}
+#earTrainerDialog #earRehearsal .rehearsal-times label:focus-within{outline:2px solid #a9dcff;outline-offset:1px}
+#earTrainerDialog #rehearsalMix[aria-pressed="true"]{background:#61434d!important;border-color:#d9a0ab!important}
+#earTrainerDialog #rehearsalAdjust[aria-expanded="true"]{background:#305d79!important;border-color:#b2e2f4!important}
+#earTrainerDialog #rehearsalStatus:empty,#earTrainerDialog #rehearsalTime:empty,#earTrainerDialog #rehearsalCue:empty,#earTrainerDialog #rehearsalNotes:empty{display:none}
+#earTrainerDialog #earRehearsal[data-playing="true"] #rehearsalEditor{gap:7px}
 #earTrainerDialog #rehearsalCue{font-weight:700;color:#a7e5d9}
+#earTrainerDialog .rehearsal-readout{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px}
+#earTrainerDialog .rehearsal-readout:not(:has(output:not(:empty))){display:none}
+#earTrainerDialog #rehearsalScore{margin:0;padding:6px 9px}
+#earTrainerDialog #rehearsalScore summary{cursor:pointer;color:#d8edf9}
+#earTrainerDialog #rehearsalBars{display:grid;gap:5px;margin-top:8px}
+#earTrainerDialog #rehearsalBars section{padding:6px 8px;border:1px solid #52738b;border-radius:8px}
+#earTrainerDialog #rehearsalBars section strong{color:#a7e5d9}
+#earTrainerDialog #rehearsalBars section p{display:grid;grid-template-columns:4em minmax(0,1fr);gap:7px;margin-top:3px;line-height:1.4}
+#earTrainerDialog #rehearsalBars section p span{color:#c2d7e5}
+#earTrainerDialog #rehearsalBars>p{font-size:.85em;color:#c2d7e5}
