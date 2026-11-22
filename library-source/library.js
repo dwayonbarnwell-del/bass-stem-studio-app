@@ -54,7 +54,9 @@ window.BassLibrary=(()=>{
     for(const row of list){
       // Never merge different recordings merely because their titles match.
       const key=row.audioId||row.storageLabel+':'+(row.id||row.filename);
-      if(!seen.has(key))seen.set(key,row);
+      const existing=seen.get(key);
+      if(existing)existing.searchNames.push(row.filename,row.title,row.sourceName);
+      else seen.set(key,{...row,searchNames:[...(row.searchNames||[])]});
     }
     return [...seen.values()];
   }
@@ -125,7 +127,7 @@ window.BassLibrary=(()=>{
   }
   function filterRows(list,query,sort){
     const words=clean(query).toLocaleLowerCase().split(/\s+/).filter(Boolean);
-    return list.filter(r=>words.every(w=>[r.title,r.artist,r.filename,r.key,r.bpm].join(' ').toLocaleLowerCase().includes(w)))
+    return list.filter(r=>words.every(w=>[r.title,r.artist,r.filename,r.sourceName,...(r.searchNames||[]),r.key,r.bpm].join(' ').toLocaleLowerCase().includes(w)))
       .sort((a,b)=>sort==='name'?a.title.localeCompare(b.title):((Date.parse(b.savedAt)||b.modified)-(Date.parse(a.savedAt)||a.modified))||a.title.localeCompare(b.title));
   }
   const songItems=new Map();
@@ -231,7 +233,7 @@ window.BassLibrary=(()=>{
         try{const row=deviceRows[i],file=new File([row.blob],row.filename,{type:'application/json'});
           const meta=await wait(scanMetadata(file));
           deviceRows[i]={...row,...meta};await wait(store('songs','readwrite',s=>s.put(deviceRows[i])));
-        }catch(e){if(e.name==='AbortError'||e.name==='TimeoutError')throw e;}
+        }catch(e){if(e.name==='AbortError')throw e;if(e.name==='TimeoutError'){job.worker?.terminate();job.worker=null;}}
       }
       if(!folder){rows=uniqueSongs(deviceRows);status('');return;}
       const directory=folder;
@@ -239,26 +241,45 @@ window.BassLibrary=(()=>{
         folderAccess='reconnect';publish();status('Reconnect the folder or choose a saved file directly.');return;
       }
       folderAccess='ready';const iterator=job.iterator=directory.entries()[Symbol.asyncIterator]();
+      const pending=[];
       for(;;){
         const entry=await wait(iterator.next());if(entry.done)break;
         const [name,handle]=entry.value;
         if(handle.kind!=='file'||!SUPPORTED.test(name))continue;
+        pending.push([name,handle]);
+        if(/\.(bassstudio|bssproject)$/i.test(name)){
+          const row={title:name.replace(SUPPORTED,''),...index[name],filename:name,handle,dir:directory,storageLabel:'Save folder'};
+          found.push(row);
+          if(Date.now()-lastPaint>200){publish();lastPaint=Date.now();}
+        }
+      }
+      publish();
+      const listed=new Map(found.map(r=>[r.filename,r]));
+      for(const [name,handle] of pending){
         try{
           const file=await wait(handle.getFile()),cached=index[name];
           const unchanged=cached&&cached.size===file.size&&cached.modified===file.lastModified;
           if(unchanged&&cached.kind==='chord-catalogue'){next[name]=cached;continue;}
           const meta=unchanged&&cached.audioId?cached:await wait(scanMetadata(file));
           next[name]=meta;
-          if(meta.kind!=='chord-catalogue')found.push({...meta,handle,dir:directory,storageLabel:'Save folder'});
+          if(meta.kind!=='chord-catalogue'){
+            const row={...meta,handle,dir:directory,storageLabel:'Save folder'};
+            if(listed.has(name))Object.assign(listed.get(name),row);
+            else found.push(row);
+          }
           // Save progress after each newly read file, so an interrupted scan can resume.
           if(!unchanged){index[name]=meta;await wait(put('index',{...index}));}
-        }catch(e){if(e.name==='AbortError'||e.name==='TimeoutError')throw e;skipped++;}
+        }catch(e){
+          if(e.name==='AbortError')throw e;
+          if(e.name==='TimeoutError'){job.worker?.terminate();job.worker=null;}
+          skipped++;
+        }
         checked++;
         if(Date.now()-lastPaint>200){publish();status('Checking songs… '+checked+' checked');lastPaint=Date.now();}
         await wait(new Promise(resolve=>setTimeout(resolve,0)));
       }
       check();index=next;publish(true);await wait(put('index',index));
-      status(skipped?skipped+' unreadable saved '+(skipped===1?'file':'files')+' skipped.':'');
+      status(skipped?skipped+' unreadable saved '+(skipped===1?'file':'files')+' could not be indexed.':'');
     }catch(error){
       if(token!==scan)throw abort();
       if(error.name!=='AbortError')status(error.name==='TimeoutError'?error.message:'Could not finish checking this folder. Try Refresh or change save folder.');

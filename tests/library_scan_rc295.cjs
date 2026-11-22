@@ -84,7 +84,7 @@ const keepAlive=setInterval(()=>{},1000);
  assert.equal(data.settings.get('folder'),other);assert(!data.settings.get('index')['one.bassstudio']);
  // A stalled file is bounded, with earlier results cached for the next visit.
  other.entries=async function*(){yield ['two.bassstudio',{kind:'file',getFile:()=>new Promise(()=>{})}];};
- await assert.rejects(lib.refresh(),{name:'TimeoutError'});assert(!lib.isScanning());assert.equal(lib.getRows()[0].title,'New song');assert.match(status.textContent,/Refresh or change save folder/);
+ await lib.refresh();assert(!lib.isScanning());assert.equal(lib.getRows()[0].title,'New song');assert.match(status.textContent,/could not be indexed/);
  await lib.useDevice();await new Promise(r=>setTimeout(r,10));assert.equal(data.settings.get('folder'),null);assert.equal(lib.getRows().length,0);
  // Permission checks are bounded too, and no longer block initialisation.
  data.settings.set('folder',{name:'Unavailable',queryPermission:()=>new Promise(()=>{})});lib.init({});
