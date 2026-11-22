@@ -234,7 +234,7 @@ window.BassRehearsal=(()=>{
    board.classList.toggle('ff-single-board',mode==='fret2');
    if(!fretView){
     fretView=window.BassFretFlow.create();
-    fretView.init(()=>({notes:fretNotes,strings:song?.strings||5,session:clip?.session,time:viewPosition,loaded:!!clip,title:'',speed:100}),board);
+    fretView.init({get:()=>({notes:fretNotes,strings:song?.strings||5,session:clip?.session,time:viewPosition,loaded:!!clip,title:'',speed:100})},board);
    }
    fretView.draw(viewPosition);
    return;

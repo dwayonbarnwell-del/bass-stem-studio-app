@@ -70,7 +70,7 @@ async function playerTest(){
   const clip={...buffer,duration:4,length:4*sampleRate,getChannelData:()=>pcm.subarray(8*sampleRate,12*sampleRate)};
   const song={title:'Fixture',session:0,buffer:clip,duration:4,chords:[],sections:[]};
   Object.assign(context.window,{BassRehearsalCore:C,BassChordRecovery:{scan:async()=>({added:[]})},
-    BassFretFlow:{create:()=>({init(get,host){this.get=get;this.host=host;},draw(time){fretDraw={...this.get(),time,wide:this.host['ff-single-board']};}})},
+    BassFretFlow:{create:()=>({init({get},host){this.get=get;this.host=host;},draw(time){fretDraw={...this.get(),time,wide:this.host['ff-single-board']};}})},
     BassPracticeAudio:{prepare:async()=>{},muted:(ctx,when)=>{scheduled.push({midi:null,when});return {stop(){}};},tone:(ctx,midi,when)=>{scheduled.push({midi,when});return {stop(){}};}}});
   Object.assign(context,{document:{createElement:()=>new Control()},Option:class{constructor(text,value){this.text=text;this.value=String(value);}},
     setTimeout,clearTimeout,setInterval:fn=>{intervals.set(++clock,fn);return clock;},clearInterval:id=>intervals.delete(id),
