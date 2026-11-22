@@ -15751,7 +15751,7 @@ window.BassBatch = (() => {
 <script src="./fretflow-source/core.js?v=rc277"></script>
 <script src="./fretflow-source/practice-stems.js?v=rc305"></script>
 <script src="./fretflow-source/bass-evidence.js?v=rc315"></script>
-<script src="./fretflow-source/backing.js?v=rc321"></script>
+<script src="./fretflow-source/backing.js?v=rc329"></script>
 <script src="./fretflow-source/view.js?v=rc325"></script>
 <script src="./fretflow-source/controls.js?v=rc303"></script>
 <script src="./song-view/core.js?v=rc308"></script>
@@ -15759,7 +15759,7 @@ window.BassBatch = (() => {
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC328';
+  const APP_VERSION='RC329';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;
@@ -21279,7 +21279,10 @@ window.BassBatch = (() => {
     writePart:(id,frames,parts)=>recoveryStore('results',store=>store.put({id,frames,parts})),
     removePart:id=>recoveryStore('results',store=>store.delete(id)),
     writeCache:(id,duration,blobs)=>recoveryStore('results',store=>store.put({id,duration,blobs})),
-    bassStemReady:checkSeparatedBass,stopWork:()=>releasePracticeWorker(),pause,save:()=>queueMelodyProjectSave(true),encode:fileToBase64,setMuted:value=>{bassPracticeMuted=!!value;},
+    bassStemReady:checkSeparatedBass,stopWork:()=>releasePracticeWorker(),pause,save:compactBacking=>{
+      if(compactBacking&&importedProjectFields)importedProjectFields.savedBacking=compactBacking;
+      queueMelodyProjectSave(true);
+    },encode:fileToBase64,setMuted:value=>{bassPracticeMuted=!!value;},
     graph:()=>{ensureCtx();buildGraph();return {ctx,main:sourceBus,bass:[bassPitchDryGain,bassPitchShift.input]};},
     update:()=>{updateAudioParams();refreshBassPracticeToggle();window.BassFretFlow?.draw();},
     extract:(a,b,p,c)=>separatePracticeStem(a,b,p,c,'rehearsal')
@@ -23044,6 +23047,12 @@ html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #moreTools .bs-featur
  dialog.innerHTML='<h2 id="settingsTitle">Settings</h2><button id="settingsClose" type="button">Close</button>';
  document.body.append(dialog);dialog.insertBefore(controls,$('settingsClose'));controls.append(notes);
  const smooth=$('smoothLoops').closest('label');smooth.title='Softens the join when a section repeats';dialog.insertBefore(smooth,$('settingsClose'));$('practiceComfort').remove();
+ const format=document.createElement('label');format.textContent='Saved mute tracks ';
+ const picker=document.createElement('select');
+ for(const [label,value] of [['FLAC · lossless','audio/flac'],['MP3 · smaller','audio/mpeg'],['Keep WAV','audio/wav']])picker.add(new Option(label,value));
+ try{picker.value=localStorage.getItem('bass-stem-save-format')||'audio/flac';}catch{}
+ picker.onchange=()=>{try{localStorage.setItem('bass-stem-save-format',picker.value);}catch{}};
+ format.append(picker);dialog.insertBefore(format,$('settingsClose'));
  const seconds=document.createElement('label');seconds.className='settings-card-label';
  seconds.htmlFor='timelineSplitSelect';seconds.textContent='Seconds';
  $('timelineBreakdownControl').prepend(seconds);

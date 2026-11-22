@@ -8,7 +8,7 @@ window.BassBacking=(()=>{
  function changed(){api?.update();}
  function stop(){players.forEach(p=>p.pause());}
  function fail(text){enabled=false;vocalsMuted=false;api?.setMuted(false);stop();route();message=text;changed();}
- function reset(){token++;availableBlobs=null;needsFileSave=false;attemptedSession=null;enabled=false;busy=false;ready=false;vocalsMuted=false;saved=null;message='';session=null;stop();for(const p of players){p.removeAttribute('src');p.load();}for(const url of urls)URL.revokeObjectURL(url);urls.length=0;route();}
+ function reset(){cancelConversion?.();cancelConversion=null;token++;availableBlobs=null;needsFileSave=false;attemptedSession=null;enabled=false;busy=false;ready=false;vocalsMuted=false;saved=null;message='';session=null;stop();for(const p of players){p.removeAttribute('src');p.load();}for(const url of urls)URL.revokeObjectURL(url);urls.length=0;route();}
  function route(){
   if(!api)return;
   if(enabled&&!gate){const g=api.graph();gate=g.ctx.createGain();bassGate=g.ctx.createGain();g.ctx.createMediaElementSource(players[0]).connect(gate).connect(g.main);const b=g.ctx.createMediaElementSource(players[1]);b.connect(bassGate);for(const output of g.bass)bassGate.connect(output);vocalGate=g.ctx.createGain();g.ctx.createMediaElementSource(players[2]).connect(vocalGate).connect(g.main);}
@@ -115,6 +115,7 @@ window.BassBacking=(()=>{
    ready=true;enabled=!!target;vocalsMuted=target==='vocals';if(target)api.setMuted(target==='bass'||s.bassMuted);
    message='Mute controls ready.';route();
    void api.bassStemReady?.(blobs[1],s.session);
+   void compact(blobs);
   }catch(e){if(mine===token){ready=false;enabled=false;vocalsMuted=false;api.setMuted(false);route();message=availableBlobs?'Mute audio could not load. Tap Vocals to retry.':e.message||'Could not prepare mute controls.';}}
   finally{if(mine===token){busy=false;changed();}}
  }
@@ -131,6 +132,78 @@ window.BassBacking=(()=>{
   enabled=!!api.get().bassMuted||vocalsMuted;message='';route();if(enabled)void sync(true);else stop();changed();
  }catch(e){message=e.message||'Could not prepare mute controls.';changed();}}
  function cancel(){if(!busy)return;token++;api.stopWork?.();busy=false;enabled=false;vocalsMuted=false;api.setMuted(false);stop();message='Preparation cancelled.';route();changed();}
+ let cancelConversion=null;
+ function preferredFormat(){
+  try{return localStorage.getItem('bass-stem-save-format')||'audio/flac';}catch{return 'audio/flac';}
+ }
+ async function unpack(blob,frames,format,original){
+  if(!Number.isSafeInteger(frames)||frames<=0)throw Error('Invalid frame count');
+  if(format==='audio/flac'){
+   const worker=new Worker('./fretflow-source/stem-encoder.js?v=rc329');
+   try{
+    const pcm=await new Promise((resolve,reject)=>{
+     worker.onmessage=e=>e.data.error?reject(Error(e.data.error)):resolve(e.data.blob);
+     worker.onerror=()=>reject(Error('FLAC decoder unavailable'));worker.postMessage({blob,frames,decode:true});
+    });
+    if(!original)return wav([pcm],frames,44100);
+    for(let at=0;at<pcm.size;at+=1048576){
+     const a=new Uint8Array(await pcm.slice(at,at+1048576).arrayBuffer());
+     const b=new Uint8Array(await original.slice(at+44,at+44+a.length).arrayBuffer());
+     if(a.some((v,i)=>v!==b[i]))throw Error('Lossless check failed');
+    }
+    return;
+   }finally{worker.terminate();}
+  }
+  const decoder=new OfflineAudioContext(2,1,44100);
+  const audio=await decoder.decodeAudioData(await blob.arrayBuffer());
+  if(audio.numberOfChannels!==2||audio.sampleRate!==44100)throw Error('Invalid track format');
+  const left=audio.getChannelData(0),right=audio.getChannelData(1);
+  let offset=0;
+  {
+   let peak=0;
+   for(let i=1;i<Math.min(left.length,4096);i++)if(Math.abs(left[i])>Math.abs(left[peak]))peak=i;
+   if(Math.abs(left[peak])<.2)throw Error('Cannot align MP3');
+   offset=peak+2048;
+  }
+  if(offset+frames>audio.length||audio.length-offset-frames>2304)throw Error('Incorrect track length');
+  if(original)return;
+  const chunks=[];
+  for(let at=0;at<frames;at+=65536){
+   const n=Math.min(frames-at,65536),samples=new Int16Array(n*2);
+   for(let i=0;i<n;i++){
+    samples[i*2]=Math.max(-32768,Math.min(32767,Math.round(left[offset+at+i]*32768)));
+    samples[i*2+1]=Math.max(-32768,Math.min(32767,Math.round(right[offset+at+i]*32768)));
+   }
+   chunks.push(samples);
+  }
+  return wav(chunks,frames,44100);
+ }
+ async function compact(blobs){
+  const previous=saved,format=preferredFormat(),mine=token;
+  if(!previous||cancelConversion||!['audio/flac','audio/mpeg'].includes(format)||previous.mime&&previous.mime!=='audio/wav'||typeof Worker!=='function')return;
+  let worker,rejectPending;
+  try{
+   worker=new Worker('./fretflow-source/stem-encoder.js?v=rc329');
+   cancelConversion=()=>{worker.terminate();rejectPending?.(Error('Cancelled'));};
+   const next={...previous,mime:format},keys=['accompanimentBase64','bassBase64','vocalsBase64'];
+   for(const [i,blob] of blobs.entries()){
+    const result=await new Promise((resolve,reject)=>{
+     rejectPending=reject;worker.onerror=()=>reject(Error('Encoder unavailable'));
+     worker.onmessage=e=>e.data.error?reject(Error(e.data.error)):resolve(e.data);
+     worker.postMessage({blob,format});
+    });
+    await unpack(result.blob,result.frames,format,blob);
+    if(mine!==token||saved!==previous)return;
+    next[keys[i]]=await api.encode(result.blob);
+    if(next.frames&&next.frames!==result.frames)throw Error('Track lengths differ');
+    next.frames=result.frames;
+   }
+   if(mine!==token||saved!==previous||preferredFormat()!==format)return;
+   if(keys.reduce((n,k)=>n+(next[k]?.length||0)-(previous[k]?.length||0),0)>=0)return;
+   saved=next;api.save(next);
+  }catch(error){if(mine===token){console.warn('Stem conversion:',error.message);message='Keeping the original WAV tracks.';changed();}}
+  finally{worker?.terminate();if(mine===token)cancelConversion=null;}
+ }
  async function restore(value){
   if(!value)return;const mine=token,s=api.get();
   try{
@@ -146,7 +219,9 @@ window.BassBacking=(()=>{
      pieces.push(bytes);
      if(offset&&offset%(8*chunk)===0){await new Promise(resolve=>setTimeout(resolve,0));if(mine!==token)return;}
     }
-    const blob=new Blob(pieces,{type:'audio/wav'});
+    const compressed=['audio/flac','audio/mpeg'].includes(value.mime);
+    const stored=new Blob(pieces,{type:compressed?value.mime:'audio/wav'});
+    const blob=compressed?await unpack(stored,value.frames,value.mime):stored;
     if(!await validWav(blob,s.duration))throw Error('Invalid saved WAV');
     blobs.push(blob);
    }
@@ -155,6 +230,7 @@ window.BassBacking=(()=>{
    await load(blobs,mine,s.duration);if(mine!==token)return;
    ready=true;message=value.version===2?'Saved mute controls ready.':'Bass mute ready.';changed();
    void api.bassStemReady?.(blobs[1],s.session);
+   void compact(blobs);
   }catch{if(mine===token){ready=false;message=availableBlobs?'Saved mute audio could not load. Tap Vocals to retry.':'Saved mute audio is incomplete.';changed();}}
  }
  async function bandExcerpt(start,end){
