@@ -178,6 +178,60 @@ window.BassBacking=(()=>{
   }
   return audio;
  }
+ // Cache fixed slices so nearby and repeated loops share the same separation.
+ let rehearsalSession,rehearsalVersion=0,rehearsalQueue=Promise.resolve();
+ const rehearsalBlocks=new Map();
+ function cancelRehearsalBand(){rehearsalVersion++;return rehearsalQueue;}
+ async function rehearsalBand(start,end,progress,cancelled){
+  const song=api.get(),rate=44100,blockSeconds=8,version=rehearsalVersion;
+  const stopped=()=>version!==rehearsalVersion||song.session!==api.get().session;
+  const abandoned=()=>cancelled()||stopped();
+  const check=()=>{if(abandoned())throw new DOMException('Preparation cancelled.','AbortError');};
+  const saved=await bandExcerpt(start,end);
+  check();
+  if(saved)return saved;
+  if(rehearsalSession!==song.session){rehearsalBlocks.clear();rehearsalSession=song.session;}
+  const from=Math.round(start*rate),to=Math.round(end*rate),blockSize=rate*blockSeconds;
+  const output=new AudioBuffer({numberOfChannels:2,length:to-from,sampleRate:rate});
+  const dest=[output.getChannelData(0),output.getChannelData(1)];
+  for(let block=Math.floor(from/blockSize)*blockSize;block<to;block+=blockSize){
+   check();
+   const finish=Math.min(block+blockSize,Math.round(song.duration*rate)),first=Math.max(from,block),last=Math.min(to,finish);
+   let pcm=rehearsalBlocks.get(block);
+   if(!pcm){
+    // Serialise the shared worker. A running slice can serve a subsequent passage.
+    const job=rehearsalQueue.then(async()=>{
+     check();
+     if(rehearsalBlocks.has(block))return rehearsalBlocks.get(block);
+     while(api.get().busy){
+      await new Promise(resolve=>setTimeout(resolve,120));
+      check();
+      const ready=await bandExcerpt(start,end);
+      if(ready)return {ready};
+     }
+     const a=Math.max(0,block/rate-.4),b=Math.min(song.duration,finish/rate+.4);
+     const audio=await api.extract(a,b,p=>{if(!abandoned())progress(Math.min(99,Math.round((first-from+(last-first)*p/100)/(to-from)*100)));},stopped);
+     if(stopped())throw new DOMException('Preparation cancelled.','AbortError');
+     const offset=block-Math.round(a*rate),length=finish-block;
+     if(audio.sampleRate!==rate||audio.numberOfChannels!==6||offset+length>audio.length)throw Error('Instrumental output is incomplete.');
+     const stereo=[new Float32Array(length),new Float32Array(length)];
+     for(let c=0;c<2;c++){
+      const music=audio.getChannelData(c),voice=audio.getChannelData(c+4);
+      for(let i=0;i<length;i++)stereo[c][i]=music[offset+i]+voice[offset+i];
+     }
+     rehearsalBlocks.set(block,stereo);
+     if(rehearsalBlocks.size>8)rehearsalBlocks.delete(rehearsalBlocks.keys().next().value);
+     return stereo;
+    });
+    rehearsalQueue=job.catch(()=>{});
+    pcm=await job;
+    check();
+    if(pcm.ready)return pcm.ready;
+   }
+   for(let c=0;c<2;c++)dest[c].set(pcm[c].subarray(first-block,last-block),first-from);
+  }
+  return output;
+ }
  function init(hooks){api=hooks;const master=api.get().master;for(const event of ['play','pause','seeking','seeked','ratechange','ended'])master.addEventListener(event,()=>void sync(true));}
- return {init,canRestore,prepareForSong,toggle,cancel,reset,sync,restore,bandExcerpt,exportData:()=>saved,state:()=>({enabled,busy,ready,vocalsReady:ready&&saved?.version===2,canRetry:attemptedSession!==null&&attemptedSession===api?.get().session&&!busy,vocalsMuted,bassMuted:!!api?.get().bassMuted,message}),pcmPart,wav};
+ return {init,canRestore,prepareForSong,toggle,cancel,reset,sync,restore,bandExcerpt,rehearsalBand,cancelRehearsalBand,exportData:()=>saved,state:()=>({enabled,busy,ready,vocalsReady:ready&&saved?.version===2,canRetry:attemptedSession!==null&&attemptedSession===api?.get().session&&!busy,vocalsMuted,bassMuted:!!api?.get().bassMuted,message}),pcmPart,wav};
 })();

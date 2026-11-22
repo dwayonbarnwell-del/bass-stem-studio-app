@@ -13729,10 +13729,10 @@ OTHER DEALINGS IN THE SOFTWARE.
 html body #appRoot #songTempoWrap.on-beat{box-shadow:inset 0 0 0 3px #b9f3da!important}
 html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel .piano-chord.current-chord{background:#a7e8d2!important;color:#102b25!important;font-weight:800!important;box-shadow:inset 0 -3px #fff!important}
 </style>
-<link rel="stylesheet" href="./ear-source/trainer-rc267.css?v=rc318">
+<link rel="stylesheet" href="./ear-source/trainer-rc267.css?v=rc320">
 <style id="rc260-key-audition">@layer bass-piano-audition-260{#appRoot #pianoKeyboard .piano-key.auditioning{background:#248bd1!important;color:white!important;box-shadow:inset 0 0 0 1px #b7e4ff!important}}</style>
 <link rel="stylesheet" href="./fretflow-source/controls.css?v=rc300">
-<link rel="stylesheet" href="./fretflow-source/view.css?v=rc311">
+<link rel="stylesheet" href="./fretflow-source/view.css?v=rc320">
 <link rel="stylesheet" href="./song-view/view.css?v=rc288">
 <style>
 #practiceSections:not([hidden]){display:grid;grid-auto-flow:column;grid-auto-columns:calc((100% - 16px)/5);gap:4px;box-sizing:border-box;padding:4px 0;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
@@ -15723,21 +15723,21 @@ window.BassBatch = (() => {
 <script src="./ear-source/african-data-rc274.js?v=rc274"></script>
 <script src="./ear-source/uploaded-core-rc267.js?v=rc294"></script>
 <script src="./ear-source/study-ui-rc267.js?v=rc294"></script>
-<script src="./ear-source/rehearsal-core.js?v=rc318"></script>
-<script src="./ear-source/rehearsal.js?v=rc318"></script>
+<script src="./ear-source/rehearsal-core.js?v=rc320"></script>
+<script src="./ear-source/rehearsal.js?v=rc320"></script>
 <script src="./ear-source/trainer-rc266.js?v=rc319"></script>
 <script src="./fretflow-source/core.js?v=rc277"></script>
 <script src="./fretflow-source/practice-stems.js?v=rc305"></script>
 <script src="./fretflow-source/bass-evidence.js?v=rc315"></script>
-<script src="./fretflow-source/backing.js?v=rc317"></script>
-<script src="./fretflow-source/view.js?v=rc311"></script>
+<script src="./fretflow-source/backing.js?v=rc320"></script>
+<script src="./fretflow-source/view.js?v=rc320"></script>
 <script src="./fretflow-source/controls.js?v=rc303"></script>
 <script src="./song-view/core.js?v=rc308"></script>
 <script src="./song-view/view.js?v=rc288"></script>
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC319';
+  const APP_VERSION='RC320';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;
@@ -21322,7 +21322,7 @@ window.BassBatch = (() => {
     songBusy:()=>songImportBusy||aiBusy||window.BassPiano.isBusy(),
     openSongs:()=>{setPracticeVisualMode('song');void window.BassSongView.openLibrary();},
     rehearsal:{
-      get:()=>({...studySong(),buffer,tempo:detectedTempoBpm,phase:detectedDownbeatPhase,confidence:beatGridConfidence}),
+      get:()=>({...studySong(),buffer,strings:fretFlowStringCount,tempo:detectedTempoBpm,phase:detectedDownbeatPhase,confidence:beatGridConfidence}),
       session:()=>songSession,
       pickAudio:(input,onAudio)=>chooseImportFile('audio',{input,onAudio}),
       importAudio:file=>importAudioCheckingLibrary(file,{automaticAnalysis:false}),
@@ -21330,18 +21330,8 @@ window.BassBatch = (() => {
         await window.BassLibrary.show();
         $('bassLibraryDialog')?.addEventListener('close',()=>window.BassRehearsal.refresh(),{once:true});
       },
-      band:async(start,end,progress,cancelled)=>{
-        const saved=await window.BassBacking.bandExcerpt(start,end);
-        if(cancelled())throw Error('Preparation cancelled.');
-        if(saved)return saved;
-        const separated=await separatePracticeStem(start,end,progress,cancelled,'rehearsal');
-        const mix=new AudioBuffer({numberOfChannels:2,length:separated.length,sampleRate:separated.sampleRate});
-        for(let c=0;c<2;c++){
-          const a=separated.getChannelData(c),v=separated.getChannelData(c+4),out=mix.getChannelData(c);
-          for(let i=0;i<out.length;i++)out[i]=a[i]+v[i];
-        }
-        return mix;
-      }
+      band:(...args)=>window.BassBacking.rehearsalBand(...args),
+      cancelBand:()=>window.BassBacking.cancelRehearsalBand()
     }
   });
 

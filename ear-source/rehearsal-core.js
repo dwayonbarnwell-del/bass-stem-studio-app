@@ -318,7 +318,7 @@
   }
   if(fill!=='off')for(let b=meter;b<points.length;b+=meter){
    const time=points[b],beat=time-points[b-1],launch=time-beat*.54;
-   const landingTime=b===points.length-1?start:time;
+   const landingTime=b===points.length-1&&end-time<.018?start:time;
    if(quiet.some(r=>r.start<time&&r.end>launch)||isQuiet(landingTime))continue;
    const from=active(launch),to=active(landingTime+.025);
    if(fill==='ends'&&(!from||!to||from.rootPc===to.rootPc))continue;

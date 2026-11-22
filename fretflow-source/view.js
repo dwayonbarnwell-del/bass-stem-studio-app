@@ -1,4 +1,5 @@
 window.BassFretFlow=(()=>{
+ function create(){
  'use strict';
  const C=window.BassFretFlowCore,ns='http://www.w3.org/2000/svg';
  let api,panel,rows=[],cache={},signature='',lastBoard='',nodes={},resize;
@@ -17,9 +18,9 @@ window.BassFretFlow=(()=>{
  }
  function makeNeck(count){
   const p=nodes.neck;p.replaceChildren();p.setAttribute('viewBox','0 0 110 650');p.setAttribute('preserveAspectRatio','none');
-  const defs=add(p,'defs'),wood=add(defs,'linearGradient',{id:'ffWood'});
+  const woodId=panel.id+'-wood',defs=add(p,'defs'),wood=add(defs,'linearGradient',{id:woodId});
   for(const[o,c]of [['0%','#28140d'],['35%','#593424'],['55%','#2b1a14'],['100%','#483024']])add(wood,'stop',{offset:o,'stop-color':c});
-  add(p,'path',{d:'M 20 18 L 90 18 L 104 644 L 6 644 Z',fill:'url(#ffWood)',stroke:'#a5967d','stroke-width':2});
+  add(p,'path',{d:'M 20 18 L 90 18 L 104 644 L 6 644 Z',fill:'url(#'+woodId+')',stroke:'#a5967d','stroke-width':2});
   for(let i=0;i<20;i++)line(p,20+i*3.7,20,7+i*5,644,i%3?'#b6956530':'#0a080850',.7);
   const y=f=>26+C.fretWire(f)/C.fretWire(24)*610;
   add(p,'rect',{x:18,y:21,width:74,height:8,fill:'#e0d8c8',rx:1});
@@ -80,10 +81,12 @@ window.BassFretFlow=(()=>{
   nodes.song.textContent=s.title+(s.bpm?' · '+Math.round(s.bpm*s.speed/100)+' BPM':'')+' · '+s.speed+'%';
 
  }
- function init(hooks){api=hooks;panel=document.getElementById('fretFlowPanel');panel.innerHTML='<div class="ff-song"></div><div class="ff-stage"><svg class="ff-connector" aria-hidden="true"></svg><div class="ff-neck-wrap"><svg class="ff-neck" role="img" aria-label="Bass neck with current note"></svg></div><div class="ff-main"><div class="ff-readout"><strong class="ff-note">—</strong><span class="ff-position"></span></div><svg class="ff-map" role="img" aria-label="FretFlow note map, low strings on the left"></svg></div></div>';
+ function init(hooks,host=document.getElementById('fretFlowPanel')){api=hooks;panel=host;panel.innerHTML='<div class="ff-song"></div><div class="ff-stage"><svg class="ff-connector" aria-hidden="true"></svg><div class="ff-neck-wrap"><svg class="ff-neck" role="img" aria-label="Bass neck with current note"></svg></div><div class="ff-main"><div class="ff-readout"><strong class="ff-note">—</strong><span class="ff-position"></span></div><svg class="ff-map" role="img" aria-label="FretFlow note map, low strings on the left"></svg></div></div>';
   for(const[name,cls]of Object.entries({song:'.ff-song',neck:'.ff-neck',map:'.ff-map',stage:'.ff-stage',connector:'.ff-connector',note:'.ff-note',position:'.ff-position'}))nodes[name]=panel.querySelector(cls);
-  resize=new ResizeObserver(()=>{draw();});resize.observe(panel);resize.observe(document.querySelector('.practice-view-head'));resize.observe(document.getElementById('playBtn'));
+  resize=new ResizeObserver(()=>{draw();});resize.observe(panel);if(panel.id==='fretFlowPanel'){resize.observe(document.querySelector('.practice-view-head'));resize.observe(document.getElementById('playBtn'));}
  }
  function invalidate(){cache={};signature='';draw();}
- return {init,draw,invalidate,showControls:show=>window.BassPracticeControls?.showControls(show)};
+ return {init,draw,invalidate};
+ }
+ return {...create(),create,showControls:show=>window.BassPracticeControls?.showControls(show)};
 })();

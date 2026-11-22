@@ -54,11 +54,11 @@ console.log('PASS silence, detected pulse, variable timing, tap/manual grid, sty
 
 async function playerTest(){
   const items=new Map(),scheduled=[],bands=[],intervals=new Map();
-  let now=0,clock=0,songSession=0,mixRequests=0,library=false;
+  let now=0,clock=0,songSession=0,mixRequests=0,library=false,fretDraw;
   class Control{
-    constructor(){this.value='';this.dataset={};this.options=[];this.children=[];this.attrs=new Map();}
+    constructor(){this.value='';this.dataset={};this.options=[];this.children=[];this.attrs=new Map();this.style={};this.classList={toggle:(name,on)=>this[name]=on};}
     add(option){this.options.push(option);if(this.options.length===1)this.value=option.value;}
-    replaceChildren(...opts){this.options=[];this.children=[];this.value='';opts.forEach(o=>this.add(o));}
+    replaceChildren(...opts){this.options=[];this.children=opts;this.value='';opts.forEach(o=>{if(o.value!==undefined)this.add(o);});}
     append(...children){this.children.push(...children);}
     setAttribute(key,value){this.attrs.set(key,value);}
     getAttribute(key){return this.attrs.get(key);}
@@ -70,9 +70,10 @@ async function playerTest(){
   const clip={...buffer,duration:4,length:4*sampleRate,getChannelData:()=>pcm.subarray(8*sampleRate,12*sampleRate)};
   const song={title:'Fixture',session:0,buffer:clip,duration:4,chords:[],sections:[]};
   Object.assign(context.window,{BassRehearsalCore:C,BassChordRecovery:{scan:async()=>({added:[]})},
+    BassFretFlow:{create:()=>({init(get,host){this.get=get;this.host=host;},draw(time){fretDraw={...this.get(),time,wide:this.host['ff-single-board']};}})},
     BassPracticeAudio:{prepare:async()=>{},muted:(ctx,when)=>{scheduled.push({midi:null,when});return {stop(){}};},tone:(ctx,midi,when)=>{scheduled.push({midi,when});return {stop(){}};}}});
   Object.assign(context,{document:{createElement:()=>new Control()},Option:class{constructor(text,value){this.text=text;this.value=String(value);}},
-    setInterval:fn=>{intervals.set(++clock,fn);return clock;},clearInterval:id=>intervals.delete(id),
+    setTimeout,clearTimeout,setInterval:fn=>{intervals.set(++clock,fn);return clock;},clearInterval:id=>intervals.delete(id),
     AudioContext:class{
       get currentTime(){return now;}
       async resume(){}
@@ -87,39 +88,97 @@ async function playerTest(){
     openLibrary:()=>{library=true;},band:async()=>{mixRequests++;return clip;}});
   panel.refresh();
   assert.equal($('rehearsalTitle').textContent,'Fixture');
+  assert(!host.innerHTML.includes('Bassline &amp; fill notes'));
+  assert(host.innerHTML.includes('aria-pressed="true">Original bass off'));
+  assert($('rehearsalPassage').options.some(option=>option.text==='Whole song'));
   await $('rehearsalImport').onclick();
   assert.equal($('rehearsalTitle').textContent,'Imported fixture');
   value('rehearsalStart','0:00');value('rehearsalEnd','0:04');value('rehearsalBpm','120');
   $('rehearsalBpm').onchange();value('rehearsalChords','C G/B');value('rehearsalGain','100');
-  value('rehearsalStyle','highlife');value('rehearsalFill','bar');
+  value('rehearsalView','notes');value('rehearsalStyle','highlife');value('rehearsalFill','bar');
   $('rehearsalGuide').setAttribute('aria-pressed','true');
   $('rehearsalPlay').onclick();await new Promise(resolve=>setImmediate(resolve));
   assert.equal($('rehearsalPlay').textContent,'Pause');
   assert.equal(host.dataset.playing,'true','setup collapses while the loop plays');
   assert.equal(bands.length,1);
   assert.equal(bands[0].node.loopEnd-bands[0].node.loopStart,4);
-  assert(scheduled.length&&/Fill at/.test($('rehearsalNotes').textContent));
-  assert.equal($('rehearsalBars').children.length,2);
-  assert.equal($('rehearsalBars').children[0].children[1].children[0].textContent,'Bassline');
-  assert.equal($('rehearsalBars').children[0].children[2].children[0].textContent,'Fill');
-  assert($('rehearsalBars').children[0].children[2].children[1].textContent.includes('·'));
+  assert.equal(mixRequests,1,'separation is used for the default mix');
+  assert(scheduled.length);
+  const timeline=$('rehearsalTimeline');
+  assert(timeline.children.some(column=>column.children.some(note=>note.className==='rehearsal-fill-note')));
+  now=.08;for(const run of intervals.values())run();
+  assert(timeline.children.some(column=>column.children.some(note=>note.active)));
+  value('rehearsalView','fret');$('rehearsalView').onchange();
+  assert(fretDraw.notes.some(note=>note.isFill));assert.equal(fretDraw.wide,false);
+  value('rehearsalView','fret2');$('rehearsalView').onchange();
+  assert.equal(fretDraw.wide,true);
+  assert.equal(bands.length,1,'view switches leave the audio clock running');
   const firstPattern=$('rehearsalPattern').value;value('rehearsalStyle','makossa');$('rehearsalStyle').onchange();
   assert.notEqual($('rehearsalPattern').value,firstPattern);
   for(let i=1;i<=53;i++){now=i*.08;for(const run of [...intervals.values()])run();}
   assert.equal(bands.length,1,'the original band continues when the style switches');
   assert(scheduled.some(n=>n.when>=4),'bass continues after the recording loop');
   $('rehearsalMix').onclick();await new Promise(resolve=>setImmediate(resolve));
-  assert.equal($('rehearsalMix').getAttribute('aria-pressed'),'true');
-  assert.equal(bands.length,2,'removing original bass switches audio on the running loop');
+  assert.equal($('rehearsalMix').getAttribute('aria-pressed'),'false');
+  assert.equal(bands.length,2,'restoring original bass switches audio on the running loop');
   assert(bands[0].node.stopped);
   assert(Math.abs(bands[1].offset-(bands[1].when-bands[0].when)%4)<.001,'band switch preserves the loop position');
   assert.equal(mixRequests,1);
+  $('rehearsalMix').onclick();await new Promise(resolve=>setImmediate(resolve));
   $('rehearsalPlay').onclick();
   assert.equal(host.dataset.playing,'false');
   $('rehearsalPlay').onclick();await new Promise(resolve=>setImmediate(resolve));
   $('rehearsalPlay').onclick();$('rehearsalPlay').onclick();await new Promise(resolve=>setImmediate(resolve));
   assert.equal(mixRequests,1,'already prepared rehearsal audio is reused');
-  $('rehearsalLibrary').onclick();assert(library&&bands.at(-1).node.stopped);
+  await $('rehearsalLibrary').onclick();assert(library&&bands.at(-1).node.stopped);
+  song.buffer={...clip,duration:36,length:36*sampleRate,getChannelData:()=>new Float32Array(36*sampleRate)};
+  song.duration=36;song.session=++songSession;
+  panel.refresh();
+  const whole=$('rehearsalPassage').options.find(option=>option.text==='Whole song');
+  value('rehearsalPassage',whole.value);$('rehearsalPassage').onchange();
+  assert.equal($('rehearsalEnd').value,'0:36.00');
+  $('rehearsalMix').onclick();
+  $('rehearsalPlay').onclick();await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(bands.at(-1).node.loopEnd,36,'whole song uses both exact endpoints');
+  panel.close();
   console.log('PASS import, playback and uninterrupted style switching, cached band mix, and Library hand-off.');
 }
 playerTest().catch(error=>{console.error(error);process.exitCode=1;});
+
+async function backingTest(){
+  class AudioBuffer{
+    constructor({numberOfChannels,length,sampleRate}){
+      Object.assign(this,{numberOfChannels,length,sampleRate,duration:length/sampleRate});
+      this.pcm=Array.from({length:numberOfChannels},()=>new Float32Array(length));
+    }
+    getChannelData(c){return this.pcm[c];}
+  }
+  const rate=44100,requests=[],master={addEventListener(){}};
+  const window={};
+  vm.runInNewContext(fs.readFileSync('fretflow-source/backing.js','utf8'),{
+    window,AudioBuffer,Audio:class{addEventListener(){}},setTimeout,DOMException
+  });
+  const backing=window.BassBacking;
+  let session=1;
+  backing.init({get:()=>({session,master,duration:24}),extract:async(start,end)=>{
+    requests.push([start,end]);
+    const mix=new AudioBuffer({numberOfChannels:6,length:Math.ceil((end-start)*rate),sampleRate:rate});
+    for(let c=0;c<6;c++)mix.getChannelData(c).fill(c<2?.1:c<4?.9:.2);
+    return mix;
+  }});
+  const prepare=(a,b)=>backing.rehearsalBand(a,b,()=>{},()=>false);
+  const first=await prepare(2,7);
+  assert.equal(first.duration,5);
+  assert(Math.abs(first.getChannelData(1)[0]-.3)<.00001,'mix contains music and vocals with no bass stem');
+  const adjacent=await prepare(6,12);
+  assert.equal(adjacent.duration,6);
+  assert.equal(requests.length,2,'overlap reuses the first block');
+  const whole=await prepare(0,24);
+  assert.equal(whole.duration,24);
+  assert.equal(requests.length,3,'whole song reuses both earlier blocks');
+  session++;
+  await prepare(2,7);
+  assert.equal(requests.length,4,'changing songs discards the prior stems');
+  console.log('PASS shared bass-free blocks across overlapping passages and full-song loops.');
+}
+backingTest().catch(error=>{console.error(error);process.exitCode=1;});
