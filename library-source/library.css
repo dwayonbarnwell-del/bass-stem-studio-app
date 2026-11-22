@@ -6,7 +6,7 @@ html body dialog#bassLibraryDialog{box-sizing:border-box!important;width:min(780
 #bassLibraryDialog p{margin:0;color:#bdcdd8;overflow-wrap:anywhere}
 #bassLibraryDialog #libraryHint{font-size:13px;margin:12px 0 20px}
 #bassLibraryDialog .library-toolbar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:1fr;gap:8px}
-html body #bassLibraryDialog button,html body #bassLibraryDialog a.library-download{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;box-sizing:border-box!important;width:auto!important;min-width:90px!important;min-height:44px!important;height:auto!important;padding:10px 14px!important;margin:0!important;border:1px solid #486578!important;border-radius:10px!important;background:#203544!important;color:#fff!important;font:700 14px/1.3 system-ui,sans-serif!important;text-align:center!important;cursor:pointer}
+html body #bassLibraryDialog button,html body #bassLibraryDialog a.library-download{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;box-sizing:border-box!important;width:auto!important;min-width:90px!important;min-height:44px!important;height:auto!important;padding:10px 14px!important;margin:0!important;border:1px solid #486578!important;border-radius:10px!important;background:linear-gradient(145deg,#29465c,#222e46)!important;color:#fff!important;font:700 14px/1.3 system-ui,sans-serif!important;text-align:center!important;cursor:pointer}
 #bassLibraryDialog button:disabled{opacity:.5;cursor:wait}
 #bassLibraryDialog .library-filters{display:grid;grid-template-columns:minmax(0,1fr) 170px;gap:12px}
 #bassLibraryDialog label{display:block;font-size:13px;font-weight:650;margin:0 0 6px}
@@ -21,7 +21,7 @@ html body dialog#bassLibraryDialog button.library-song-info{min-width:0!importan
 #bassLibraryDialog strong,#bassLibraryDialog .library-song-info span{display:block;overflow-wrap:anywhere}
 #bassLibraryDialog .library-song-info span{font-size:13px;color:#bdcdd8;margin-top:4px}
 #bassLibraryDialog .library-song-actions{display:flex;gap:8px}
-html body #bassLibraryDialog .library-song-actions button:first-child{background:#a7e8d2!important;color:#102b25!important;border-color:#a7e8d2!important;}
+html body #bassLibraryDialog .library-song-actions button:first-child{background:linear-gradient(145deg,#c1f5e5,#8ed2bf)!important;color:#102b25!important;border-color:#a7e8d2!important;}
 #bassLibraryDialog .library-empty{padding:32px 12px;text-align:center}
 #bassLibraryDialog :focus-visible{outline:2px solid #a7e8d2;outline-offset:3px}
 html body #bassLibraryDialog [hidden]{display:none!important}

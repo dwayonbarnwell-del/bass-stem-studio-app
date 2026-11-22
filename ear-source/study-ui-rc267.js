@@ -2,6 +2,7 @@ window.BassFillTrainer=(()=>{
  'use strict';
  const F=window.BassFillCore,P=window.BassPracticeCore,U=window.BassUploadedCore,D=window.BassPracticeCatalogue,C=window.BassCuratedStudies,G=window.BassStudyGroups,R=window.BassRegister,L=window.BassPracticeLoop,B=window.BassSuppliedDrums,N=window.BassStudyDisplay,H=window.BassAccompaniment,$=id=>document.getElementById(id);
  let api,ctx,voices=[],timers=[],token=0,playing=false,repeating=false,backing=true,plan,kind='fills',recordedAudio=null,recordedFrame=0,transport=null,rendered=null,drums=true,drumKit='auto',drumGroove='auto',keyStyle='auto',keySound='auto',drumVolume=.45,keyVolume=.8,tempoIdentity='',nativeTempo=null,harmony=[],revision=0,sessions=[];
+ let sounding=[];
  const drumKey='bass-practice-accompaniment-v3';
  // New supplied recordings start in Auto, retaining the previous mixer choices.
  try{const s=JSON.parse(localStorage.getItem(drumKey)||'{}'),old=JSON.parse(localStorage.getItem('bass-practice-accompaniment-v2')||localStorage.getItem('bass-practice-drums-v1')||'{}');if(typeof s.enabled==='boolean')drums=s.enabled;else if(typeof old.enabled==='boolean')drums=old.enabled;if(typeof (s.chords??old.chords)==='boolean')backing=s.chords??old.chords;if(B.genres.some(([id])=>id===s.kit))drumKit=s.kit;if(B.loops.some(x=>x.id===s.groove))drumGroove=s.groove;if(H.profiles[s.style])keyStyle=s.style;if(['piano','electric','organ'].includes(s.sound))keySound=s.sound;if(Number.isFinite(s.volume??old.volume))drumVolume=Math.max(0,Math.min(1,s.volume??old.volume));if(Number.isFinite(s.keyVolume??old.keyVolume))keyVolume=Math.max(0,Math.min(1,s.keyVolume??old.keyVolume));}catch{}
@@ -28,10 +29,10 @@ window.BassFillTrainer=(()=>{
  }
  function partOptions(){
   const clip=U.items.find(c=>c.id===$('fillClip').value);$('fillExcerpt').replaceChildren();
-  for(const [i,p] of (clip?.parts||[]).entries()){const o=document.createElement('option');o.value=i;o.textContent=(i===0?'Full clip':'Part '+i)+' · '+U.time(p.start)+'–'+U.time(p.end);$('fillExcerpt').append(o);}
+  for(const [i,p] of (clip?.parts||[]).entries()){const o=document.createElement('option');o.value=i;o.textContent=(i===0?'Full song':'Part '+i)+' · '+U.time(p.start)+'–'+U.time(p.end);$('fillExcerpt').append(o);}
   const loop=U.loop(clip?.id);
   if(loop)$('fillExcerpt').add(new Option('Beat loop · '+U.time(loop.start)+'–'+U.time(loop.end),'beat'),1);
-  $('fillExcerpt').value=loop?'beat':String(clip?.parts.length>1?1:0);
+  $('fillExcerpt').value='0';
  }
  function clipControls(){
   const custom=imported();$('earFillStudy').dataset.imported=String(custom);
@@ -66,7 +67,24 @@ window.BassFillTrainer=(()=>{
   if(playing)$('earTrainerDialog').scrollTop=0;
  }
  function state(){ playbackLayout();$('fillPlay').textContent=playing?'Stop':'Play';$('fillPlay').disabled=!plan;$('fillRepeat').disabled=!plan;$('fillNext').disabled=!plan;$('fillDelete').disabled=!deletionKey();$('fillRestore').disabled=!D.deletedCount;$('fillRestore').textContent='Restore deleted'+(D.deletedCount?' ('+D.deletedCount+')':'');$('fillRepeat').setAttribute('aria-pressed',String(repeating));$('fillBacking').textContent=backing?'Chords on':'Chords off';$('fillBacking').setAttribute('aria-pressed',String(backing));$('fillDrums').textContent=drums?'Drums on':'Drums off';$('fillDrums').setAttribute('aria-pressed',String(drums)); }
- function stop(){token++;revision++;for(const session of sessions)session.transport.stop();sessions=[];transport?.stop();transport=null;cancelAnimationFrame(recordedFrame);recordedAudio?.pause();recordedAudio=null;playing=false;repeating=false;timers.forEach(clearTimeout);timers=[];voices.forEach(v=>{try{v.stop();}catch{}});voices=[];if($('fillPlay')){state();for(const e of $('fillNotes').children)e.classList.remove('sounding');}}
+ function stop(){token++;revision++;for(const session of sessions)session.transport.stop();sessions=[];transport?.stop();transport=null;cancelAnimationFrame(recordedFrame);recordedAudio?.pause();recordedAudio=null;playing=false;repeating=false;timers.forEach(clearTimeout);timers=[];voices.forEach(v=>{try{v.stop();}catch{}});voices=[];if($('fillPlay')){state();highlightNotes([],0,false);}}
+ function highlightNotes(notes,beat,audible){
+  const list=$('fillNotes');
+  const active=[];
+  if(audible){
+   for(const [i,n] of notes.entries()){
+    if(beat>=n.beat&&beat<n.beat+n.length&&list.children[i])active.push(list.children[i]);
+   }
+  }
+  for(const button of sounding)if(!active.includes(button))button.classList.remove('sounding');
+  for(const button of active)if(!sounding.includes(button))button.classList.add('sounding');
+  sounding=active;
+  const current=active.at(-1);
+  if(current&&list.scrollHeight>list.clientHeight){
+   const top=current.offsetTop,bottom=top+current.offsetHeight;
+   if(top<list.scrollTop||bottom>list.scrollTop+list.clientHeight)list.scrollTop=top;
+  }
+ }
  function level(part,value){for(const session of sessions)session.transport.level(part,value);}
 
  function settings(){return {key:$('fillKey').value,mode:kind==='basslines'?(P.lines[Number($('fillIdea').value)]?.mode||'major'):'major',from:$('fillFrom').value,to:$('fillTo').value,idea:$('fillIdea').value,bpm:nativeTempo??$('fillTempo').value};}
@@ -127,8 +145,8 @@ window.BassFillTrainer=(()=>{
      const elapsed=active.transport.position()-(window.BassPlaybackTiming?.outputDelay(ctx)||0);
      const beat=(((elapsed%active.rendered.seconds)+active.rendered.seconds)%active.rendered.seconds)/active.rendered.beatSeconds;
      if(active.plan===plan){highlightChord(beat);$('fillStatus').textContent=plan.kind==='uploaded'?(plan.recording?'Beat loop · '+Number(active.plan.bpm.toFixed(1))+' BPM':'Note playback'):'Playing · '+Number(active.plan.bpm.toFixed(2))+' BPM';
-      for(const [i,n] of active.plan.bass.entries())$('fillNotes').children[i]?.classList.toggle('sounding',elapsed>=0&&beat>=n.beat&&beat<n.beat+n.length);
-     }else for(const e of $('fillNotes').children)e.classList.remove('sounding');
+      highlightNotes(active.plan.bass,beat,elapsed>=0);
+     }else highlightNotes([],0,false);
     }
     recordedFrame=requestAnimationFrame(tick);
    };recordedFrame=requestAnimationFrame(tick);
@@ -148,7 +166,7 @@ window.BassFillTrainer=(()=>{
    if(repeating&&now>=next-.5){if(now>next-.02){scheduled=Math.floor(elapsed/duration);cycle(start+scheduled*duration,elapsed-scheduled*duration);}else{cycle(next);scheduled++;}}
    if(!repeating&&elapsed>=duration+delay){stop();$('fillStatus').textContent='Play it again';return;}
    const position=((Math.max(0,elapsed-delay)%duration)/beat);
-   for(const [i,n] of current.bass.entries())$('fillNotes').children[i]?.classList.toggle('sounding',elapsed>=delay&&position>=n.beat&&position<n.beat+n.length);
+   if(current===plan)highlightNotes(current.bass,position,elapsed>=delay);
    recordedFrame=requestAnimationFrame(tick);
   };recordedFrame=requestAnimationFrame(tick);
  }
@@ -160,10 +178,7 @@ window.BassFillTrainer=(()=>{
   const tick=()=>{
    if(mine!==token||!$('earTrainerDialog').open){audio.pause();return;}
    const position=audio.currentTime-current.sourceStart;
-   for(const [i,n] of current.bass.entries()){
-    const e=$('fillNotes').children[i],active=position>=n.beat&&position<n.beat+n.length;if(!e)continue;e.classList.toggle('sounding',active);
-    if(active){const list=$('fillNotes');if(e.offsetTop<list.scrollTop||e.offsetTop+e.offsetHeight>list.scrollTop+list.clientHeight)list.scrollTop=e.offsetTop;}
-   }
+   if(current===plan)highlightNotes(current.bass,position,true);
    if(audio.ended||audio.currentTime>=current.sourceEnd-.012){audio.currentTime=current.sourceStart;void audio.play().catch(()=>{if(mine===token){stop();$('fillStatus').textContent='Tap Play';}});}
    recordedFrame=requestAnimationFrame(tick);
   };recordedFrame=requestAnimationFrame(tick);
@@ -203,7 +218,7 @@ window.BassFillTrainer=(()=>{
   F.names.forEach((n,i)=>option('fillKey',i,'Key: '+n));F.styles.forEach((s,i)=>option('fillIdea',i,(i+1)+'. '+s[0]));$('fillTempo').value='80';
   for(const id of ['fillFrom','fillTo','fillKey','fillIdea'])$(id).onchange=draw;$('fillTempo').onchange=()=>{nativeTempo=null;draw();};
   $('fillPlay').onclick=()=>void play();$('fillRepeat').onclick=()=>{if(playing){stop();$('fillStatus').textContent='Stopped';}else void play();};
-  $('fillNext').onclick=()=>{const active=playing;if(imported()){$('fillExcerpt').selectedIndex=$('fillExcerpt').options.length>1?($('fillExcerpt').selectedIndex>=$('fillExcerpt').options.length-1?1:$('fillExcerpt').selectedIndex+1):0;}else $('fillIdea').selectedIndex=($('fillIdea').selectedIndex+1)%$('fillIdea').options.length;draw();if(!active)void play();};
+  $('fillNext').onclick=()=>{const active=playing;if(imported()){$('fillExcerpt').selectedIndex=($('fillExcerpt').selectedIndex+1)%$('fillExcerpt').options.length;}else $('fillIdea').selectedIndex=($('fillIdea').selectedIndex+1)%$('fillIdea').options.length;draw();if(!active)void play();};
 
   $('fillBacking').onclick=()=>{backing=!backing;saveDrums();level('chords',backing?keyVolume:0);state();};
   $('fillDelete').onclick=()=>{const id=deletionKey();if(!id)return;try{D.remove(...id);refreshDeleted();$('fillManageStatus').textContent='Pattern deleted';}catch{$('fillManageStatus').textContent='Could not save deletion.';}};

@@ -73,6 +73,7 @@ async function playerTest(){
     BassFretFlow:{create:()=>({init({get},host){this.get=get;this.host=host;},draw(time){fretDraw={...this.get(),time,wide:this.host['ff-single-board']};}})},
     BassPracticeAudio:{prepare:async()=>{},muted:(ctx,when)=>{scheduled.push({midi:null,when});return {stop(){}};},tone:(ctx,midi,when)=>{scheduled.push({midi,when});return {stop(){}};}}});
   Object.assign(context,{document:{createElement:()=>new Control()},Option:class{constructor(text,value){this.text=text;this.value=String(value);}},
+    requestAnimationFrame:fn=>{const id=++clock;intervals.set(id,()=>{intervals.delete(id);fn();});return id;},cancelAnimationFrame:id=>intervals.delete(id),
     setTimeout,clearTimeout,setInterval:fn=>{intervals.set(++clock,fn);return clock;},clearInterval:id=>intervals.delete(id),
     AudioContext:class{
       get currentTime(){return now;}
@@ -90,7 +91,8 @@ async function playerTest(){
   assert.equal($('rehearsalTitle').textContent,'Fixture');
   assert(!host.innerHTML.includes('Bassline &amp; fill notes'));
   assert(host.innerHTML.includes('aria-pressed="true">Original bass off'));
-  assert($('rehearsalPassage').options.some(option=>option.text==='Whole song'));
+  assert.equal($('rehearsalPassage').options[0].text,'Full song');
+  assert.equal($('rehearsalPassage').value,'0');
   await $('rehearsalImport').onclick();
   assert.equal($('rehearsalTitle').textContent,'Imported fixture');
   value('rehearsalStart','0:00');value('rehearsalEnd','0:04');value('rehearsalBpm','120');
@@ -106,7 +108,8 @@ async function playerTest(){
   assert(scheduled.length);
   const timeline=$('rehearsalTimeline');
   assert(timeline.children.some(column=>column.children.some(note=>note.className==='rehearsal-fill-note')));
-  now=.08;for(const run of intervals.values())run();
+  assert(!timeline.children.some(column=>column.children.some(note=>note.active)),'the highlight waits for the audible loop');
+  now=.08;for(const run of [...intervals.values()])run();
   assert(timeline.children.some(column=>column.children.some(note=>note.active)));
   value('rehearsalView','fret');$('rehearsalView').onchange();
   assert(fretDraw.notes.some(note=>note.isFill));assert.equal(fretDraw.wide,false);
@@ -127,6 +130,7 @@ async function playerTest(){
   $('rehearsalMix').onclick();await new Promise(resolve=>setImmediate(resolve));
   $('rehearsalPlay').onclick();
   assert.equal(host.dataset.playing,'false');
+  assert.equal(fretDraw.highlight,false,'pausing clears the fret highlight');
   $('rehearsalPlay').onclick();await new Promise(resolve=>setImmediate(resolve));
   $('rehearsalPlay').onclick();$('rehearsalPlay').onclick();await new Promise(resolve=>setImmediate(resolve));
   assert.equal(mixRequests,1,'already prepared rehearsal audio is reused');
@@ -134,8 +138,7 @@ async function playerTest(){
   song.buffer={...clip,duration:36,length:36*sampleRate,getChannelData:()=>new Float32Array(36*sampleRate)};
   song.duration=36;song.session=++songSession;
   panel.refresh();
-  const whole=$('rehearsalPassage').options.find(option=>option.text==='Whole song');
-  value('rehearsalPassage',whole.value);$('rehearsalPassage').onchange();
+  assert.equal($('rehearsalPassage').value,'0','new recordings select the full song');
   assert.equal($('rehearsalEnd').value,'0:36.00');
   $('rehearsalMix').onclick();
   $('rehearsalPlay').onclick();await new Promise(resolve=>setImmediate(resolve));

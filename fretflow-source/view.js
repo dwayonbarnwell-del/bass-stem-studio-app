@@ -11,7 +11,10 @@ window.BassFretFlow=(()=>{
   const c=C.colour(row.midi),open=!small&&row.position.fret===0;
   const radius=small?5:Math.max(5,Math.min(active?13:10,(nodes.mapGeometry.step-4)/2,(nodes.mapGeometry.gap-5)/2));
   const r=open?12:radius,g=add(p,'g',{'data-midi':row.midi,'data-fret':row.position.fret,'data-string':row.position.string,'data-x':x,'data-y':y,'data-radius':r,class:active?'ff-active-note':'ff-preview-note'});
-  if(active)add(g,'circle',{cx:x,cy:y,r:r+4,fill:c,opacity:.15});
+  if(active){
+   add(g,'circle',{cx:x,cy:y,r:r+4,fill:c,opacity:.15});
+   if(panel.id==='rehearsalFret'&&!small)add(g,'circle',{class:'ff-rehearsal-ring',cx:x,cy:y,r:r+3,fill:'none',stroke:c,'stroke-width':1.5});
+  }
   add(g,'circle',{cx:x,cy:y,r,fill:open?'none':active?c:'#151c26',stroke:c,'stroke-width':active?2:1.4,'stroke-dasharray':row.source.isFill||Number(row.source.confidence)<.7?'3 2':''});
   if(!small&&!open)label(g,x,y,C.name(row.midi),active?'#10231a':c,Math.min(active?14:11,r*1.2));
   add(g,'title',{},`${C.pitch(row.midi)} · string ${C.name(row.position.open)} · fret ${row.position.fret}`);
@@ -56,7 +59,7 @@ window.BassFretFlow=(()=>{
  }
  function draw(t){
   if(!api||panel.hidden)return;const s=api.get();prepare(s);const time=Number.isFinite(t)?t:s.time;
-  const active=C.active(rows,time),primary=active.at(-1),future=C.nearby(rows,time,2,3).filter(n=>!active.includes(n)).sort((a,b)=>Math.abs(a.start-time)-Math.abs(b.start-time)),focus=primary||future.find(n=>n.start>time);
+  const active=s.highlight===false?[]:C.active(rows,time),primary=active.at(-1),future=C.nearby(rows,time,2,3).filter(n=>!active.includes(n)).sort((a,b)=>Math.abs(a.start-time)-Math.abs(b.start-time)),focus=primary||future.find(n=>n.start>time);
   const frets=12,first=1+Math.floor(Math.max(0,(focus?.position?.fret||1)-1)/frets)*frets,key=s.strings+':'+first+':'+frets+':'+nodes.map.clientWidth+':'+nodes.map.clientHeight;
   if(lastBoard!==key){makeNeck(s.strings);makeMap(s.strings,first,frets);lastBoard=key;signature='';}
   const sign=active.map(n=>n.id).join(',')+'|'+future.map(n=>n.id).join(',')+'|'+key;
@@ -77,6 +80,14 @@ window.BassFretFlow=(()=>{
    nodes.note.textContent=primary?C.pitch(primary.midi):'—';nodes.note.style.color=primary?C.colour(primary.midi):'';
    nodes.position.textContent=primary?(primary.position?`${C.name(primary.position.open)} string · ${primary.position.fret===0?'open':'fret '+primary.position.fret}`:`Outside ${s.strings}-string range`):!s.loaded?'Open an analysed song':!rows.length?'No analysed bass notes':'Rest';
    nodes.position.title=primary?.source.isFill?'Suggested fill':primary&&Number(primary.source.confidence)<.7?'Low-confidence note: check against the recording':'';
+  }
+  if(panel.id==='rehearsalFret'&&primary){
+   const ring=nodes.mapNotes.lastElementChild?.querySelector('.ff-rehearsal-ring');
+   if(ring){
+    const phase=Math.min(1,Math.max(0,(time-primary.start)/.18));
+    ring.style.setProperty('--ff-ring-scale',String(1+.27*phase));
+    ring.style.setProperty('--ff-ring-opacity',String(1-.45*phase));
+   }
   }
   nodes.song.textContent=s.title+(s.bpm?' · '+Math.round(s.bpm*s.speed/100)+' BPM':'')+' · '+s.speed+'%';
 

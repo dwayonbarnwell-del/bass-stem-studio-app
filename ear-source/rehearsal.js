@@ -8,10 +8,10 @@ window.BassRehearsal=(()=>{
   if(!parts.length||parts.length>2||parts.some(p=>!/^\d+(?:\.\d+)?$/.test(p)))return NaN;
   return parts.length===2?Number(parts[0])*60+Number(parts[1]):Number(parts[0]);
  };
- let host,api,song,clip,prepared,prepareTimer,ranked=[],ctx,band,clock,statusTimer,voices=[],playing,work=0,loading=false,importing=false,manualBpm=0,mixRevision=0,noBass=true,mixFailed=false;
+ let host,api,song,clip,prepared,prepareTimer,ranked=[],ctx,band,clock,visualFrame,voices=[],playing,work=0,loading=false,importing=false,manualBpm=0,mixRevision=0,noBass=true,mixFailed=false;
  const $=id=>host.querySelector('#'+id);
  const state=text=>{$('rehearsalStatus').textContent=text;};
- let featured=[],viewNotes=[],viewPosition=0,fretView,fretNotes=[],notePage=-1,markers=[];
+ let featured=[],viewNotes=[],viewPosition=0,fretView,fretNotes=[],notePage=-1,markers=[],audible=false;
 
  function init(panel,hooks){
   host=panel;api=hooks;
@@ -124,11 +124,11 @@ window.BassRehearsal=(()=>{
    .map(s=>({start:s.start,end:Math.min(s.end,song.duration),name:s.name}));
   const suggestions=C.passages(song.buffer).map(p=>({...p,pulse:C.pulse(song.buffer,p.start,p.end)}));
   const best=[...suggestions].sort((a,b)=>(b.pulse?.confidence||0)-(a.pulse?.confidence||0)||b.score-a.score)[0];
-  ranked=[...(best?[best]:[]),...fromSection,...suggestions.filter(p=>p!==best)];
-  if(!ranked.length&&song.duration>16)ranked.push({start:0,end:16,name:'First passage'});
-  ranked.push({start:0,end:song.duration,name:'Whole song'});
+  const passages=[...(best?[best]:[]),...fromSection,...suggestions.filter(p=>p!==best)];
+  if(!passages.length&&song.duration>16)passages.push({start:0,end:16,name:'First passage'});
+  ranked=[{start:0,end:song.duration,name:'Full song'},...passages];
   const picker=$('rehearsalPassage');
-  picker.replaceChildren(...ranked.map((p,i)=>new Option(p.name==='Whole song'?p.name:(p.name||'Passage')+' · '+fmt(p.start),i)));
+  picker.replaceChildren(...ranked.map((p,i)=>new Option(p.name==='Full song'?p.name:(p.name||'Passage')+' · '+fmt(p.start),i)));
   picker.add(new Option('Custom passage','custom'));
   picker.value='0';applyPassage(ranked[0]);
  }
@@ -167,10 +167,10 @@ window.BassRehearsal=(()=>{
  function stop(){
   work++;mixRevision++;loading=false;
   if(host)$('rehearsalMix').disabled=false;
-  clearInterval(clock);clearInterval(statusTimer);stopBass();
+  clearInterval(clock);cancelAnimationFrame(visualFrame);stopBass();
   if(band){try{band.node.stop();}catch{}band.node.disconnect();band.gain.disconnect();band=null;}
-  playing=null;
-  if(host){setCompact(false);$('rehearsalPlay').textContent='Play loop';$('rehearsalTime').value='';$('rehearsalCue').value='';}
+  playing=null;audible=false;
+  if(host){setCompact(false);$('rehearsalPlay').textContent='Play loop';$('rehearsalTime').value='';$('rehearsalCue').value='';drawView();}
  }
 
  function discardPreparation(){
@@ -251,14 +251,14 @@ window.BassRehearsal=(()=>{
    board.classList.toggle('ff-single-board',mode==='fret2');
    if(!fretView){
     fretView=window.BassFretFlow.create();
-    fretView.init({get:()=>({notes:fretNotes,strings:song?.strings||5,session:clip?.session,time:viewPosition,loaded:!!clip,title:'',speed:100})},board);
+    fretView.init({get:()=>({notes:fretNotes,strings:song?.strings||5,session:clip?.session,time:viewPosition,loaded:!!clip,highlight:audible,title:'',speed:100})},board);
    }
    fretView.draw(viewPosition);
    return;
   }
   const {start,end,grid}=clip;
   const step=grid?.meter||4,edges=grid?.points||Array.from({length:Math.ceil(end-start)+1},(_,i)=>Math.min(end,start+i));
-  let index=Math.max(0,edges.findLastIndex(t=>t<=viewPosition+.0001));
+  const index=Math.max(0,edges.findLastIndex(t=>t<=viewPosition+.0001));
   const first=Math.min(Math.floor(index/step)*step,Math.floor((edges.length-2)/step)*step);
   if(first!==notePage){
    notePage=first;markers=[];
@@ -267,7 +267,8 @@ window.BassRehearsal=(()=>{
     const cell=document.createElement('div'),time=document.createElement('time');
     time.textContent=fmt(edges[i]);cell.append(time);
     for(const note of viewNotes){
-     if(note.time<edges[i]-.0001||note.time>=edges[i+1]-.0001)continue;
+     const start=Math.max(note.time,edges[first]);
+     if(note.stop<=edges[first]||start<edges[i]-.0001||start>=edges[i+1]-.0001)continue;
      const chip=document.createElement('span');
      chip.className=note.role==='fill'?'rehearsal-fill-note':'rehearsal-bass-note';
      chip.textContent=noteName(note);
@@ -279,7 +280,7 @@ window.BassRehearsal=(()=>{
    timeline.style.gridTemplateColumns='repeat('+columns.length+', minmax(0, 1fr))';
    timeline.replaceChildren(...columns);
   }
-  for(const {note,chip} of markers)chip.classList.toggle('active',note.time<=viewPosition&&viewPosition<note.stop);
+  for(const {note,chip} of markers)chip.classList.toggle('active',audible&&note.time<=viewPosition&&viewPosition<note.stop);
  }
 
  function changePattern(){
@@ -441,7 +442,7 @@ window.BassRehearsal=(()=>{
    viewPosition=clip.start;setNotes(notes);
    schedule();
    clock=setInterval(schedule,40);
-   statusTimer=setInterval(display,32);
+   visualFrame=requestAnimationFrame(display);
   }catch(error){
    if(id===work){stop();state(error.message||'Could not play this passage.');}
   }finally{
@@ -477,14 +478,16 @@ window.BassRehearsal=(()=>{
  function display(){
   if(!playing)return;
   const now=ctx.currentTime-(window.BassPlaybackTiming?.outputDelay(ctx)||0);
+  audible=now>=playing.when;
   viewPosition=clip.start+(Math.max(0,now-playing.when)%playing.seconds);
   if(playing.viewChange&&now>=playing.viewChange.at){
    setNotes(playing.viewChange.notes);playing.viewChange=null;
   }
   $('rehearsalTime').value=fmt(viewPosition)+' / '+fmt(clip.end);
-  const current=viewNotes.find(n=>n.time<=viewPosition&&viewPosition<n.stop);
+  const current=audible&&viewNotes.find(n=>n.time<=viewPosition&&viewPosition<n.stop);
   $('rehearsalCue').value=current?noteName(current):'';
   drawView();
+  visualFrame=requestAnimationFrame(display);
  }
 
  return {init,refresh,close};
