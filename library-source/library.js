@@ -1,6 +1,7 @@
 /* RC195: local saved-project library. No audio or index is sent to a server. */
 window.BassLibrary=(()=>{
   const DB='bass-studio-library-v1',SUPPORTED=/\.(bassstudio|bssproject|json)$/i;
+  const PROJECT_FILE_TYPES=[{description:'Bass Studio saved songs',accept:{'application/json':['.bassstudio','.bssproject','.json']}}];
   let dbPromise,ready,folder=null,index={},rows=[],hooks={},dialog,busy=false,scan=0,downloadURLs=[],folderAccess='unknown',scanning=false,scanJob=null;
   const el=id=>document.getElementById(id);
   const abort=()=>new DOMException('Cancelled','AbortError');
@@ -153,11 +154,7 @@ window.BassLibrary=(()=>{
         actions.append(open,download);item.append(info,actions);
         const choose=document.createElement('button');choose.type='button';choose.textContent='Choose this file';choose.hidden=true;
         item.append(choose);
-        choose.onclick=()=>{
-          const input=el('libraryOpenInput');
-          input.expectedRow=entry.row;
-          input.click();
-        };
+        choose.onclick=()=>browseProject(entry.row);
         entry={item,info,title,details,open,download,choose,row};
         songItems.set(key,entry);
         info.onclick=open.onclick=()=>run(()=>openRow(entry.row));
@@ -290,7 +287,9 @@ window.BassLibrary=(()=>{
   const scanInBackground=()=>{void refresh().catch(e=>{if(e.name!=='AbortError')status(errorText(e));});};
   async function chooseFolder(){
     // The picker must run directly from the button gesture, before other awaits.
-    const dir=await window.showDirectoryPicker({id:'bass-studio-library',mode:'readwrite'});
+    const options={id:'bass-studio-library',mode:'readwrite'};
+    if(folder)options.startIn=folder;
+    const dir=await window.showDirectoryPicker(options);
     await ready;
     await put('folder',dir);await put('index',{});
     folder=dir;folderAccess='ready';index={};rows=[];scanInBackground();
@@ -514,6 +513,40 @@ window.BassLibrary=(()=>{
     await refresh();status(added+' added'+(duplicates?' · '+duplicates+' already saved':'')+(cancelled?' · '+cancelled+' cancelled':'')+(failed?' · '+failed+' could not be added. '+firstError:'.')+(chordCatalogues?' Open chord backups in Song Chords → Import charts / backup.':''));
   }
 
+  function projectPickerOptions(multiple=false){
+    const options={id:'bass-studio-projects',multiple,types:PROJECT_FILE_TYPES};
+    if(folder)options.startIn=folder;
+    return options;
+  }
+
+  async function pickProjects(input,onFiles){
+    if(busy)return;
+    input.value='';
+    if(typeof window.showOpenFilePicker!=='function'){input.click();return;}
+    let handles;
+    try{handles=await window.showOpenFilePicker(projectPickerOptions(input.multiple));}
+    catch(error){if(error?.name!=='AbortError')input.click();return;}
+    if(!handles?.length)return;
+    await run(async()=>{
+      const files=await Promise.all(handles.map(handle=>within(handle.getFile(),15000,'The selected file did not respond. Try choosing it again.')));
+      return onFiles(files);
+    });
+  }
+
+  async function openPickedProject(file,expected){
+    if(expected&&file.name!==expected.filename){
+      status('Choose '+expected.filename+' to open this song.');
+      return;
+    }
+    return openRow(expected||{title:file.name,filename:file.name},file);
+  }
+
+  function browseProject(expected=null){
+    const input=el('libraryOpenInput');
+    input.expectedRow=expected;
+    return pickProjects(input,([file])=>openPickedProject(file,expected));
+  }
+
   /* RC227: Reuse saved analysed songs before loading audio or creating a paid job. */
   function songKey(value){
     return String(value||'').split(/[\\/]/).pop().replace(/\.(?:mp3|wav|m4a|aac|flac|ogg|opus|mp4|mov|webm|bassstudio|bssproject|json)$/i,'')
@@ -700,7 +733,7 @@ window.BassLibrary=(()=>{
   function build(){
     if(dialog)return;
     dialog=document.createElement('dialog');dialog.id='bassLibraryDialog';dialog.className='bass-library';dialog.setAttribute('aria-labelledby','libraryTitle');
-    dialog.innerHTML='<div class="library-heading"><div><h2 id="libraryTitle">Song library</h2><p id="libraryLocation"></p></div><button id="libraryClose" type="button">Close</button></div><div class="library-toolbar"><button id="libraryChoose" type="button">Choose save folder</button><button id="libraryReconnect" type="button">Reconnect folder</button><button id="libraryDevice" type="button">Save in app</button><button id="libraryOpenFile" type="button">Open saved file</button><button id="libraryAdd" type="button">Import saved file</button><button id="libraryBatch" type="button">Batch ZIP</button><button id="libraryRefresh" type="button">Refresh</button><button id="libraryStop" type="button" hidden>Stop checking</button></div><p id="libraryHint"></p><div class="library-filters"><div><label for="librarySearch">Search songs</label><input id="librarySearch" type="search" placeholder="Title, artist, key or BPM" autocomplete="off"></div><div><label for="librarySort">Sort by</label><select id="librarySort"><option value="recent">Recently saved</option><option value="name">Song name</option></select></div></div><div class="library-summary"><span id="libraryCount"></span><span id="libraryStatus" role="status" aria-live="polite"></span></div><ul id="librarySongs"></ul><input id="libraryOpenInput" type="file" accept=".bassstudio,.bssproject,.json,application/json" hidden><input id="libraryFiles" type="file" accept=".bassstudio,.bssproject,.json,application/json" multiple hidden>';
+    dialog.innerHTML='<div class="library-heading"><div><h2 id="libraryTitle">Song library</h2><p id="libraryLocation"></p></div><button id="libraryClose" type="button">Close</button></div><div class="library-toolbar"><button id="libraryChoose" type="button">Choose save folder</button><button id="libraryReconnect" type="button">Reconnect folder</button><button id="libraryDevice" type="button">Save in app</button><button id="libraryOpenFile" type="button">Open saved file</button><button id="libraryAdd" type="button">Import saved file</button><button id="libraryBatch" type="button">Batch ZIP</button><button id="libraryRefresh" type="button">Refresh</button><button id="libraryStop" type="button" hidden>Stop checking</button></div><p id="libraryHint"></p><div class="library-filters"><div><label for="librarySearch">Search songs</label><input id="librarySearch" type="search" placeholder="Title, artist, key or BPM" autocomplete="off"></div><div><label for="librarySort">Sort by</label><select id="librarySort"><option value="name">Alphabetical (A–Z)</option><option value="recent">Recently saved</option></select></div></div><div class="library-summary"><span id="libraryCount"></span><span id="libraryStatus" role="status" aria-live="polite"></span></div><ul id="librarySongs"></ul><input id="libraryOpenInput" type="file" accept=".bassstudio,.bssproject,.json,application/json" hidden><input id="libraryFiles" type="file" accept=".bassstudio,.bssproject,.json,application/json" multiple hidden>';
     document.body.append(dialog);
     el('libraryClose').onclick=()=>dialog.close();
     dialog.addEventListener('close',()=>{if(opening&&!opening.ready)opening.controller.abort();stopScan();document.getElementById('importProjectBtn')?.focus();});
@@ -708,20 +741,14 @@ window.BassLibrary=(()=>{
     el('libraryChoose').onclick=()=>run(chooseFolder);el('libraryDevice').onclick=()=>run(useDevice);
     el('libraryStop').onclick=()=>{stopScan();status('Folder check stopped.');render();};
     el('libraryRefresh').onclick=scanInBackground;el('libraryReconnect').onclick=()=>run(reconnect);
-    el('libraryOpenFile').onclick=()=>{
-      const input=el('libraryOpenInput');input.expectedRow=null;input.click();
-    };
+    el('libraryOpenFile').onclick=()=>browseProject();
     el('libraryOpenInput').onchange=e=>{
       const file=e.target.files?.[0],expected=e.target.expectedRow;
       e.target.value='';e.target.expectedRow=null;
       if(!file)return;
-      if(expected&&file.name!==expected.filename){
-        status('Choose '+expected.filename+' to open this song.');
-        return;
-      }
-      void run(()=>openRow(expected||{title:file.name,filename:file.name},file));
+      void run(()=>openPickedProject(file,expected));
     };
-    el('libraryAdd').onclick=()=>{el('libraryFiles').value='';el('libraryFiles').click();};
+    el('libraryAdd').onclick=()=>pickProjects(el('libraryFiles'),addFiles);
     el('libraryBatch').onclick=()=>{window.BassBatch?.show();};
     el('libraryFiles').onchange=e=>{const files=Array.from(e.target.files||[]);e.target.value='';void run(()=>addFiles(files));};
   }
@@ -811,5 +838,5 @@ window.BassLibrary=(()=>{
     if(!hooks.openPractice)throw Error('Reload the platform to open this part.');
     return !!await hooks.openPractice(file);
   }
-  return {init,show,presentOpened(file){if(opening?.file===file)opening.present();else if(dialog?.open&&!opening&&openedFiles.has(file))dialog.close();},readProject,projectBlob,selectedFile,lastProject,targetFor:file=>openedFiles.get(file),prepareSave,save:(p,b,t)=>save(p,b,t).then(r=>r.location),saveAnalysisProject,saveMelodyProject,hasProject,ensureBatchAccess,errorText,chartProjects,chartProject,checkAudioImport,analysisSummary,openForAnalysis,practiceProjects,practiceProject,openPracticeSong};
+  return {init,show,projectPickerOptions,presentOpened(file){if(opening?.file===file)opening.present();else if(dialog?.open&&!opening&&openedFiles.has(file))dialog.close();},readProject,projectBlob,selectedFile,lastProject,targetFor:file=>openedFiles.get(file),prepareSave,save:(p,b,t)=>save(p,b,t).then(r=>r.location),saveAnalysisProject,saveMelodyProject,hasProject,ensureBatchAccess,errorText,chartProjects,chartProject,checkAudioImport,analysisSummary,openForAnalysis,practiceProjects,practiceProject,openPracticeSong};
 })();
