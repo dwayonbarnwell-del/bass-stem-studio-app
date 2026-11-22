@@ -12,7 +12,7 @@ for(const m of ux.matchAll(/\$\('([^']+)'\)/g))assert(ids.has(m[1]),'Missing sho
 let options=[100,90,80,70,60].map(n=>({value:String(n),dataset:{}}));
 const tempo={value:'100',get options(){return options},add(o){options.push(o);o.remove=()=>{options=options.filter(x=>x!==o)}},querySelectorAll(){return options.filter(o=>o.dataset.customSpeed)}};
 const audio=()=>({playbackRate:1,preservesPitch:false,webkitPreservesPitch:false});
-const context={Number,String,Math,Array,Option:function(label,value){this.label=label;this.value=value;this.dataset={}},tempo,tempoText:{},songTempo:{},songTempoWrap:{},detectedTempoBpm:130,masterAudio:audio(),bassStemAudio:audio(),noBassAudio:audio(),playing:false};
+const context={cancelMetronome(){},Number,String,Math,Array,Option:function(label,value){this.label=label;this.value=value;this.dataset={}},tempo,tempoText:{},songTempo:{},songTempoWrap:{},detectedTempoBpm:130,masterAudio:audio(),bassStemAudio:audio(),noBassAudio:audio(),playing:false};
 vm.createContext(context);
 const code=html.slice(html.indexOf('  function normalisePracticeSpeed(value){'),html.indexOf('  tempo.onchange=applyTempo;'));
 vm.runInContext(code,context);

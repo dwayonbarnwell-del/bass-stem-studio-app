@@ -247,9 +247,8 @@
 }
 #earTrainerDialog #rehearsalTimeline:not([hidden]){display:grid;gap:1px;background:#416582;border:1px solid #416582;border-radius:12px;overflow:auto}
 #earTrainerDialog #rehearsalTimeline>div{display:flex;flex-direction:column;align-items:center;gap:8px;min-width:0;padding:8px 3px;background:linear-gradient(175deg,#1e3951,#101f31 85%)}
-#earTrainerDialog #rehearsalTimeline>div:has(.active){background:linear-gradient(175deg,#234f64,#11293b 85%)}
-#earTrainerDialog #rehearsalTimeline time{color:#c2d7e5;font-size:.82em;font-variant-numeric:tabular-nums}
-#earTrainerDialog #rehearsalTimeline span{display:grid;place-items:center;width:clamp(30px,9vw,40px);aspect-ratio:1;border-radius:50%;background:linear-gradient(145deg,#386378,#233b53);color:#edf7ff;font-weight:700;border:1px solid #60879d}
+#earTrainerDialog #rehearsalTimeline time{position:sticky;top:0;z-index:1;align-self:stretch;text-align:center;white-space:nowrap;background:#1e3951;color:#c2d7e5;font-size:.82em;font-variant-numeric:tabular-nums}
+#earTrainerDialog #rehearsalTimeline span{flex:none;display:grid;place-items:center;width:clamp(30px,9vw,40px);aspect-ratio:1;border-radius:50%;background:linear-gradient(145deg,#386378,#233b53);color:#edf7ff;font-weight:700;border:1px solid #60879d}
 #earTrainerDialog #rehearsalTimeline .rehearsal-fill-note{background:linear-gradient(145deg,#665088,#3a2d52);border-color:#9078b1;color:#f4e9ff}
 #earTrainerDialog #rehearsalTimeline .active{background:linear-gradient(145deg,#cbfff0,#72cbb8);color:#122c30;border-color:#e8fffb}
 #earTrainerDialog #rehearsalTimeline .rehearsal-fill-note.active{background:linear-gradient(145deg,#ead7ff,#b899eb);color:#2c1d3d;border-color:#f7eaff}
@@ -277,13 +276,12 @@
  #earTrainerDialog:has(#earRehearsal[data-playing=true]) #earBassSections{display:none!important}
  #earTrainerDialog #earRehearsal[data-playing=true]{flex:1 0 0!important;min-height:min-content}
  #earTrainerDialog #earRehearsal[data-playing=true] #rehearsalEditor{flex:1 0 auto}
- #earTrainerDialog #earRehearsal[data-playing=true] #rehearsalTimeline>div{justify-content:space-evenly}
  #earTrainerDialog #earRehearsal :is(button,select),#earTrainerDialog #earBassSections #earSectionRehearsal{
-  background:linear-gradient(125deg,var(--rehearsal-a,#215ca4),var(--rehearsal-b,#433c84))!important;color:white!important;
+  background:linear-gradient(125deg,var(--rehearsal-a,#34536f),var(--rehearsal-b,#384563))!important;color:white!important;
  }
- #earTrainerDialog :is(#rehearsalLibrary,#rehearsalPattern,#rehearsalGuide[aria-pressed=true]){--rehearsal-a:#7044a0;--rehearsal-b:#45327d}
- #earTrainerDialog :is(#rehearsalPlay,#earSectionRehearsal,#rehearsalStyle){--rehearsal-a:#087766;--rehearsal-b:#145475}
- #earTrainerDialog :is(#rehearsalAdjust,#rehearsalFill){--rehearsal-a:#925517;--rehearsal-b:#713c48}
- #earTrainerDialog #rehearsalMix[aria-pressed=true]{--rehearsal-a:#963e66;--rehearsal-b:#643564}
+ #earTrainerDialog :is(#rehearsalLibrary,#rehearsalPattern,#rehearsalGuide[aria-pressed=true]){--rehearsal-a:#594d70;--rehearsal-b:#41405a}
+ #earTrainerDialog :is(#rehearsalPlay,#earSectionRehearsal,#rehearsalStyle){--rehearsal-a:#35625d;--rehearsal-b:#304f60}
+ #earTrainerDialog :is(#rehearsalAdjust,#rehearsalFill){--rehearsal-a:#71583d;--rehearsal-b:#554451}
+ #earTrainerDialog #rehearsalMix[aria-pressed=true]{--rehearsal-a:#715064;--rehearsal-b:#513f54}
  #earTrainerDialog :is(#rehearsalMix,#rehearsalGuide)[aria-pressed=false]{--rehearsal-a:#405467;--rehearsal-b:#303e51}
 }

@@ -3,6 +3,7 @@ window.BassRehearsal=(()=>{
  'use strict';
  const C=window.BassRehearsalCore;
  const fmt=time=>{const hundredths=Math.round(time*100);return Math.floor(hundredths/6000)+':'+(hundredths%6000/100).toFixed(2).padStart(5,'0');};
+ const minutesSeconds=time=>Math.floor(time/60)+':'+String(Math.floor(time)%60).padStart(2,'0');
  const parseTime=value=>{
   const parts=value.trim().split(':');
   if(!parts.length||parts.length>2||parts.some(p=>!/^\d+(?:\.\d+)?$/.test(p)))return NaN;
@@ -265,7 +266,7 @@ window.BassRehearsal=(()=>{
    const columns=[];
    for(let i=first;i<Math.min(edges.length-1,first+step);i++){
     const cell=document.createElement('div'),time=document.createElement('time');
-    time.textContent=fmt(edges[i]);cell.append(time);
+    time.textContent=minutesSeconds(edges[i]);cell.append(time);
     for(const note of viewNotes){
      const start=Math.max(note.time,edges[first]);
      if(note.stop<=edges[first]||start<edges[i]-.0001||start>=edges[i+1]-.0001)continue;
@@ -483,7 +484,8 @@ window.BassRehearsal=(()=>{
   if(playing.viewChange&&now>=playing.viewChange.at){
    setNotes(playing.viewChange.notes);playing.viewChange=null;
   }
-  $('rehearsalTime').value=fmt(viewPosition)+' / '+fmt(clip.end);
+  const format=$('rehearsalView').value==='notes'?minutesSeconds:fmt;
+  $('rehearsalTime').value=format(viewPosition)+' / '+format(clip.end);
   const current=audible&&viewNotes.find(n=>n.time<=viewPosition&&viewPosition<n.stop);
   $('rehearsalCue').value=current?noteName(current):'';
   drawView();
