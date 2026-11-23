@@ -18,43 +18,62 @@ window.BassPhraseView=(()=>{
   if(phrase&&end-phrase.end>=1)rows.push({start:phrase.end,end,notes:[]});
   return rows;
  }
- function create(host){
+ function create(host,onRepeat=()=>{},selected=()=>null){
   const select=document.createElement('select'),list=document.createElement('div');
   select.setAttribute('aria-label','Phrase labels');
   select.add(new Option('Scale numbers','numbers'));select.add(new Option('Note names','notes'));
   host.replaceChildren(select,list);
-  let rows=[],page=-1,markers=[],data=null,lastTime=0,lastPlaying=false;
-  select.onchange=()=>{page=-1;draw(lastTime,lastPlaying);};
+  let rows=[],lines=[],data=null,active=-1,pressed=-1,lastTime=0,lastPlaying=false;
+  function render(){
+   active=pressed=-1;
+   lines=rows.map((row,i)=>{
+    const line=document.createElement('div'),range=document.createElement('time'),chips=document.createElement('div');
+    line.className='bass-phrase-row';
+    const a=stamp(row.start),b=stamp(row.end);
+    range.textContent=a===b?a:a+' – '+b;
+    if(row.notes.length){
+     line.tabIndex=0;line.setAttribute('role','button');line.setAttribute('aria-pressed','false');
+     line.title='Repeat phrase';line.onclick=()=>{onRepeat(row);draw(lastTime,lastPlaying);};
+     line.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();line.click();}};
+    }else chips.textContent='Rest';
+    for(const note of row.notes){
+     const chip=document.createElement('span');
+     chip.textContent=note.midi===null?'×':set.label(note,select.value);chips.append(chip);
+    }
+    line.append(range,chips);return line;
+   });
+   list.replaceChildren(...lines);
+   if(!rows.length)list.textContent='No bass notes in this passage.';
+  }
+  select.onchange=()=>{render();draw(lastTime,lastPlaying);};
   function set(events,bpm,meter,start,end,label){
    if(data===events)return;
-   data=events;rows=group(events,bpm,meter,start,end);page=-1;
-   set.label=label;
+   data=events;rows=group(events,bpm,meter,start,end);set.label=label;render();
   }
+  let lastSelection;
   function draw(time,playing){
    lastTime=time;lastPlaying=playing;
    let lo=0,hi=rows.length;
    while(lo<hi){const mid=(lo+hi)>>>1;if(rows[mid].start<=time)lo=mid+1;else hi=mid;}
-   const first=Math.floor(Math.max(0,lo-1)/6)*6;
-   if(page!==first){
-    page=first;markers=[];list.replaceChildren();
-    if(!rows.length)list.textContent='No bass notes in this passage.';
-    for(const row of rows.slice(first,first+6)){
-     const line=document.createElement('div'),range=document.createElement('time'),chips=document.createElement('div');
-     line.className='bass-phrase-row';
-     const a=stamp(row.start),b=stamp(row.end);
-     range.textContent=a===b?a:a+' – '+b;
-     if(!row.notes.length)chips.textContent='Rest';
-     for(const note of row.notes){
-      const chip=document.createElement('span');
-      chip.textContent=note.midi===null?'×':set.label(note,select.value);
-      chips.append(chip);markers.push({chip,note});
-     }
-     line.append(range,chips);list.append(line);
+   const i=lo-1,r=selected();
+   if(lastSelection!==r||pressed===-1&&r){
+    if(lines[pressed])lines[pressed].setAttribute('aria-pressed','false');
+    pressed=r?rows.findIndex(row=>row.start===r.start&&row.end===r.end):-1;
+    if(pressed>=0)lines[pressed].setAttribute('aria-pressed','true');
+    lastSelection=r;
+   }
+   if(active!==i){
+    if(lines[active])for(const chip of lines[active].querySelectorAll('.sounding'))chip.classList.remove('sounding');
+    active=i;
+    if(lines[i]){
+     const top=lines[i].offsetTop;
+     if(top<list.scrollTop||top+lines[i].offsetHeight>list.scrollTop+list.clientHeight)list.scrollTop=top;
     }
    }
-   for(const {chip,note} of markers)chip.classList.toggle('sounding',playing&&note.start<=time&&time<note.end);
+   if(i>=0)rows[i].notes.forEach((n,k)=>lines[i].lastElementChild.children[k].classList.toggle('sounding',playing&&n.start<=time&&time<n.end));
   }
-  return {set,draw,invalidate(){data=null;page=-1;}};
+  return {set,draw,invalidate(){data=null;}};
+
  }
  return {create,group};
 })();

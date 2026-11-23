@@ -13796,6 +13796,12 @@ html body #appRoot #bassFretboard#bassFretboard#bassFretboard#bassFretboard .bas
 .bass-phrase-row span{border-radius:1em;padding:.12em .42em;background:#233e50;color:#e0eff3}
 .bass-phrase-row span.sounding{background:#a6dccc;color:#142f30}
 #earTrainerDialog .bass-phrase{overflow:auto;min-height:0;flex:1 1 auto}
+#phrasePanel:not([hidden]),#earTrainerDialog #rehearsalPhrases:not([hidden]){display:flex;flex-direction:column;flex:1 1 0;min-height:0;overflow:hidden}
+#earTrainerDialog #rehearsalVisual:has(#rehearsalPhrases:not([hidden])){flex:1 1 195px;min-height:185px;overflow:hidden}
+#phrasePanel>div,#rehearsalPhrases>div{position:relative;overflow:auto;flex:1 1 0;min-height:0;overscroll-behavior:contain}
+html body :is(#phrasePanel,#rehearsalPhrases)>select[aria-label="Phrase labels"]{appearance:auto!important;align-self:flex-start!important;flex:none!important;width:auto!important;min-width:0!important;height:2rem!important;min-height:0!important;max-height:2rem!important;line-height:normal!important;padding:.15rem .55rem!important;font-size:.87rem!important;border-radius:.5rem!important;color:#e3edf2!important;background:#243e51!important;border:1px solid #526f81!important}
+.bass-phrase-row[role=button]{cursor:pointer}
+.bass-phrase-row[aria-pressed=true]{background:#244b50;box-shadow:inset 3px 0 #92d6c6}
 </style>
 </head>
 <body>
@@ -15775,8 +15781,8 @@ window.BassBatch = (() => {
 <script src="./ear-source/uploaded-core-rc267.js?v=rc337"></script>
 <script src="./ear-source/study-ui-rc267.js?v=rc339"></script>
 <script src="./ear-source/rehearsal-core.js?v=rc324"></script>
-<script src="./ear-source/phrase-view.js?v=rc342"></script>
-<script src="./ear-source/rehearsal.js?v=rc342"></script>
+<script src="./ear-source/phrase-view.js?v=rc343"></script>
+<script src="./ear-source/rehearsal.js?v=rc343"></script>
 <script src="./ear-source/trainer-rc266.js?v=rc326"></script>
 <script src="./fretflow-source/core.js?v=rc277"></script>
 <script src="./fretflow-source/practice-stems.js?v=rc305"></script>
@@ -15789,7 +15795,7 @@ window.BassBatch = (() => {
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC342';
+  const APP_VERSION='RC343';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;
@@ -15894,7 +15900,10 @@ window.BassBatch = (() => {
     return midiName(pitch);
   }
   function drawSongPhrases(t){
-    songPhrases??=window.BassPhraseView.create($('phrasePanel'));
+    songPhrases??=window.BassPhraseView.create($('phrasePanel'),row=>{
+      const active=timeframeLoopMode&&timeframeQueue.length===1&&timeframeQueue[0];
+      songViewRepeat(active&&active.start===row.start&&active.end===row.end?[]:[row]);
+    },()=>timeframeLoopMode&&timeframeQueue.length===1?timeframeQueue[0]:null);
     songPhrases.set(notes,detectedTempoBpm,detectedBeatsPerBar,0,buffer?.duration||0,phraseLabel);
     songPhrases.draw(t,playing);
   }

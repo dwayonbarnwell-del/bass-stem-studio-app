@@ -12,7 +12,7 @@ window.BassRehearsal=(()=>{
  let host,api,song,clip,prepared,prepareTimer,ranked=[],ctx,band,clock,visualFrame,voices=[],playing,work=0,loading=false,importing=false,manualBpm=0,mixRevision=0,noBass=true,mixFailed=false;
  const $=id=>host.querySelector('#'+id);
  const state=text=>{$('rehearsalStatus').textContent=text;};
- let phrases,phraseEvents=[];
+ let phraseRepeat=null,phrases,phraseEvents=[];
  let featured=[],viewNotes=[],viewPosition=0,fretView,fretNotes=[],notePage=-1,markers=[],audible=false;
 
  function init(panel,hooks){
@@ -49,8 +49,8 @@ window.BassRehearsal=(()=>{
     <label class="rehearsal-level">Guide bass <input id="rehearsalGain" type="range" min="0" max="100" value="100"><output id="rehearsalGainValue">100%</output></label>
     <div class="rehearsal-row"><button id="rehearsalPlay" type="button">Play loop</button><button id="rehearsalGuide" type="button" aria-pressed="true">Guide on</button></div>
     <div class="rehearsal-readout"><output id="rehearsalTime"></output><output id="rehearsalCue"></output></div>
+    <select id="rehearsalView" aria-label="Rehearsal view"><option value="notes">Note View</option><option value="phrase">Phrase View</option><option value="fret">Fret View</option><option value="fret2">Fret View 2</option></select>
     <div id="rehearsalVisual" hidden>
-     <select id="rehearsalView" aria-label="Rehearsal view"><option value="notes">Note View</option><option value="phrase">Phrase View</option><option value="fret">Fret View</option><option value="fret2">Fret View 2</option></select>
      <div class="bass-phrase" id="rehearsalPhrases" hidden></div>
      <div id="rehearsalTimeline" aria-label="Rehearsal note timeline"></div>
      <div id="rehearsalFret" hidden></div>
@@ -205,7 +205,7 @@ window.BassRehearsal=(()=>{
  }
 
  function resetClip(){
-  stop();discardPreparation();clip=null;
+  phraseRepeat=null;stop();discardPreparation();clip=null;
   if(mixFailed){noBass=true;mixFailed=false;labelMix();}
   setNotes([]);
  }
@@ -283,7 +283,7 @@ window.BassRehearsal=(()=>{
   const phraseHost=$('rehearsalPhrases');
   phraseHost.hidden=mode!=='phrase';board.hidden=mode==='notes'||mode==='phrase';timeline.hidden=mode!=='notes';
   if(mode==='phrase'){
-   phrases??=window.BassPhraseView.create(phraseHost);
+   phrases??=window.BassPhraseView.create(phraseHost,togglePhrase,()=>phraseRepeat);
    phrases.set(phraseEvents,clip.grid?.bpm,clip.grid?.meter,clip.start,clip.end,api.phraseLabel);
    phrases.draw(viewPosition,audible);
    return;
@@ -412,12 +412,14 @@ window.BassRehearsal=(()=>{
  function startBand(tracks,when,phase=0,replace=false){
   const node=ctx.createBufferSource(),gain=ctx.createGain(),previous=band;
   node.buffer=tracks.source;node.loop=true;
-  node.loopStart=tracks.offset;node.loopEnd=tracks.end;
+  const offset=tracks.offset+(phraseRepeat?phraseRepeat.start-clip.start:0);
+  const end=phraseRepeat?Math.min(tracks.end,tracks.offset+phraseRepeat.end-clip.start):tracks.end;
+  node.loopStart=offset;node.loopEnd=end;
   const level=Number($('rehearsalMusic').value)/100;
   gain.gain.value=replace?0:level;
   node.connect(gain).connect(ctx.destination);
-  node.start(when,tracks.offset+phase%(tracks.end-tracks.offset));
-  band={node,gain};
+  node.start(when,offset+phase%(end-offset));
+  band={node,gain,tracks};
   if(!replace||!previous)return;
   gain.gain.setValueAtTime(0,when);
   gain.gain.linearRampToValueAtTime(level,when+.018);
@@ -425,6 +427,19 @@ window.BassRehearsal=(()=>{
   previous.gain.gain.linearRampToValueAtTime(0,when+.018);
   previous.node.onended=()=>{previous.node.disconnect();previous.gain.disconnect();};
   previous.node.stop(when+.02);
+ }
+
+ function togglePhrase(row){
+  if(loading)return;
+  const remove=phraseRepeat?.start===row.start&&phraseRepeat?.end===row.end;
+  phraseRepeat=remove?null:row;
+  if(!playing){if(!remove)void play();return;}
+  const when=ctx.currentTime+.025,start=phraseRepeat?.start??clip.start;
+  const phase=remove?Math.max(0,viewPosition-start):0;
+  stopBass();
+  startBand(band.tracks,when,phase,true);
+  playing.when=when-phase;playing.seconds=band.node.loopEnd-band.node.loopStart;
+  playing.cycle=0;playing.index=0;schedule();
  }
 
  async function toggleMix(){
@@ -479,7 +494,7 @@ window.BassRehearsal=(()=>{
    if(id!==work||currentId!==api.session())return;
    const notes=plan(),when=ctx.currentTime+.06,seconds=tracks.end-tracks.offset;
    startBand(tracks,when);
-   playing={when,seconds,notes,pending:null,cycle:0,index:0};
+   playing={when,seconds:band.node.loopEnd-band.node.loopStart,notes,pending:null,cycle:0,index:0};
    setCompact(true);
    $('rehearsalPlay').textContent='Pause';
    state([originalFallback?'Original bass is still on.':'',!clip.bassNotes.length?'No bass notes detected here. Playing a suggested line.':''].filter(Boolean).join(' '));
@@ -504,7 +519,8 @@ window.BassRehearsal=(()=>{
    const start=s.when+s.cycle*s.seconds;
    if(s.index===0&&s.pending){s.notes=s.pending;s.pending=null;s.viewChange={at:start,notes:s.notes};}
    while(s.index<s.notes.length){
-    const note=s.notes[s.index],beat=start+note.time-clip.start;
+    const note=s.notes[s.index],beat=start+note.time-(phraseRepeat?.start??clip.start);
+    if(phraseRepeat&&(note.time<phraseRepeat.start||note.time>=phraseRepeat.end)){s.index++;continue;}
     if(beat>horizon)return;
     s.index++;
     if(beat<now-.03||$('rehearsalGuide').getAttribute('aria-pressed')!=='true')continue;
@@ -512,7 +528,7 @@ window.BassRehearsal=(()=>{
     if(!level)continue;
     const instrument=window.BassPracticeAudio,when=Math.max(now,beat);
     const velocity=(note.role==='root'?86:75)+Math.round(note.accent*15);
-    voices.push(note.midi===null?instrument.muted(ctx,when,level):instrument.tone(ctx,note.midi,when,note.stop-note.time,'bass',0,velocity,level));
+    voices.push(note.midi===null?instrument.muted(ctx,when,level):instrument.tone(ctx,note.midi,when,Math.min(note.stop,phraseRepeat?.end??clip.end)-note.time,'bass',0,velocity,level));
    }
    s.cycle++;s.index=0;
   }
@@ -523,7 +539,7 @@ window.BassRehearsal=(()=>{
   if(!playing)return;
   const now=ctx.currentTime-(window.BassPlaybackTiming?.outputDelay(ctx)||0);
   audible=now>=playing.when;
-  viewPosition=clip.start+(Math.max(0,now-playing.when)%playing.seconds);
+  viewPosition=(phraseRepeat?.start??clip.start)+(Math.max(0,now-playing.when)%playing.seconds);
   if(playing.viewChange&&now>=playing.viewChange.at){
    setNotes(playing.viewChange.notes);playing.viewChange=null;
   }
