@@ -15762,12 +15762,12 @@ window.BassBatch = (() => {
 <script src="./ear-source/uploaded-core-rc267.js?v=rc337"></script>
 <script src="./ear-source/study-ui-rc267.js?v=rc339"></script>
 <script src="./ear-source/rehearsal-core.js?v=rc324"></script>
-<script src="./ear-source/rehearsal.js?v=rc334"></script>
+<script src="./ear-source/rehearsal.js?v=rc340"></script>
 <script src="./ear-source/trainer-rc266.js?v=rc326"></script>
 <script src="./fretflow-source/core.js?v=rc277"></script>
 <script src="./fretflow-source/practice-stems.js?v=rc305"></script>
 <script src="./fretflow-source/bass-evidence.js?v=rc315"></script>
-<script src="./fretflow-source/backing.js?v=rc329"></script>
+<script src="./fretflow-source/backing.js?v=rc340"></script>
 <script src="./fretflow-source/view.js?v=rc325"></script>
 <script src="./fretflow-source/controls.js?v=rc303"></script>
 <script src="./song-view/core.js?v=rc308"></script>
@@ -15775,7 +15775,7 @@ window.BassBatch = (() => {
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC339';
+  const APP_VERSION='RC340';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;
@@ -20788,8 +20788,8 @@ window.BassBatch = (() => {
       t>=Number(el.dataset.start)&&(t<Number(el.dataset.end)||(t===buffer.duration&&t===Number(el.dataset.end))))
       .sort((a,b)=>Number(b.dataset.start)-Number(a.dataset.start))[0]:null;
     const previous=updateCurrentChord.previous;
-    if(active)keepChordVisible(active);
     if(previous===active)return;
+    if(active)keepChordVisible(active);
     if(previous){previous.classList.remove('current-chord');previous.removeAttribute('aria-current');}
     if(active){active.classList.add('current-chord');active.setAttribute('aria-current','true');}
     updateCurrentChord.previous=active;
@@ -20812,6 +20812,7 @@ window.BassBatch = (() => {
         if(t>=Number(item.dataset.start)&&t<Number(item.dataset.end)&&
           (!active||Number(item.dataset.start)>Number(active.dataset.start)))active=item;
       }
+      const changedNote=active!==updateSimpleTimeline.note;
       for(const [key,next] of [['cell',cell],['note',active]]){
         const previous=updateSimpleTimeline[key];
         if(previous!==next){
@@ -20820,7 +20821,7 @@ window.BassBatch = (() => {
           updateSimpleTimeline[key]=next;
         }
       }
-      if(active&&!inlineNoteEditor)keepPracticeItemVisible(active);
+      if(changedNote&&active&&!inlineNoteEditor)keepPracticeItemVisible(active);
     }
     if(timelinePlayhead&&buffer){
       timelinePlayhead.classList.add('show');
@@ -20942,7 +20943,6 @@ window.BassBatch = (() => {
 
   function drawPlaybackFrame(){
     const t=displayTime();
-    updateSectionKey(t);
     if(practiceVisualMode==='timeline'&&!rebuildSimpleTimeline._sig)rebuildSimpleTimeline();
     curTime.textContent=fmt(t);
     seek.value=Math.round(t/buffer.duration*1000)||0;
@@ -20953,7 +20953,8 @@ window.BassBatch = (() => {
 
   function tick(){
     cancelAnimationFrame(raf);
-    const loop=()=>{
+    let lastDraw=-Infinity;
+    const loop=(now)=>{
       if(!playing) return;
       let t=currentTime();
       window.BassTools?.monitor();
@@ -20974,7 +20975,7 @@ window.BassBatch = (() => {
       if(noBassReady)syncNoBass(false);
       if(bassStemReady)syncBassStem(false);
       updateMetronome(t);
-      drawPlaybackFrame();
+      if(now-lastDraw>=30){drawPlaybackFrame();lastDraw=now;}
       if(t<buffer.duration||masterAudio.loop) raf=requestAnimationFrame(loop);
     };
     raf=requestAnimationFrame(loop);
@@ -21153,8 +21154,8 @@ window.BassBatch = (() => {
   }
 
   let localBassSession=-1,localBassCheckingSession=-1;
-  async function estimateMissingBass(source,session,eligible=()=>session===songSession&&!aiBusy&&!offlineAnalysisReady,filter=()=>true){
-    if(localBassSession===session)return;
+  async function estimateMissingBass(source,session,eligible=()=>session===songSession&&!aiBusy&&!offlineAnalysisReady,filter=()=>true,recordingSource='estimated-bass-stem'){
+    if(localBassSession===session&&recordingSource==='estimated-bass-stem')return;
     localBassSession=session;
     const rate=source.sampleRate,stride=Math.max(1,Math.floor(rate/2400)),sr=rate/stride;
     const channels=Array.from({length:source.numberOfChannels},(_,i)=>source.getChannelData(i));
@@ -21181,9 +21182,10 @@ window.BassBatch = (() => {
       if(i%24===0)await new Promise(resolve=>setTimeout(resolve,0));
       if(!eligible()){if(localBassSession===session)localBassSession=-1;return;}
       const note=candidates[i];
-      if(filter(note))found.push({...note,end:Math.min(source.duration,note.end),source:'estimated-bass-stem'});
+      if(filter(note))found.push({...note,end:Math.min(source.duration,note.end),source:recordingSource});
     }
     if(!eligible()){if(localBassSession===session)localBassSession=-1;return;}
+    if(recordingSource==='estimated-bass'&&localBassSession===session)localBassSession=-1;
     if(found.length||notes.length){
       if(notes.length)rememberAnalysis('Before checking bass tone');
       notes=found;analysedBassNotes=found.map(n=>({...n}));offlineAnalysisReady=found.length>0;
@@ -21301,6 +21303,8 @@ window.BassBatch = (() => {
       queueMelodyProjectSave(true);
     },encode:fileToBase64,setMuted:value=>{bassPracticeMuted=!!value;},
     graph:()=>{ensureCtx();buildGraph();return {ctx,main:sourceBus,bass:[bassPitchDryGain,bassPitchShift.input]};},
+    practiceActive:()=>window.BassRehearsal?.isActive?.(),
+    progress:()=>window.BassPracticeControls?.update(),
     update:()=>{updateAudioParams();refreshBassPracticeToggle();window.BassFretFlow?.draw();},
     extract:(a,b,p,c)=>separatePracticeStem(a,b,p,c,'rehearsal')
   });
@@ -21370,6 +21374,11 @@ window.BassBatch = (() => {
       session:()=>songSession,
       pickAudio:(input,onAudio)=>chooseImportFile('audio',{input,onAudio}),
       importAudio:file=>importAudioCheckingLibrary(file,{automaticAnalysis:false}),
+      readBass:async(session,cancelled)=>{
+        if(!buffer||session!==songSession)return [];
+        if(!notes.length)await estimateMissingBass(buffer,session,()=>session===songSession&&!cancelled()&&!notes.length&&!aiBusy,()=>true,'estimated-bass');
+        return session===songSession?notes:[];
+      },
       openLibrary:async()=>{
         await window.BassLibrary.show();
         $('bassLibraryDialog')?.addEventListener('close',()=>window.BassRehearsal.refresh(),{once:true});

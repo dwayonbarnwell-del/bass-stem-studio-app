@@ -152,11 +152,18 @@ async function playerTest(){
   await $('rehearsalLibrary').onclick();assert(library&&bands.at(-1).node.stopped);
   song.buffer={...clip,duration:36,length:36*sampleRate,getChannelData:()=>new Float32Array(36*sampleRate)};
   song.duration=36;song.session=++songSession;
+  song.notes=[{start:0,end:.18,midi:37},{start:.5,end:.8,midi:42}];
   panel.refresh();
   assert.equal($('rehearsalPassage').value,'0','new recordings select the full song');
   assert.equal($('rehearsalEnd').value,'0:36.00');
+  assert.equal($('rehearsalStyle').value,'auto');
+  assert.equal(Number($('rehearsalMusic').value),30);
+  assert.equal(Number($('rehearsalGain').value),100);
   $('rehearsalMix').onclick();
   $('rehearsalPlay').onclick();await new Promise(resolve=>setImmediate(resolve));
+  assert.equal($('rehearsalPattern').value,'song-bass');
+  value('rehearsalView','fret');$('rehearsalView').onchange();
+  assert.equal(JSON.stringify(fretDraw.notes.map(n=>[n.midi,n.start,n.end])),JSON.stringify([[37,0,.18],[42,.5,.8]]));
   assert.equal(bands.at(-1).node.loopEnd,36,'whole song uses both exact endpoints');
   panel.close();
   console.log('PASS import, playback and uninterrupted style switching, cached band mix, and Library hand-off.');
@@ -200,3 +207,22 @@ async function backingTest(){
   console.log('PASS shared bass-free blocks across overlapping passages and full-song loops.');
 }
 backingTest().catch(error=>{console.error(error);process.exitCode=1;});
+
+async function playbackPriorityTest(){
+  const window={},master={paused:false,addEventListener(){}};
+  vm.runInNewContext(fs.readFileSync('fretflow-source/backing.js','utf8'),{
+    window,setTimeout,Audio:class{addEventListener(){} pause(){}}
+  });
+  let extracts=0,practising=false;
+  window.BassBacking.init({get:()=>({master,session:7,duration:240,loaded:true}),
+    update(){},setMuted(){},practiceActive:()=>practising,cacheKey:async()=>'',
+    extract:async()=>{extracts++;throw Error('End of fixture');}
+  });
+  const task=window.BassBacking.prepareForSong();
+  const wait=()=>new Promise(resolve=>setTimeout(resolve,250));
+  await wait();assert.equal(extracts,0);
+  practising=true;master.paused=true;await wait();assert.equal(extracts,0);
+  practising=false;await task;assert.equal(extracts,1);
+  console.log('PASS background preparation yields during playback and rehearsal, and resumes on pause.');
+}
+playbackPriorityTest().catch(error=>{console.error(error);process.exitCode=1;});

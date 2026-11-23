@@ -59,7 +59,16 @@ window.BassBacking=(()=>{
   if(target)api.pause();
   const mine=++token;busy=true;session=s.session;enabled=false;stop();route();message='Checking saved mute controls…';changed();
   const cancelled=()=>mine!==token||api.get().session!==s.session;
+  // Automatic stem work yields to the user's playback. Explicit mute requests
+  // already pause the player and can proceed immediately.
+  const waitForIdle=async()=>{
+   while(!target&&!cancelled()&&playbackActive()){
+    if(message!=='Mute preparation paused during playback'){message='Mute preparation paused during playback';changed();}
+    await new Promise(resolve=>setTimeout(resolve,200));
+   }
+  };
   try{
+   await waitForIdle();if(cancelled())return;
    const key=await api.cacheKey().catch(()=>'');
    if(cancelled())return;
    const cached=(!availableBlobs&&key)?await api.readCache(key).catch(()=>null):null;
@@ -71,6 +80,7 @@ window.BassBacking=(()=>{
    if(!blobs){
     const parts=[[],[],[]],rate=44100;let frames=0;
     for(let from=0;from<s.duration;from+=20){
+     await waitForIdle();if(cancelled())return;
      const to=Math.min(s.duration,from+20),count=Math.round((to-from)*rate);
      const partId=key&&key+':part:'+from;
      const stored=partId?await api.readCache(partId).catch(()=>null):null;
@@ -78,9 +88,10 @@ window.BassBacking=(()=>{
      let pcm=stored?.frames===count&&stored.parts?.length===3&&stored.parts.every(p=>p?.size===count*4)?stored.parts:null;
      if(!pcm){
       const audioStart=Math.max(0,from-.4),audioEnd=Math.min(s.duration,to+.4);
-      const audio=await api.extract(audioStart,audioEnd,p=>{message='Preparing mute controls '+Math.min(99,Math.round((from+(to-from)*p/100)/s.duration*100))+'%';changed();},cancelled);
+      const audio=await api.extract(audioStart,audioEnd,p=>{const label='Preparing mute controls '+Math.min(99,Math.round((from+(to-from)*p/100)/s.duration*100))+'%';if(label!==message){message=label;if(api.progress)api.progress();else changed();}},cancelled);
       if(cancelled())return;
       if(audio.numberOfChannels!==6||audio.sampleRate!==rate)throw Error('Instrumental output is incomplete.');
+      await waitForIdle();if(cancelled())return;
       const first=Math.round((from-audioStart)*rate);
       pcm=parts.map((_,i)=>new Blob([pcmPart(audio,i*2,first,first+count)]));
       if(partId&&api.writePart)await api.writePart(partId,count,pcm).catch(()=>{});
@@ -103,7 +114,7 @@ window.BassBacking=(()=>{
     const encoded=[];
     for(const blob of blobs){
      const pieces=[],chunk=3*1024*1024;
-     for(let i=0;i<blob.size;i+=chunk){pieces.push(await api.encode(blob.slice(i,i+chunk)));if(cancelled())return;}
+     for(let i=0;i<blob.size;i+=chunk){await waitForIdle();if(cancelled())return;pieces.push(await api.encode(blob.slice(i,i+chunk)));if(cancelled())return;}
      encoded.push(pieces.join(''));
     }
     saved={version:2,duration:s.duration,mime:'audio/wav',accompanimentBase64:encoded[0],bassBase64:encoded[1],vocalsBase64:encoded[2]};
@@ -115,7 +126,7 @@ window.BassBacking=(()=>{
    ready=true;enabled=!!target;vocalsMuted=target==='vocals';if(target)api.setMuted(target==='bass'||s.bassMuted);
    message='Mute controls ready.';route();
    void api.bassStemReady?.(blobs[1],s.session);
-   void compact(blobs);
+   void compactWhenIdle(blobs,mine);
   }catch(e){if(mine===token){ready=false;enabled=false;vocalsMuted=false;api.setMuted(false);route();message=availableBlobs?'Mute audio could not load. Tap Vocals to retry.':e.message||'Could not prepare mute controls.';}}
   finally{if(mine===token){busy=false;changed();}}
  }
@@ -178,6 +189,11 @@ window.BassBacking=(()=>{
   }
   return wav(chunks,frames,44100);
  }
+ function playbackActive(){return api.get().master?.paused===false||api.practiceActive?.();}
+ async function compactWhenIdle(blobs,mine){
+  while(mine===token&&playbackActive())await new Promise(resolve=>setTimeout(resolve,250));
+  if(mine===token)await compact(blobs);
+ }
  async function compact(blobs){
   const previous=saved,format=preferredFormat(),mine=token;
   if(!previous||cancelConversion||!['audio/flac','audio/mpeg'].includes(format)||previous.mime&&previous.mime!=='audio/wav'||typeof Worker!=='function')return;
@@ -230,7 +246,7 @@ window.BassBacking=(()=>{
    await load(blobs,mine,s.duration);if(mine!==token)return;
    ready=true;message=value.version===2?'Saved mute controls ready.':'Bass mute ready.';changed();
    void api.bassStemReady?.(blobs[1],s.session);
-   void compact(blobs);
+   void compactWhenIdle(blobs,mine);
   }catch{if(mine===token){ready=false;message=availableBlobs?'Saved mute audio could not load. Tap Vocals to retry.':'Saved mute audio is incomplete.';changed();}}
  }
  async function bandExcerpt(start,end){
