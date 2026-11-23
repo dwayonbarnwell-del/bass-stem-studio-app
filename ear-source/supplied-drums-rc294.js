@@ -2,9 +2,10 @@
 window.BassSuppliedDrums=(()=>{
  'use strict';
  const loops=window.BassDrumLoops||[],genres=[['worship','Worship'],['praise','Praise'],['soul','Soul & R&B'],['funk','Funk'],['reggae','Reggae'],['highlife','Highlife'],['afrobeat','Afrobeat'],['makossa','Makossa'],['soukous','Soukous & Seben'],['soca','Soca'],['zouk','Zouk'],['rock','Rock']];
+ const available=[...loops,...(window.BassGrooveLibrary?.loops||[])];
  const buffers=new Map(),renders=new Map(),loads=new Map();
  function choose(style,genre='auto',id='auto'){
-  const exact=loops.find(x=>x.id===id);if(exact)return exact;
+  const exact=available.find(x=>x.id===id);if(exact)return exact;
   const target=genre!=='auto'?genre:({worship:'soul',gospel:'soul',jazz:'soul',blues:'soul',fusion:'funk',mbalax:'praise',mbaqanga:'highlife',sungura:'soukous'}[style]||style);
   const pool=loops.filter(x=>x.genre===(target==='worship'?'soul':target));
   return pool.find(x=>x.automaticDefault&&x.id.startsWith('correct-'))||pool.find(x=>x.automaticDefault)||pool[0]||loops.find(x=>x.genre==='soul');
@@ -72,10 +73,57 @@ window.BassSuppliedDrums=(()=>{
   })().finally(()=>loads.delete(key)));
   return loads.get(key);
  }
+ async function performance(context,loop,beatFrames,cancelled){
+  const frames=beatFrames*loop.beats,rate=context.sampleRate;
+  const keys=window.BassPracticeDrums;
+  await keys.prepare(context,loop.kit);
+  if(cancelled())return null;
+  const offline=new OfflineAudioContext(1,frames+rate*2,rate);
+  const hats=loop.events.filter(([,hit])=>hit.includes('hat'));
+  for(const [i,[beat,hit,velocity]] of loop.events.entries()){
+   const gate=hit==='openhat'?(hats.find(([at])=>at>beat)?.[0]??(hats[0][0]+loop.beats))-beat:undefined;
+   keys.tone(offline,{hit,gate,velocity:velocity*100/127,variant:1+i%2},beat*beatFrames/rate,loop.kit,beatFrames/rate);
+  }
+  const buffer=await offline.startRendering();
+  if(cancelled())return null;
+  const samples=buffer.getChannelData(0);
+  for(let i=frames;i<samples.length;i++)samples[(i-frames)%frames]+=samples[i];
+  const out=context.createBuffer(1,frames,rate),data=out.getChannelData(0);
+  data.set(samples.subarray(0,frames));
+  let power=0,peak=0;
+  for(const value of data){power+=value*value;peak=Math.max(peak,Math.abs(value));}
+  const gain=Math.min(.14/Math.max(.001,Math.sqrt(power/frames)),.84/Math.max(.001,peak));
+  for(let i=0;i<frames;i++)data[i]*=gain;
+  return out;
+ }
+ function remember(key,buffer){
+  renders.set(key,buffer);while(renders.size>3)renders.delete(renders.keys().next().value);
+  return buffer;
+ }
  async function render(context,loop,beatFrames,cancelled=()=>false){
   if(!loop)throw Error('Choose a drum loop');
   const key=loop.id+':'+context.sampleRate+':'+beatFrames,frames=beatFrames*loop.beats;
   if(renders.has(key))return renders.get(key);
+  if(loop.events){
+   const buffer=await performance(context,loop,beatFrames,cancelled);
+   return buffer?remember(key,buffer):null;
+  }
+  if(loop.base){
+   const parent=await render(context,choose(null,null,loop.base),beatFrames,cancelled);
+   if(!parent||cancelled())return null;
+   const out=context.createBuffer(parent.numberOfChannels,frames,context.sampleRate),offset=loop.firstBeat*beatFrames;
+   for(let c=0;c<parent.numberOfChannels;c++){
+    const source=parent.getChannelData(c),data=out.getChannelData(c);
+    data.set(source.subarray(offset,offset+frames));
+    // Crossfade into the start using the source audio just before the cut.
+    const fade=Math.min(frames,Math.round(context.sampleRate*.003));
+    for(let i=0;i<fade;i++){
+     const mix=(i+1)/fade;
+     data[frames-fade+i]=data[frames-fade+i]*(1-mix)+source[(offset-fade+i+source.length)%source.length]*mix;
+    }
+   }
+   return remember(key,out);
+  }
   const source=await load(context,loop);if(cancelled())return null;
   if(source.length===frames)return source;
   const channels=Array.from({length:source.numberOfChannels},(_,c)=>source.getChannelData(c).slice());
@@ -88,7 +136,7 @@ window.BassSuppliedDrums=(()=>{
   });
   if(cancelled())return null;
   const output=context.createBuffer(data.length,frames,context.sampleRate);data.forEach((d,c)=>output.copyToChannel(d,c));
-  renders.set(key,output);while(renders.size>2)renders.delete(renders.keys().next().value);return output;
+  return remember(key,output);
  }
- return {loops,genres,choose,render};
+ return {loops,available,genres,choose,render};
 })();

@@ -56,7 +56,7 @@ window.BassFillCore=(()=>{
   const triad=d=>[0,2,4].map(n=>degree(d-1+n)+24);
   const chordName=d=>{const notes=triad(d),a=notes[1]-notes[0],b=notes[2]-notes[0];return names[pc(notes[0])]+(b===6?'dim':b===8?'aug':a===3?'m':'');};
   const chords=[...triad(from).map(midi=>({midi,beat:0,length:3.7,velocity:48,role:'chord'})),...triad(to).map(midi=>({midi,beat:4,length:3.5,velocity:50,role:'chord'}))];
-  return {key,mode,from,to,idea,bpm,beats:8,source:bass[0].midi,target:bass.at(-1).midi,bass,chords,title:styles[idea][0],tip:styles[idea][1],fromChord:chordName(from),toChord:chordName(to)};
+  return {kind:'fills',key,mode,from,to,idea,bpm,beats:8,source:bass[0].midi,target:bass.at(-1).midi,bass,chords,title:styles[idea][0],tip:styles[idea][1],fromChord:chordName(from),toChord:chordName(to)};
  }
  return {make,styles,names,scales,note};
 })();

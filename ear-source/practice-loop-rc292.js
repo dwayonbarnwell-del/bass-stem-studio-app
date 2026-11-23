@@ -66,7 +66,7 @@ window.BassPracticeLoop=(()=>{
   if(cancelled())return null;
   return channels.map(data=>{const out=context.createBuffer(1,frames,context.sampleRate);out.copyToChannel(data,0);return out;});
  }
- async function render(context,plan,{drums=true,loop=null,style='worship',sound='piano',chords=true,recorded=false,originalDrums=true,originalKeys=true,cancelled=()=>false}={}){
+ async function render(context,plan,{drums=true,loop=null,style='worship',sound='piano',chords=true,recorded=false,originalDrums=true,originalKeys=true,assignedPhase,cancelled=()=>false}={}){
   const A=window.BassPracticeAudio,D=window.BassSuppliedDrums,rate=context.sampleRate,beatFrames=Math.round(60/plan.bpm*rate),frames=Math.round(plan.beats*beatFrames),seconds=frames/rate;
   if(!Number.isFinite(seconds)||seconds<=0||seconds>240)throw Error('Practice loop is too long');
   const beat=beatFrames/rate,stems={},K=window.BassPracticeKeys,keys=window.BassAccompaniment?window.BassAccompaniment.arrange(plan,style):plan.chords;
@@ -97,7 +97,7 @@ window.BassPracticeLoop=(()=>{
   // Different phrase lengths share an integer-sample beat, never a UI timer.
   // Sum peak bounds so every relative phase is safe, including odd progressions.
   let bound=0;for(const buffer of Object.values(stems)){let peak=0;for(let c=0;c<buffer.numberOfChannels;c++)for(const value of buffer.getChannelData(c))peak=Math.max(peak,Math.abs(value));bound+=peak;}
-  return {drumPhase:phrase?(useDrums?0:originalDrums?plan.recording.drumPhase:0):null,stems,frames,seconds,beatSeconds:beat,beatFrames,rate,gain:Math.min(1,.88/(bound||1))};
+  return {drumPhase:phrase?(useDrums?0:originalDrums?(assignedPhase??plan.recording.drumPhase):0):null,stems,frames,seconds,beatSeconds:beat,beatFrames,rate,gain:Math.min(1,.88/(bound||1))};
  }
  function start(context,rendered,{repeat=true,drums=.45,chords=1,onEnded=()=>{},when=context.currentTime+.08,offsetBeats=0,drumPhase=0,fadeIn=0}={}){
   const sources=[],gains={},master=context.createGain();let stopped=false,ending=false;

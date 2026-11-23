@@ -69,12 +69,14 @@ window.BassAccompaniment=(()=>{
  }
  function resolve(plan,options={}){
   const p=profile(plan),valid=(value,values,fallback)=>values.includes(value)?value:fallback;
+  const key=plan.kind==='uploaded'?plan.clipId+'/'+String(plan.part).replace('phrase-',''):[plan.kind,plan.idea,plan.part||0].join('/');
+  const assignment=window.BassGrooveLibrary?.assignments[key];
   if(window.BassSuppliedDrums&&(!options.kit||options.kit==='auto')&&(!options.groove||options.groove==='auto')){
    const measured=window.BassRecordingTiming?.[plan.clipId]?.loop;
    const danceLoop=['seben','soukous'].includes(p.dance)&&window.BassSuppliedDrums.loops.find(loop=>loop.genre==='soukous'&&loop.title.toLowerCase().includes(p.dance));
-   if(measured||danceLoop)options={...options,groove:measured||danceLoop.id};
+   if(assignment||measured||danceLoop)options={...options,groove:assignment?.[0]||measured||danceLoop.id};
   }
-  if(window.BassSuppliedDrums)return {...p,loop:window.BassSuppliedDrums.choose(p.id,options.kit,options.groove),style:valid(options.style,Object.keys(profiles),p.style),sound:valid(options.sound,['piano','electric','organ'],'piano')};
+  if(window.BassSuppliedDrums)return {...p,assignedPhase:assignment?.[1],loop:window.BassSuppliedDrums.choose(p.id,options.kit,options.groove),style:valid(options.style,Object.keys(profiles),p.style),sound:valid(options.sound,['piano','electric','organ'],'piano')};
   return {...p,kit:valid(options.kit,window.BassPracticeDrums.kits.map(x=>x[0]),p.kit),groove:valid(options.groove,window.BassPracticeDrums.grooves.map(x=>x[0]),p.groove),style:valid(options.style,Object.keys(profiles),p.style),sound:valid(options.sound,['piano','electric','organ'],p.sound)};
  }
  const pc=n=>(n%12+12)%12;

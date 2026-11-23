@@ -78,7 +78,11 @@ window.BassUploadedCore=(()=>{
   }
   const fallback=style==='reggae'?77:window.BassSuppliedDrums.choose(style).bpm;
   const originalBpm=value.recording?60/value.recording.step:measuredBeats?60*measuredBeats/(value.sourceEnd-value.sourceStart):fallback;
-  const step=60/originalBpm,tempo=Number(bpm)||(id==='clip-46'&&value.recording?.pack?82.9:!grid&&style==='reggae'?77:originalBpm);
+  const step=60/originalBpm;
+  const defaultBpm=value.recording?.pack
+   ?id==='clip-46'?82.9:Math.min(originalBpm,style==='reggae'?86:108)
+   :!grid&&style==='reggae'?77:originalBpm;
+  const tempo=Number(bpm)||defaultBpm;
   if(!value.recording){
    for(const n of value.bass){n.beat/=step;n.length/=step;}
    value.beats/=step;

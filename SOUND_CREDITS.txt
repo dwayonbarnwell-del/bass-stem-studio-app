@@ -100,3 +100,6 @@ Drawbar Organ Emulation by Roberto for FreePats, sampled from setBfree. CC0.
 https://freepats.zenvoid.org/Organ/electric-organ.html
 This is a sampled organ emulation, not a physical Hammond recording.
 Adaptations: selected roots/velocities, source tuning and gain, mono PCM16 at 32 kHz, preserved sustain loops. Full source metadata, attribution and licences: audio/keys-rc293/.
+
+Groove MIDI Dataset drum performances (CC BY 4.0)
+Two-bar excerpts retain the performers’ timing and dynamics and use the Virtuosity Drums sounds credited above. Source performances, performers, release details, attribution and modifications are listed in licenses/groove-midi/sources.txt.
