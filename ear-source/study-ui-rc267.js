@@ -16,7 +16,9 @@ window.BassFillTrainer=(()=>{
    $('fillKeyStyle').options[0].textContent='Auto · recorded backing';
    $('fillKeySound').options[0].textContent='Auto · recorded backing';
   }
-  $('fillAccompaniment').textContent='';
+  const mixed=!!plan.recording?.originalMix;
+  for(const id of ['fillBacking','fillDrums','fillDrumOptions'])$(id).hidden=mixed;
+  $('fillAccompaniment').textContent=mixed?'Original bass & beat':'';
  }
  function cycleLength(values){
   for(let n=1;n<=values.length/2;n++)if(values.length%n===0&&values.every((v,i)=>v===values[i%n]))return n;
@@ -239,7 +241,7 @@ window.BassFillTrainer=(()=>{
      sessions=sessions.filter(s=>s===active||s.transport.when>ctx.currentTime);
      const elapsed=active.transport.position()-(window.BassPlaybackTiming?.outputDelay(ctx)||0);
      const beat=(((elapsed%active.rendered.seconds)+active.rendered.seconds)%active.rendered.seconds)/active.rendered.beatSeconds;
-     if(active.plan===plan){highlightChord(beat);$('fillStatus').textContent=plan.kind==='uploaded'?(plan.recording?'Suggested chords · '+Number(active.plan.bpm.toFixed(2))+' BPM':'Note playback'):'Playing · '+Number(active.plan.bpm.toFixed(2))+' BPM';
+     if(active.plan===plan){highlightChord(beat);$('fillStatus').textContent=plan.kind==='uploaded'?(plan.recording?(active.plan.recording.originalMix?'Original mix · ':'Suggested chords · ')+Number(active.plan.bpm.toFixed(2))+' BPM':'Note playback'):'Playing · '+Number(active.plan.bpm.toFixed(2))+' BPM';
       highlightNotes(active.plan.bass,beat,elapsed>=0);
      }else highlightNotes([],0,false);
     }
@@ -367,7 +369,7 @@ window.BassFillTrainer=(()=>{
   $('fillDrums').onclick=()=>{drums=!drums;saveDrums();level('drums',drums?drumVolume:0);state();};
   if(G){for(const [id,label] of G.groups)option('fillGroup',id,label);loadGroup();$('fillGroup').onchange=()=>{selectedGroups[kind]=$('fillGroup').value;try{localStorage.setItem(groupKey,JSON.stringify(selectedGroups));}catch{}ideaOptions();draw();};}
   for(const [id,label] of H.groups)option('fillCollection',id,label);
-  option('fillCollection','recordings','Other recordings');
+  
   clipOptions();
   $('fillCollection').onchange=()=>{clipOptions();ideaOptions();draw();};$('fillClip').onchange=()=>{partOptions();draw();};
   $('fillExcerpt').onchange=draw;

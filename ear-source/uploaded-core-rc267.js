@@ -1,9 +1,9 @@
 /* Bass studies and timed excerpts from the owner's supplied recordings. */
 window.BassUploadedCore=(()=>{
  'use strict';
- const items=[...(window.BassUploadedStudies||[]),...(window.BassLessonStudies||[]),...(window.BassReggaeStudies||[]),...(window.BassAfricanStudies||[])].filter(c=>c.id!=='clip-04'&&c.id!=='clip-62'&&!/open the eyes of my heart|holy forever|worship.*easy bass lesson|african praise.*bass study|african praise.*winner man/i.test(c.title||'')).map(c=>({...c})),groups=[['studies','Original studies'],['recorded-worship','Worship · recordings'],['recorded-reggae','Reggae · recordings'],['recorded-makossa','Makossa · recordings'],['recorded-soukous','Soukous · Bass Lady recording'],['recorded-seben','Seben · recordings'],['recorded-praise','African Praise · recordings'],['recorded-nigerian','Nigerian styles · mixed recordings'],['recorded-soca','Soca · recordings'],['recorded-congolese','Congolese · lessons'],['recorded-african','African styles · lessons'],['recorded-zouk','Zouk · lessons'],['recorded-review','Other recordings · genre to review']];
+ const items=(window.BassOriginalStudies||[]).map(c=>({...c})),groups=[['recorded-makossa','Makossa'],['recorded-seben','Seben']];
  for(const c of items){
-  c.originalTitle=c.title;
+  c.originalTitle=c.originalMix?(c.collection==='recorded-seben'?'Seben ':'Makossa ')+c.title:c.title;
   if(c.collection)continue;
   if(c.group==='bass-lady'){c.collection=/makossa/i.test(c.title)?'recorded-makossa':'recorded-soukous';c.title=c.title.replace('Bass Lady - ','').replace(/^(Makossa|Soukous)(.*)$/,'$1 · Bass Lady$2');}
   else if(c.group==='bassmatics'){c.collection='recorded-seben';c.title=c.title.replace('Bassmatics - Seben','Seben · Bassmatics');}
@@ -50,7 +50,7 @@ window.BassUploadedCore=(()=>{
   const row=window.BassRecordedPhrases?.[id]?.[Number(part.slice(7))];
   if(!row)return null;
   const [start,end,beats,offset,bytes,hasDrums,drumPhase=0]=row;
-  return {start,end,beats,step:(end-start)/beats,pack:'./ear-assets/phrases-rc334/'+id+'.bin',offset,bytes,drumPhase,hasDrums:!!hasDrums};
+  return {start,end,beats,step:(end-start)/beats,pack:items.find(c=>c.id===id)?.originalMix?items.find(c=>c.id===id).audio:'./ear-assets/phrases-rc334/'+id+'.bin',originalMix:!!items.find(c=>c.id===id)?.originalMix,offset,bytes,drumPhase,hasDrums:!!hasDrums};
  }
  function plan(id,part=0,speed=100,transpose=0){
   const clip=items.find(c=>c.id===id);if(!clip)return null;
@@ -79,7 +79,7 @@ window.BassUploadedCore=(()=>{
   const fallback=style==='reggae'?77:window.BassSuppliedDrums.choose(style).bpm;
   const originalBpm=value.recording?60/value.recording.step:measuredBeats?60*measuredBeats/(value.sourceEnd-value.sourceStart):fallback;
   const step=60/originalBpm;
-  const defaultBpm=value.recording?.pack
+  const defaultBpm=clip.originalMix?originalBpm:value.recording?.pack
    ?id==='clip-46'?82.9:Math.min(originalBpm,style==='reggae'?86:108)
    :!grid&&style==='reggae'?77:originalBpm;
   const tempo=Number(bpm)||defaultBpm;

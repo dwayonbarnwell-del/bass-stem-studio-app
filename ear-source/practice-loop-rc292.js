@@ -66,9 +66,39 @@ window.BassPracticeLoop=(()=>{
   if(cancelled())return null;
   return channels.map(data=>{const out=context.createBuffer(1,frames,context.sampleRate);out.copyToChannel(data,0);return out;});
  }
+ const originalBuffers=new Map();
+ async function originalMix(context,plan,frames,cancelled){
+  const key=plan.audio+':'+context.sampleRate;
+  if(!originalBuffers.has(key))originalBuffers.set(key,(async()=>{
+   const response=await fetch(plan.audio);
+   if(!response.ok)throw Error('Original phrase unavailable');
+   return context.decodeAudioData(await response.arrayBuffer());
+  })().catch(error=>{originalBuffers.delete(key);throw error;}));
+  const audio=await originalBuffers.get(key);
+  while(originalBuffers.size>3)originalBuffers.delete(originalBuffers.keys().next().value);
+  if(cancelled())return null;
+  if(Math.abs(audio.length-frames)<context.sampleRate*.001)return audio;
+  const channels=Array.from({length:audio.numberOfChannels},(_,i)=>audio.getChannelData(i).slice());
+  const data=await new Promise((resolve,reject)=>{
+   const worker=new Worker('./ear-source/loop-tempo-worker.js');
+   const timeout=setTimeout(()=>{worker.terminate();reject(Error('Phrase tempo took too long'));},45000);
+   worker.onmessage=({data})=>{clearTimeout(timeout);worker.terminate();data.error?reject(Error(data.error)):resolve(data.channels);};
+   worker.onerror=()=>{clearTimeout(timeout);worker.terminate();reject(Error('Phrase tempo unavailable'));};
+   worker.postMessage({channels,frames,sampleRate:context.sampleRate},channels.map(x=>x.buffer));
+  });
+  if(cancelled())return null;
+  const output=context.createBuffer(data.length,frames,context.sampleRate);
+  data.forEach((d,i)=>output.copyToChannel(d,i));return output;
+ }
  async function render(context,plan,{drums=true,loop=null,style='worship',sound='piano',chords=true,recorded=false,originalDrums=true,originalKeys=true,assignedPhase,cancelled=()=>false}={}){
   const A=window.BassPracticeAudio,D=window.BassSuppliedDrums,rate=context.sampleRate,beatFrames=Math.round(60/plan.bpm*rate),frames=Math.round(plan.beats*beatFrames),seconds=frames/rate;
   if(!Number.isFinite(seconds)||seconds<=0||seconds>240)throw Error('Practice loop is too long');
+  if(recorded&&plan.recording?.originalMix){
+   const buffer=await originalMix(context,plan,frames,cancelled);
+   if(!buffer)return null;
+   let peak=0;for(let c=0;c<buffer.numberOfChannels;c++)for(const value of buffer.getChannelData(c))peak=Math.max(peak,Math.abs(value));
+   return {stems:{bass:buffer},frames:buffer.length,seconds:buffer.duration,beatSeconds:buffer.duration/plan.beats,beatFrames:buffer.length/plan.beats,rate,gain:Math.min(1,.88/(peak||1)),drumPhase:0};
+  }
   const beat=beatFrames/rate,stems={},K=window.BassPracticeKeys,keys=window.BassAccompaniment?window.BassAccompaniment.arrange(plan,style):plan.chords;
   const phrase=recorded&&plan.recording?.pack;
   const useDrums=phrase&&originalDrums&&plan.recording.hasDrums,useKeys=phrase&&originalKeys;

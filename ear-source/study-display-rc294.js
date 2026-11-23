@@ -16,6 +16,7 @@ window.BassStudyDisplay=(()=>{
  }
  function clip(row){
   if(!row)return 'Recording';
+  if(row.originalMix)return row.title.slice(0,12);
   const number=Number(row.id?.slice(5));
   if(number>=23&&number<=32)return 'Bass Lady '+String(number-22).padStart(2,'0');
   if(number>=34&&number<=43){
