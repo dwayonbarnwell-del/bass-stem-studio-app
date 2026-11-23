@@ -65,7 +65,7 @@ window.BassPracticeLoop=(()=>{
   let bound=0;for(const buffer of Object.values(stems)){let peak=0;for(let c=0;c<buffer.numberOfChannels;c++)for(const value of buffer.getChannelData(c))peak=Math.max(peak,Math.abs(value));bound+=peak;}
   return {stems,frames,seconds,beatSeconds:beat,beatFrames,rate,gain:Math.min(1,.88/(bound||1))};
  }
- function start(context,rendered,{repeat=true,drums=.45,chords=1,onEnded=()=>{},when=context.currentTime+.08,offsetBeats=0,fadeIn=0}={}){
+ function start(context,rendered,{repeat=true,drums=.45,chords=1,onEnded=()=>{},when=context.currentTime+.08,offsetBeats=0,drumPhase=0,fadeIn=0}={}){
   const sources=[],gains={},master=context.createGain();let stopped=false,ending=false;
   when=Math.max(context.currentTime,when);const offset=offsetBeats*rendered.beatSeconds;
   master.gain.setValueAtTime(fadeIn?0:rendered.gain,when);if(fadeIn)master.gain.linearRampToValueAtTime(rendered.gain,when+fadeIn);master.connect(context.destination);
@@ -73,7 +73,8 @@ window.BassPracticeLoop=(()=>{
    const source=context.createBufferSource(),gain=context.createGain();source.buffer=buffer;source.loop=part==='bass'?repeat:true;source.loopStart=0;source.loopEnd=buffer.duration;
    gain.gain.value=part==='drums'?drums:part==='chords'?chords:1;source.connect(gain).connect(master);sources.push({source,part});gains[part]=gain;
    source.onended=()=>{source.disconnect();gain.disconnect();if(part==='bass'&&!stopped){stopped=true;for(const other of sources)if(other.source!==source)try{other.source.stop();}catch{}master.disconnect();if(!ending)onEnded();}};
-   source.start(when,((offset%buffer.duration)+buffer.duration)%buffer.duration);
+   const partOffset=offset+(part==='drums'?drumPhase*rendered.beatSeconds:0);
+   source.start(when,((partOffset%buffer.duration)+buffer.duration)%buffer.duration);
   }
   function stopAt(at=context.currentTime,fade=.006){if(stopped)return;ending=true;at=Math.max(context.currentTime,at);master.gain.cancelScheduledValues(at);master.gain.setValueAtTime(rendered.gain,at);master.gain.linearRampToValueAtTime(0,at+fade);for(const {source} of sources)try{source.stop(at+fade+.001);}catch{}}
   return {when,seconds:rendered.seconds,beatSeconds:rendered.beatSeconds,offsetBeats,setRepeat(value){for(const {source,part} of sources)if(part==='bass')source.loop=!!value;},level(part,value){const g=gains[part];if(g)g.gain.setTargetAtTime(Math.max(0,Math.min(1,value)),context.currentTime,.015);},position(){return context.currentTime-when+offset;},stopAt,stop(){stopAt(context.currentTime);}};

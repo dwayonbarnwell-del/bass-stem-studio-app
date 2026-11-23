@@ -2,13 +2,13 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
 const saved=new Map(),e={window:{},localStorage:{getItem:k=>saved.get(k)||null,setItem:(k,v)=>saved.set(k,v)}};vm.createContext(e);
 for(const file of ['fills-rc264','practice-rc264b','catalogue-rc269','curated-rc289','groups-rc290','uploaded-data-rc267','lesson-data-rc272','reggae-data-rc273','african-data-rc274','uploaded-core-rc267','practice-drums-rc292','accompaniment-rc293'])vm.runInContext(fs.readFileSync('ear-source/'+file+'.js','utf8'),e);
 const {BassAccompaniment:H,BassPracticeDrums:B,BassPracticeCore:P,BassFillCore:F,BassUploadedCore:U,BassPracticeCatalogue:D}=e.window;
-assert.equal(H.groups.length,9);const coverage={};for(const [id]of H.groups)coverage[id]=0;
+assert.equal(new Set(H.groups.map(([id])=>id)).size,H.groups.length);const coverage={};for(const [id]of H.groups)coverage[id]=0;
 const originalIds=P.lines.map(x=>x.id),recordedIds=U.items.map(x=>x.id);
 for(const row of P.lines){assert(H.groups.some(([id])=>id===H.category(row)));coverage[H.category(row)]++;}
-for(const row of U.items){const genre=H.category(row,true);if(row.collection==='recorded-review')assert.equal(genre,null);else{assert(H.groups.some(([id])=>id===genre));coverage[genre]++;}}
+for(const row of U.items){const genre=H.category(row,true);assert(genre==='recordings'||H.groups.some(([id])=>id===genre));coverage[genre]=(coverage[genre]||0)+1;}
 assert.equal(new Set([...originalIds,...recordedIds]).size,originalIds.length+recordedIds.length);
 assert.equal(P.runs.length,100);assert.equal(F.styles.length,100);
-assert.equal(H.identify({name:'Praise · Makossa motion'}),'makossa');assert.equal(H.identify({name:'Highlife praise'}),'highlife');assert.equal(H.category({collection:'recorded-review',title:'Unconfirmed'},true),null);
+assert.equal(H.identify({name:'Praise · Makossa motion'}),'makossa');assert.equal(H.identify({name:'Highlife praise'}),'highlife');assert.equal(H.category({collection:'recorded-review',title:'Unconfirmed'},true),'recordings');
 const custom=D.addProgression('6 2 3 6',P.lines.find(x=>x.feel==='makossa'));
 assert.equal(H.category(P.lines[custom]),null);assert.equal(H.identify(P.lines[custom]),'makossa');D.remove('basslines',P.lines[custom].id);assert(!D.visible('basslines',P.lines[custom].id));D.restore();assert(D.visible('basslines',P.lines[custom].id));
 let checked=0;const chosen=new Set();

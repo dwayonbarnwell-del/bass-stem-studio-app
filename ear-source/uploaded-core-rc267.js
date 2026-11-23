@@ -13,6 +13,20 @@ window.BassUploadedCore=(()=>{
   else {c.collection='recorded-review';c.title=c.title.replace(/^Uploaded groove /,'Bass recording ').replace(/^Groove - /,'Bass study · ').replace(/grooves/gi,'bass studies').replace(/groove/gi,'bass study');if(/subscribers|overload|locked|weep|mad bass|^Bass recording/i.test(c.title))c.title='Bass study · '+c.id.replace('clip-','Recording ');}
  }
 
+ // Display names are independent of source filenames and saved recording IDs.
+ const titles={'clip-05':'Mad Grooves 01','clip-08':'Mad Grooves 02','clip-12':'Locked Groove',
+  'clip-13':'Groove de Weep','clip-17':'Sweetness Overload','clip-19':'Bass study 19','clip-11':'Everyday bass','clip-14':'Bass study 14','clip-16':'Bass study 16','clip-21':'Bass study 21',
+  'clip-69':'African bass lesson · Updated edition','clip-56':'Gospel bass cover'};
+ for(const c of items)if(titles[c.id])c.title=titles[c.id];
+ function sectionGrid(plan,time){
+  if(plan.part==='beat')return null;
+  const sections=window.BassRecordingTiming?.[plan.clipId]?.sections;
+  if(!sections)return null;
+  // Sections are sorted and may overlap slightly at lesson boundaries.
+  let lo=0,hi=sections.length;
+  while(lo<hi){const mid=(lo+hi)>>>1;if(sections[mid][0]<=time+.00001)lo=mid+1;else hi=mid;}
+  const row=sections[lo-1];return row&&time<row[1]?row:null;
+ }
  const time=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
  function loop(id){
   const row=window.BassRecordingGrids?.[id];
@@ -35,7 +49,9 @@ window.BassUploadedCore=(()=>{
  function practicePlan(id,part,bpm){
   const clip=items.find(c=>c.id===id),grid=loop(id);
   const style=window.BassAccompaniment.profile({...clip,kind:'uploaded'}).id;
-  const originalBpm=grid?60/grid.step:style==='reggae'?77:window.BassSuppliedDrums.choose(style).bpm;
+  const timing=window.BassRecordingTiming?.[id];
+  const local=Number(part)>0?timing?.sections.find(row=>Math.abs(row[0]-clip.parts[part]?.start)<.001):null;
+  const originalBpm=local?60/local[2]:grid?60/grid.step:style==='reggae'?77:window.BassSuppliedDrums.choose(style).bpm;
   const value=plan(id,part),step=60/originalBpm;
   const tempo=Number(bpm)||originalBpm;
   if(!value.recording){
@@ -43,14 +59,34 @@ window.BassUploadedCore=(()=>{
    value.beats/=step;
   }
   Object.assign(value,{bpm:tempo,originalBpm,speed:100*tempo/originalBpm,step,
-   phase:((value.sourceStart-(grid?.start||0))/step%4+4)%4});
+   phase:local?local[3]:(((value.sourceStart-(timing?.anchor??grid?.start??0))/step+(timing?.phase||0))%4+4)%4});
   if(value.phase>3.99999)value.phase=0;
-  const bars=Array.from({length:Math.max(1,Math.ceil((value.phase+value.beats-1e-7)/4))},()=>new Float64Array(12));
-  const total=new Float64Array(12);
+  const starts=[0];
+  // Build the chord bars on the same local drum grid as the streaming player.
+  // Boundaries can change within a long lesson; note positions stay in source time.
+  const boundaries=[value.sourceStart,value.sourceEnd];
+  if(part!=='beat')for(const row of timing?.sections||[]){
+   for(const edge of row.slice(0,2))if(edge>value.sourceStart&&edge<value.sourceEnd)boundaries.push(edge);
+  }
+  boundaries.sort((a,b)=>a-b);
+  for(let i=0;i+1<boundaries.length;i++){
+   const from=boundaries[i],to=boundaries[i+1];
+   if(to<=from)continue;
+   const row=sectionGrid(value,(from+to)/2);
+   const interval=row?.[2]||step;
+   const anchor=row?row[0]-row[3]*interval:value.sourceStart-value.phase*step;
+   const bar=interval*4;
+   for(let t=anchor+Math.ceil((from-anchor)/bar-1e-8)*bar;t<to-.00001;t+=bar){
+    const beat=(t-value.sourceStart)/step;
+    if(beat>starts.at(-1)+.12)starts.push(beat);
+   }
+  }
+  const bars=starts.map(()=>new Float64Array(12)),total=new Float64Array(12);
   for(const n of value.bass){
-   const pos=n.beat+value.phase,index=Math.min(bars.length-1,Math.floor(pos/4)),pc=n.midi%12;
-   const weight=Math.min(2,n.length)*(n.review?.45:1)*(pos%4<.35?2:1);
-   bars[index][pc]+=weight;total[pc]+=weight;
+   let lo=0,hi=starts.length;
+   while(lo+1<hi){const mid=(lo+hi)>>>1;if(starts[mid]<=n.beat)lo=mid;else hi=mid;}
+   const pc=n.midi%12,weight=Math.min(2,n.length)*(n.review?.45:1)*(n.beat-starts[lo]<.35?2:1);
+   bars[lo][pc]+=weight;total[pc]+=weight;
   }
   let best=-Infinity,tonic=0,scale;
   for(const steps of [[0,2,4,5,7,9,11],[0,2,3,5,7,8,10]])for(let root=0;root<12;root++){
@@ -68,7 +104,7 @@ window.BassUploadedCore=(()=>{
     if(score>best){best=score;degree=d;}
    }
    value.degrees.push(degree+1);
-   const beat=Math.max(0,i*4-value.phase),root=48+(tonic+scale[degree])%12;
+   const beat=starts[i],root=48+(tonic+scale[degree])%12;
    for(const j of [0,2,4])value.chords.push({beat,midi:root+(scale[(degree+j)%7]-scale[degree]+12)%12,length:Math.min(4,value.beats-beat),velocity:65});
   });
   return value;
@@ -99,5 +135,5 @@ window.BassUploadedCore=(()=>{
   }
   return bars.sort((a,b)=>b.length-a.length)[0]||[];
  }
- return {items,groups,plan,practicePlan,time,loop,rehearsalShape};
+ return {items,groups,plan,practicePlan,sectionGrid,time,loop,rehearsalShape};
 })();

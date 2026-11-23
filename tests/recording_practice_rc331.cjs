@@ -12,6 +12,14 @@ for (const file of ['fills-rc264','practice-rc264b','catalogue-rc269','curated-r
 const {BassUploadedCore:U,BassPracticeCore:P,BassFillCore:F,BassAccompaniment:H,BassStudyDisplay:N}=window;
 let parts=0,patterns=0;
 for (const clip of U.items) {
+  const genre=H.category(clip,true),name=clip.originalTitle.toLowerCase();
+  for(const [word,group] of [['reggae','reggae'],['makossa','makossa'],['seben','seben'],['soukous','soukous'],['soca','soca'],['zouk','zouk']]){
+    if(name.includes(word))assert.equal(genre,group,clip.id);
+  }
+  const automatic=H.resolve(U.practicePlan(clip.id,0)).loop;
+  if(genre==='seben'||genre==='soukous')assert(automatic.title.toLowerCase().includes(genre));
+  const manual=H.resolve(U.practicePlan(clip.id,0),{kit:'reggae'}).loop;
+  assert.equal(manual.genre,'reggae','manual kit takes priority');
   const range=U.loop(clip.id);
   for(const part of [...clip.parts.keys(),...(range?['beat']:[])]) {
     const p=U.practicePlan(clip.id,part),faster=U.practicePlan(clip.id,part,135);
@@ -29,7 +37,11 @@ for (const clip of U.items) {
     const loop=H.resolve(p).loop;
     assert(loop&&fs.existsSync(loop.url));
     if(clip.collection==='recorded-reggae')assert.equal(loop.genre,'reggae');
-    if(range)assert(Math.abs(p.bpm-60/range.step)<1e-6);
+    const timing=window.BassRecordingTiming[clip.id];
+    assert.equal(loop.id,timing.loop);
+    assert(!/\b(?:19|20)\d{2}\b|\b(?:November|October|May)\b/i.test(N.clip(clip)));
+    const local=Number(part)>0?timing.sections.find(row=>Math.abs(row[0]-clip.parts[part].start)<.001):null;
+    if(local||range)assert(Math.abs(p.bpm-60/(local?local[2]:range.step))<1e-6);
     else if(loop.genre==='reggae')assert.equal(p.bpm,77);
     parts++;
   }

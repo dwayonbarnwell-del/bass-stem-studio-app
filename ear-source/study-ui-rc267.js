@@ -10,7 +10,7 @@ window.BassFillTrainer=(()=>{
  const accompaniment=()=>H.resolve(plan,{kit:drumKit,groove:drumGroove,style:keyStyle,sound:keySound});
  function drumOptions(){const select=$('fillDrumGroove');select.replaceChildren(new Option('Auto · match genre','auto'));for(const row of B.loops.filter(x=>drumKit==='auto'||x.genre===drumKit||(drumKit==='worship'&&['soul','funk'].includes(x.genre))))select.add(new Option(row.title+' · '+Number(row.bpm.toFixed(2))+' BPM'+(row.tempoSource==='estimated'?' ~':''),row.id));select.value=drumGroove;if(!select.value){drumGroove='auto';select.value='auto';}}
  function soundSettings(){if(!plan){$('fillAccompaniment').textContent='';return;}const a=accompaniment(),auto=H.resolve(plan),names={piano:'Grand piano',electric:'Wurlitzer electric piano',organ:'Drawbar organ'};
-  for(const [id,text] of [['fillDrumKit',B.genres.find(x=>x[0]===auto.loop.genre)?.[1]||auto.loop.genre],['fillDrumGroove',B.choose(auto.id,drumKit).title],['fillKeyStyle',H.profiles[auto.style].label],['fillKeySound',names[auto.sound]]])$(id).options[0].textContent='Auto · '+text;
+  for(const [id,text] of [['fillDrumKit',B.genres.find(x=>x[0]===auto.loop.genre)?.[1]||auto.loop.genre],['fillDrumGroove',(drumKit==='auto'?auto.loop:B.choose(auto.id,drumKit)).title],['fillKeyStyle',H.profiles[auto.style].label],['fillKeySound',names[auto.sound]]])$(id).options[0].textContent='Auto · '+text;
   $('fillAccompaniment').textContent='';
  }
  function highlightChord(beat){
@@ -36,7 +36,7 @@ window.BassFillTrainer=(()=>{
  const groupKey='bass-study-groups-v1',selectedGroups={fills:'gospel',runs:'gospel'};
  try{const saved=JSON.parse(localStorage.getItem(groupKey)||'null'),old=JSON.parse(localStorage.getItem('bass-curated-filters-v1')||'{}');for(const k of ['fills','runs'])selectedGroups[k]=G?.migrate(saved?.[k]||old[k]?.style)||'gospel';}catch{}
  const imported=()=>kind==='basslines'&&$('fillIdea').value.startsWith('clip:');
- const matchesGenre=(c,genre)=>genre==='recordings'||H.category(c,true)===genre;
+ const matchesGenre=(c,genre)=>H.category(c,true)===genre;
  function clipOptions(){
   const group=$('fillCollection').value;$('fillClip').replaceChildren();
   for(const c of U.items.filter(c=>matchesGenre(c,group)&&D.visible('uploaded',c.id))){const o=document.createElement('option');o.value=c.id;o.textContent=N.clip(c);o.title=c.title;$('fillClip').append(o);}
@@ -106,7 +106,7 @@ window.BassFillTrainer=(()=>{
    if($('fillClip').value!==id){$('fillClip').value=id;partOptions();}
    clipControls();
    remembered[kind]=$('fillIdea').value;rememberedClips[$('fillCollection').value]=id;
-   const identity='recording:'+id;
+   const identity='recording:'+id+':'+$('fillExcerpt').value;
    const value=U.practicePlan(id,$('fillExcerpt').value,identity===tempoIdentity?Number($('fillTempo').value):null);
    tempoIdentity=identity;nativeTempo=null;$('fillTempo').value=Number(value.bpm.toFixed(2));
    $('fillRecordedKey').textContent='Key: '+F.names[value.tonic]+(value.minor?' minor':' major')+' (est.)';
@@ -154,7 +154,7 @@ window.BassFillTrainer=(()=>{
    const when=previous?previous.when+Math.max(1,Math.ceil((ctx.currentTime+.12-previous.when)/bar))*bar:ctx.currentTime+.08;
    rendered=audio;
    const offsetBeats=tempoChanged?((previous.offsetBeats||0)+(when-previous.when)/previous.beatSeconds)%current.beats:0;
-   const next=L.start(ctx,audio,{when,offsetBeats,repeat:true,fadeIn:previous?.006:0,drums:drums?drumVolume:0,chords:backing?keyVolume:0});
+   const next=L.start(ctx,audio,{when,offsetBeats,drumPhase:current.recording?current.phase:0,repeat:true,fadeIn:previous?.006:0,drums:drums?drumVolume:0,chords:backing?keyVolume:0});
    previous?.stopAt(when,.006);transport=next;
    sessions.push({transport:next,plan:current,rendered:audio});
    clearStreamBand?.();const previousRecording=recordedAudio;if(previousRecording){previousRecording.pause();recordedAudio=null;}
@@ -198,7 +198,7 @@ window.BassFillTrainer=(()=>{
   recordedAudio?.pause();for(const s of sessions)s.transport.stop();sessions=[];transport=null;clearStreamBand?.();
   recordedAudio=audio;streamPlan=current;cancelAnimationFrame(recordedFrame);
   const gain=ctx.createGain();gain.connect(ctx.destination);
-  let source=null,origin=0,keyIndex=0,liveKeys=[];
+  let source=null,origin=0,keyIndex=0,liveKeys=[],activeGrid=null;
   const stopBand=()=>{
    if(source){source.stop();source.disconnect();source=null;}
    liveKeys.forEach(v=>v.voice.stop());liveKeys=[];
@@ -210,7 +210,9 @@ window.BassFillTrainer=(()=>{
    stopBand();origin=ctx.currentTime-pos*beat;
    source=ctx.createBufferSource();source.buffer=drumBuffer;source.loop=true;source.connect(gain);
    gain.gain.value=drums?drumVolume:0;
-   const offset=(pos+current.phase)*beat;
+   activeGrid=U.sectionGrid(current,audio.currentTime);
+   const offset=activeGrid?((audio.currentTime-activeGrid[0])/activeGrid[2]+activeGrid[3])*beat:(pos+current.phase)*beat;
+   source.playbackRate.value=activeGrid?current.step/activeGrid[2]:1;
    source.start(ctx.currentTime,((offset%drumBuffer.duration)+drumBuffer.duration)%drumBuffer.duration);
    keyIndex=keys.findIndex(n=>n.beat>=pos-.05);if(keyIndex<0)keyIndex=keys.length;
   };
@@ -223,7 +225,7 @@ window.BassFillTrainer=(()=>{
    }
    const pos=(audio.currentTime-current.sourceStart)/current.step;
    if(!audio.seeking&&!audio.paused&&audio.readyState>=3){
-    if(!source||Math.abs(ctx.currentTime-origin-pos*beat)>.09)sync();
+    if(!source||U.sectionGrid(current,audio.currentTime)!==activeGrid||Math.abs(ctx.currentTime-origin-pos*beat)>.09)sync();
     gain.gain.setTargetAtTime(drums?drumVolume:0,ctx.currentTime,.015);
     liveKeys=liveKeys.filter(v=>v.end>ctx.currentTime);
     if(!backing&&liveKeys.length){liveKeys.forEach(v=>v.voice.stop());liveKeys=[];}
@@ -262,7 +264,7 @@ window.BassFillTrainer=(()=>{
   $('fillDrums').onclick=()=>{drums=!drums;saveDrums();level('drums',drums?drumVolume:0);state();};
   if(G){for(const [id,label] of G.groups)option('fillGroup',id,label);loadGroup();$('fillGroup').onchange=()=>{selectedGroups[kind]=$('fillGroup').value;try{localStorage.setItem(groupKey,JSON.stringify(selectedGroups));}catch{}ideaOptions();draw();};}
   for(const [id,label] of H.groups)option('fillCollection',id,label);
-  option('fillCollection','recordings','All recordings');
+  option('fillCollection','recordings','Other recordings');
   clipOptions();
   $('fillCollection').onchange=()=>{clipOptions();ideaOptions();draw();};$('fillClip').onchange=()=>{partOptions();draw();};
   $('fillExcerpt').onchange=draw;
