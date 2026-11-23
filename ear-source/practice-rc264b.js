@@ -56,10 +56,37 @@ window.BassPracticeCore=(()=>{
   if(count<3)return (count===1?[5]:[2,6]).slice(0,count);
   return cells[style][count-3].map(slot=>end?slot:slot*.875+1);
  }
+ // Original passing figures. Upper chord tones give way to a lower neighbour,
+ // a diminished approach, or an enclosure around the following root.
+ function passingFigure(style,source,target,third,fifth,variant){
+  const lines={
+   gospel:[[third,fifth,source+9,target+8,target+5,target+2,target-1],[source+12,fifth,third,target-4,target-1,target+2,target+1]],
+   jazz:[[third,fifth,target+9,target+5,target+2,target-1,target+1],[source+10,third,fifth,target-3,target+2,target-1]],
+   blues:[[source+3,source+5,source+6,fifth,source+10,target+2,target-1],[fifth,source+3,source,source+5,target-2,target-1]],
+   funk:[[source+12,third,source,fifth,target+7,target+1,target-1],[fifth,source+12,source+9,third,target-2,target+1]],
+   worship:[[third,fifth,source+9,fifth,target+2,target-1],[source+12,fifth,third,target-3,target-2,target-1]]
+  };
+  return (lines[style]||lines.gospel)[variant%2];
+ }
+ function writeAnswer(plan,landing,style,variant,interval){
+  const scale=F.scales[plan.mode]||F.scales.major;
+  const chordTone=(root,d,n)=>root+(scale[(d-1+n)%7]-scale[d-1]+12)%12;
+  const home=plan.bass[0].midi,target=landing.midi;
+  const reply=passingFigure(style,target,home,chordTone(target,plan.to,2),chordTone(target,plan.to,4),variant+interval);
+  const times=reply.length===7?[.75,1.5,2,2.5,3,3.5,3.75]:[1,1.75,2.5,3,3.25,3.75];
+  landing.length=Math.min(landing.length,times[0]-.07);
+  reply.forEach((midi,i)=>plan.bass.push({midi,beat:4+times[i],length:((times[i+1]??4)-times[i])*(i%3===0?.88:.6),velocity:i===0||i===3?90:75,role:'bass'}));
+ }
  function make(kind,opts={}){
   const plan=makeStudy(kind,opts);
   if(kind!=='fills'&&kind!=='runs')return plan;
+  if(window.BassStudyGroups?.groupOf(kind,plan.idea)==='african')return plan;
   const notes=plan.bass.slice(1,-1),landing=plan.bass.at(-1);
+  const style=window.BassStudyGroups?.groupOf(kind,plan.idea)||'gospel';
+  if(notes.length<5){
+   const extra=[landing.midi+2,landing.midi-1].slice(0,5-notes.length).map(midi=>({midi,role:'bass'}));
+   notes.push(...extra);plan.bass.splice(-1,0,...extra);
+  }
   const id=Number(opts.idea)||0,group=plan.curated?.genre;
   const form=(id+(kind==='runs'?2:0))%5;
   const swing=/triplet|shuffle|swing/i.test(plan.title)||group==='blues'&&id%3===0;
@@ -74,13 +101,7 @@ window.BassPracticeCore=(()=>{
    n.velocity=i===0||i===split?94:i===notes.length-1?82:70+((i+form)%3)*5;
   });
   // Answer on the second chord and lead back into the first on repeat.
-  const scale=F.scales[plan.mode]||F.scales.major;
-  const destination=landing.midi,home=plan.bass[0].midi;
-  const third=destination+(scale[(plan.to+1)%7]-scale[plan.to-1]+12)%12;
-  const responses=[[destination+7,third,home-1],[third,destination+7,home+2,home+1],[destination+12,destination+7,third,home-2,home-1],[third,home+1,home-1],[destination+7,third,home+2,home-1]];
-  const reply=responses[(form+interval)%responses.length],times=phraseSlots(reply.length,(second+1)%5,true).map(t=>6+t/4);
-  landing.length=Math.min(landing.length,times[0]-4-.08);
-  reply.forEach((midi,i)=>plan.bass.push({midi,beat:times[i],length:((times[i+1]??8)-times[i])*.74,velocity:i===0?88:77,role:'bass'}));
+  writeAnswer(plan,landing,style,form,interval);
   return plan;
  }
  function makeStudy(kind,opts={}){
@@ -119,7 +140,16 @@ window.BassPracticeCore=(()=>{
     else if(line.feel==='praise')shape=[[0,root,.35],[.75,fifth,.35],[1.5,root+12,.35],[2,root,.65],[3,fifth,.35],[3.5,next-1,.35]];
     else if(line.feel==='lift')shape=[[0,root,1.2],[1.5,fifth,.35],[2,root+12,.8],[3.5,next,.35]];
     else shape=[[0,root,1.7],[2,fifth,.7],[3,third,.4],[3.5,next,.35]];
-    shape.forEach(([b,n,l],i)=>{
+    const genre=window.BassAccompaniment?.category(line);
+    const cultural=['reggae','makossa','highlife','afrobeat','african','soukous','seben','congolese','praise','soca','zouk'].includes(genre);
+    if(!cultural&&d!==degrees[(bar+1)%degrees.length]){
+     const pitches=passingFigure(genre==='gospel'&&line.feel==='walk'?'jazz':genre,root,next,third,fifth,idea+bar);
+     const grids=pitches.length===7?[[.75,1.25,1.5,2.25,3,3.5,3.75],[.5,1,1.75,2.5,3,3+1/3,3+2/3]]:[[.75,1.5,2,2.75,3.25,3.75],[1,1+2/3,2,2.5,3,3+2/3]];
+     const times=grids[(idea+bar)%2];
+     shape=[[0,root,times[0]*.8],...pitches.map((midi,i)=>[times[i],midi,((times[i+1]??4)-times[i])*(i%3===0?.9:.68)])];
+    }
+    if(cultural)shape.forEach(([b,n,l],i)=>add(offset+b,n,l,i===0?'landing':'bass'));
+    else shape.forEach(([b,n,l],i)=>{
      const touch=Math.sin((idea+1)*7+(bar%2)*5+i*2.3);
      const delay=b%1===0?0:(.009+.006*touch);
      add(offset+b+delay,n,Math.min(4-b-delay,l*(.96+.035*touch)),i===0?'landing':'bass');
@@ -128,7 +158,7 @@ window.BassPracticeCore=(()=>{
     chord(d).forEach(midi=>chords.push({midi,beat:offset,length:3.8,velocity:47,role:'chord'}));
    });
    if(Math.min(...bass.map(n=>n.midi))<23)for(const n of bass)n.midi+=12;
-   return {pickup:['makossa','highlife','afrobeat','seben','soukous'].includes(window.BassAccompaniment?.category(line))?.25:0,kind,key,mode,idea,part,degrees,bpm,beats:degrees.length*4,bass,chords,source:line.source,title:line.name,tip:line.tip,heading:degrees.join('–')+' · '+degrees.map(chordName).join(' → ')};
+   return {kind,key,mode,idea,part,degrees,bpm,beats:degrees.length*4,bass,chords,source:line.source,title:line.name,tip:line.tip,heading:degrees.join('–')+' · '+degrees.map(chordName).join(' → ')};
   }
   idea=Math.min(runs.length-1,idea);const base=F.make({...opts,key,mode,idea:0}),source=base.source,target=base.target;
   const third=source+pc(degree(Number(opts.from||1)+1)-source),fifth=source+pc(degree(Number(opts.from||1)+3)-source);

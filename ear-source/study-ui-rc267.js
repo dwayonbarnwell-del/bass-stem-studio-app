@@ -119,12 +119,7 @@ window.BassFillTrainer=(()=>{
      option.dataset.name=N.phrase(clip,i,phrases.length);
      if(!phraseProgressions.has(phraseId)){
       const phrase=U.practicePlan(clip.id,'phrase-'+i);
-      const segments=N.segments(phrase);
-      const qualifies=new Set(phrase.degrees).size>=2&&segments.every((bar,i)=>{
-       const next=segments[(i+1)%segments.length];
-       return bar.rootPc===next.rootPc||phrase.bass.filter(n=>n.beat>bar.beat+.02&&n.beat<bar.end&&!(n.review&&n.length*phrase.step<.11)).length>=3;
-      });
-      phraseProgressions.set(phraseId,qualifies?progressionText(phrase.degrees):'');
+      phraseProgressions.set(phraseId,progressionText(phrase.degrees)||'Original');
      }
      if(!phraseProgressions.get(phraseId))continue;
      option.textContent=option.dataset.name+' '+phraseProgressions.get(phraseId);

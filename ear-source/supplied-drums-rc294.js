@@ -1,7 +1,7 @@
 /* The owner's recordings; all stems use the same integer-sample beat clock. */
 window.BassSuppliedDrums=(()=>{
  'use strict';
- const brightLoops=new Set(["correct-praise-5405aa362e", "correct-praise-c7dcafe508", "correct-praise-5b0dbf04c3", "correct-praise-981ad69e11", "correct-praise-c2891326aa", "correct-praise-822ce98a59", "correct-praise-ede48a213a", "correct-praise-a064896a0e", "correct-praise-7f442f1ff9", "correct-worship-f7950a8d46", "correct-rock-3820baa306", "correct-highlife-77e55d558a", "supplied-soul-6b7dd0fd59", "supplied-soca-fa6a360186", "supplied-soca-e2ff9b7777", "supplied-soca-4c06c306e8", "supplied-soca-7627f79996", "supplied-soukous-9eddbcb8a5"]);
+ const brightLoops=new Set(["correct-worship-f7950a8d46", "correct-rock-3820baa306", "supplied-soul-6b7dd0fd59"]);
  const loops=(window.BassDrumLoops||[]).filter(l=>!brightLoops.has(l.id)),genres=[['worship','Worship'],['praise','Praise'],['soul','Soul & R&B'],['funk','Funk'],['reggae','Reggae'],['highlife','Highlife'],['afrobeat','Afrobeat'],['makossa','Makossa'],['soukous','Soukous & Seben'],['soca','Soca'],['zouk','Zouk'],['rock','Rock']];
  const available=[...loops,...(window.BassGrooveLibrary?.loops||[]).filter(l=>!brightLoops.has(l.base))];
  const buffers=new Map(),renders=new Map(),loads=new Map();
@@ -83,8 +83,12 @@ window.BassSuppliedDrums=(()=>{
   const hats=loop.events.filter(([,hit])=>hit.includes('hat'));
   for(const [i,[beat,hit,velocity]] of loop.events.entries()){
    const gate=hit==='openhat'?(hats.find(([at])=>at>beat)?.[0]??(hats[0][0]+loop.beats))-beat:undefined;
+   if(['reggae','highlife','afrobeat','makossa','soukous','soca','zouk','praise'].includes(loop.genre)){
+    keys.tone(offline,{hit,gate,velocity:velocity*100/127,variant:1+i%2},beat*beatFrames/rate,loop.kit,beatFrames/rate);
+    continue;
+   }
    const hat=['ride','openhat','closedhat'].includes(hit);
-   const offset=loop.genre==='reggae'?(Math.round(beat*4)/4-beat)*.65:0;
+   const offset=0;
    keys.tone(offline,{hit:hat?'closedhat':hit,gate:hat?Math.min(gate||.15,.15):undefined,velocity:velocity*100/127*(hat?.68:1),variant:1+i%2},Math.max(0,beat+offset)*beatFrames/rate,loop.kit,beatFrames/rate);
   }
   const buffer=await offline.startRendering();
