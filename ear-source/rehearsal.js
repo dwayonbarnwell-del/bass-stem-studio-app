@@ -12,6 +12,7 @@ window.BassRehearsal=(()=>{
  let host,api,song,clip,prepared,prepareTimer,ranked=[],ctx,band,clock,visualFrame,voices=[],playing,work=0,loading=false,importing=false,manualBpm=0,mixRevision=0,noBass=true,mixFailed=false;
  const $=id=>host.querySelector('#'+id);
  const state=text=>{$('rehearsalStatus').textContent=text;};
+ let phrases,phraseEvents=[];
  let featured=[],viewNotes=[],viewPosition=0,fretView,fretNotes=[],notePage=-1,markers=[],audible=false;
 
  function init(panel,hooks){
@@ -49,7 +50,8 @@ window.BassRehearsal=(()=>{
     <div class="rehearsal-row"><button id="rehearsalPlay" type="button">Play loop</button><button id="rehearsalGuide" type="button" aria-pressed="true">Guide on</button></div>
     <div class="rehearsal-readout"><output id="rehearsalTime"></output><output id="rehearsalCue"></output></div>
     <div id="rehearsalVisual" hidden>
-     <select id="rehearsalView" aria-label="Rehearsal view"><option value="notes">Note View</option><option value="fret">Fret View</option><option value="fret2">Fret View 2</option></select>
+     <select id="rehearsalView" aria-label="Rehearsal view"><option value="notes">Note View</option><option value="phrase">Phrase View</option><option value="fret">Fret View</option><option value="fret2">Fret View 2</option></select>
+     <div class="bass-phrase" id="rehearsalPhrases" hidden></div>
      <div id="rehearsalTimeline" aria-label="Rehearsal note timeline"></div>
      <div id="rehearsalFret" hidden></div>
     </div>
@@ -267,6 +269,7 @@ window.BassRehearsal=(()=>{
 
  function setNotes(notes){
   viewNotes=notes;
+  phraseEvents=notes.map(n=>({...n,start:n.time,end:n.stop}));
   setNotes.index=window.BassPlaybackTiming?.index?.(notes,n=>n.time,n=>n.stop);
   fretNotes=notes.filter(n=>n.midi!==null).map(n=>({midi:n.midi,start:n.time,end:n.stop,isFill:n.role==='fill'}));
   notePage=-1;
@@ -277,7 +280,14 @@ window.BassRehearsal=(()=>{
  function drawView(){
   if(!clip||!viewNotes.length)return;
   const mode=$('rehearsalView').value,board=$('rehearsalFret'),timeline=$('rehearsalTimeline');
-  board.hidden=mode==='notes';timeline.hidden=!board.hidden;
+  const phraseHost=$('rehearsalPhrases');
+  phraseHost.hidden=mode!=='phrase';board.hidden=mode==='notes'||mode==='phrase';timeline.hidden=mode!=='notes';
+  if(mode==='phrase'){
+   phrases??=window.BassPhraseView.create(phraseHost);
+   phrases.set(phraseEvents,clip.grid?.bpm,clip.grid?.meter,clip.start,clip.end,api.phraseLabel);
+   phrases.draw(viewPosition,audible);
+   return;
+  }
   if(!board.hidden){
    board.classList.toggle('ff-single-board',mode==='fret2');
    if(!fretView){
@@ -517,7 +527,7 @@ window.BassRehearsal=(()=>{
   if(playing.viewChange&&now>=playing.viewChange.at){
    setNotes(playing.viewChange.notes);playing.viewChange=null;
   }
-  const format=$('rehearsalView').value==='notes'?minutesSeconds:fmt;
+  const format=['phrase','notes'].includes($('rehearsalView').value)?minutesSeconds:fmt;
   $('rehearsalTime').value=format(viewPosition)+' / '+format(clip.end);
   const current=audible&&(setNotes.index?setNotes.index.at(viewPosition):viewNotes.find(n=>n.time<=viewPosition&&viewPosition<n.stop));
   $('rehearsalCue').value=current?noteName(current):'';

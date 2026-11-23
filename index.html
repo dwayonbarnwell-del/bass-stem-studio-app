@@ -13786,6 +13786,17 @@ html body #appRoot #bassFretboard#bassFretboard#bassFretboard#bassFretboard .bas
   :is(#reviewStop, #reviewClose, #rhythmCancel, #rhythmClose) { --action-start: #53414b; --action-end: #3e3848; }
 }
 </style>
+<style>
+.bass-phrase[hidden]{display:none!important}
+.bass-phrase{padding:.55rem;color:#dbe9ef;background:#142737;border-radius:12px}
+.bass-phrase select{max-width:100%;margin-bottom:.5rem}
+.bass-phrase-row{display:grid;grid-template-columns:7em minmax(0,1fr);gap:.3em;padding:.55em .15em;border-top:1px solid #345064;align-items:baseline}
+.bass-phrase-row time{font-variant-numeric:tabular-nums;color:#bfd4df;white-space:nowrap}
+.bass-phrase-row div{display:flex;flex-wrap:wrap;gap:.25em}
+.bass-phrase-row span{border-radius:1em;padding:.12em .42em;background:#233e50;color:#e0eff3}
+.bass-phrase-row span.sounding{background:#a6dccc;color:#142f30}
+#earTrainerDialog .bass-phrase{overflow:auto;min-height:0;flex:1 1 auto}
+</style>
 </head>
 <body>
 <div id="sectionCompatibility" style="display:none" aria-hidden="true">
@@ -13897,6 +13908,7 @@ html body #appRoot #bassFretboard#bassFretboard#bassFretboard#bassFretboard .bas
         <div class="stacked-select-card practice-view-card" id="practiceViewCard">
           <select class="practice-view-select" id="practiceViewSelect" aria-label="Practice view">
             <option value="timeline" selected>Notes View</option>
+            <option value="phrase">Phrase View</option>
             <option value="bassroll">Bass View</option>
             <option value="piano">Piano View</option>
             <option value="fretflow">Fret View</option>
@@ -13925,6 +13937,7 @@ html body #appRoot #bassFretboard#bassFretboard#bassFretboard#bassFretboard .bas
  <div id="pianoRollViewport" tabindex="0" aria-label="Melody timeline. Follows playback automatically. Swipe horizontally when paused to review notes."><div id="pianoRollCanvas"><div id="pianoRollHeader"><span id="pianoRollCorner">Vocal</span><div id="pianoTimeRuler"></div><div id="pianoChordRuler"></div></div><div id="pianoKeyboard" aria-label="Vertical piano keyboard. Tap a key to add a note at the playhead."></div><div id="pianoTimeline" aria-label="Melody notes along the song timeline"></div></div></div>
 </div>
 
+    <section class="bass-phrase" id="phrasePanel" aria-label="Bass phrases" hidden></section>
     <section id="fretFlowPanel" hidden aria-label="FretFlow bass practice"></section>
         <section id="songViewPanel" hidden aria-label="Full song progression"></section>
 
@@ -15762,7 +15775,8 @@ window.BassBatch = (() => {
 <script src="./ear-source/uploaded-core-rc267.js?v=rc337"></script>
 <script src="./ear-source/study-ui-rc267.js?v=rc339"></script>
 <script src="./ear-source/rehearsal-core.js?v=rc324"></script>
-<script src="./ear-source/rehearsal.js?v=rc341"></script>
+<script src="./ear-source/phrase-view.js?v=rc342"></script>
+<script src="./ear-source/rehearsal.js?v=rc342"></script>
 <script src="./ear-source/trainer-rc266.js?v=rc326"></script>
 <script src="./fretflow-source/core.js?v=rc277"></script>
 <script src="./fretflow-source/practice-stems.js?v=rc305"></script>
@@ -15775,7 +15789,7 @@ window.BassBatch = (() => {
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC341';
+  const APP_VERSION='RC342';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;
@@ -15870,6 +15884,20 @@ window.BassBatch = (() => {
   const ANALYSIS_PART_BITRATE_KBPS=256;
   let analysisParts=[], activeAnalysisPartIndex=0, stemTimelineOffset=0, stemTimelineEnd=Infinity, stemPartSwitchBusy=false;
   let audioKeyBuffer=null,audioKeySections=[],audioKeyReady=false,audioKeyRun=0;
+  let songPhrases;
+  function phraseLabel(note,mode,rehearsal=false){
+    const pitch=rehearsal?note.midi:practiceDisplayMidi(note.midi);
+    if(mode==='numbers'){
+      const degree=scaleDegreeLabel(practiceDisplayMidi(note.midi),songViewScaleAt(note.start))||note.scaleNumber;
+      if(degree)return degree;
+    }
+    return midiName(pitch);
+  }
+  function drawSongPhrases(t){
+    songPhrases??=window.BassPhraseView.create($('phrasePanel'));
+    songPhrases.set(notes,detectedTempoBpm,detectedBeatsPerBar,0,buffer?.duration||0,phraseLabel);
+    songPhrases.draw(t,playing);
+  }
   let practiceVisualMode='timeline';
   let fretFlowStringCount=5;
   let bassViewStringCount=5;
@@ -16522,7 +16550,7 @@ window.BassBatch = (() => {
           metronomeVolume:Number.isFinite(Number(metronomeVol?.value))?Number(metronomeVol.value):70,
           speed:Number.isFinite(Number(tempo?.value))?Number(tempo.value):100,
           timelineCellSeconds:Number(TIMELINE_CELL_SECONDS)||1,
-          practiceView:['timeline','bass','piano','bassroll','fretflow','song'].includes(String(practiceVisualMode))?String(practiceVisualMode):'timeline',
+          practiceView:['timeline','bass','piano','bassroll','fretflow','song','phrase'].includes(String(practiceVisualMode))?String(practiceVisualMode):'timeline',
           fretFlowStrings:fretFlowStringCount,
           bassStringCount:[4,5,6].includes(Number(bassViewStringCount))?Number(bassViewStringCount):5,
           transposeSemitones,
@@ -18879,8 +18907,10 @@ window.BassBatch = (() => {
   }
 
   function setPracticeVisualMode(mode){
-    const next=['bass','piano','bassroll','fretflow','song'].includes(mode)?mode:'timeline';
+    const next=['bass','piano','bassroll','fretflow','song','phrase'].includes(mode)?mode:'timeline';
     practiceVisualMode=next;drawPracticeSections();
+    $('phrasePanel').hidden=next!=='phrase';
+    if(next==='phrase')drawSongPhrases(displayTime());
     const bass=next==='bass',piano=next==='piano'||next==='bassroll',flow=next==='fretflow'||bass,song=next==='song';
     $('songViewPanel').hidden=!song;document.body.classList.toggle('song-view-active',song);
     document.body.classList.toggle('fretflow-view-active',flow);
@@ -18893,9 +18923,9 @@ window.BassBatch = (() => {
     document.body.classList.toggle('bass-view-active',false);
     if(practiceViewSelect)practiceViewSelect.value=next;
     const viewDisplay=document.getElementById('practiceViewDisplayValue');
-    if(viewDisplay)viewDisplay.textContent=song?'Song':flow?'Fret':next==='bassroll'?'Bass':piano?'Piano':bass?'Fret':'Notes';
+    if(viewDisplay)viewDisplay.textContent=next==='phrase'?'Phrase':song?'Song':flow?'Fret':next==='bassroll'?'Bass':piano?'Piano':bass?'Fret':'Notes';
     if(viewDisplay)viewDisplay.nextElementSibling.textContent=bass?'View 2':'View';
-    if(timelineScroll)timelineScroll.hidden=bass||piano||flow||song;
+    if(timelineScroll)timelineScroll.hidden=bass||piano||flow||song||next==='phrase';
     if(bassViewPanel)bassViewPanel.hidden=true;
     if(bassStringSelector)bassStringSelector.hidden=false;
     if(timelineViewBtn){
@@ -20901,6 +20931,8 @@ window.BassBatch = (() => {
     if(currentBassInfo)currentBassInfo.textContent=n?displayNoteLabel(n.midi,n.scaleNumber):'—';
     if(['bass','fretflow'].includes(practiceVisualMode)){
       window.BassFretFlow?.draw(t);updateBassTimePlayhead(t);
+    }else if(practiceVisualMode==='phrase'){
+      drawSongPhrases(t);
     }else if(practiceVisualMode==='song'){
       window.BassSongView?.draw(t);
     }else if(['piano','bassroll'].includes(practiceVisualMode)){
@@ -20911,6 +20943,7 @@ window.BassBatch = (() => {
   }
 
   function drawAll(){
+    songPhrases?.invalidate();
     ensureSongKeyAnalysis();
     updateProjectButtons();
     updatePracticeLayoutState();
@@ -21374,6 +21407,7 @@ window.BassBatch = (() => {
       session:()=>songSession,
       pickAudio:(input,onAudio)=>chooseImportFile('audio',{input,onAudio}),
       importAudio:file=>importAudioCheckingLibrary(file,{automaticAnalysis:false}),
+      phraseLabel:(n,mode)=>phraseLabel(n,mode,true),
       readBass:async(session,cancelled)=>{
         if(!buffer||session!==songSession)return [];
         if(!notes.length)await estimateMissingBass(buffer,session,()=>session===songSession&&!cancelled()&&!notes.length&&!aiBusy,()=>true,'estimated-bass');
