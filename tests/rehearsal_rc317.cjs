@@ -121,6 +121,7 @@ async function playerTest(){
   assert.equal(mixRequests,1,'separation is used for the default mix');
   assert(scheduled.length);
   const timeline=$('rehearsalTimeline');
+  assert.deepEqual(timeline.children.map(column=>column.children[0].textContent),['0:00','0:01','0:02','0:03']);
   assert(timeline.children.every(column=>/^\d+:\d{2}$/.test(column.children[0].textContent)));
   assert(timeline.children.some(column=>column.children.some(note=>note.className==='rehearsal-fill-note')));
   assert(!timeline.children.some(column=>column.children.some(note=>note.active)),'the highlight waits for the audible loop');

@@ -287,19 +287,18 @@ window.BassRehearsal=(()=>{
    fretView.draw(viewPosition);
    return;
   }
-  const {start,end,grid}=clip;
-  const step=grid?.meter||4,edges=grid?.points||Array.from({length:Math.ceil(end-start)+1},(_,i)=>Math.min(end,start+i));
-  const index=Math.max(0,edges.findLastIndex(t=>t<=viewPosition+.0001));
-  const first=Math.min(Math.floor(index/step)*step,Math.floor((edges.length-2)/step)*step);
+  const startSecond=Math.floor(clip.start),endSecond=Math.ceil(clip.end);
+  const currentSecond=Math.min(endSecond-1,Math.max(startSecond,Math.floor(viewPosition)));
+  const first=startSecond+4*Math.floor((currentSecond-startSecond)/4);
   if(first!==notePage){
    notePage=first;markers=[];
    const columns=[];
-   for(let i=first;i<Math.min(edges.length-1,first+step);i++){
+   for(let i=first;i<Math.min(endSecond,first+4);i++){
     const cell=document.createElement('div'),time=document.createElement('time');
-    time.textContent=minutesSeconds(edges[i]);cell.append(time);
+    time.textContent=minutesSeconds(i);cell.append(time);
     for(const note of viewNotes){
-     const start=Math.max(note.time,edges[first]);
-     if(note.stop<=edges[first]||start<edges[i]-.0001||start>=edges[i+1]-.0001)continue;
+     const start=Math.max(note.time,first);
+     if(note.stop<=first||start<i||start>=i+1)continue;
      const chip=document.createElement('span');
      chip.className=note.role==='fill'?'rehearsal-fill-note':'rehearsal-bass-note';
      chip.textContent=noteName(note);
