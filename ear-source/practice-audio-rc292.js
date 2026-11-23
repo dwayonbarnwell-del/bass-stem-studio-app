@@ -6,8 +6,8 @@ window.BassPracticeAudio=(()=>{
   if(buses.has(context))return buses.get(context);
   const sub=context.createBiquadFilter(),body=context.createBiquadFilter(),top=context.createBiquadFilter();
   sub.type='highpass';sub.frequency.value=25;sub.Q.value=.5;
-  body.type='lowshelf';body.frequency.value=150;body.gain.value=2.5;
-  top.type='lowpass';top.frequency.value=2400;top.Q.value=.55;
+  body.type='lowshelf';body.frequency.value=150;body.gain.value=3;
+  top.type='lowpass';top.frequency.value=1850;top.Q.value=.55;
   sub.connect(body).connect(top).connect(context.destination);
   const proxy={get currentTime(){return context.currentTime;},destination:sub,createBufferSource:()=>context.createBufferSource(),createGain:()=>context.createGain()};
   buses.set(context,proxy);return proxy;

@@ -220,7 +220,7 @@ window.BassFillTrainer=(()=>{
    catch(error){if(!current.recording||current.recording.pack)throw error;if(mine===token&&request===revision)await playRecording(mine,request,current,choices);return;}
    if(mine!==token||request!==revision||!audio||!$('earTrainerDialog').open)return;
    const previous=transport,oldPlan=sessions.at(-1)?.plan;
-   const same=oldPlan&&oldPlan.kind===current.kind&&oldPlan.idea===current.idea&&oldPlan.clipId===current.clipId&&oldPlan.part===current.part;
+   const same=oldPlan&&oldPlan.kind===current.kind&&oldPlan.idea===current.idea&&oldPlan.clipId===current.clipId&&oldPlan.part===current.part&&oldPlan.from===current.from&&oldPlan.to===current.to;
    const tempoChanged=same&&oldPlan.bpm!==current.bpm;
    const quantum=tempoChanged?1:4;
    const priorOffset=previous?.offsetBeats||0;
@@ -240,7 +240,7 @@ window.BassFillTrainer=(()=>{
     if(active){
      sessions=sessions.filter(s=>s===active||s.transport.when>ctx.currentTime);
      const elapsed=active.transport.position()-(window.BassPlaybackTiming?.outputDelay(ctx)||0);
-     const beat=(((elapsed%active.rendered.seconds)+active.rendered.seconds)%active.rendered.seconds)/active.rendered.beatSeconds;
+     const beat=(Math.max(0,elapsed)%active.rendered.seconds)/active.rendered.beatSeconds;
      if(active.plan===plan){highlightChord(beat);$('fillStatus').textContent=plan.kind==='uploaded'?(plan.recording?(active.plan.recording.originalMix?'Original mix · ':'Suggested chords · ')+Number(active.plan.bpm.toFixed(2))+' BPM':'Note playback'):'Playing · '+Number(active.plan.bpm.toFixed(2))+' BPM';
       highlightNotes(active.plan.bass,beat,elapsed>=0);
      }else highlightNotes([],0,false);

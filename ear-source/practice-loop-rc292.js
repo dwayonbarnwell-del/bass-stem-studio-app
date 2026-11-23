@@ -115,6 +115,7 @@ window.BassPracticeLoop=(()=>{
   if(cancelled())return null;
   for(const part of [...(recorded?[]:['bass']),...(chords&&!useKeys&&keys.length?['chords']:[])]){
    const offline=new OfflineAudioContext(part==='bass'?1:2,frames+Math.ceil(tail*rate),rate);
+   if(part==='bass'&&plan.pickup)A.muted(offline,(plan.beats-plan.pickup)*beat,.15);
    for(const n of part==='bass'?plan.bass:keys){if(part==='chords'&&K)K.tone(offline,n,n.beat*beat,n.length*beat,sound,.22);else A.tone(offline,n.midi,n.beat*beat,n.length*beat,part==='bass'?'bass':'piano',0,n.velocity,part==='bass'?.72:.18);}
    const buffer=await offline.startRendering();if(cancelled())return null;
    // Carry each decaying cymbal/note across the seam rather than cutting it off.
@@ -127,10 +128,15 @@ window.BassPracticeLoop=(()=>{
   // Different phrase lengths share an integer-sample beat, never a UI timer.
   // Sum peak bounds so every relative phase is safe, including odd progressions.
   let bound=0;for(const buffer of Object.values(stems)){let peak=0;for(let c=0;c<buffer.numberOfChannels;c++)for(const value of buffer.getChannelData(c))peak=Math.max(peak,Math.abs(value));bound+=peak;}
-  return {drumPhase:phrase?(useDrums?0:originalDrums?(assignedPhase??plan.recording.drumPhase):0):null,stems,frames,seconds,beatSeconds:beat,beatFrames,rate,gain:Math.min(1,.88/(bound||1))};
+  return {pickup:plan.pickup,drumPhase:phrase?(useDrums?0:originalDrums?(assignedPhase??plan.recording.drumPhase):0):null,stems,frames,seconds,beatSeconds:beat,beatFrames,rate,gain:Math.min(1,.88/(bound||1))};
  }
  function start(context,rendered,{repeat=true,drums=.45,chords=1,onEnded=()=>{},when=context.currentTime+.08,offsetBeats=0,drumPhase=0,fadeIn=0}={}){
   const sources=[],gains={},master=context.createGain();let stopped=false,ending=false;
+  if(rendered.pickup&&!fadeIn&&!offsetBeats){
+   const lead=rendered.pickup*rendered.beatSeconds;
+   when=Math.max(when,context.currentTime+lead+.012);
+   sources.push({source:window.BassPracticeAudio.muted(context,when-lead,.15),part:'pickup'});
+  }
   when=Math.max(context.currentTime,when);const offset=offsetBeats*rendered.beatSeconds;
   master.gain.setValueAtTime(fadeIn?0:rendered.gain,when);if(fadeIn)master.gain.linearRampToValueAtTime(rendered.gain,when+fadeIn);master.connect(context.destination);
   for(const [part,buffer] of Object.entries(rendered.stems)){

@@ -1,7 +1,7 @@
 /* Original genre-informed practice arrangements, not transcriptions of recordings. */
 window.BassAccompaniment=(()=>{
  'use strict';
- const groups=[['worship','Worship'],['gospel','Gospel & Soul'],['praise','Praise'],['reggae','Reggae'],['highlife','Highlife'],['afrobeat','Afrobeat'],['makossa','Makossa'],['seben','Seben'],['soukous','Soukous'],['congolese','Congolese'],['african','Other African styles'],['soca','Soca'],['zouk','Zouk']];
+ const groups=[['worship','Worship'],['gospel','Gospel & Soul'],['reggae','Reggae'],['highlife','Highlife'],['afrobeat','Afrobeat'],['makossa','Makossa'],['bass-lady','Bass Lady'],['bassmatics','Bassmatics']];
  const recordingStyles={
   'recorded-worship':'worship','recorded-reggae':'reggae','recorded-makossa':'makossa',
   'recorded-soukous':'soukous','recorded-seben':'soukous','recorded-congolese':'soukous',
@@ -52,6 +52,7 @@ window.BassAccompaniment=(()=>{
   return'gospel';
  }
  function category(item,recording=false){
+  if(recording&&item.originalMix)return item.group;
   if(item.id?.startsWith('custom-'))return null;
   const c=item.collection||item.group;
   const named=namedGenre(item);

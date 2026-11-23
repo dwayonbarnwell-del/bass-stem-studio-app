@@ -100,10 +100,11 @@ window.BassUploadedCore=(()=>{
    }
   }
   if(value.recording?.pack){
-   starts.length=0;for(let beat=0;beat<value.beats;beat+=2)starts.push(beat);
+   starts.length=0;for(let beat=0;beat<value.beats;beat+=value.recording.originalMix?4:2)starts.push(beat);
   }
   const bars=starts.map(()=>new Float64Array(12)),total=new Float64Array(12);
   for(const n of value.bass){
+   if(value.recording?.originalMix&&n.review&&n.length*step<.11)continue;
    let lo=0,hi=starts.length;
    while(lo+1<hi){const mid=(lo+hi)>>>1;if(starts[mid]<=n.beat)lo=mid;else hi=mid;}
    const pc=n.midi%12,weight=Math.min(2,n.length)*(n.review?.45:1)*(n.beat-starts[lo]<.35?2:1);

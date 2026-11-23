@@ -71,11 +71,16 @@ window.BassPracticeCore=(()=>{
     else if(line.feel==='praise')shape=[[0,root,.35],[.75,fifth,.35],[1.5,root+12,.35],[2,root,.65],[3,fifth,.35],[3.5,next-1,.35]];
     else if(line.feel==='lift')shape=[[0,root,1.2],[1.5,fifth,.35],[2,root+12,.8],[3.5,next,.35]];
     else shape=[[0,root,1.7],[2,fifth,.7],[3,third,.4],[3.5,next,.35]];
-    shape.forEach(([b,n,l],i)=>add(offset+b,n,l,i===0?'landing':'bass'));
+    shape.forEach(([b,n,l],i)=>{
+     const touch=Math.sin((idea+1)*7+(bar%2)*5+i*2.3);
+     const delay=b%1===0?0:(.009+.006*touch);
+     add(offset+b+delay,n,Math.min(4-b-delay,l*(.96+.035*touch)),i===0?'landing':'bass');
+     bass.at(-1).velocity+=Math.round(touch*5-(b%1?5:0));
+    });
     chord(d).forEach(midi=>chords.push({midi,beat:offset,length:3.8,velocity:47,role:'chord'}));
    });
    if(Math.min(...bass.map(n=>n.midi))<23)for(const n of bass)n.midi+=12;
-   return {kind,key,mode,idea,part,degrees,bpm,beats:degrees.length*4,bass,chords,source:line.source,title:line.name,tip:line.tip,heading:degrees.join('–')+' · '+degrees.map(chordName).join(' → ')};
+   return {pickup:['makossa','highlife','afrobeat','seben','soukous'].includes(window.BassAccompaniment?.category(line))?.25:0,kind,key,mode,idea,part,degrees,bpm,beats:degrees.length*4,bass,chords,source:line.source,title:line.name,tip:line.tip,heading:degrees.join('–')+' · '+degrees.map(chordName).join(' → ')};
   }
   idea=Math.min(runs.length-1,idea);const base=F.make({...opts,key,mode,idea:0}),source=base.source,target=base.target;
   const third=source+pc(degree(Number(opts.from||1)+1)-source),fifth=source+pc(degree(Number(opts.from||1)+3)-source);
