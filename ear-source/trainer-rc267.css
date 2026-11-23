@@ -115,9 +115,7 @@
 #earTrainerDialog #earProgress{margin-top:auto!important}
 #earTrainerDialog #earQuestion{flex:0 0 auto!important;justify-content:flex-start!important}
 #earTrainerDialog #fillCollection,#earTrainerDialog #fillClip,#earTrainerDialog #fillExcerpt,#earTrainerDialog #fillClipTranspose{grid-column:1/-1!important}
-#earTrainerDialog #earFillStudy[data-imported="true"] #fillNotes{position:relative!important;max-height:clamp(150px,28vh,270px)!important;overflow:auto!important;align-content:flex-start!important;padding:4px!important}
-#earTrainerDialog #earFillStudy[data-imported="true"] #fillNotes button{flex:0 0 calc(20% - 8px)!important;min-width:40px!important}
-#earTrainerDialog #earFillStudy[data-imported="true"] .fill-actions{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+
 #earTrainerDialog #fillNotes .needs-review{border-color:#d5ac70!important;border-style:dashed!important}
 @media (max-width:359px){#earTrainerDialog .ear-actions,#earTrainerDialog .fill-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
 @media (prefers-reduced-motion:reduce){#earTrainerDialog{scroll-behavior:auto!important}}
@@ -144,10 +142,10 @@
 @layer bass-ear-267 {
 #fillDrumOptions{margin:.5rem 0}#fillDrumOptions summary{cursor:pointer;padding:.5rem 0;font-size:14px}
 #fillDrumOptions .fill-settings{margin-top:.4rem}.fill-drum-volume{display:flex;align-items:center;gap:.5rem;flex:1 1 240px;min-width:0;font-size:14px}.fill-drum-volume input{min-width:60px;flex:1;width:100%;padding:0!important}.fill-drum-volume output{min-width:3em;text-align:right}#fillRegister,#fillDrumNotice{font-size:12px;margin:.4rem 0;opacity:.85}
-#earTrainerDialog #earFillStudy[data-imported="false"] .fill-actions{grid-template-columns:repeat(6,minmax(0,1fr))!important}
-#earTrainerDialog #earFillStudy[data-imported="false"] .fill-actions>button{grid-column:span 2}
-#earTrainerDialog #earFillStudy[data-imported="false"] .fill-actions>button:nth-child(n+4){grid-column:span 3}
-@media(min-width:580px){#earTrainerDialog #earFillStudy[data-imported="false"] .fill-actions{grid-template-columns:repeat(5,minmax(0,1fr))!important}#earTrainerDialog #earFillStudy[data-imported="false"] .fill-actions>button{grid-column:auto!important}}
+#earTrainerDialog #earFillStudy .fill-actions{grid-template-columns:repeat(6,minmax(0,1fr))!important}
+#earTrainerDialog #earFillStudy .fill-actions>button{grid-column:span 2}
+#earTrainerDialog #earFillStudy .fill-actions>button:nth-child(n+4){grid-column:span 3}
+@media(min-width:580px){#earTrainerDialog #earFillStudy .fill-actions{grid-template-columns:repeat(5,minmax(0,1fr))!important}#earTrainerDialog #earFillStudy .fill-actions>button{grid-column:auto!important}}
 
 #earTrainerDialog #fillDrumOptions .fill-settings{grid-template-columns:minmax(0,1fr)!important}
 #earTrainerDialog #fillDrumOptions select{width:100%!important}
@@ -284,4 +282,14 @@
  #earTrainerDialog :is(#rehearsalAdjust,#rehearsalFill){--rehearsal-a:#71583d;--rehearsal-b:#554451}
  #earTrainerDialog #rehearsalMix[aria-pressed=true]{--rehearsal-a:#715064;--rehearsal-b:#513f54}
  #earTrainerDialog :is(#rehearsalMix,#rehearsalGuide)[aria-pressed=false]{--rehearsal-a:#405467;--rehearsal-b:#303e51}
+}
+
+#earTrainerDialog #fillRecordedKey:not([hidden]){display:grid;place-items:center;border:1px solid #496278;border-radius:10px;background:#243b4b;color:#e3edf2;text-align:center;padding:6px;}
+
+@layer bass-ear-267 {
+ #earTrainerDialog #earFillStudy[data-playing="true"]{justify-content:flex-start!important}
+ @media(max-width:579px){
+  #earTrainerDialog #earFillStudy #fillNotes{position:relative!important;display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important}
+  #earTrainerDialog #earFillStudy #fillNotes button{min-width:0!important}
+ }
 }

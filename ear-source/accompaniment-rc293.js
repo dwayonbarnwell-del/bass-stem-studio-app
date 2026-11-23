@@ -7,7 +7,14 @@ window.BassAccompaniment=(()=>{
   'recorded-soukous':'soukous','recorded-seben':'soukous','recorded-congolese':'soukous',
   'recorded-praise':'praise','recorded-soca':'soca','recorded-zouk':'zouk'
  };
- const recordedStyle=item=>recordingStyles[item.collection]||null;
+ function recordedStyle(item){
+  if(recordingStyles[item.collection])return recordingStyles[item.collection];
+  const style=identify(item);
+  if(style!=='gospel')return style;
+  if(item.collection==='recorded-nigerian')return 'afrobeat';
+  if(item.collection==='recorded-african')return 'highlife';
+  return null;
+ }
  // The menu combines related genres. Each individual study still gets its own feel.
  const profiles={
   worship:{label:'Worship',kit:'vintage',groove:'worship',sound:'piano'},
@@ -47,7 +54,7 @@ window.BassAccompaniment=(()=>{
  }
  function profile(plan){
   const item=plan.kind==='basslines'?window.BassPracticeCore.lines[plan.idea]:plan.kind==='runs'?window.BassPracticeCore.runs[plan.idea]:plan.kind==='fills'?window.BassFillCore.styles[plan.idea]:plan;
-  const id=plan.kind==='uploaded'?recordedStyle(plan)||'soul':identify(item);
+  const id=plan.kind==='uploaded'?recordedStyle(plan)||identify(plan):identify(item);
   return {id,style:id,...profiles[id]};
  }
  function resolve(plan,options={}){

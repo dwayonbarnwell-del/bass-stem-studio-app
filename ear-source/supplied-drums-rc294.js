@@ -24,6 +24,7 @@ window.BassSuppliedDrums=(()=>{
   const key=loop.id+':'+context.sampleRate+':'+beatFrames,frames=beatFrames*loop.beats;
   if(renders.has(key))return renders.get(key);
   const source=await load(context,loop);if(cancelled())return null;
+  if(source.length===frames)return source;
   const channels=Array.from({length:source.numberOfChannels},(_,c)=>source.getChannelData(c).slice());
   const data=await new Promise((resolve,reject)=>{
    const worker=new Worker('./ear-source/drum-stretch-worker-rc294.js',{type:'module'});

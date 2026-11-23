@@ -40,9 +40,14 @@ window.BassPracticeLoop=(()=>{
   const A=window.BassPracticeAudio,D=window.BassSuppliedDrums,rate=context.sampleRate,beatFrames=Math.round(60/plan.bpm*rate),frames=Math.round(plan.beats*beatFrames),seconds=frames/rate;
   if(!Number.isFinite(seconds)||seconds<=0||seconds>240)throw Error('Practice loop is too long');
   const beat=beatFrames/rate,stems={},K=window.BassPracticeKeys,keys=window.BassAccompaniment?window.BassAccompaniment.arrange(plan,style):plan.chords;
-  if(recorded){stems.bass=await recordedBass(context,plan,frames,cancelled);if(!stems.bass)return null;}
-  else await A.prepare('bass',context,{notes:plan.bass});
-  if(chords&&keys.length){if(K)await K.prepare(context,sound,keys);else await A.prepare('piano',context,{notes:keys});}
+  // Load the rhythm, recorded bass and keys together on the first play.
+  const [drumBuffer,bassBuffer]=await Promise.all([
+   drums&&loop?D.render(context,loop,beatFrames,cancelled):null,
+   recorded?recordedBass(context,plan,frames,cancelled):A.prepare('bass',context,{notes:plan.bass}),
+   chords&&keys.length?(K?K.prepare(context,sound,keys):A.prepare('piano',context,{notes:keys})):null
+  ]);
+  if(drums&&loop&&!drumBuffer||recorded&&!bassBuffer)return null;
+  if(recorded)stems.bass=bassBuffer;
   if(cancelled())return null;
   for(const part of [...(recorded?[]:['bass']),...(chords&&keys.length?['chords']:[])]){
    const offline=new OfflineAudioContext(part==='bass'?1:2,frames+Math.ceil(tail*rate),rate);
@@ -54,7 +59,7 @@ window.BassPracticeLoop=(()=>{
    for(let ch=0;ch<buffer.numberOfChannels;ch++)loop.copyToChannel(buffer.getChannelData(ch).subarray(0,frames),ch);
    stems[part]=loop;
   }
-  if(drums&&loop){const buffer=await D.render(context,loop,beatFrames,cancelled);if(!buffer||cancelled())return null;stems.drums=buffer;}
+  if(drumBuffer)stems.drums=drumBuffer;
   // Different phrase lengths share an integer-sample beat, never a UI timer.
   // Sum peak bounds so every relative phase is safe, including odd progressions.
   let bound=0;for(const buffer of Object.values(stems)){let peak=0;for(let c=0;c<buffer.numberOfChannels;c++)for(const value of buffer.getChannelData(c))peak=Math.max(peak,Math.abs(value));bound+=peak;}

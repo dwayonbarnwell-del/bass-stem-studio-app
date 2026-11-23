@@ -26,10 +26,14 @@ window.BassStudyDisplay=(()=>{
   const entries=[...map].sort((a,b)=>a[0]-b[0]);
   return entries.map(([beat,notes],i)=>{
    const rootPc=pc(notes[0]),intervals=notes.map(n=>pc(n-rootPc)),minor=intervals.includes(3),quality=intervals.includes(6)?(intervals.includes(10)?'m7b5':'dim'):minor?(intervals.includes(10)?'m7':'m'):(intervals.includes(11)?'maj7':intervals.includes(10)?'7':'');
-   const degree=plan.kind==='basslines'?window.BassPracticeCore.lines[plan.idea]?.degrees[i]:i===0?plan.from:plan.to;
+   const degree=plan.kind==='uploaded'?plan.degrees?.[i]:plan.kind==='basslines'?window.BassPracticeCore.lines[plan.idea]?.degrees[i]:i===0?plan.from:plan.to;
    return {beat,end:entries[i+1]?.[0]??plan.beats,rootPc,label:(degree?degree+' · ':'')+F.names[rootPc]+quality};
   });
  }
- const active=(segments,beat)=>segments.findIndex(s=>beat>=s.beat&&beat<s.end);
+ function active(segments,beat){
+  let lo=0,hi=segments.length;
+  while(lo<hi){const mid=(lo+hi)>>>1;if(segments[mid].end<=beat)lo=mid+1;else hi=mid;}
+  return lo<segments.length&&segments[lo].beat<=beat?lo:-1;
+ }
  return {short,label,clip,segments,active};
 })();

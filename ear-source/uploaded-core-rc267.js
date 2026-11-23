@@ -30,6 +30,50 @@ window.BassUploadedCore=(()=>{
   return {kind:'uploaded',collection:clip.collection,recording,audio:clip.audio,clipId:clip.id,title:clip.title,heading:clip.title,bpm:60*ratio/(100*step),beats:recording?.beats??range.end-range.start,bass,chords:[],sourceStart:range.start,sourceEnd:range.end,part:index,speed:ratio,transpose:shift,check:bass.some(n=>n.review),status:time(range.start)+'–'+time(range.end)+' · '+ratio+'% speed · Automatic notes'};
  }
 
+ // The guide follows the supplied bass transcription. These are suggested
+ // harmonies: a bass recording alone cannot establish every chord quality.
+ function practicePlan(id,part,bpm){
+  const clip=items.find(c=>c.id===id),grid=loop(id);
+  const style=window.BassAccompaniment.profile({...clip,kind:'uploaded'}).id;
+  const originalBpm=grid?60/grid.step:style==='reggae'?77:window.BassSuppliedDrums.choose(style).bpm;
+  const value=plan(id,part),step=60/originalBpm;
+  const tempo=Number(bpm)||originalBpm;
+  if(!value.recording){
+   for(const n of value.bass){n.beat/=step;n.length/=step;}
+   value.beats/=step;
+  }
+  Object.assign(value,{bpm:tempo,originalBpm,speed:100*tempo/originalBpm,step,
+   phase:((value.sourceStart-(grid?.start||0))/step%4+4)%4});
+  if(value.phase>3.99999)value.phase=0;
+  const bars=Array.from({length:Math.max(1,Math.ceil((value.phase+value.beats-1e-7)/4))},()=>new Float64Array(12));
+  const total=new Float64Array(12);
+  for(const n of value.bass){
+   const pos=n.beat+value.phase,index=Math.min(bars.length-1,Math.floor(pos/4)),pc=n.midi%12;
+   const weight=Math.min(2,n.length)*(n.review?.45:1)*(pos%4<.35?2:1);
+   bars[index][pc]+=weight;total[pc]+=weight;
+  }
+  let best=-Infinity,tonic=0,scale;
+  for(const steps of [[0,2,4,5,7,9,11],[0,2,3,5,7,8,10]])for(let root=0;root<12;root++){
+   const score=steps.reduce((s,v,i)=>s+total[(root+v)%12]*(i===0?1.35:i===4?1.1:1),0);
+   if(score>best){best=score;tonic=root;scale=steps;}
+  }
+  value.tonic=tonic;value.minor=scale[2]===3;value.degrees=[];
+
+  bars.forEach((weights,i)=>{
+   if(!weights.some(Boolean))return;
+   let best=-Infinity,degree=0;
+   for(let d=0;d<7;d++){
+    const pc=j=>(tonic+scale[(d+j)%7])%12;
+    const score=weights[pc(0)]+.25*weights[pc(2)]+.4*weights[pc(4)];
+    if(score>best){best=score;degree=d;}
+   }
+   value.degrees.push(degree+1);
+   const beat=Math.max(0,i*4-value.phase),root=48+(tonic+scale[degree])%12;
+   for(const j of [0,2,4])value.chords.push({beat,midi:root+(scale[(degree+j)%7]-scale[degree]+12)%12,length:Math.min(4,value.beats-beat),velocity:65});
+  });
+  return value;
+ }
+
  function rehearsalShape(id){
   const section=plan(id,'beat');
   if(!section?.recording)return [];
@@ -55,5 +99,5 @@ window.BassUploadedCore=(()=>{
   }
   return bars.sort((a,b)=>b.length-a.length)[0]||[];
  }
- return {items,groups,plan,time,loop,rehearsalShape};
+ return {items,groups,plan,practicePlan,time,loop,rehearsalShape};
 })();
