@@ -1,6 +1,6 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const env={window:{}};vm.createContext(env);for(const f of ['uploaded-data-rc267.js','uploaded-core-rc267.js'])vm.runInContext(fs.readFileSync('ear-source/'+f,'utf8'),env);
-const U=env.window.BassUploadedCore;assert.equal(U.items.length,43);assert.equal(new Set(U.items.map(c=>c.id)).size,43);let total=0,plans=0;
+const U=env.window.BassUploadedCore;assert(!U.items.some(c=>c.id==='clip-04'),'This retired study stays excluded');assert.equal(U.items.length,42);assert.equal(new Set(U.items.map(c=>c.id)).size,42);let total=0,plans=0;
 for(const c of U.items){
  assert(c.notes.length>0,c.id+' has notes');assert(fs.existsSync(c.audio.replace(/^\.\//,'')),c.id+' recording exists');
  assert(c.notes.every((n,i)=>n.start>=0&&n.end>n.start&&n.end<=c.duration+.05&&Number.isInteger(n.midi)&&n.midi>=21&&n.midi<=108&&(!i||n.start>=c.notes[i-1].start)));total+=c.notes.length;
@@ -9,5 +9,5 @@ for(const c of U.items){
  }
  const a=U.plan(c.id,0,100,0),b=U.plan(c.id,0,50,0);assert.equal(a.beats,b.beats);assert.equal(a.bpm,2*b.bpm,'half speed doubles duration without changing note pitches');assert.deepEqual(Array.from(a.bass,n=>n.midi),Array.from(b.bass,n=>n.midi));
 }
-assert.equal(U.plan('missing'),null);assert.equal(U.items.filter(c=>c.group==='bass-lady').length,11);assert.equal(U.items.filter(c=>c.group==='bassmatics').length,10);assert.equal(U.items.filter(c=>c.group==='bass-sounds').length,22);
+assert.equal(U.plan('missing'),null);assert.equal(U.items.filter(c=>c.group==='bass-lady').length,11);assert.equal(U.items.filter(c=>c.group==='bassmatics').length,10);assert.equal(U.items.filter(c=>c.group==='bass-sounds').length,21);
 console.log(`PASS ${U.items.length} uploaded clips, ${total} notes and ${plans} section/speed/transpose combinations; recordings present and no invented chords.`);

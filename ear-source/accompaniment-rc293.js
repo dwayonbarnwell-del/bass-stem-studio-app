@@ -110,12 +110,23 @@ window.BassAccompaniment=(()=>{
  function arrange(plan,style='worship'){
   const sections=new Map();for(const n of plan.chords||[]){if(!sections.has(n.beat))sections.set(n.beat,[]);sections.get(n.beat).push(n);}
   const spans=[...sections].sort((a,b)=>a[0]-b[0]),out=[];let previous;
+  const grid=plan.pulseSpans||[{start:0,end:plan.beats,pulse:0,scale:1}];
+  let first=0;
   for(let s=0;s<spans.length;s++){
    const [start,notes]=spans[s],end=spans[s+1]?.[0]??plan.beats,voice=voicing(notes,previous);previous=voice;
-   for(let bar=Math.floor(start/4)*4;bar<end;bar+=4)for(const [i,[at,gate,velocity,pick]] of (rhythms[style]||rhythms.worship).entries()){
-    const beat=bar+at;if(beat<start||beat>=end)continue;
-    const selected=pick==='arp'?[voice[i%voice.length]]:pick==='top'?voice.slice(-2):voice;
-    for(const midi of selected)out.push({midi,beat,length:Math.min(gate,end-beat),velocity,role:'chord'});
+   while(first<grid.length&&grid[first].end<=start)first++;
+   for(let g=first;g<grid.length&&grid[g].start<end;g++){
+    const span=grid[g],from=Math.max(start,span.start),to=Math.min(end,span.end);
+    const pulse=span.pulse+(from-span.start)/span.scale;
+    for(let bar=Math.floor((pulse+1e-8)/4)*4;bar<span.pulse+(to-span.start)/span.scale;bar+=4){
+     for(const [i,[at,gate,velocity,pick]] of (rhythms[style]||rhythms.worship).entries()){
+      const onset=span.start+(bar+at-span.pulse)*span.scale;
+      if(onset<from-1e-8||onset>=to-1e-8)continue;
+      const beat=Math.max(from,onset);
+      const selected=pick==='arp'?[voice[i%voice.length]]:pick==='top'?voice.slice(-2):voice;
+      for(const midi of selected)out.push({midi,beat,length:Math.min(gate*span.scale,end-beat),velocity,role:'chord'});
+     }
+    }
    }
   }
   return out;

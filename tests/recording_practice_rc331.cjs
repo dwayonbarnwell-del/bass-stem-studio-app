@@ -40,9 +40,8 @@ for (const clip of U.items) {
     const timing=window.BassRecordingTiming[clip.id];
     assert.equal(loop.id,timing.loop);
     assert(!/\b(?:19|20)\d{2}\b|\b(?:November|October|May)\b/i.test(N.clip(clip)));
-    const local=Number(part)>0?timing.sections.find(row=>Math.abs(row[0]-clip.parts[part].start)<.001):null;
-    if(local||range)assert(Math.abs(p.bpm-60/(local?local[2]:range.step))<1e-6);
-    else if(loop.genre==='reggae')assert.equal(p.bpm,77);
+    const expectedBpm=part==='beat'?60/range.step:!range&&loop.genre==='reggae'?77:p.originalBpm;
+    assert(Math.abs(p.bpm-expectedBpm)<1e-6);
     parts++;
   }
 }

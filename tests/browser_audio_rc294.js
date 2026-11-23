@@ -50,7 +50,28 @@
    check(stops.every(s=>starts[s.id+1]&&Math.abs(starts[s.id+1].when-s.at)<1e-7),'Sound changes and Next share an uninterrupted boundary');
    check(!buttonStopped,'Playback never enters stopped state during changes');
    watch=false;change('fillKeySound','organ');$('fillPlay').click();const stoppedAt=starts.length;await pause(1500);check(starts.length===stoppedAt&&$('fillPlay').textContent==='Play','Stop cancels a pending sound change');
-   observer.disconnect();$('earClose').click();L.start=nativeStart;
+   observer.disconnect();L.start=nativeStart;
+   const elements=[],nativeMedia=AudioContext.prototype.createMediaElementSource;
+   AudioContext.prototype.createMediaElementSource=function(element){
+    elements.push({element,clock:this});return nativeMedia.call(this,element);
+   };
+   try{
+    $('earSectionBasslines').click();change('fillCollection','seben');change('fillIdea','clip:clip-34');change('fillExcerpt','1');
+    const recording=window.BassUploadedCore.practicePlan('clip-34',1);
+    $('fillPlay').click();await until(()=>elements.length&&$('fillStatus').textContent.includes('BPM'));
+    const {element,clock}=elements[0];
+    for(const bpm of [87,160]){
+     change('fillTempo',String(bpm));await until(()=>$('fillStatus').textContent.includes(bpm+' BPM'));
+     const speed=bpm/recording.originalBpm;
+     check(Math.abs(element.playbackRate-speed)<.0001&&elements.length===1,'Recorded bass retains its playhead and runs at '+bpm+' BPM');
+     const mediaTime=element.currentTime,audioTime=clock.currentTime;await pause(450);
+     check(Math.abs(element.currentTime-mediaTime-(clock.currentTime-audioTime)*speed)<.065,'Bass and band clocks advance together at '+bpm+' BPM');
+    }
+    element.currentTime=recording.sourceEnd-.12;await until(()=>element.currentTime<recording.sourceStart+.55);
+    check(!element.paused,'Recorded passage repeats at the chosen tempo');
+    $('fillPlay').click();
+   }finally{AudioContext.prototype.createMediaElementSource=nativeMedia;}
+   $('earClose').click();
    check(!errors.length,'No unhandled playback errors');await context.close();
    out.textContent+='\nALL CHECKS PASSED';button.textContent='RC294 checks passed';
   }catch(error){out.textContent+='\nFAIL '+error.stack;button.textContent='RC294 check failed';if(context)await context.close();}

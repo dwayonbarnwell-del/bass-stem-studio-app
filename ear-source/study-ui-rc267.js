@@ -2,7 +2,7 @@ window.BassFillTrainer=(()=>{
  'use strict';
  const F=window.BassFillCore,P=window.BassPracticeCore,U=window.BassUploadedCore,D=window.BassPracticeCatalogue,C=window.BassCuratedStudies,G=window.BassStudyGroups,R=window.BassRegister,L=window.BassPracticeLoop,B=window.BassSuppliedDrums,N=window.BassStudyDisplay,H=window.BassAccompaniment,$=id=>document.getElementById(id);
  let api,ctx,voices=[],timers=[],token=0,playing=false,repeating=false,backing=true,plan,kind='fills',recordedAudio=null,recordedFrame=0,transport=null,rendered=null,drums=true,drumKit='auto',drumGroove='auto',keyStyle='auto',keySound='auto',drumVolume=.45,keyVolume=.8,tempoIdentity='',nativeTempo=null,harmony=[],revision=0,sessions=[];
- let sounding=[],clearStreamBand=null,streamPlan=null,tempoTimer=0,harmonyPage=-1;
+ let sounding=[],clearStreamBand=null,streamMedia=null,streamPlan=null,tempoTimer=0,harmonyPage=-1;
  const drumKey='bass-practice-accompaniment-v3';
  // New supplied recordings start in Auto, retaining the previous mixer choices.
  try{const s=JSON.parse(localStorage.getItem(drumKey)||'{}'),old=JSON.parse(localStorage.getItem('bass-practice-accompaniment-v2')||localStorage.getItem('bass-practice-drums-v1')||'{}');if(typeof s.enabled==='boolean')drums=s.enabled;else if(typeof old.enabled==='boolean')drums=old.enabled;if(typeof (s.chords??old.chords)==='boolean')backing=s.chords??old.chords;if(B.genres.some(([id])=>id===s.kit))drumKit=s.kit;if(B.loops.some(x=>x.id===s.groove))drumGroove=s.groove;if(H.profiles[s.style])keyStyle=s.style;if(['piano','electric','organ'].includes(s.sound))keySound=s.sound;if(Number.isFinite(s.volume??old.volume))drumVolume=Math.max(0,Math.min(1,s.volume??old.volume));if(Number.isFinite(s.keyVolume??old.keyVolume))keyVolume=Math.max(0,Math.min(1,s.keyVolume??old.keyVolume));}catch{}
@@ -150,10 +150,12 @@ window.BassFillTrainer=(()=>{
    const previous=transport,oldPlan=sessions.at(-1)?.plan;
    const same=oldPlan&&oldPlan.kind===current.kind&&oldPlan.idea===current.idea&&oldPlan.clipId===current.clipId&&oldPlan.part===current.part;
    const tempoChanged=same&&oldPlan.bpm!==current.bpm;
-   const bar=previous?previous.beatSeconds*(tempoChanged?1:4):0;
-   const when=previous?previous.when+Math.max(1,Math.ceil((ctx.currentTime+.12-previous.when)/bar))*bar:ctx.currentTime+.08;
+   const quantum=tempoChanged?1:4;
+   const priorOffset=previous?.offsetBeats||0;
+   const nextBeat=previous?Math.ceil((priorOffset+Math.max(0,ctx.currentTime+.12-previous.when)/previous.beatSeconds)/quantum)*quantum:0;
+   const when=previous?previous.when+(nextBeat-priorOffset)*previous.beatSeconds:ctx.currentTime+.08;
    rendered=audio;
-   const offsetBeats=tempoChanged?((previous.offsetBeats||0)+(when-previous.when)/previous.beatSeconds)%current.beats:0;
+   const offsetBeats=previous&&same?nextBeat:0;
    const next=L.start(ctx,audio,{when,offsetBeats,drumPhase:current.recording?current.phase:0,repeat:true,fadeIn:previous?.006:0,drums:drums?drumVolume:0,chords:backing?keyVolume:0});
    previous?.stopAt(when,.006);transport=next;
    sessions.push({transport:next,plan:current,rendered:audio});
@@ -179,65 +181,93 @@ window.BassFillTrainer=(()=>{
  async function playRecording(mine,request,current,choices){
   ctx??=new AudioContext();await ctx.resume();
   const stale=()=>mine!==token||request!==revision||!$('earTrainerDialog').open;
-  const audio=new Audio(),beat=60/current.bpm,keys=H.arrange(current,choices.style);
+  const continuing=recordedAudio&&streamPlan?.clipId===current.clipId&&streamPlan?.part===current.part;
+  const audio=continuing?recordedAudio:new Audio(),beat=60/current.bpm,keys=H.arrange(current,choices.style);
   const K=window.BassPracticeKeys;
-  audio.preload='auto';audio.preservesPitch=true;audio.playbackRate=current.speed/100;
-  const metadata=new Promise((resolve,reject)=>{
-   audio.onloadedmetadata=resolve;audio.onerror=()=>reject(Error('Recording unavailable'));
-   audio.src=current.audio+'#t='+current.sourceStart;audio.load();
-  });
-  let drumBuffer;
+  let metadata,media=continuing?streamMedia:null,drumBuffer;
+  if(!continuing){
+   audio.preload='auto';audio.preservesPitch=true;
+   metadata=new Promise((resolve,reject)=>{
+    audio.onloadedmetadata=resolve;audio.onerror=()=>reject(Error('Recording unavailable'));
+    audio.src=current.audio;audio.load();
+   });
+  }
   try{
    [drumBuffer]=await Promise.all([B.render(ctx,choices.loop,Math.round(ctx.sampleRate*beat),stale),metadata,keys.length?K.prepare(ctx,choices.sound,keys):null]);
-   if(stale()||!drumBuffer){audio.pause();return;}
-   const continuing=recordedAudio&&streamPlan?.clipId===current.clipId&&streamPlan?.part===current.part;
-   audio.currentTime=continuing?Math.min(recordedAudio.currentTime,current.sourceEnd-.02):current.sourceStart;
-   await audio.play();
-  }catch(error){audio.pause();throw error;}
-  if(stale()){audio.pause();return;}
-  recordedAudio?.pause();for(const s of sessions)s.transport.stop();sessions=[];transport=null;clearStreamBand?.();
+   if(stale()||!drumBuffer){if(!continuing)audio.pause();return;}
+   // load() resets playbackRate. Apply both rates after loading and keep the
+   // original playhead when changing speed, keyboard or drums during a passage.
+   audio.defaultPlaybackRate=current.speed/100;audio.playbackRate=current.speed/100;
+   if(!continuing){
+    audio.currentTime=current.sourceStart;audio.muted=true;
+    media=ctx.createMediaElementSource(audio);media.connect(ctx.destination);
+    await audio.play();
+   }
+  }catch(error){if(!continuing){audio.pause();media?.disconnect();}throw error;}
+  if(stale()){if(!continuing){audio.pause();media?.disconnect();}return;}
+  if(!continuing)recordedAudio?.pause();
+  for(const s of sessions)s.transport.stop();sessions=[];transport=null;clearStreamBand?.(!!continuing);
+  streamMedia=media;audio.muted=false;
   recordedAudio=audio;streamPlan=current;cancelAnimationFrame(recordedFrame);
   const gain=ctx.createGain();gain.connect(ctx.destination);
-  let source=null,origin=0,keyIndex=0,liveKeys=[],activeGrid=null;
-  const stopBand=()=>{
+  let source=null,origin=0,keyIndex=0,liveKeys=[];
+  const drumBeat=drumBuffer.duration/choices.loop.beats;
+  const spans=current.pulseSpans;
+  function stopBand(){
    if(source){source.stop();source.disconnect();source=null;}
    liveKeys.forEach(v=>v.voice.stop());liveKeys=[];
-  };
-  clearStreamBand=()=>{stopBand();gain.disconnect();clearStreamBand=null;};
-  const sync=()=>{
-   if(recordedAudio!==audio||audio.paused||audio.seeking||audio.ended||audio.readyState<2)return;
-   const pos=(audio.currentTime-current.sourceStart)/current.step;
-   stopBand();origin=ctx.currentTime-pos*beat;
+  }
+  function sync(pos,now){
+   stopBand();origin=now-pos*beat;
+   const idx=spans.findIndex(s=>s.end>pos);
+   if(idx<0)return;
+   const span=spans[idx],pulse=span.pulse+(pos-span.start)/span.scale;
    source=ctx.createBufferSource();source.buffer=drumBuffer;source.loop=true;source.connect(gain);
-   gain.gain.value=drums?drumVolume:0;
-   activeGrid=U.sectionGrid(current,audio.currentTime);
-   const offset=activeGrid?((audio.currentTime-activeGrid[0])/activeGrid[2]+activeGrid[3])*beat:(pos+current.phase)*beat;
-   source.playbackRate.value=activeGrid?current.step/activeGrid[2]:1;
-   source.start(ctx.currentTime,((offset%drumBuffer.duration)+drumBuffer.duration)%drumBuffer.duration);
-   keyIndex=keys.findIndex(n=>n.beat>=pos-.05);if(keyIndex<0)keyIndex=keys.length;
-  };
-  audio.onwaiting=audio.onseeking=stopBand;audio.onplaying=sync;
-  audio.onerror=()=>{if(recordedAudio===audio){stop();$('fillStatus').textContent='Recording unavailable';}};
-  const tick=()=>{
-   if(recordedAudio!==audio||mine!==token)return;
-   if(audio.ended||audio.currentTime>=current.sourceEnd-.012){
-    stopBand();audio.currentTime=current.sourceStart;void audio.play().catch(()=>{if(recordedAudio===audio)stop();});
+   // One continuously running drum voice. The audio clock changes rate at
+   // each measured boundary without cutting a cymbal or restarting bar one.
+   source.playbackRate.setValueAtTime(drumBeat/(beat*span.scale),now);
+   for(let i=idx+1;i<spans.length;i++){
+    source.playbackRate.setValueAtTime(drumBeat/(beat*spans[i].scale),origin+spans[i].start*beat);
    }
-   const pos=(audio.currentTime-current.sourceStart)/current.step;
-   if(!audio.seeking&&!audio.paused&&audio.readyState>=3){
-    if(!source||U.sectionGrid(current,audio.currentTime)!==activeGrid||Math.abs(ctx.currentTime-origin-pos*beat)>.09)sync();
-    gain.gain.setTargetAtTime(drums?drumVolume:0,ctx.currentTime,.015);
-    liveKeys=liveKeys.filter(v=>v.end>ctx.currentTime);
-    if(!backing&&liveKeys.length){liveKeys.forEach(v=>v.voice.stop());liveKeys=[];}
-    while(source&&keyIndex<keys.length&&keys[keyIndex].beat<=pos+.12/beat){
-     const n=keys[keyIndex++],when=Math.max(ctx.currentTime,origin+n.beat*beat);
-     if(backing&&n.beat>=pos-.1)liveKeys.push({voice:K.tone(ctx,n,when,n.length*beat,choices.sound,.22*keyVolume),end:when+n.length*beat+.2});
+   const offset=((pulse%choices.loop.beats)+choices.loop.beats)%choices.loop.beats;
+   source.start(now,offset*drumBeat);
+   keyIndex=keys.findIndex(n=>origin+n.beat*beat>=now-.012);if(keyIndex<0)keyIndex=keys.length;
+  }
+  function schedule(){
+   if(recordedAudio!==audio||mine!==token)return;
+   if(audio.ended||(!audio.seeking&&audio.currentTime>=current.sourceEnd)){
+    stopBand();audio.currentTime=current.sourceStart;
+    void audio.play().catch(()=>{if(recordedAudio===audio)stop();});return;
+   }
+   if(audio.seeking||audio.paused||audio.readyState<3)return;
+   const pos=(audio.currentTime-current.sourceStart)/current.step,now=ctx.currentTime;
+   if(pos<-.001)return;
+   if(!source||Math.abs(now-origin-pos*beat)>.055)sync(pos,now);
+   gain.gain.setTargetAtTime(drums?drumVolume:0,now,.01);
+   liveKeys=liveKeys.filter(v=>v.end>now);
+   if(!backing&&liveKeys.length){liveKeys.forEach(v=>v.voice.stop());liveKeys=[];}
+   while(source&&keyIndex<keys.length){
+    const n=keys[keyIndex],at=origin+n.beat*beat;
+    if(at>now+.16)break;
+    keyIndex++;
+    if(backing&&at>=now-.012){
+     const when=Math.max(now,at),length=Math.min(n.length*beat,origin+current.beats*beat-when);
+     if(length>0)liveKeys.push({voice:K.tone(ctx,n,when,length,choices.sound,.22*keyVolume),end:when+length+.25});
     }
    }
+  }
+  audio.onwaiting=audio.onseeking=stopBand;audio.onplaying=schedule;
+  audio.onerror=()=>{if(recordedAudio===audio){stop();$('fillStatus').textContent='Recording unavailable';}};
+  const timer=setInterval(schedule,25);
+  clearStreamBand=(keepMedia=false)=>{clearInterval(timer);audio.onplaying=audio.onwaiting=audio.onseeking=audio.onerror=null;stopBand();gain.disconnect();if(!keepMedia){media.disconnect();streamMedia=null;}clearStreamBand=null;};
+  const tick=()=>{
+   if(recordedAudio!==audio||mine!==token)return;
+   const pos=(audio.currentTime-current.sourceStart)/current.step;
    if(current===plan){highlightChord(pos);highlightNotes(current.bass,pos,!audio.paused&&!audio.seeking);}
    recordedFrame=requestAnimationFrame(tick);
   };
-  sync();$('fillStatus').textContent='Suggested chords · '+Number(current.bpm.toFixed(2))+' BPM';
+  gain.gain.value=drums?drumVolume:0;schedule();
+  $('fillStatus').textContent='Suggested chords · '+Number(current.bpm.toFixed(2))+' BPM';
   recordedFrame=requestAnimationFrame(tick);
  }
  function init(panel,hooks){
