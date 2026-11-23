@@ -36,20 +36,54 @@ window.BassPracticeLoop=(()=>{
   }
   return output;
  }
- async function render(context,plan,{drums=true,loop=null,style='worship',sound='piano',chords=true,recorded=false,cancelled=()=>false}={}){
+ let phraseKey,phraseLoad;
+ async function phraseAudio(context,recording,frames,cancelled){
+  const {pack,offset,bytes}=recording,key=[pack,offset,context.sampleRate].join(':');
+  if(phraseKey!==key){
+   phraseKey=key;
+   phraseLoad=(async()=>{
+    const response=await fetch(pack,{headers:{Range:'bytes='+offset+'-'+(offset+bytes-1)}});
+    if(!response.ok)throw Error('Recorded phrase unavailable');
+    const data=await response.arrayBuffer();
+    const slice=response.status===206?data:data.slice(offset,offset+bytes);
+    if(slice.byteLength!==bytes)throw Error('Incomplete recorded phrase');
+    const audio=await context.decodeAudioData(slice);
+    if(audio.numberOfChannels!==3)throw Error('Incomplete recording mix');
+    return audio;
+   })().catch(error=>{if(phraseKey===key)phraseKey=null;throw error;});
+  }
+  const audio=await phraseLoad;if(cancelled())return null;
+  let channels=Array.from({length:3},(_,i)=>audio.getChannelData(i));
+  if(audio.length!==frames){
+   channels=await new Promise((resolve,reject)=>{
+    const worker=new Worker('./ear-source/drum-stretch-worker-rc294.js?v=rc334',{type:'module'});
+    worker.onmessage=({data})=>{worker.terminate();data.error?reject(Error(data.error)):resolve(data.channels);};
+    worker.onerror=()=>{worker.terminate();reject(Error('Phrase tempo unavailable'));};
+    const copy=channels.map(x=>x.slice());
+    worker.postMessage({channels:copy,sampleRate:context.sampleRate,frames,beats:recording.beats},copy.map(x=>x.buffer));
+   });
+  }
+  if(cancelled())return null;
+  return channels.map(data=>{const out=context.createBuffer(1,frames,context.sampleRate);out.copyToChannel(data,0);return out;});
+ }
+ async function render(context,plan,{drums=true,loop=null,style='worship',sound='piano',chords=true,recorded=false,originalDrums=true,originalKeys=true,cancelled=()=>false}={}){
   const A=window.BassPracticeAudio,D=window.BassSuppliedDrums,rate=context.sampleRate,beatFrames=Math.round(60/plan.bpm*rate),frames=Math.round(plan.beats*beatFrames),seconds=frames/rate;
   if(!Number.isFinite(seconds)||seconds<=0||seconds>240)throw Error('Practice loop is too long');
   const beat=beatFrames/rate,stems={},K=window.BassPracticeKeys,keys=window.BassAccompaniment?window.BassAccompaniment.arrange(plan,style):plan.chords;
+  const phrase=recorded&&plan.recording?.pack;
+  const useDrums=phrase&&originalDrums&&plan.recording.hasDrums,useKeys=phrase&&originalKeys;
   // Load the rhythm, recorded bass and keys together on the first play.
   const [drumBuffer,bassBuffer]=await Promise.all([
-   drums&&loop?D.render(context,loop,beatFrames,cancelled):null,
-   recorded?recordedBass(context,plan,frames,cancelled):A.prepare('bass',context,{notes:plan.bass}),
-   chords&&keys.length?(K?K.prepare(context,sound,keys):A.prepare('piano',context,{notes:keys})):null
+   drums&&loop&&!useDrums?D.render(context,loop,beatFrames,cancelled):null,
+   phrase?phraseAudio(context,plan.recording,frames,cancelled):recorded?recordedBass(context,plan,frames,cancelled):A.prepare('bass',context,{notes:plan.bass}),
+   chords&&!useKeys&&keys.length?(K?K.prepare(context,sound,keys):A.prepare('piano',context,{notes:keys})):null
   ]);
-  if(drums&&loop&&!drumBuffer||recorded&&!bassBuffer)return null;
-  if(recorded)stems.bass=bassBuffer;
+  if(drums&&loop&&!useDrums&&!drumBuffer||recorded&&!bassBuffer)return null;
+  if(recorded)stems.bass=phrase?bassBuffer[0]:bassBuffer;
+  if(useDrums&&drums)stems.drums=bassBuffer[1];
+  if(useKeys&&chords)stems.chords=bassBuffer[2];
   if(cancelled())return null;
-  for(const part of [...(recorded?[]:['bass']),...(chords&&keys.length?['chords']:[])]){
+  for(const part of [...(recorded?[]:['bass']),...(chords&&!useKeys&&keys.length?['chords']:[])]){
    const offline=new OfflineAudioContext(part==='bass'?1:2,frames+Math.ceil(tail*rate),rate);
    for(const n of part==='bass'?plan.bass:keys){if(part==='chords'&&K)K.tone(offline,n,n.beat*beat,n.length*beat,sound,.22);else A.tone(offline,n.midi,n.beat*beat,n.length*beat,part==='bass'?'bass':'piano',0,n.velocity,part==='bass'?.72:.18);}
    const buffer=await offline.startRendering();if(cancelled())return null;
@@ -63,7 +97,7 @@ window.BassPracticeLoop=(()=>{
   // Different phrase lengths share an integer-sample beat, never a UI timer.
   // Sum peak bounds so every relative phase is safe, including odd progressions.
   let bound=0;for(const buffer of Object.values(stems)){let peak=0;for(let c=0;c<buffer.numberOfChannels;c++)for(const value of buffer.getChannelData(c))peak=Math.max(peak,Math.abs(value));bound+=peak;}
-  return {stems,frames,seconds,beatSeconds:beat,beatFrames,rate,gain:Math.min(1,.88/(bound||1))};
+  return {drumPhase:phrase?(useDrums?0:originalDrums?plan.recording.drumPhase:0):null,stems,frames,seconds,beatSeconds:beat,beatFrames,rate,gain:Math.min(1,.88/(bound||1))};
  }
  function start(context,rendered,{repeat=true,drums=.45,chords=1,onEnded=()=>{},when=context.currentTime+.08,offsetBeats=0,drumPhase=0,fadeIn=0}={}){
   const sources=[],gains={},master=context.createGain();let stopped=false,ending=false;

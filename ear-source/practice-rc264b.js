@@ -26,6 +26,15 @@ window.BassPracticeCore=(()=>{
  );
  const runs=[['Pentatonic cascade','A descending five-note shape with an octave return.'],['Gospel triplet burst','A rising chord shape followed by a quick triplet descent.'],['Modal sequence','Move through the mode in groups of three.'],['Chromatic enclosure','Surround the next root, then resolve clearly.'],['Octave staircase','Link lower and upper chord tones across the strings.'],['Blues turnaround','A short blue-note phrase resolves into the next root.'],['Sixteenth-note lift','A rising modal burst; start slowly before increasing the tempo.'],['Neighbour-note flourish','Alternate chord tones with neighbouring scale notes.']];
  runs.push(['Gospel waterfall','Descending chord tones turn into a rising modal answer.'],['Pentatonic double-back','A five-note climb doubles back before the landing.'],['Highlife ribbon','Alternating thirds spiral down to the next root.'],['Chromatic corkscrew','Two tight enclosures resolve on the downbeat.'],['Octave fireworks','Wide octave answers fold into a close approach.'],['Triplet summit','Twelve quick notes rise and fall over two beats.'],['Soul staircase','Descending pairs lead smoothly into the next chord.'],['Praise homecoming','A rising sequence turns back for a firm landing.']);
+ function phrases(degrees){
+  let length=degrees.length;
+  for(let n=1;n<=degrees.length/2;n++){
+   if(degrees.length%n===0&&degrees.every((d,i)=>d===degrees[i%n])){length=n;break;}
+  }
+  const result=[];
+  for(let start=0;start<length;start+=4)result.push(degrees.slice(start,Math.min(start+4,length)));
+  return result;
+ }
  function make(kind,opts={}){
   if(window.BassCuratedStudies?.get(kind,opts.idea))return window.BassCuratedStudies.make(kind,opts);
   if(kind==='fills')return F.make(opts);
@@ -39,8 +48,11 @@ window.BassPracticeCore=(()=>{
   let idea=Math.max(0,Math.round(Number(opts.idea)||0));
   if(kind==='basslines'){
    idea=Math.min(lines.length-1,idea);const line=lines[idea],roots=[];
-   for(const d of line.degrees)roots.push(near(degree(d-1),roots.at(-1)??40));
-   line.degrees.forEach((d,bar)=>{
+   const selections=opts.part==null?null:phrases(line.degrees);
+   const part=selections?Math.min(selections.length-1,Math.max(0,Math.floor(Number(opts.part)||0))):null;
+   const degrees=selections?selections[part]:line.degrees;
+   for(const d of degrees)roots.push(near(degree(d-1),roots.at(-1)??40));
+   degrees.forEach((d,bar)=>{
     const root=roots[bar],third=near(degree(d+1),root+4),fifth=near(degree(d+3),root+7),next=roots[(bar+1)%roots.length],offset=bar*4;
     let shape;
     if(line.shape)shape=line.shape.map(([b,n,l])=>[b,typeof n==='number'?degree(d-1+n)+root-degree(d-1):next+Number(n.slice(1)),l]);
@@ -63,7 +75,7 @@ window.BassPracticeCore=(()=>{
     chord(d).forEach(midi=>chords.push({midi,beat:offset,length:3.8,velocity:47,role:'chord'}));
    });
    if(Math.min(...bass.map(n=>n.midi))<23)for(const n of bass)n.midi+=12;
-   return {kind,key,mode,idea,bpm,beats:line.degrees.length*4,bass,chords,source:line.source,title:line.name,tip:line.tip,heading:line.degrees.join('–')+' · '+line.degrees.map(chordName).join(' → ')};
+   return {kind,key,mode,idea,part,degrees,bpm,beats:degrees.length*4,bass,chords,source:line.source,title:line.name,tip:line.tip,heading:degrees.join('–')+' · '+degrees.map(chordName).join(' → ')};
   }
   idea=Math.min(runs.length-1,idea);const base=F.make({...opts,key,mode,idea:0}),source=base.source,target=base.target;
   const third=source+pc(degree(Number(opts.from||1)+1)-source),fifth=source+pc(degree(Number(opts.from||1)+3)-source);
@@ -78,7 +90,7 @@ window.BassPracticeCore=(()=>{
   if(Math.min(...bass.map(n=>n.midi))<23)for(const n of bass)n.midi+=12;
   return {...base,kind,idea,bpm,bass,source:bass[0].midi,target:bass.at(-1).midi,title:runs[idea][0],tip:runs[idea][1],lesson:runs[idea].source,heading:base.from+' → '+base.to+' · '+base.fromChord+' → '+base.toChord};
  }
- return {make,modes,lines,runs};
+ return {make,phrases,modes,lines,runs};
 })();
 
 window.BassTransitionCore=(()=>{

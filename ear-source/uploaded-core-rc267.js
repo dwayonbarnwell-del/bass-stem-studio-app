@@ -1,7 +1,7 @@
 /* Bass studies and timed excerpts from the owner's supplied recordings. */
 window.BassUploadedCore=(()=>{
  'use strict';
- const items=[...(window.BassUploadedStudies||[]),...(window.BassLessonStudies||[]),...(window.BassReggaeStudies||[]),...(window.BassAfricanStudies||[])].filter(c=>c.id!=='clip-04'&&!/open the eyes of my heart|holy forever|worship.*easy bass lesson|african praise.*bass study|african praise.*winner man/i.test(c.title||'')).map(c=>({...c})),groups=[['studies','Original studies'],['recorded-worship','Worship · recordings'],['recorded-reggae','Reggae · recordings'],['recorded-makossa','Makossa · recordings'],['recorded-soukous','Soukous · Bass Lady recording'],['recorded-seben','Seben · recordings'],['recorded-praise','African Praise · recordings'],['recorded-nigerian','Nigerian styles · mixed recordings'],['recorded-soca','Soca · recordings'],['recorded-congolese','Congolese · lessons'],['recorded-african','African styles · lessons'],['recorded-zouk','Zouk · lessons'],['recorded-review','Other recordings · genre to review']];
+ const items=[...(window.BassUploadedStudies||[]),...(window.BassLessonStudies||[]),...(window.BassReggaeStudies||[]),...(window.BassAfricanStudies||[])].filter(c=>c.id!=='clip-04'&&c.id!=='clip-62'&&!/open the eyes of my heart|holy forever|worship.*easy bass lesson|african praise.*bass study|african praise.*winner man/i.test(c.title||'')).map(c=>({...c})),groups=[['studies','Original studies'],['recorded-worship','Worship · recordings'],['recorded-reggae','Reggae · recordings'],['recorded-makossa','Makossa · recordings'],['recorded-soukous','Soukous · Bass Lady recording'],['recorded-seben','Seben · recordings'],['recorded-praise','African Praise · recordings'],['recorded-nigerian','Nigerian styles · mixed recordings'],['recorded-soca','Soca · recordings'],['recorded-congolese','Congolese · lessons'],['recorded-african','African styles · lessons'],['recorded-zouk','Zouk · lessons'],['recorded-review','Other recordings · genre to review']];
  for(const c of items){
   c.originalTitle=c.title;
   if(c.collection)continue;
@@ -45,10 +45,17 @@ window.BassUploadedCore=(()=>{
   const [start,step,beats,firstByte,lastByte,offset]=row;
   return {start,end:start+step*beats,step,beats,firstByte,lastByte,offset};
  }
+ function phrase(id,part){
+  if(typeof part!=='string'||!/^phrase-\d+$/.test(part))return null;
+  const row=window.BassRecordedPhrases?.[id]?.[Number(part.slice(7))];
+  if(!row)return null;
+  const [start,end,beats,offset,bytes,hasDrums,drumPhase=0]=row;
+  return {start,end,beats,step:(end-start)/beats,pack:'./ear-assets/phrases-rc334/'+id+'.bin',offset,bytes,drumPhase,hasDrums:!!hasDrums};
+ }
  function plan(id,part=0,speed=100,transpose=0){
   const clip=items.find(c=>c.id===id);if(!clip)return null;
-  const recording=part==='beat'?loop(id):null;
-  const index=recording?'beat':Math.max(0,Math.min(clip.parts.length-1,Math.round(Number(part)||0)));
+  const recording=part==='beat'?loop(id):phrase(id,part);
+  const index=recording?part:Math.max(0,Math.min(clip.parts.length-1,Math.round(Number(part)||0)));
   const range=recording||clip.parts[index],step=recording?.step||1;
   const ratio=Math.max(25,Math.min(150,Number(speed)||100)),shift=Math.max(-12,Math.min(12,Math.round(Number(transpose)||0)));
   const bass=clip.notes.filter(n=>n.start<range.end&&n.end>range.start).map(n=>({midi:n.midi+shift,beat:Math.max(0,n.start-range.start)/step,length:(Math.min(n.end,range.end)-Math.max(n.start,range.start))/step,velocity:n.velocity||80,role:'bass',review:!!n.review,confidence:n.confidence,sourceTime:Math.max(n.start,range.start)})).filter(n=>n.length*step>.01&&n.midi>=21&&n.midi<=108);
@@ -70,8 +77,8 @@ window.BassUploadedCore=(()=>{
    if(duration>0)measuredBeats+=duration*(q-p)/(b-a);
   }
   const fallback=style==='reggae'?77:window.BassSuppliedDrums.choose(style).bpm;
-  const originalBpm=value.recording?60/grid.step:measuredBeats?60*measuredBeats/(value.sourceEnd-value.sourceStart):fallback;
-  const step=60/originalBpm,tempo=Number(bpm)||(!grid&&style==='reggae'?77:originalBpm);
+  const originalBpm=value.recording?60/value.recording.step:measuredBeats?60*measuredBeats/(value.sourceEnd-value.sourceStart):fallback;
+  const step=60/originalBpm,tempo=Number(bpm)||(id==='clip-46'&&value.recording?.pack?82.9:!grid&&style==='reggae'?77:originalBpm);
   if(!value.recording){
    for(const n of value.bass){n.beat/=step;n.length/=step;}
    value.beats/=step;
@@ -87,6 +94,9 @@ window.BassUploadedCore=(()=>{
     if(beat>=span.end-1e-8)break;
     if(beat>starts.at(-1)+.12)starts.push(beat);
    }
+  }
+  if(value.recording?.pack){
+   starts.length=0;for(let beat=0;beat<value.beats;beat+=2)starts.push(beat);
   }
   const bars=starts.map(()=>new Float64Array(12)),total=new Float64Array(12);
   for(const n of value.bass){

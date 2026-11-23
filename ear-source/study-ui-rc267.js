@@ -7,18 +7,33 @@ window.BassFillTrainer=(()=>{
  // New supplied recordings start in Auto, retaining the previous mixer choices.
  try{const s=JSON.parse(localStorage.getItem(drumKey)||'{}'),old=JSON.parse(localStorage.getItem('bass-practice-accompaniment-v2')||localStorage.getItem('bass-practice-drums-v1')||'{}');if(typeof s.enabled==='boolean')drums=s.enabled;else if(typeof old.enabled==='boolean')drums=old.enabled;if(typeof (s.chords??old.chords)==='boolean')backing=s.chords??old.chords;if(B.genres.some(([id])=>id===s.kit))drumKit=s.kit;if(B.loops.some(x=>x.id===s.groove))drumGroove=s.groove;if(H.profiles[s.style])keyStyle=s.style;if(['piano','electric','organ'].includes(s.sound))keySound=s.sound;if(Number.isFinite(s.volume??old.volume))drumVolume=Math.max(0,Math.min(1,s.volume??old.volume));if(Number.isFinite(s.keyVolume??old.keyVolume))keyVolume=Math.max(0,Math.min(1,s.keyVolume??old.keyVolume));}catch{}
  const saveDrums=()=>{try{localStorage.setItem(drumKey,JSON.stringify({enabled:drums,chords:backing,kit:drumKit,groove:drumGroove,style:keyStyle,sound:keySound,volume:drumVolume,keyVolume}));}catch{}};
- const accompaniment=()=>H.resolve(plan,{kit:drumKit,groove:drumGroove,style:keyStyle,sound:keySound});
+ const accompaniment=()=>({...H.resolve(plan,{kit:drumKit,groove:drumGroove,style:keyStyle,sound:keySound}),originalDrums:drumKit==='auto'&&drumGroove==='auto',originalKeys:keyStyle==='auto'&&keySound==='auto'});
  function drumOptions(){const select=$('fillDrumGroove');select.replaceChildren(new Option('Auto · match genre','auto'));for(const row of B.loops.filter(x=>drumKit==='auto'||x.genre===drumKit||(drumKit==='worship'&&['soul','funk'].includes(x.genre))))select.add(new Option(row.title+' · '+Number(row.bpm.toFixed(2))+' BPM'+(row.tempoSource==='estimated'?' ~':''),row.id));select.value=drumGroove;if(!select.value){drumGroove='auto';select.value='auto';}}
  function soundSettings(){if(!plan){$('fillAccompaniment').textContent='';return;}const a=accompaniment(),auto=H.resolve(plan),names={piano:'Grand piano',electric:'Wurlitzer electric piano',organ:'Drawbar organ'};
   for(const [id,text] of [['fillDrumKit',B.genres.find(x=>x[0]===auto.loop.genre)?.[1]||auto.loop.genre],['fillDrumGroove',(drumKit==='auto'?auto.loop:B.choose(auto.id,drumKit)).title],['fillKeyStyle',H.profiles[auto.style].label],['fillKeySound',names[auto.sound]]])$(id).options[0].textContent='Auto · '+text;
+  if(plan.recording?.pack){
+   if(plan.recording.hasDrums)$('fillDrumGroove').options[0].textContent=plan.clipId==='clip-46'?'Auto · Just Friends rhythm':'Auto · recorded beat';
+   $('fillKeyStyle').options[0].textContent='Auto · recorded backing';
+   $('fillKeySound').options[0].textContent='Auto · recorded backing';
+  }
   $('fillAccompaniment').textContent='';
  }
+ function cycleLength(values){
+  for(let n=1;n<=values.length/2;n++)if(values.length%n===0&&values.every((v,i)=>v===values[i%n]))return n;
+  return values.length;
+ }
+ function progressionText(degrees){
+  const changes=degrees.filter((d,i,all)=>!i||d!==all[i-1]);
+  return changes.slice(0,cycleLength(changes)).join('–');
+ }
+ const phraseProgressions=new Map();
  function highlightChord(beat){
-  const active=N.active(harmony,beat),list=$('fillHarmony');
+  const cycle=plan?.recording?.pack?cycleLength(harmony.map(s=>s.label)):harmony.length;
+  const active=N.active(harmony,beat)%Math.max(1,cycle),list=$('fillHarmony');
   const page=plan?.kind==='uploaded'?Math.max(0,Math.floor(active/4)*4):0;
   if(page!==harmonyPage){
    harmonyPage=page;list.replaceChildren();
-   const shown=plan?.kind==='uploaded'?harmony.slice(page,page+4):harmony;
+   const shown=plan?.kind==='uploaded'?harmony.slice(page,Math.min(cycle,page+4)):harmony;
    for(const segment of shown){
     const chip=document.createElement('span');chip.className='fill-chord';chip.textContent=segment.label;
     chip.setAttribute('aria-label','Chord '+segment.label);list.append(chip);
@@ -27,7 +42,15 @@ window.BassFillTrainer=(()=>{
   for(const [i,chip] of [...list.children].entries())chip.setAttribute('aria-current',String(page+i===active));
  }
  function harmonyChips(){
-  harmony=N.segments(plan);harmonyPage=-1;$('fillHarmony').hidden=!harmony.length;
+  harmony=N.segments(plan);
+  if(plan?.recording?.pack){
+   const changes=[];for(const segment of harmony){
+    if(changes.at(-1)?.label===segment.label)changes.at(-1).end=segment.end;
+    else changes.push(segment);
+   }
+   harmony=changes;
+  }
+  harmonyPage=-1;$('fillHarmony').hidden=!harmony.length;
   $('fillHarmony').title=plan?.kind==='uploaded'?'Suggested chords from the recorded bass':'';
   highlightChord(0);
  }
@@ -39,21 +62,22 @@ window.BassFillTrainer=(()=>{
  const matchesGenre=(c,genre)=>H.category(c,true)===genre;
  function clipOptions(){
   const group=$('fillCollection').value;$('fillClip').replaceChildren();
-  for(const c of U.items.filter(c=>matchesGenre(c,group)&&D.visible('uploaded',c.id))){const o=document.createElement('option');o.value=c.id;o.textContent=N.clip(c);o.title=c.title;$('fillClip').append(o);}
+  for(const c of U.items.filter(c=>matchesGenre(c,group)&&D.visible('uploaded',c.id))){const o=document.createElement('option');o.value=c.id;o.textContent=N.clip(c);o.title=N.clip(c);$('fillClip').append(o);}
   if(rememberedClips[group])$('fillClip').value=rememberedClips[group];
   if(!$('fillClip').value&&$('fillClip').options.length)$('fillClip').selectedIndex=0;partOptions();
  }
  function partOptions(){
   const clip=U.items.find(c=>c.id===$('fillClip').value);$('fillExcerpt').replaceChildren();
-  for(const [i,p] of (clip?.parts||[]).entries()){const o=document.createElement('option');o.value=i;o.textContent=(i===0?'Full song':'Part '+i)+' · '+U.time(p.start)+'–'+U.time(p.end);$('fillExcerpt').append(o);}
-  const loop=U.loop(clip?.id);
-  if(loop)$('fillExcerpt').add(new Option('Beat loop · '+U.time(loop.start)+'–'+U.time(loop.end),'beat'),1);
-  $('fillExcerpt').value='0';
+  for(const [i,row] of (window.BassRecordedPhrases?.[clip?.id]||[]).entries()){
+   const bars=row[2]/4;
+   $('fillExcerpt').add(new Option('Phrase '+(i+1)+' · '+bars+(bars===1?' bar':' bars'),'phrase-'+i));
+  }
+  $('fillExcerpt').selectedIndex=0;
  }
  function clipControls(){
   const custom=imported();$('earFillStudy').dataset.imported=String(custom);
   $('fillCollection').hidden=kind!=='basslines';
-  $('fillClip').hidden=true;$('fillExcerpt').hidden=!custom;
+  $('fillClip').hidden=true;$('fillExcerpt').hidden=true;
   $('fillKey').hidden=custom;$('fillRecordedKey').hidden=!custom;
   $('fillFrom').hidden=kind==='basslines';$('fillTo').hidden=kind==='basslines';
   $('fillGroupRow').hidden=!G||kind==='basslines';$('fillCount').hidden=!G||kind==='basslines';
@@ -64,12 +88,50 @@ window.BassFillTrainer=(()=>{
  function ideaOptions(wanted=remembered[kind]){
   const select=$('fillIdea');select.replaceChildren();const rows=collections().map((s,i)=>({s,i,line:kind==='basslines'?P.lines[i]:null})).filter(({i,line})=>kind==='basslines'?D.visible(kind,patternId(i))&&H.category(line)===$('fillCollection').value:G?G.visible(kind,i)&&G.groupOf(kind,i)===selectedGroups[kind]:D.visible(kind,patternId(i)));
   rows.sort((a,b)=>C&&kind!=='basslines'?C.compare(kind,a.i,b.i):0);let studies;if(kind==='basslines'&&rows.length){studies=document.createElement('optgroup');studies.label='Practice patterns';select.append(studies);}
-  for(const {s,i} of rows){const o=document.createElement('option');o.value=i;o.textContent=N.label(kind,kind==='basslines'?P.lines[i]:s);o.title=s[0];(studies||select).append(o);}
-  if(kind==='basslines'){const clips=U.items.filter(c=>matchesGenre(c,$('fillCollection').value)&&D.visible('uploaded',c.id));if(clips.length){const group=document.createElement('optgroup');group.label='Recordings';select.append(group);for(const c of clips){const o=document.createElement('option');o.value='clip:'+c.id;o.textContent=N.clip(c);o.title=c.title;group.append(o);}}}
+  for(const {s,i,line} of rows){
+   const parts=line?P.phrases(line.degrees):[null];
+   for(const [part,degrees] of parts.entries()){
+    if(line&&!D.visible(kind,patternId(i)+'/'+part))continue;
+    const o=document.createElement('option');
+    o.value=part?i+'/'+part:String(i);
+    const label=N.label(kind,line||s);
+    if(line){
+     const base=label.replace(/\s+[1-7](?:–[1-7])+$/,'');
+     const suffix=parts.length>1?'.'+(part+1):'';
+     o.textContent=base.slice(0,12-suffix.length)+suffix+' '+degrees.join('–');
+    }else o.textContent=label;
+    o.title=o.textContent;(studies||select).append(o);
+   }
+  }
+  if(kind==='basslines'){
+   const group=document.createElement('optgroup');group.label='Recordings';
+   for(const clip of U.items.filter(c=>matchesGenre(c,$('fillCollection').value)&&D.visible('uploaded',c.id))){
+    const phrases=window.BassRecordedPhrases?.[clip.id]||[];
+    for(const [i] of phrases.entries()){
+     const phraseId=clip.id+'/'+i;
+     if(!D.visible('uploaded',phraseId))continue;
+     const option=document.createElement('option');
+     option.value='clip:'+clip.id+(i?'/'+i:'');
+     option.dataset.name=N.phrase(clip,i,phrases.length);
+     if(!phraseProgressions.has(phraseId)){
+      const phrase=U.practicePlan(clip.id,'phrase-'+i);
+      phraseProgressions.set(phraseId,progressionText(phrase.degrees));
+     }
+     option.textContent=option.dataset.name+' '+phraseProgressions.get(phraseId);
+     group.append(option);
+    }
+   }
+   if(group.children.length)select.append(group);
+  }
   if([...select.options].some(o=>o.value===String(wanted)))select.value=String(wanted);else if(select.options.length)select.selectedIndex=0;
   if(G&&kind!=='basslines')$('fillCount').textContent=rows.length+' '+(kind==='runs'?'runs':'fills');
  }
- function deletionKey(){return imported()?$('fillClip').value&&['uploaded',$('fillClip').value]:$('fillIdea').value!==''?[kind,patternId(Number($('fillIdea').value))]:null;}
+ function deletionKey(){
+  if(kind==='basslines'&&!imported()&&$('fillIdea').value!==''){
+   const [idea,part='0']=$('fillIdea').value.split('/');
+   const id=patternId(Number(idea));return [kind,P.phrases(P.lines[Number(idea)].degrees).length>1?id+'/'+part:id];
+  }
+  return imported()?$('fillClip').value&&['uploaded',window.BassRecordedPhrases[$('fillClip').value].length>1?$('fillClip').value+'/'+$('fillExcerpt').value.slice(7):$('fillClip').value]:$('fillIdea').value!==''?[kind,patternId(Number($('fillIdea').value))]:null;}
  function refreshDeleted(){ideaOptions($('fillIdea').value);clipOptions();draw();}
  function later(fn,ms){timers.push(setTimeout(fn,ms));}
  function playbackLayout(){
@@ -99,11 +161,17 @@ window.BassFillTrainer=(()=>{
  }
  function level(part,value){for(const session of sessions)session.transport.level(part,value);}
 
- function settings(){return {key:$('fillKey').value,mode:kind==='basslines'?(P.lines[Number($('fillIdea').value)]?.mode||'major'):'major',from:$('fillFrom').value,to:$('fillTo').value,idea:$('fillIdea').value,bpm:nativeTempo??$('fillTempo').value};}
+ function settings(){
+  const [idea,part='0']=$('fillIdea').value.split('/');
+  return {key:$('fillKey').value,mode:kind==='basslines'?(P.lines[Number(idea)]?.mode||'major'):'major',
+   from:$('fillFrom').value,to:$('fillTo').value,idea,part:kind==='basslines'?Number(part):null,bpm:nativeTempo??$('fillTempo').value};
+ }
+
  function draw(){
   if(imported()){
-   const id=$('fillIdea').value.slice(5);
+   const [id,phraseIndex='0']=$('fillIdea').value.slice(5).split('/');
    if($('fillClip').value!==id){$('fillClip').value=id;partOptions();}
+   $('fillExcerpt').value='phrase-'+phraseIndex;
    clipControls();
    remembered[kind]=$('fillIdea').value;rememberedClips[$('fillCollection').value]=id;
    const identity='recording:'+id+':'+$('fillExcerpt').value;
@@ -111,8 +179,8 @@ window.BassFillTrainer=(()=>{
    tempoIdentity=identity;nativeTempo=null;$('fillTempo').value=Number(value.bpm.toFixed(2));
    $('fillRecordedKey').textContent='Key: '+F.names[value.tonic]+(value.minor?' minor':' major')+' (est.)';
    const selected=$('fillIdea').selectedOptions[0];
-   const progression=value.degrees.slice(0,4).join('–')+(value.degrees.length>4?'…':'');
-   selected.textContent=N.clip(U.items.find(c=>c.id===id))+' '+progression;
+   const progression=progressionText(value.degrees);
+   selected.textContent=selected.dataset.name+' '+progression;
    showPlan(value);
    return;
   }
@@ -122,7 +190,7 @@ window.BassFillTrainer=(()=>{
  }
  function showPlan(value){
   rendered=null;plan=value&&value.kind!=='uploaded'?R.plan(value):value;$('fillPlayer').hidden=!plan;$('fillEmpty').hidden=!!plan;state();soundSettings();if(!plan){stop();return;}
-  const row=kind==='basslines'?(plan.kind==='uploaded'?U.items.find(c=>c.id===plan.clipId):P.lines[plan.idea]):collections()[plan.idea];$('fillHeading').textContent=plan.kind==='uploaded'?N.clip(row||U.items.find(c=>c.id===$('fillClip').value)):N.label(kind,row);harmonyChips();
+  const row=kind==='basslines'?(plan.kind==='uploaded'?U.items.find(c=>c.id===plan.clipId):P.lines[plan.idea]):collections()[plan.idea];$('fillHeading').textContent=plan.kind==='uploaded'?$('fillIdea').selectedOptions[0].dataset.name:$('fillIdea').selectedOptions[0].textContent;harmonyChips();
   $('fillStatus').textContent=plan.kind==='uploaded'?('Suggested chords'):'';$('fillNotes').replaceChildren();
   plan.bass.forEach((n,i)=>{const b=document.createElement('button');b.type='button';b.textContent=F.note(n.midi);b.title=F.note(n.midi)+(plan.kind==='uploaded'?' · '+U.time(n.sourceTime):' · beat '+(Math.round((n.beat%4+1)*100)/100));if(n.review){b.classList.add('needs-review');b.title+=' · Check note';}b.setAttribute('aria-label','Hear '+F.note(n.midi));b.dataset.index=i;const chord=harmony[N.active(harmony,n.beat)];if(n.role==='landing'||(chord&&(n.midi%12+12)%12===chord.rootPc))b.classList.add('landing');b.onclick=()=>void preview(n);$('fillNotes').append(b);});state();if(playing)void updatePlayback();
  }
@@ -145,7 +213,7 @@ window.BassFillTrainer=(()=>{
    ctx??=new AudioContext();await ctx.resume();
    let audio;
    try{audio=rendered||await L.render(ctx,current,{...choices,recorded:!!current.recording,cancelled:()=>mine!==token||request!==revision});}
-   catch(error){if(!current.recording)throw error;if(mine===token&&request===revision)await playRecording(mine,request,current,choices);return;}
+   catch(error){if(!current.recording||current.recording.pack)throw error;if(mine===token&&request===revision)await playRecording(mine,request,current,choices);return;}
    if(mine!==token||request!==revision||!audio||!$('earTrainerDialog').open)return;
    const previous=transport,oldPlan=sessions.at(-1)?.plan;
    const same=oldPlan&&oldPlan.kind===current.kind&&oldPlan.idea===current.idea&&oldPlan.clipId===current.clipId&&oldPlan.part===current.part;
@@ -156,7 +224,7 @@ window.BassFillTrainer=(()=>{
    const when=previous?previous.when+(nextBeat-priorOffset)*previous.beatSeconds:ctx.currentTime+.08;
    rendered=audio;
    const offsetBeats=previous&&same?nextBeat:0;
-   const next=L.start(ctx,audio,{when,offsetBeats,drumPhase:current.recording?current.phase:0,repeat:true,fadeIn:previous?.006:0,drums:drums?drumVolume:0,chords:backing?keyVolume:0});
+   const next=L.start(ctx,audio,{when,offsetBeats,drumPhase:audio.drumPhase??(current.recording?current.phase:0),repeat:true,fadeIn:previous?.006:0,drums:drums?drumVolume:0,chords:backing?keyVolume:0});
    previous?.stopAt(when,.006);transport=next;
    sessions.push({transport:next,plan:current,rendered:audio});
    clearStreamBand?.();const previousRecording=recordedAudio;if(previousRecording){previousRecording.pause();recordedAudio=null;}

@@ -6,7 +6,7 @@ for(const f of ['uploaded-data-rc267','lesson-data-rc272','reggae-data-rc273','a
  vm.runInContext(fs.readFileSync('ear-source/'+f+'.js','utf8'),context);
 }
 const {BassUploadedCore:U,BassAccompaniment:H,BassPracticeLoop:L}=window;
-assert.equal(U.items.length,65);
+assert.equal(U.items.length,64);
 assert.deepEqual(U.items.filter(c=>!U.loop(c.id)).map(c=>c.id).sort().join(','),'clip-29,clip-46');
 assert(!H.groups.some(([id])=>id==='personal'));
 let checked=0;

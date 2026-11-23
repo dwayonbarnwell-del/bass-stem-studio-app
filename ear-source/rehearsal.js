@@ -121,19 +121,34 @@ window.BassRehearsal=(()=>{
   if(!song?.buffer){state('');return;}
   const fromSection=(song.sections||[])
    .filter(s=>s.end-s.start>=4)
-   .slice(0,12)
    .map(s=>({start:s.start,end:Math.min(s.end,song.duration),name:s.name}));
   const suggestions=C.passages(song.buffer).map(p=>({...p,pulse:C.pulse(song.buffer,p.start,p.end)}));
   const best=[...suggestions].sort((a,b)=>(b.pulse?.confidence||0)-(a.pulse?.confidence||0)||b.score-a.score)[0];
-  const passages=[...(best?[best]:[]),...fromSection,...suggestions.filter(p=>p!==best)];
+  const passages=[...fromSection,...(best?[best]:[]),...suggestions.filter(p=>p!==best)];
   if(!passages.length&&song.duration>16)passages.push({start:0,end:16,name:'First passage'});
-  ranked=[{start:0,end:song.duration,name:'Full song'},...passages];
+  const phrases=[],seen=new Set();
+  for(const passage of passages){
+   const grid=C.beatGrid({...song,start:passage.start,end:passage.end,pulseEstimate:passage.pulse});
+   if(!grid)continue;
+   const size=grid.meter*2;
+   for(let at=0;at+grid.meter<grid.points.length;at+=size){
+    const points=grid.points.slice(at,at+size+1);
+    const start=points[0],end=points.at(-1);
+    const key=[Math.round(start*10),Math.round(end*10)].join('/');
+    if(seen.has(key))continue;
+    seen.add(key);phrases.push({start,end,name:passage.name||'Phrase',grid:{...grid,points}});
+   }
+  }
+  ranked=[{start:0,end:song.duration,name:'Full song'},...phrases];
   const picker=$('rehearsalPassage');
   picker.replaceChildren(...ranked.map((p,i)=>new Option(p.name==='Full song'?p.name:(p.name||'Passage')+' · '+fmt(p.start),i)));
   picker.add(new Option('Custom passage','custom'));
   picker.value='0';applyPassage(ranked[0]);
  }
 
+ function selectedGrid(){
+  return ranked[Number($('rehearsalPassage').value)]?.grid;
+ }
  function applyPassage(p){
   if(!p)return;
   resetClip();
@@ -144,9 +159,9 @@ window.BassRehearsal=(()=>{
  function updateBpm(){
   const input=$('rehearsalBpm');
   const start=parseTime($('rehearsalStart').value),end=parseTime($('rehearsalEnd').value);
-  const valid=song?.buffer&&start>=0&&end<=song.duration+.006&&end-start>=2;
+  const valid=song?.buffer&&start>=0&&end<=song.duration+.006&&end-start>=(selectedGrid()? .5:2);
   const validEnd=valid?Math.min(end,song.duration):end;
-  const picked=valid?C.beatGrid({...song,start,end:validEnd,manualBpm}):null;
+  const picked=valid?selectedGrid()||C.beatGrid({...song,start,end:validEnd,manualBpm}):null;
   input.value=manualBpm||Math.round(picked?.bpm||0)||'';
   if(valid&&noBass&&validEnd-start<=32){
    const range=bandRange(start,validEnd,picked);
@@ -306,12 +321,12 @@ window.BassRehearsal=(()=>{
  async function analyse(id){
   const current=api.get(),start=parseTime($('rehearsalStart').value),end=parseTime($('rehearsalEnd').value);
   const bpm=manualBpm;
-  if(!current?.buffer||!(start>=0&&end<=current.duration+.006&&end-start>=2))
+  if(!current?.buffer||!(start>=0&&end<=current.duration+.006&&end-start>=(selectedGrid()? .5:2)))
    throw Error('Choose at least 2 seconds within the recording.');
   if(bpm&&!(bpm>=40&&bpm<=220))throw Error('Enter a BPM between 40 and 220.');
   const validEnd=Math.min(end,current.duration);
   const rhythm=C.attacks(current.buffer,start,validEnd);
-  const grid=C.beatGrid({...current,start,end:validEnd,manualBpm:bpm,rhythm});
+  const grid=selectedGrid()||C.beatGrid({...current,start,end:validEnd,manualBpm:bpm,rhythm});
   const range=bandRange(start,validEnd,grid),a=range.start,z=range.end;
   const saved=current.chords.filter(c=>c.end>a&&c.start<z);
   const manual=C.barChords($('rehearsalChords').value,grid);

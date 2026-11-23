@@ -93,6 +93,20 @@ async function playerTest(){
   assert(host.innerHTML.includes('aria-pressed="true">Original bass off'));
   assert.equal($('rehearsalPassage').options[0].text,'Full song');
   assert.equal($('rehearsalPassage').value,'0');
+  for(const meter of [3,4]){
+   const fixture={...buffer,duration:24,length:24*sampleRate};
+   Object.assign(song,{buffer:fixture,duration:24,sections:[{name:'Chorus',start:0,end:24}],meter,confidence:.98,phase:0,beats:Array.from({length:49},(_,i)=>i*.5)});
+   panel.refresh();
+   const options=$('rehearsalPassage').options.filter(o=>o.text.startsWith('Chorus'));
+   assert(options.length>=4);
+   for(const o of options){
+    $('rehearsalPassage').value=o.value;$('rehearsalPassage').onchange();
+    const seconds=id=>Number($(id).value.slice(2));
+    const count=(seconds('rehearsalEnd')-seconds('rehearsalStart'))/(meter*.5);
+    assert(count===1||count===2);
+   }
+  }
+  Object.assign(song,{buffer:clip,duration:4,sections:[],beats:[],confidence:0,meter:4});panel.refresh();
   await $('rehearsalImport').onclick();
   assert.equal($('rehearsalTitle').textContent,'Imported fixture');
   value('rehearsalStart','0:00');value('rehearsalEnd','0:04');value('rehearsalBpm','120');
