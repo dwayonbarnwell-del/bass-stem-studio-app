@@ -31,11 +31,59 @@ window.BassPracticeCore=(()=>{
   for(let n=1;n<=degrees.length/2;n++){
    if(degrees.length%n===0&&degrees.every((d,i)=>d===degrees[i%n])){length=n;break;}
   }
-  const result=[];
-  for(let start=0;start<length;start+=4)result.push(degrees.slice(start,Math.min(start+4,length)));
-  return result;
+  // Keep the chord order and find a split where every clip has a change.
+  function split(start){
+   if(start===length)return [];
+   for(let size=Math.min(4,length-start);size>=2;size--){
+    const part=degrees.slice(start,start+size);
+    if(new Set(part).size<2)continue;
+    const rest=split(start+size);
+    if(rest)return [part,...rest];
+   }
+   return null;
+  }
+  return split(0)||[];
+ }
+ // Sixteenth-note slots within two beats. Each cell has its own rests and accents.
+ const cells=[
+  [[1,4,6],[0,3,6,7],[0,2,3,6,7],[0,1,2,4,6,7]],
+  [[2,5,7],[0,2,5,7],[0,2,4,5,7],[0,2,3,4,5,7]],
+  [[0,3,7],[1,4,5,7],[0,1,3,6,7],[0,1,3,4,6,7]],
+  [[0,4,6],[0,1,4,6],[1,2,4,6,7],[0,1,2,3,5,7]],
+  [[0,8/3,16/3],[0,8/3,4,20/3],[0,4/3,8/3,4,20/3],[0,4/3,8/3,4,16/3,20/3]]
+ ];
+ function phraseSlots(count,style,end){
+  if(count<3)return (count===1?[5]:[2,6]).slice(0,count);
+  return cells[style][count-3].map(slot=>end?slot:slot*.875+1);
  }
  function make(kind,opts={}){
+  const plan=makeStudy(kind,opts);
+  if(kind!=='fills'&&kind!=='runs')return plan;
+  const notes=plan.bass.slice(1,-1),landing=plan.bass.at(-1);
+  const id=Number(opts.idea)||0,group=plan.curated?.genre;
+  const form=(id+(kind==='runs'?2:0))%5;
+  const swing=/triplet|shuffle|swing/i.test(plan.title)||group==='blues'&&id%3===0;
+  const interval=(plan.to-plan.from+7)%7;
+  const second=swing?4:(form+interval)%4;
+  const split=Math.min(6,Math.max(notes.length-6,Math.floor(notes.length*(kind==='fills'?.4:.55))));
+  const positions=[...phraseSlots(split,form,false).map(t=>t/4),...phraseSlots(notes.length-split,second,true).map(t=>2+t/4)];
+  plan.bass[0].length=Math.min(plan.bass[0].length,positions[0]*.8);
+  notes.forEach((n,i)=>{
+   const gap=(positions[i+1]??4)-positions[i];
+   n.beat=positions[i];n.length=gap*([.55,.9,.68,.82][(i+form)%4]);
+   n.velocity=i===0||i===split?94:i===notes.length-1?82:70+((i+form)%3)*5;
+  });
+  // Answer on the second chord and lead back into the first on repeat.
+  const scale=F.scales[plan.mode]||F.scales.major;
+  const destination=landing.midi,home=plan.bass[0].midi;
+  const third=destination+(scale[(plan.to+1)%7]-scale[plan.to-1]+12)%12;
+  const responses=[[destination+7,third,home-1],[third,destination+7,home+2,home+1],[destination+12,destination+7,third,home-2,home-1],[third,home+1,home-1],[destination+7,third,home+2,home-1]];
+  const reply=responses[(form+interval)%responses.length],times=phraseSlots(reply.length,(second+1)%5,true).map(t=>6+t/4);
+  landing.length=Math.min(landing.length,times[0]-4-.08);
+  reply.forEach((midi,i)=>plan.bass.push({midi,beat:times[i],length:((times[i+1]??8)-times[i])*.74,velocity:i===0?88:77,role:'bass'}));
+  return plan;
+ }
+ function makeStudy(kind,opts={}){
   if(window.BassCuratedStudies?.get(kind,opts.idea))return window.BassCuratedStudies.make(kind,opts);
   if(kind==='fills')return F.make(opts);
   const key=pc(Math.round(Number(opts.key)||0)),mode=Object.hasOwn(modes,opts.mode)?opts.mode:'major',scale=F.scales[mode];
@@ -50,7 +98,7 @@ window.BassPracticeCore=(()=>{
    idea=Math.min(lines.length-1,idea);const line=lines[idea],roots=[];
    const selections=opts.part==null?null:phrases(line.degrees);
    const part=selections?Math.min(selections.length-1,Math.max(0,Math.floor(Number(opts.part)||0))):null;
-   const degrees=selections?selections[part]:line.degrees;
+   const degrees=selections?.[part]||line.degrees;
    for(const d of degrees)roots.push(near(degree(d-1),roots.at(-1)??40));
    degrees.forEach((d,bar)=>{
     const root=roots[bar],third=near(degree(d+1),root+4),fifth=near(degree(d+3),root+7),next=roots[(bar+1)%roots.length],offset=bar*4;
