@@ -19,3 +19,7 @@ Validation covers original-mix decoding and looping for all 100 stored sections,
 tempo changes, section selection, uninterrupted section changes, note paging,
 permanent exclusions and individual restoration. The repeated recording shares
 its audio assets with the retained copy.
+
+Post-deployment removal checks found old audio URLs still serving deleted files,
+even after a cleared-cache deployment. Empty stubs at those retired paths replace
+the residual content, so old addresses cannot play the removed recordings.

@@ -14,6 +14,9 @@ function load(saved=new Map()){
 const saved=new Map(),w=load(saved),{BassPracticeCatalogue:D,BassCatalogueReview:R,BassPracticeCore:P,BassUploadedCore:U,BassAccompaniment:H}=w;
 const songs=U.items.filter(row=>row.collection==='recorded-reggae');const report=probe?null:JSON.parse(fs.readFileSync('tests/reggae_phrases_rc348.json'));assert.equal(songs.length,probe?1:report.songs);
 assert(!songs.some(row=>/Action feat/i.test(row.title)));
+for(const path of JSON.parse(fs.readFileSync('tests/retired_assets_rc348.json'))){
+ assert.equal(fs.statSync(path).size,0,'Retired content must remain empty: '+path);
+}
 if(!probe){
  assert.equal(songs.filter(row=>D.visible('uploaded',row.id)).length,report.activeSongs);
  for(const duplicate of report.duplicates){
