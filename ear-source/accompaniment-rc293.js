@@ -84,7 +84,7 @@ window.BassAccompaniment=(()=>{
  function resolve(plan,options={}){
   const p=profile(plan),valid=(value,values,fallback)=>values.includes(value)?value:fallback;
   const key=plan.kind==='uploaded'?plan.clipId+'/'+String(plan.part).replace('phrase-',''):[plan.kind,plan.idea,plan.part||0].join('/');
-  const assignment=window.BassGrooveLibrary?.assignments[key];
+  const assignment=window.BassFlDrums?.assignments[key]||window.BassGrooveLibrary?.assignments[key];
   if(window.BassSuppliedDrums&&(!options.kit||options.kit==='auto')&&(!options.groove||options.groove==='auto')){
    const measured=window.BassRecordingTiming?.[plan.clipId]?.loop;
    const danceLoop=['seben','soukous'].includes(p.dance)&&window.BassSuppliedDrums.loops.find(loop=>loop.genre==='soukous'&&loop.title.toLowerCase().includes(p.dance));
