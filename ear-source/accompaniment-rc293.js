@@ -62,6 +62,7 @@ window.BassAccompaniment=(()=>{
   return'gospel';
  }
  function category(item,recording=false){
+  if(item.removedFromPlatform)return null;
   if(recording&&(item.originalMix||['bass-lady','bassmatics'].includes(item.group)))return item.group;
   if(item.id?.startsWith('custom-'))return null;
   const c=item.collection||item.group;

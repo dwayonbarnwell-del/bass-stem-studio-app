@@ -11,19 +11,33 @@ window.BassCatalogueReview=(()=>{
  }
  const named=(kind,row)=>kind==='basslines'?row.name+' · '+row.degrees.join('–'):row[0];
  function retire(kind,id,title,reason,extra={}){retired.push({kind,id,title,reason,...extra});}
+ D.exclude([{kind:'uploaded',id:'reggae-58297e32b171'},...['clip-46','clip-57','clip-58','clip-59','clip-60','clip-61'].map(id=>({kind:'uploaded',id}))]);
  for(const row of P.lines){
   if(row.id?.startsWith('custom-'))continue;
   const genre=H.identify(row);
   if(removedGenres.has(genre))retire('basslines',row.id,named('basslines',row),'Section removed',{genre});
-  else if(genre==='reggae')retire('basslines',row.id,named('basslines',row),'Replaced by uploaded reggae',{genre});
+  else if(genre==='reggae'){
+   D.exclude([{kind:'basslines',id:row.id}]);
+   // Keep the index/ID reserved so saved choices for other genres never shift.
+   // The former musical content is no longer a playable or restorable study.
+   for(const key of Object.keys(row))if(key!=='id')delete row[key];
+   Object.assign(row,{name:'',degrees:[],feel:'removed',removedFromPlatform:true});
+  }
  }
  D.retire(retired);
+ for(const row of window.BassReggaeRecordings||[]){
+  if(!row.duplicateOf)continue;
+  const original=window.BassReggaeRecordings.find(item=>item.id===row.duplicateOf);
+  const entry={kind:'uploaded',id:row.id,title:row.title,reason:'Same recording as '+(original?.title||row.duplicateOf),duplicateOf:{kind:'uploaded',id:row.duplicateOf}};
+  duplicates.push(entry);D.retire([entry]);
+ }
  const seen=new Map();
  for(const kind of ['basslines','runs','fills']){
   const list=kind==='basslines'?P.lines:kind==='runs'?P.runs:F.styles;
   const indices=list.map((_,i)=>i).sort((a,b)=>kind==='basslines'?0:C.compare(kind,a,b));
   for(const idea of indices){
    const row=list[idea],id=row.id||String(idea);
+   if(D.permanentlyRemoved(kind,id))continue;
    if(retired.some(r=>r.kind===kind&&r.id===id))continue;
    const parts=kind==='basslines'?P.phrases(row.degrees).map((_,i)=>i):[0];
    for(const part of parts){
@@ -61,6 +75,8 @@ window.BassCatalogueReview=(()=>{
    if(row)return {...entry,title:row[0]};
   }
   if(entry.kind==='uploaded'){
+   const unavailable=window.BassReggaeUnavailable?.find(r=>r.id===entry.id.split('/')[0]);
+   if(unavailable)return {...entry,title:unavailable.title,reason:'Phrase needs review',available:false};
    const [id,part]=entry.id.split('/'),row=window.BassUploadedCore.find(id);
    if(row)return {...entry,title:(row.originalTitle||row.title)+(part===undefined?'':' · phrase '+(Number(part)+1))};
   }

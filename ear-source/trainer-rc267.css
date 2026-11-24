@@ -307,3 +307,17 @@
 @layer bass-ear-267 {
 #earTrainerDialog #earFillStudy:not([data-playing="true"]) #fillNotes{max-height:clamp(126px,25dvh,250px)!important;}
 }
+
+@layer bass-ear-267 {
+ #earTrainerDialog #earFillStudy[data-sections="true"] #fillSettings{grid-template-columns:repeat(6,minmax(0,1fr))!important;}
+ #earTrainerDialog #earFillStudy[data-sections="true"] #fillCollection{grid-column:1/-1!important;}
+ #earTrainerDialog #earFillStudy[data-sections="true"] #fillIdea{grid-column:span 3!important;}
+ #earTrainerDialog #earFillStudy[data-sections="true"] #fillExcerpt{grid-column:span 3!important;}
+ #earTrainerDialog #earFillStudy[data-sections="true"] :is(#fillRecordedKey,#fillTempoWrap){grid-column:span 3!important;}
+}
+
+@layer bass-ear-267 {
+ #earTrainerDialog #earFillStudy #fillNotes button[data-page-hidden="true"]{display:none!important;}
+ #earTrainerDialog #earFillStudy #fillNotePager{display:grid!important;grid-template-columns:44px auto 44px!important;align-items:center!important;gap:8px!important;text-align:center!important;}
+ #earTrainerDialog #earFillStudy #fillNotePager[hidden]{display:none!important;}
+}

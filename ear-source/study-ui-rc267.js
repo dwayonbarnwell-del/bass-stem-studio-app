@@ -3,6 +3,7 @@ window.BassFillTrainer=(()=>{
  const F=window.BassFillCore,P=window.BassPracticeCore,U=window.BassUploadedCore,D=window.BassPracticeCatalogue,C=window.BassCuratedStudies,G=window.BassStudyGroups,R=window.BassRegister,L=window.BassPracticeLoop,B=window.BassSuppliedDrums,N=window.BassStudyDisplay,H=window.BassAccompaniment,$=id=>document.getElementById(id);
  let api,ctx,voices=[],timers=[],token=0,playing=false,repeating=false,backing=true,plan,kind='fills',recordedAudio=null,recordedFrame=0,transport=null,rendered=null,drums=true,drumKit='auto',drumGroove='auto',keyStyle='auto',keySound='auto',drumVolume=.45,keyVolume=.8,tempoIdentity='',nativeTempo=null,harmony=[],revision=0,sessions=[];
  let sounding=[],clearStreamBand=null,streamMedia=null,streamPlan=null,tempoTimer=0,harmonyPage=-1;
+ let notePage=0;const notePageSize=25;
  const drumKey='bass-practice-accompaniment-v3';
  // New supplied recordings start in Auto, retaining the previous mixer choices.
  try{const s=JSON.parse(localStorage.getItem(drumKey)||'{}'),old=JSON.parse(localStorage.getItem('bass-practice-accompaniment-v2')||localStorage.getItem('bass-practice-drums-v1')||'{}');if(typeof s.enabled==='boolean')drums=s.enabled;else if(typeof old.enabled==='boolean')drums=old.enabled;if(typeof (s.chords??old.chords)==='boolean')backing=s.chords??old.chords;if(B.genres.some(([id])=>id===s.kit))drumKit=s.kit;if(B.available.some(x=>x.id===s.groove))drumGroove=s.groove;if(H.profiles[s.style])keyStyle=s.style;if(['piano','electric','organ'].includes(s.sound))keySound=s.sound;if(Number.isFinite(s.volume??old.volume))drumVolume=Math.max(0,Math.min(1,s.volume??old.volume));if(Number.isFinite(s.keyVolume??old.keyVolume))keyVolume=Math.max(0,Math.min(1,s.keyVolume??old.keyVolume));}catch{}
@@ -71,8 +72,10 @@ window.BassFillTrainer=(()=>{
  function partOptions(){
   const clip=U.items.find(c=>c.id===$('fillClip').value);$('fillExcerpt').replaceChildren();
   for(const [i,row] of (window.BassRecordedPhrases?.[clip?.id]||[]).entries()){
+   if(!D.visible('uploaded',clip.id+'/'+i))continue;
    const bars=row[2]/4;
-   $('fillExcerpt').add(new Option('Phrase '+(i+1)+' · '+bars+(bars===1?' bar':' bars'),'phrase-'+i));
+   const section=clip.sections?.[i];
+   $('fillExcerpt').add(new Option(section?section.label+(section.structuralEstimate?' (est.)':''):'Phrase '+(i+1)+' · '+bars+(bars===1?' bar':' bars'),'phrase-'+i));
   }
   $('fillExcerpt').selectedIndex=0;
  }
@@ -81,7 +84,9 @@ window.BassFillTrainer=(()=>{
   $('fillCollection').hidden=kind!=='basslines';
   $('fillTempoReset').textContent=custom?'Original':'Reset';
   $('fillTempoReset').title=custom?'Play at the recorded bass tempo':'Use the original drum tempo';
-  $('fillClip').hidden=true;$('fillExcerpt').hidden=true;
+  const sections=custom&&U.items.find(c=>c.id===$('fillClip').value)?.sections;
+  $('earFillStudy').dataset.sections=String(!!sections);
+  $('fillClip').hidden=true;$('fillExcerpt').hidden=!sections;
   $('fillKey').hidden=custom;$('fillRecordedKey').hidden=!custom;
   $('fillFrom').hidden=kind==='basslines';$('fillTo').hidden=kind==='basslines';
   $('fillGroupRow').hidden=!G||kind==='basslines';$('fillCount').hidden=!G||kind==='basslines';
@@ -111,6 +116,14 @@ window.BassFillTrainer=(()=>{
    const group=document.createElement('optgroup');group.label='Recordings';
    for(const clip of U.items.filter(c=>matchesGenre(c,$('fillCollection').value)&&D.visible('uploaded',c.id))){
     const phrases=window.BassRecordedPhrases?.[clip.id]||[];
+    if(clip.sections){
+     const visible=phrases.map((_,i)=>i).filter(i=>D.visible('uploaded',clip.id+'/'+i));
+     if(!visible.length)continue;
+     const wantedClip=String(wanted||'').replace(/^clip:/,'').split('/');
+     const part=wantedClip[0]===clip.id&&visible.includes(Number(wantedClip[1]||0))?Number(wantedClip[1]||0):visible[0];
+     const option=new Option(N.clip(clip),'clip:'+clip.id+(part?'/'+part:''));
+     option.dataset.name=N.clip(clip);option.title=clip.originalTitle||clip.title;group.append(option);continue;
+    }
     for(const [i] of phrases.entries()){
      const phraseId=clip.id+'/'+i;
      if(!D.visible('uploaded',phraseId))continue;
@@ -150,6 +163,7 @@ window.BassFillTrainer=(()=>{
    const item=document.createElement('li'),label=document.createElement('span'),button=document.createElement('button');
    label.textContent=row.title;const detail=document.createElement('small');detail.textContent=(names[row.kind]||row.kind)+' · '+row.reason;label.append(detail);
    button.type='button';button.textContent='Restore';button.setAttribute('aria-label','Restore '+row.title);
+   if(row.available===false){button.disabled=true;button.textContent='Needs review';}
    button.onclick=()=>{try{
     window.BassCatalogueReview.restore(row);refreshDeleted();window.BassLibraryFills?.refresh();$('fillManageStatus').textContent='Restored '+row.title;
    }catch{$('fillManageStatus').textContent='Could not restore this item.';}};
@@ -169,6 +183,7 @@ window.BassFillTrainer=(()=>{
  function stop(){clearStreamBand?.();token++;revision++;for(const session of sessions)session.transport.stop();sessions=[];transport?.stop();transport=null;cancelAnimationFrame(recordedFrame);recordedAudio?.pause();recordedAudio=null;playing=false;repeating=false;timers.forEach(clearTimeout);timers=[];voices.forEach(v=>{try{v.stop();}catch{}});voices=[];if($('fillPlay')){state();highlightNotes([],0,false);}}
  function highlightNotes(notes,beat,audible){
   const list=$('fillNotes');
+  if(audible&&plan?.collection==='recorded-reggae'&&notes.length>35){const next=notes.findIndex(n=>n.beat+n.length>beat),page=Math.floor((next<0?notes.length-1:next)/notePageSize);if(page!==notePage)notePages(page);}
   const active=[];
   if(audible){
    for(const [i,n] of notes.entries()){
@@ -183,6 +198,14 @@ window.BassFillTrainer=(()=>{
    const top=current.offsetTop,bottom=top+current.offsetHeight;
    if(top<list.scrollTop||bottom>list.scrollTop+list.clientHeight)list.scrollTop=top;
   }
+ }
+ function notePages(page=notePage){
+  const list=$('fillNotes'),cards=[...list.children],paged=plan?.collection==='recorded-reggae'&&cards.length>35;
+  const pages=paged?Math.ceil(cards.length/notePageSize):1;notePage=Math.max(0,Math.min(pages-1,page));
+  $('fillNotePager').hidden=!paged;
+  for(const [i,card] of cards.entries())card.dataset.pageHidden=String(paged&&Math.floor(i/notePageSize)!==notePage);
+  $('fillNotePage').textContent=(notePage+1)+' / '+pages;
+  $('fillNotePrev').disabled=notePage===0;$('fillNoteNext').disabled=notePage===pages-1;
  }
  function level(part,value){for(const session of sessions)session.transport.level(part,value);}
 
@@ -202,10 +225,10 @@ window.BassFillTrainer=(()=>{
    const identity='recording:'+id+':'+$('fillExcerpt').value;
    const value=U.practicePlan(id,$('fillExcerpt').value,identity===tempoIdentity?Number($('fillTempo').value):null);
    tempoIdentity=identity;nativeTempo=null;$('fillTempo').value=Number(value.bpm.toFixed(2));
-   $('fillRecordedKey').textContent='Key: '+F.names[value.tonic]+(value.minor?' minor':' major')+' (est.)';
+   $('fillRecordedKey').textContent=value.keyUncertain?'Key: check':'Key: '+F.names[value.tonic]+(value.minor?' minor':' major')+' (est.)';
    const selected=$('fillIdea').selectedOptions[0];
    const progression=progressionText(value.degrees);
-   selected.textContent=selected.dataset.name+' '+progression;
+   selected.textContent=selected.dataset.name+(value.section?'':' '+progression);
    showPlan(value);
    return;
   }
@@ -216,8 +239,8 @@ window.BassFillTrainer=(()=>{
  function showPlan(value){
   rendered=null;plan=value&&value.kind!=='uploaded'?R.plan(value):value;$('fillPlayer').hidden=!plan;$('fillEmpty').hidden=!!plan;state();soundSettings();if(!plan){stop();return;}
   const row=kind==='basslines'?(plan.kind==='uploaded'?U.items.find(c=>c.id===plan.clipId):P.lines[plan.idea]):collections()[plan.idea];$('fillHeading').textContent=plan.kind==='uploaded'?$('fillIdea').selectedOptions[0].dataset.name:$('fillIdea').selectedOptions[0].textContent;harmonyChips();
-  $('fillStatus').textContent=plan.kind==='uploaded'?(row.collection==='recorded-reggae'?'Automatic notes · check':'Suggested chords'):'';$('fillNotes').replaceChildren();
-  plan.bass.forEach((n,i)=>{const b=document.createElement('button');b.type='button';b.textContent=F.note(n.midi);b.title=F.note(n.midi)+(plan.kind==='uploaded'?' · '+U.time(n.sourceTime):' · beat '+(Math.round((n.beat%4+1)*100)/100));if(n.review){b.classList.add('needs-review');b.title+=' · Check note';}b.setAttribute('aria-label','Hear '+F.note(n.midi));b.dataset.index=i;const chord=harmony[N.active(harmony,n.beat)];if(n.role==='landing'||(chord&&(n.midi%12+12)%12===chord.rootPc))b.classList.add('landing');b.onclick=()=>void preview(n);$('fillNotes').append(b);});state();if(playing)void updatePlayback();
+  $('fillStatus').textContent=plan.kind==='uploaded'?(row.collection==='recorded-reggae'?'Estimated sections & notes · check':'Suggested chords'):'';$('fillNotes').replaceChildren();notePage=0;
+  plan.bass.forEach((n,i)=>{const b=document.createElement('button');b.type='button';b.textContent=F.note(n.midi);b.title=F.note(n.midi)+(plan.kind==='uploaded'?' · '+U.time(n.sourceTime):' · beat '+(Math.round((n.beat%4+1)*100)/100));if(n.review){b.classList.add('needs-review');b.title+=' · Check note';}b.setAttribute('aria-label','Hear '+F.note(n.midi));b.dataset.index=i;const chord=harmony[N.active(harmony,n.beat)];if(n.role==='landing'||(chord&&(n.midi%12+12)%12===chord.rootPc))b.classList.add('landing');b.onclick=()=>void preview(n);$('fillNotes').append(b);});notePages();state();if(playing)void updatePlayback();
  }
  async function preview(n){
   const mine=token;try{ctx??=new AudioContext();await ctx.resume();await window.BassPracticeAudio.prepare('bass',ctx,{notes:[n]});if(mine!==token)return;voices.push(window.BassPracticeAudio.tone(ctx,n.midi,ctx.currentTime,.65,'bass',0,85,.8));}catch{$('fillStatus').textContent='Sound unavailable';}
@@ -367,13 +390,13 @@ window.BassFillTrainer=(()=>{
   api=hooks;panel.innerHTML=`<div id="fillGroupRow" class="fill-settings"><select id="fillGroup" aria-label="Run or fill group"></select></div><p id="fillCount" role="status"></p><div id="fillSettings" class="fill-settings">
   <select id="fillCollection" aria-label="Bassline genre" hidden></select>
   <select id="fillClip" aria-label="Uploaded bassline" hidden></select>
-  <select id="fillIdea" aria-label="Run or fill pattern"></select>
+  <select id="fillIdea" aria-label="Run or fill pattern"></select><select id="fillExcerpt" aria-label="Song section" hidden></select>
   <select id="fillFrom" aria-label="From degree"></select><select id="fillTo" aria-label="To degree"></select>
   <output id="fillRecordedKey" hidden></output><select id="fillKey" aria-label="Fill key"></select><label id="fillTempoWrap" class="fill-tempo">BPM<input id="fillTempo" aria-label="Practice tempo BPM" type="number" min="40" max="220" step="0.01"><button id="fillTempoReset" type="button" title="Use the original drum loop tempo">Reset</button></label>
   </div>
-  <p id="fillEmpty" hidden>No patterns in this group. Choose another group or restore deleted patterns.</p><div id="fillPlayer"><div class="fill-actions"><button id="fillPlay" type="button">Play</button><button id="fillRepeat" type="button" aria-pressed="false">Repeat</button><button id="fillNext" type="button">Next</button><button id="fillBacking" type="button" aria-pressed="true">Chords on</button><button id="fillDrums" type="button" aria-pressed="true">Drums on</button></div><p id="fillAccompaniment"></p><details id="fillDrumOptions"><summary>Band</summary><div class="fill-settings"><select id="fillExcerpt" aria-label="Clip section" hidden></select><label class="fill-band-choice">Drum genre<select id="fillDrumKit" aria-label="Drum genre"></select></label><label class="fill-band-choice">Drum loop<select id="fillDrumGroove" aria-label="Drum loop"></select></label><label class="fill-band-choice">Keyboard style<select id="fillKeyStyle" aria-label="Keyboard style"></select></label><label class="fill-band-choice">Keyboard sound<select id="fillKeySound" aria-label="Keyboard sound"></select></label><label class="fill-drum-volume">Drum volume <input id="fillDrumVolume" type="range" min="0" max="100" step="1" value="45"><output id="fillDrumLevel">45%</output></label><label class="fill-drum-volume">Keys volume <input id="fillKeyVolume" type="range" min="0" max="100" step="1" value="80"><output id="fillKeyLevel">80%</output></label><button id="fillGenreReset" type="button">Reset band</button></div></details><h3 id="fillHeading"></h3><p id="fillHarmony" hidden></p>
+  <p id="fillEmpty" hidden>No patterns in this group. Choose another group or restore deleted patterns.</p><div id="fillPlayer"><div class="fill-actions"><button id="fillPlay" type="button">Play</button><button id="fillRepeat" type="button" aria-pressed="false">Repeat</button><button id="fillNext" type="button">Next</button><button id="fillBacking" type="button" aria-pressed="true">Chords on</button><button id="fillDrums" type="button" aria-pressed="true">Drums on</button></div><p id="fillAccompaniment"></p><details id="fillDrumOptions"><summary>Band</summary><div class="fill-settings"><label class="fill-band-choice">Drum genre<select id="fillDrumKit" aria-label="Drum genre"></select></label><label class="fill-band-choice">Drum loop<select id="fillDrumGroove" aria-label="Drum loop"></select></label><label class="fill-band-choice">Keyboard style<select id="fillKeyStyle" aria-label="Keyboard style"></select></label><label class="fill-band-choice">Keyboard sound<select id="fillKeySound" aria-label="Keyboard sound"></select></label><label class="fill-drum-volume">Drum volume <input id="fillDrumVolume" type="range" min="0" max="100" step="1" value="45"><output id="fillDrumLevel">45%</output></label><label class="fill-drum-volume">Keys volume <input id="fillKeyVolume" type="range" min="0" max="100" step="1" value="80"><output id="fillKeyLevel">80%</output></label><button id="fillGenreReset" type="button">Reset band</button></div></details><h3 id="fillHeading"></h3><p id="fillHarmony" hidden></p>
 
-  <div id="fillNotes" aria-label="Bass fill notes"></div><p id="fillStatus" role="status"></p></div><div class="my-fill-actions"><button id="fillDelete" type="button">Delete pattern</button><button id="fillRestore" type="button" aria-expanded="false" aria-controls="fillDeletedPanel">Deleted</button></div><section id="fillDeletedPanel" hidden aria-label="Deleted items"><div class="fill-deleted-heading"><h3>Deleted</h3><button id="fillDeletedClose" type="button" aria-label="Close deleted items">×</button></div><p id="fillDeletedEmpty" hidden>No deleted items.</p><ul id="fillDeletedList"></ul></section><p id="fillManageStatus" role="status"></p>`;
+  <div id="fillNotes" aria-label="Bass fill notes"></div><div id="fillNotePager" hidden aria-label="Note pages"><button id="fillNotePrev" type="button" aria-label="Previous notes">‹</button><output id="fillNotePage"></output><button id="fillNoteNext" type="button" aria-label="Next notes">›</button></div><p id="fillStatus" role="status"></p></div><div class="my-fill-actions"><button id="fillDelete" type="button">Delete pattern</button><button id="fillRestore" type="button" aria-expanded="false" aria-controls="fillDeletedPanel">Deleted</button></div><section id="fillDeletedPanel" hidden aria-label="Deleted items"><div class="fill-deleted-heading"><h3>Deleted</h3><button id="fillDeletedClose" type="button" aria-label="Close deleted items">×</button></div><p id="fillDeletedEmpty" hidden>No deleted items.</p><ul id="fillDeletedList"></ul></section><p id="fillManageStatus" role="status"></p>`;
   function option(id,value,label){const o=document.createElement('option');o.value=value;o.textContent=label;$(id).append(o);}
   for(const id of ['fillDrumKit','fillDrumGroove','fillKeyStyle','fillKeySound'])option(id,'auto','Auto · match genre');
   for(const [id,label] of B.genres)option('fillDrumKit',id,label);drumOptions();for(const [id,p] of Object.entries(H.profiles))option('fillKeyStyle',id,'Keys: '+p.label);for(const [id,label] of [['piano','Grand piano'],['electric','Wurlitzer electric piano'],['organ','Drawbar organ']])option('fillKeySound',id,label);
@@ -393,7 +416,7 @@ window.BassFillTrainer=(()=>{
   
   clipOptions();
   $('fillCollection').onchange=()=>{clipOptions();ideaOptions();draw();};$('fillClip').onchange=()=>{partOptions();draw();};
-  $('fillExcerpt').onchange=draw;
+  $('fillExcerpt').onchange=()=>{if(imported()){const id=$('fillClip').value,part=Number($('fillExcerpt').value.slice(7));$('fillIdea').selectedOptions[0].value='clip:'+id+(part?'/'+part:'');}draw();};
   for(let i=1;i<=7;i++){option('fillFrom',i,'From: '+i);option('fillTo',i,'To: '+i);} $('fillTo').value='4';
   F.names.forEach((n,i)=>option('fillKey',i,'Key: '+n));F.styles.forEach((s,i)=>option('fillIdea',i,(i+1)+'. '+s[0]));$('fillTempo').value='80';
   for(const id of ['fillFrom','fillTo','fillKey','fillIdea'])$(id).onchange=draw;
@@ -409,8 +432,22 @@ window.BassFillTrainer=(()=>{
   $('fillTempo').onchange=()=>{editedIdea=tempoIdentity;applyTempo();};
   $('fillTempo').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();editedIdea=tempoIdentity;applyTempo();}};
 
+  $('fillNotePrev').onclick=()=>notePages(notePage-1);$('fillNoteNext').onclick=()=>notePages(notePage+1);
   $('fillPlay').onclick=()=>void play();$('fillRepeat').onclick=()=>{if(playing){stop();$('fillStatus').textContent='Stopped';}else void play();};
-  $('fillNext').onclick=()=>{const active=playing;$('fillIdea').selectedIndex=($('fillIdea').selectedIndex+1)%$('fillIdea').options.length;draw();if(!active)void play();};
+  $('fillNext').onclick=()=>{
+   const active=playing,clip=imported()?U.items.find(c=>c.id===$('fillClip').value):null;
+   const excerpt=$('fillExcerpt'),following=excerpt.options[excerpt.selectedIndex+1];
+   if(clip?.sections&&following){
+    const part=Number(following.value.slice(7));$('fillIdea').selectedOptions[0].value='clip:'+clip.id+(part?'/'+part:'');
+   }else{
+    $('fillIdea').selectedIndex=($('fillIdea').selectedIndex+1)%$('fillIdea').options.length;
+    if(imported()){
+     const id=$('fillIdea').value.slice(5).split('/')[0],row=U.items.find(c=>c.id===id);
+     if(row?.sections){const part=row.sections.findIndex((_,i)=>D.visible('uploaded',id+'/'+i));$('fillIdea').selectedOptions[0].value='clip:'+id+(part>0?'/'+part:'');}
+    }
+   }
+   draw();if(!active)void play();
+  };
 
   $('fillBacking').onclick=()=>{backing=!backing;saveDrums();level('chords',backing?keyVolume:0);state();};
   $('fillDelete').onclick=()=>{const id=deletionKey();if(!id)return;try{D.remove(...id);refreshDeleted();$('fillManageStatus').textContent='Pattern deleted';}catch{$('fillManageStatus').textContent='Could not save deletion.';}};
