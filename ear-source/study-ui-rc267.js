@@ -117,6 +117,7 @@ window.BassFillTrainer=(()=>{
      const option=document.createElement('option');
      option.value='clip:'+clip.id+(i?'/'+i:'');
      option.dataset.name=N.phrase(clip,i,phrases.length);
+     option.title=clip.originalTitle||clip.title;
      if(!phraseProgressions.has(phraseId)){
       const phrase=U.practicePlan(clip.id,'phrase-'+i);
       phraseProgressions.set(phraseId,progressionText(phrase.degrees)||'Original');
@@ -137,7 +138,26 @@ window.BassFillTrainer=(()=>{
    const id=patternId(Number(idea));return [kind,P.phrases(P.lines[Number(idea)].degrees).length>1?id+'/'+part:id];
   }
   return imported()?$('fillClip').value&&['uploaded',window.BassRecordedPhrases[$('fillClip').value].length>1?$('fillClip').value+'/'+$('fillExcerpt').value.slice(7):$('fillClip').value]:$('fillIdea').value!==''?[kind,patternId(Number($('fillIdea').value))]:null;}
- function refreshDeleted(){ideaOptions($('fillIdea').value);clipOptions();draw();}
+ function collectionOptions(){
+  const select=$('fillCollection'),current=select.value;select.replaceChildren();
+  for(const [id,label] of H.availableGroups())select.add(new Option(label,id));
+  if([...select.options].some(o=>o.value===current))select.value=current;
+ }
+ function deletedItems(){
+  const list=$('fillDeletedList');list.replaceChildren();
+  const names={basslines:'Bassline',runs:'Run',fills:'Fill',uploaded:'Recording',library:'Saved fill'};
+  for(const row of window.BassCatalogueReview.removed()){
+   const item=document.createElement('li'),label=document.createElement('span'),button=document.createElement('button');
+   label.textContent=row.title;const detail=document.createElement('small');detail.textContent=(names[row.kind]||row.kind)+' · '+row.reason;label.append(detail);
+   button.type='button';button.textContent='Restore';button.setAttribute('aria-label','Restore '+row.title);
+   button.onclick=()=>{try{
+    window.BassCatalogueReview.restore(row);refreshDeleted();window.BassLibraryFills?.refresh();$('fillManageStatus').textContent='Restored '+row.title;
+   }catch{$('fillManageStatus').textContent='Could not restore this item.';}};
+   item.append(label,button);list.append(item);
+  }
+  $('fillDeletedEmpty').hidden=!!list.children.length;
+ }
+ function refreshDeleted(){collectionOptions();ideaOptions($('fillIdea').value);clipOptions();draw();deletedItems();}
  function later(fn,ms){timers.push(setTimeout(fn,ms));}
  function playbackLayout(){
   const study=$('earFillStudy'),value=String(playing);
@@ -145,7 +165,7 @@ window.BassFillTrainer=(()=>{
   study.dataset.playing=value;
   if(playing)$('earTrainerDialog').scrollTop=0;
  }
- function state(){ playbackLayout();$('fillPlay').textContent=playing?'Stop':'Play';$('fillPlay').disabled=!plan;$('fillRepeat').disabled=!plan;$('fillNext').disabled=!plan;$('fillDelete').disabled=!deletionKey();$('fillRestore').disabled=!D.deletedCount;$('fillRestore').textContent='Restore deleted'+(D.deletedCount?' ('+D.deletedCount+')':'');$('fillRepeat').setAttribute('aria-pressed',String(repeating));$('fillBacking').textContent=backing?'Chords on':'Chords off';$('fillBacking').setAttribute('aria-pressed',String(backing));$('fillDrums').textContent=drums?'Drums on':'Drums off';$('fillDrums').setAttribute('aria-pressed',String(drums)); }
+ function state(){ const deleted=window.BassCatalogueReview.removed().length;playbackLayout();$('fillPlay').textContent=playing?'Stop':'Play';$('fillPlay').disabled=!plan;$('fillRepeat').disabled=!plan;$('fillNext').disabled=!plan;$('fillDelete').disabled=!deletionKey();$('fillRestore').disabled=!deleted;$('fillRestore').textContent='Deleted'+(deleted?' ('+deleted+')':'');$('fillRepeat').setAttribute('aria-pressed',String(repeating));$('fillBacking').textContent=backing?'Chords on':'Chords off';$('fillBacking').setAttribute('aria-pressed',String(backing));$('fillDrums').textContent=drums?'Drums on':'Drums off';$('fillDrums').setAttribute('aria-pressed',String(drums)); }
  function stop(){clearStreamBand?.();token++;revision++;for(const session of sessions)session.transport.stop();sessions=[];transport?.stop();transport=null;cancelAnimationFrame(recordedFrame);recordedAudio?.pause();recordedAudio=null;playing=false;repeating=false;timers.forEach(clearTimeout);timers=[];voices.forEach(v=>{try{v.stop();}catch{}});voices=[];if($('fillPlay')){state();highlightNotes([],0,false);}}
  function highlightNotes(notes,beat,audible){
   const list=$('fillNotes');
@@ -196,7 +216,7 @@ window.BassFillTrainer=(()=>{
  function showPlan(value){
   rendered=null;plan=value&&value.kind!=='uploaded'?R.plan(value):value;$('fillPlayer').hidden=!plan;$('fillEmpty').hidden=!!plan;state();soundSettings();if(!plan){stop();return;}
   const row=kind==='basslines'?(plan.kind==='uploaded'?U.items.find(c=>c.id===plan.clipId):P.lines[plan.idea]):collections()[plan.idea];$('fillHeading').textContent=plan.kind==='uploaded'?$('fillIdea').selectedOptions[0].dataset.name:$('fillIdea').selectedOptions[0].textContent;harmonyChips();
-  $('fillStatus').textContent=plan.kind==='uploaded'?('Suggested chords'):'';$('fillNotes').replaceChildren();
+  $('fillStatus').textContent=plan.kind==='uploaded'?(row.collection==='recorded-reggae'?'Automatic notes · check':'Suggested chords'):'';$('fillNotes').replaceChildren();
   plan.bass.forEach((n,i)=>{const b=document.createElement('button');b.type='button';b.textContent=F.note(n.midi);b.title=F.note(n.midi)+(plan.kind==='uploaded'?' · '+U.time(n.sourceTime):' · beat '+(Math.round((n.beat%4+1)*100)/100));if(n.review){b.classList.add('needs-review');b.title+=' · Check note';}b.setAttribute('aria-label','Hear '+F.note(n.midi));b.dataset.index=i;const chord=harmony[N.active(harmony,n.beat)];if(n.role==='landing'||(chord&&(n.midi%12+12)%12===chord.rootPc))b.classList.add('landing');b.onclick=()=>void preview(n);$('fillNotes').append(b);});state();if(playing)void updatePlayback();
  }
  async function preview(n){
@@ -353,7 +373,7 @@ window.BassFillTrainer=(()=>{
   </div>
   <p id="fillEmpty" hidden>No patterns in this group. Choose another group or restore deleted patterns.</p><div id="fillPlayer"><div class="fill-actions"><button id="fillPlay" type="button">Play</button><button id="fillRepeat" type="button" aria-pressed="false">Repeat</button><button id="fillNext" type="button">Next</button><button id="fillBacking" type="button" aria-pressed="true">Chords on</button><button id="fillDrums" type="button" aria-pressed="true">Drums on</button></div><p id="fillAccompaniment"></p><details id="fillDrumOptions"><summary>Band</summary><div class="fill-settings"><select id="fillExcerpt" aria-label="Clip section" hidden></select><label class="fill-band-choice">Drum genre<select id="fillDrumKit" aria-label="Drum genre"></select></label><label class="fill-band-choice">Drum loop<select id="fillDrumGroove" aria-label="Drum loop"></select></label><label class="fill-band-choice">Keyboard style<select id="fillKeyStyle" aria-label="Keyboard style"></select></label><label class="fill-band-choice">Keyboard sound<select id="fillKeySound" aria-label="Keyboard sound"></select></label><label class="fill-drum-volume">Drum volume <input id="fillDrumVolume" type="range" min="0" max="100" step="1" value="45"><output id="fillDrumLevel">45%</output></label><label class="fill-drum-volume">Keys volume <input id="fillKeyVolume" type="range" min="0" max="100" step="1" value="80"><output id="fillKeyLevel">80%</output></label><button id="fillGenreReset" type="button">Reset band</button></div></details><h3 id="fillHeading"></h3><p id="fillHarmony" hidden></p>
 
-  <div id="fillNotes" aria-label="Bass fill notes"></div><p id="fillStatus" role="status"></p></div><div class="my-fill-actions"><button id="fillDelete" type="button">Delete pattern</button><button id="fillRestore" type="button">Restore deleted</button></div><p id="fillManageStatus" role="status"></p>`;
+  <div id="fillNotes" aria-label="Bass fill notes"></div><p id="fillStatus" role="status"></p></div><div class="my-fill-actions"><button id="fillDelete" type="button">Delete pattern</button><button id="fillRestore" type="button" aria-expanded="false" aria-controls="fillDeletedPanel">Deleted</button></div><section id="fillDeletedPanel" hidden aria-label="Deleted items"><div class="fill-deleted-heading"><h3>Deleted</h3><button id="fillDeletedClose" type="button" aria-label="Close deleted items">×</button></div><p id="fillDeletedEmpty" hidden>No deleted items.</p><ul id="fillDeletedList"></ul></section><p id="fillManageStatus" role="status"></p>`;
   function option(id,value,label){const o=document.createElement('option');o.value=value;o.textContent=label;$(id).append(o);}
   for(const id of ['fillDrumKit','fillDrumGroove','fillKeyStyle','fillKeySound'])option(id,'auto','Auto · match genre');
   for(const [id,label] of B.genres)option('fillDrumKit',id,label);drumOptions();for(const [id,p] of Object.entries(H.profiles))option('fillKeyStyle',id,'Keys: '+p.label);for(const [id,label] of [['piano','Grand piano'],['electric','Wurlitzer electric piano'],['organ','Drawbar organ']])option('fillKeySound',id,label);
@@ -369,7 +389,7 @@ window.BassFillTrainer=(()=>{
   $('fillDrumVolume').oninput=()=>{drumVolume=Number($('fillDrumVolume').value)/100;$('fillDrumLevel').textContent=Math.round(drumVolume*100)+'%';level('drums',drums?drumVolume:0);saveDrums();};
   $('fillDrums').onclick=()=>{drums=!drums;saveDrums();level('drums',drums?drumVolume:0);state();};
   if(G){for(const [id,label] of G.groups)option('fillGroup',id,label);loadGroup();$('fillGroup').onchange=()=>{selectedGroups[kind]=$('fillGroup').value;try{localStorage.setItem(groupKey,JSON.stringify(selectedGroups));}catch{}ideaOptions();draw();};}
-  for(const [id,label] of H.groups)option('fillCollection',id,label);
+  collectionOptions();
   
   clipOptions();
   $('fillCollection').onchange=()=>{clipOptions();ideaOptions();draw();};$('fillClip').onchange=()=>{partOptions();draw();};
@@ -394,7 +414,8 @@ window.BassFillTrainer=(()=>{
 
   $('fillBacking').onclick=()=>{backing=!backing;saveDrums();level('chords',backing?keyVolume:0);state();};
   $('fillDelete').onclick=()=>{const id=deletionKey();if(!id)return;try{D.remove(...id);refreshDeleted();$('fillManageStatus').textContent='Pattern deleted';}catch{$('fillManageStatus').textContent='Could not save deletion.';}};
-  $('fillRestore').onclick=()=>{try{D.restore();refreshDeleted();$('fillManageStatus').textContent='Patterns restored';}catch{$('fillManageStatus').textContent='Could not restore patterns.';}};
+  $('fillRestore').onclick=()=>{const open=$('fillDeletedPanel').hidden;$('fillDeletedPanel').hidden=!open;$('fillRestore').setAttribute('aria-expanded',String(open));if(open)deletedItems();};
+  $('fillDeletedClose').onclick=()=>{$('fillDeletedPanel').hidden=true;$('fillRestore').setAttribute('aria-expanded','false');$('fillRestore').focus();};
   window.addEventListener('pagehide',stop);ideaOptions();draw();
  }
  function setKind(next){

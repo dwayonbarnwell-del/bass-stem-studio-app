@@ -71,10 +71,24 @@ window.BassPracticeCatalogue=(()=>{
  function genreOf(line){if(line.id?.startsWith('custom-'))return null;if(/worship/i.test(line.name))return 'worship';if(/praise/i.test(line.name))return 'praise';if(line.artist==='marley'||/reggae/i.test(line.name))return 'reggae';return genres.find(([id])=>new RegExp(id,'i').test(line.name))?.[0]||null;}
  function inCollection(line,group){const genre=genreOf(line);return group==='studies'?!genre:genres.some(([id])=>id===group)?genre===group:line.artist===group;}
  const lineLabel=l=>l.name.replace(/\s*·\s*[1-7](?:[–-][1-7])+$/,'')+' · '+l.degrees.join('–');
- const key=(kind,id)=>kind+':'+id;
- const visible=(kind,id)=>!deleted.has(key(kind,id));
- function remove(kind,id){const next=new Set(deleted);next.add(key(kind,id));localStorage.setItem(storageKey,JSON.stringify([...next]));deleted=next;}
- function restore(){localStorage.setItem(storageKey,'[]');deleted.clear();}
+ const key=(kind,id)=>kind+':'+id,restoredKey='bass-practice-restored-v1',stateKey='bass-practice-deletion-state-v2',retired=new Map(),descriptions=new Map();let restored=new Set();
+ try{const saved=JSON.parse(localStorage.getItem(restoredKey)||'[]');if(Array.isArray(saved))restored=new Set(saved.filter(v=>typeof v==='string'));}catch{}
+ try{const saved=JSON.parse(localStorage.getItem(stateKey)||'null');if(Array.isArray(saved?.deleted)&&Array.isArray(saved?.restored)){deleted=new Set(saved.deleted.filter(v=>typeof v==='string'));restored=new Set(saved.restored.filter(v=>typeof v==='string'));}}catch{}
+ function persist(next,allowed){localStorage.setItem(stateKey,JSON.stringify({deleted:[...next],restored:[...allowed]}));deleted=next;restored=allowed;}
+ const visible=(kind,id)=>!deleted.has(key(kind,id))&&(!retired.has(key(kind,id))||restored.has(key(kind,id)));
+ function remove(kind,id){const next=new Set(deleted);next.add(key(kind,id));persist(next,new Set(restored));}
+ function restoreItems(items,hide=[]){
+  const next=new Set(deleted),allowed=new Set(restored);
+  for(const row of hide)next.add(key(row.kind,row.id));
+  const targets=items.map(row=>key(row.kind,row.id));
+  for(const value of targets){next.delete(value);allowed.add(value);}
+  // One atomic write keeps a failed restore from changing any other deletion.
+  persist(next,allowed);
+ }
+ function restore(kind,id){return restoreItems(kind===undefined?[...new Set([...deleted,...retired.keys()])].map(value=>{const colon=value.indexOf(':');return {kind:value.slice(0,colon),id:value.slice(colon+1)};}):[{kind,id}]);}
+ function retire(rows){for(const row of rows)retired.set(key(row.kind,row.id),{...row});}
+ function describe(rows){for(const row of rows)descriptions.set(key(row.kind,row.id),{...row});}
+ function removed(){return [...new Set([...deleted,...retired.keys()])].filter(value=>deleted.has(value)||!restored.has(value)).map(value=>{const colon=value.indexOf(':');return {kind:value.slice(0,colon),id:value.slice(colon+1),reason:'Deleted by you',...descriptions.get(value),...retired.get(value)};});}
  function addProgression(text,template){const parts=text.trim().split(/[\s,–>→-]+/);if(parts.length<2||parts.length>16||parts.some(x=>! /^[1-7]$/.test(x)))throw Error('Enter 2–16 numbers from 1 to 7.');const l={...retainProgression(template||{}),id:'custom-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),name:'My progression',artist:undefined,degrees:parts.map(Number)};const next=[...custom,l];localStorage.setItem(customKey,JSON.stringify(next));custom=next;P.lines.push(l);return P.lines.length-1;}
- return {groups,sources,genreOf,inCollection,lineLabel,visible,remove,restore,addProgression,get deletedCount(){return deleted.size;}};
+ return {groups,sources,genreOf,inCollection,lineLabel,visible,remove,restore,restoreItems,retire,describe,removed,addProgression,isRestored:(kind,id)=>restored.has(key(kind,id)),get deletedCount(){return removed().length;}};
 })();

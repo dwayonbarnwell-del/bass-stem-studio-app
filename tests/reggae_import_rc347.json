@@ -1,0 +1,553 @@
+{
+  "sourceFiles": 54,
+  "imported": 53,
+  "duplicates": [
+    {
+      "id": "reggae-e8d0d3f7f67e",
+      "kept": "reggae-ad1c16174fd1",
+      "correlation": 0.9923
+    }
+  ],
+  "recordings": [
+    {
+      "id": "reggae-58297e32b171",
+      "title": "Action feat Nadine Sutherland",
+      "source": "Action feat Nadine Sutherland.mp3",
+      "sourceSha256": "6542aead6fd657a3c5f704bf65681ed8396c95007bd2044326a99ac3314dc9b5",
+      "bpm": 93.117,
+      "beatIntervalCV": 0.0211,
+      "notes": 34,
+      "reviewNotes": 17
+    },
+    {
+      "id": "reggae-55e5d760d4de",
+      "title": "Beres Hammond Rockaway",
+      "source": "Beres Hammond - Rockaway.mp3",
+      "sourceSha256": "7e06d03ffccbb9d5b40272d78280d3e9530b3b8582b4aa4e20f647d8031361fb",
+      "bpm": 83.523,
+      "beatIntervalCV": 0.0126,
+      "notes": 23,
+      "reviewNotes": 15
+    },
+    {
+      "id": "reggae-28bc1d03c9dd",
+      "title": "Beres Hammond They gonna talk",
+      "source": "Beres Hammond - They gonna talk.mp3",
+      "sourceSha256": "dd97d1eca0a567a78420ed87e7759e26661078e8fcbfb667551ef83f14249036",
+      "bpm": 76.562,
+      "beatIntervalCV": 0.0157,
+      "notes": 24,
+      "reviewNotes": 7
+    },
+    {
+      "id": "reggae-a64bc730f321",
+      "title": "Beres Hammond I Feel Good",
+      "source": "BeresHammond-IFeelGoodOfficialMusicVideo-HDan4GiflkA.mp3",
+      "sourceSha256": "a40685b459de2b5fa96713c3315d87236036c244851bfd401de1aa3d466196b7",
+      "bpm": 84.117,
+      "beatIntervalCV": 0.0345,
+      "notes": 19,
+      "reviewNotes": 10
+    },
+    {
+      "id": "reggae-4ab9e7e7ad6d",
+      "title": "Beres Hammond Lovefroma Distance",
+      "source": "BeresHammond-LovefromaDistance-OpocGntc1kY.mp3",
+      "sourceSha256": "5005e3c02ec7039de2dda0a0e9919f188fc97e3e7d965d179ba5618b7de43d5f",
+      "bpm": 79.969,
+      "beatIntervalCV": 0.0093,
+      "notes": 16,
+      "reviewNotes": 10
+    },
+    {
+      "id": "reggae-5044a33ff461",
+      "title": "Bob Marley Alalalalong",
+      "source": "BobMarley-Alalalalong--JhwxTen6yA.mp3",
+      "sourceSha256": "d0088cfbd462be579e86293f275408d2f3ddb36065c21a2989a223240c00faa4",
+      "bpm": 86.403,
+      "beatIntervalCV": 0.0121,
+      "notes": 17,
+      "reviewNotes": 5
+    },
+    {
+      "id": "reggae-a09f1f2d980f",
+      "title": "Bob Marley Buffalosoldier",
+      "source": "BobMarley-Buffalosoldier-S5FCdx7Dn0o.mp3",
+      "sourceSha256": "3a80144d0d94f689894a0e26d86661f7e9d65031a2dc19677fa2bff266478be2",
+      "bpm": 124.529,
+      "beatIntervalCV": 0.0148,
+      "notes": 13,
+      "reviewNotes": 6
+    },
+    {
+      "id": "reggae-b19d83c1aadf",
+      "title": "Bob Marley Couldyoubeloved",
+      "source": "BobMarley-Couldyoubeloved-Lyrics-Mm7muPjevik.mp3",
+      "sourceSha256": "d4b8879a6dd8fa1a4601f43c4bdf687c1bfc422bfa6e5fb8f2dfe86086967685",
+      "bpm": 103.102,
+      "beatIntervalCV": 0.0171,
+      "notes": 21,
+      "reviewNotes": 7
+    },
+    {
+      "id": "reggae-128c286eeb70",
+      "title": "Bob Marley I Shot The Sheriff",
+      "source": "BobMarley-IShotTheSheriff-2XiYUYcpsT4.mp3",
+      "sourceSha256": "b7fd0cd6ad422ff5af3049917480738864d8cf9199b6de75ad543465d81688c9",
+      "bpm": 96.037,
+      "beatIntervalCV": 0.0098,
+      "notes": 14,
+      "reviewNotes": 8
+    },
+    {
+      "id": "reggae-4613c44d41a7",
+      "title": "Bob Marley Is This Love",
+      "source": "BobMarley-IsThisLove-CHekNnySAfM.mp3",
+      "sourceSha256": "d106f0a5fba6effab9cf0219685b17c7ad74d8a1431a62b72abd890be827f406",
+      "bpm": 122.138,
+      "beatIntervalCV": 0.02,
+      "notes": 9,
+      "reviewNotes": 6
+    },
+    {
+      "id": "reggae-0306288dc6f6",
+      "title": "Bob Marley Natural Mystic",
+      "source": "BobMarley-NaturalMystic-Z0lufcRgZlA.mp3",
+      "sourceSha256": "2a79dc7ef3fe6f2cd82d01c1c2749460388eed4cad95eda0cdb926e2a95fd2b2",
+      "bpm": 65.262,
+      "beatIntervalCV": 0.0092,
+      "notes": 26,
+      "reviewNotes": 17
+    },
+    {
+      "id": "reggae-cc60c0413552",
+      "title": "Bob Marley One Love",
+      "source": "BobMarley-OneLove-vdB-8eLEW8g.mp3",
+      "sourceSha256": "ee2035cd892138817217b276e9ec1a3556254a4a23fef3b8640755864d8e5d54",
+      "bpm": 79.507,
+      "beatIntervalCV": 0.0144,
+      "notes": 23,
+      "reviewNotes": 8
+    },
+    {
+      "id": "reggae-19637031ed18",
+      "title": "Bob Marley Redemption Songfromthelegendalbum",
+      "source": "BobMarley-RedemptionSongfromthelegendalbumwithlyrics-QrY9eHkXTa4.mp3",
+      "sourceSha256": "90cfc4bb17228d34ac2ee97df7125192441a5363ef329a94d1e677e238ac1e7f",
+      "bpm": 117.621,
+      "beatIntervalCV": 0.0512,
+      "notes": 11,
+      "reviewNotes": 9
+    },
+    {
+      "id": "reggae-41e01efb0e5b",
+      "title": "Bob Marley Three Little Birds HD",
+      "source": "BobMarley-ThreeLittleBirds-Lyrics-HD-F4sNi2PUiWM.mp3",
+      "sourceSha256": "277cf13bdecfac334b9bb30ff9f1806a4c12cbaae4fc313eab12210fef5e59c9",
+      "bpm": 73.894,
+      "beatIntervalCV": 0.0118,
+      "notes": 20,
+      "reviewNotes": 4
+    },
+    {
+      "id": "reggae-93d165c89526",
+      "title": "Bob Marley Waitin Vain 8WQ Vbnu Kvs",
+      "source": "BobMarley-WaitinVainwithlyrics-8WQVbnuKvs.mp3",
+      "sourceSha256": "e71109e29f1b0fac2855ee55e921c550697401c15acea637adf8ab5ec635ecd7",
+      "bpm": 78.9,
+      "beatIntervalCV": 0.0076,
+      "notes": 20,
+      "reviewNotes": 10
+    },
+    {
+      "id": "reggae-cd2bf0cedcf0",
+      "title": "Bob Marley nowomannocry",
+      "source": "BobMarley-nowomannocryLyrics-aEtfgfv5iN4.mp3",
+      "sourceSha256": "353e2e1cc8de5fe34ada9487e1bc22f7c97a646662fa99c099b957830bea013d",
+      "bpm": 78.081,
+      "beatIntervalCV": 0.0133,
+      "notes": 16,
+      "reviewNotes": 9
+    },
+    {
+      "id": "reggae-a27315618511",
+      "title": "Bob Marley Jammin",
+      "source": "BobMarleyJammin-oFRbZJXjWIA.mp3",
+      "sourceSha256": "f78019d55e19d5b559b7fc7cbea37bce1d7a6b7fed7da511d2a693ed7b560147",
+      "bpm": 122.864,
+      "beatIntervalCV": 0.0132,
+      "notes": 16,
+      "reviewNotes": 9
+    },
+    {
+      "id": "reggae-757bb883bd7e",
+      "title": "Bob Marley Real Situation",
+      "source": "BobMarleyRealSituation-9Lz6HPz9FCk.mp3",
+      "sourceSha256": "29201518aa1581636ad1626dbef460cd82902e0f7781c7eec386c9ce5ff8394a",
+      "bpm": 65.057,
+      "beatIntervalCV": 0.0109,
+      "notes": 33,
+      "reviewNotes": 16
+    },
+    {
+      "id": "reggae-dd711fe5c9c0",
+      "title": "Buju Banton Destiny",
+      "source": "BujuBanton-DestinyBestQuality-mJ-iWU8cDik.mp3",
+      "sourceSha256": "89c03cf00562b1324d957d3da76efcb7c827591ca3f2529e6f5a40edf5390b8a",
+      "bpm": 67.445,
+      "beatIntervalCV": 0.0063,
+      "notes": 21,
+      "reviewNotes": 14
+    },
+    {
+      "id": "reggae-7af6420b9bd1",
+      "title": "Buju Banton Give I Strength",
+      "source": "BujuBanton-GiveIStrength-eEc56pzQaZo.mp3",
+      "sourceSha256": "b0d308263dbf2b1c263df57d01e096af3893ebdd251bcf2707037c70dc682fd9",
+      "bpm": 73.96,
+      "beatIntervalCV": 0.0112,
+      "notes": 30,
+      "reviewNotes": 17
+    },
+    {
+      "id": "reggae-b45d0ea9730a",
+      "title": "Buju Banton Hillsandvalleys",
+      "source": "BujuBanton-Hillsandvalleys-0k27suBmV0U.mp3",
+      "sourceSha256": "bde6b1237b762a3c9cb4d1ed1fbf2bfc06c3d84fff3e11f98efec21f59e1f0b6",
+      "bpm": 72.09,
+      "beatIntervalCV": 0.0081,
+      "notes": 21,
+      "reviewNotes": 11
+    },
+    {
+      "id": "reggae-2afa632ec656",
+      "title": "Buju Banton Beres Hammond Alittlemoretime",
+      "source": "BujuBantonBeresHammondAlittlemoretime-gos4wA7bIU8.mp3",
+      "sourceSha256": "03b136e6e368a494d0e4e83529bba0c3041ce467e7287a68b08917846758692b",
+      "bpm": 86.133,
+      "beatIntervalCV": 0.0059,
+      "notes": 31,
+      "reviewNotes": 13
+    },
+    {
+      "id": "reggae-45b13da1985f",
+      "title": "Buju Banton Our Father In Zion",
+      "source": "Buju_Banton_-_Our_Father_In_Zion-C_SBPRX4Abc.mp3",
+      "sourceSha256": "ffc5a10f751804a5924062cd884ec6b2417d0c1b62891dc1bbe11c02ab8789d8",
+      "bpm": 89.683,
+      "beatIntervalCV": 0.0487,
+      "notes": 14,
+      "reviewNotes": 11
+    },
+    {
+      "id": "reggae-863acfb68861",
+      "title": "Call On Me Jah Cure",
+      "source": "Call On Me - Jah Cure.mp3",
+      "sourceSha256": "0c3be2c6b52f1f05399fc901ea98aa07526eac186819819d83ef4faeec5fff8d",
+      "bpm": 84.982,
+      "beatIntervalCV": 0.0145,
+      "notes": 19,
+      "reviewNotes": 13
+    },
+    {
+      "id": "reggae-1d57d1c20813",
+      "title": "Etana I am not afraid",
+      "source": "Etana- I am not afraid.mp3",
+      "sourceSha256": "a40458bdbf9f1e913c11730eceb0132bb13768b9d6357dba0dc7fa74c957da44",
+      "bpm": 82.031,
+      "beatIntervalCV": 0.0224,
+      "notes": 18,
+      "reviewNotes": 5
+    },
+    {
+      "id": "reggae-a15fb268171d",
+      "title": "Garnet Silk Death Go Away R.I.P. 2x Nvuu0EFM",
+      "source": "GarnetSilk-DeathGoAwayR.I.P.-2xNvuu0EFM.mp3",
+      "sourceSha256": "a69153c61aad80cee883789cdf4ba1af36b5389f67fb614aa05794709649e064",
+      "bpm": 83.607,
+      "beatIntervalCV": 0.0748,
+      "notes": 17,
+      "reviewNotes": 5
+    },
+    {
+      "id": "reggae-71c3a5b97507",
+      "title": "Garnet Silk Love Is The Answer Unchained Riddim",
+      "source": "GarnetSilk-LoveIsTheAnswerUnchainedRiddim-jp9FArJDDkU.mp3",
+      "sourceSha256": "721c09f911797b58092fbc7d63ca88efed5bcb658ea7cfe42be46064cceae6b6",
+      "bpm": 79.969,
+      "beatIntervalCV": 0.0108,
+      "notes": 22,
+      "reviewNotes": 18
+    },
+    {
+      "id": "reggae-f7d072f8825f",
+      "title": "Garnett Silk Hello Mama Africa 53AYU Ra3BU",
+      "source": "GarnettSilk-HelloMamaAfrica-53AYURa3BU.mp3",
+      "sourceSha256": "0b6687c503d74d26ed09c510ba4f6facee66905a3595354a46ca82d94b80090e",
+      "bpm": 83.354,
+      "beatIntervalCV": 0.0081,
+      "notes": 27,
+      "reviewNotes": 14
+    },
+    {
+      "id": "reggae-5b939c13df26",
+      "title": "Garnett Silk I Am Vex Pq3e50t5ho",
+      "source": "GarnettSilk-IAmVex-Pq3e50t5ho.mp3",
+      "sourceSha256": "ee5cfd5d5e786fde01599efa0d5fe230fba1ee16f5ca764ef03752a4c2c73db2",
+      "bpm": 80.987,
+      "beatIntervalCV": 0.0138,
+      "notes": 32,
+      "reviewNotes": 23
+    },
+    {
+      "id": "reggae-d79aab7b1700",
+      "title": "Garnett Silk Lord Watch Over Our Shoulders",
+      "source": "GarnettSilk-LordWatchOverOurShoulders-uyiJ-RR6gh4.mp3",
+      "sourceSha256": "5349fd589452e0660e54d6045adad485e76e1e427848abd8dfbc34bd0c3031cd",
+      "bpm": 83.27,
+      "beatIntervalCV": 0.012,
+      "notes": 20,
+      "reviewNotes": 8
+    },
+    {
+      "id": "reggae-9d0087eb840b",
+      "title": "Garnett Silk Place In Your Heart",
+      "source": "GarnettSilk-PlaceInYourHeartBestQuality-WjH5Pjw1uLY.mp3",
+      "sourceSha256": "c5b21889906a7f068d1b8ea93903cd6b78211b92abfe7d8159d5ca7a806de14d",
+      "bpm": 84.982,
+      "beatIntervalCV": 0.0133,
+      "notes": 23,
+      "reviewNotes": 13
+    },
+    {
+      "id": "reggae-e0cfbe89b528",
+      "title": "Gimme Likkle One Drop",
+      "source": "Gimme Likkle One Drop.mp3",
+      "sourceSha256": "45a73ff4b11584eb5732f26fe05388670eb59e9a70506c899de68a9a177f8837",
+      "bpm": 86.948,
+      "beatIntervalCV": 0.0119,
+      "notes": 21,
+      "reviewNotes": 14
+    },
+    {
+      "id": "reggae-ad1c16174fd1",
+      "title": "Gramps Morgan Wash The Tears",
+      "source": "Gramps Morgan - Wash The Tears.mp3",
+      "sourceSha256": "e6a44f08554a4fb452a5b7ed0d746228274c07bc0cfe33d0a2575694eedfa90e",
+      "bpm": 74.026,
+      "beatIntervalCV": 0.0177,
+      "notes": 25,
+      "reviewNotes": 16
+    },
+    {
+      "id": "reggae-e8d0d3f7f67e",
+      "title": "Gramps Morgan Wash The Tears",
+      "source": "GrampsMorgan-WashTheTearsOfficialVideowithLyrics-vNHFzLBa03M.mp3",
+      "sourceSha256": "7ffafaaa47849a51360004466b3eb80dc1ffd892b8e4b665d25336a1151bda8f",
+      "bpm": 74.026,
+      "beatIntervalCV": 0.0204,
+      "notes": 23,
+      "reviewNotes": 14
+    },
+    {
+      "id": "reggae-96c5557172b1",
+      "title": "Jesus will rise again Reggae",
+      "source": "Jesus will rise again - Reggae.mp3",
+      "sourceSha256": "942cbb0221e46b2f498f62dfacef9a92ff62d3bd905c3180ddec2d404c27882d",
+      "bpm": 75.791,
+      "beatIntervalCV": 0.0093,
+      "notes": 17,
+      "reviewNotes": 10
+    },
+    {
+      "id": "reggae-01246be4ba5f",
+      "title": "Jimmy Cliff The Harder They Come",
+      "source": "JimmyCliff-TheHarderTheyCome-7Znh0OM9jiA.mp3",
+      "sourceSha256": "cb5fa3e7eba1ba0fe1da292682dff1f844ab497fbaf42ff86e46333a9e957e16",
+      "bpm": 98.32,
+      "beatIntervalCV": 0.0178,
+      "notes": 21,
+      "reviewNotes": 17
+    },
+    {
+      "id": "reggae-7b8b1c5417d3",
+      "title": "KNOCKINGONHEAVENSDOOREDROBINSON",
+      "source": "KNOCKINGONHEAVENSDOOREDROBINSON-1h5ys7YvYL4.mp3",
+      "sourceSha256": "cc14fdd6debc85eca8295209af71ceeebbc7240a1beb6310892eeb88a5d8c237",
+      "bpm": 80.046,
+      "beatIntervalCV": 0.0077,
+      "notes": 26,
+      "reviewNotes": 3
+    },
+    {
+      "id": "reggae-f9e0aae2defd",
+      "title": "Longing For Jah Cure",
+      "source": "Longing For - Jah Cure.mp3",
+      "sourceSha256": "d9c25009f0b07bfb6a5c534fcb665b167f87c1843caed197330e90c2877b7c28",
+      "bpm": 83.947,
+      "beatIntervalCV": 0.014,
+      "notes": 25,
+      "reviewNotes": 15
+    },
+    {
+      "id": "reggae-7825c7fac885",
+      "title": "Luciano Its Me Again Jah",
+      "source": "Luciano-ItsMeAgainJah-35obFivafAQ.mp3",
+      "sourceSha256": "a8c45085d4a3b9707d0557ae2bc7e65537138572b8623ed7cf8cbf4507247249",
+      "bpm": 76.99,
+      "beatIntervalCV": 0.0104,
+      "notes": 35,
+      "reviewNotes": 27
+    },
+    {
+      "id": "reggae-51a80389b5ee",
+      "title": "Luciano Lord Give Me Strength",
+      "source": "LucianoLordGiveMeStrength-JW7frSW7chM.mp3",
+      "sourceSha256": "e856bc96261575d79741a4a2b2816da1c8ae4de9259f886c3b4fd7398a16c8ff",
+      "bpm": 85.954,
+      "beatIntervalCV": 0.0175,
+      "notes": 28,
+      "reviewNotes": 16
+    },
+    {
+      "id": "reggae-9caff0316a05",
+      "title": "Maxi Priest Wild World",
+      "source": "MaxiPriest-WildWorldBestQuality-CxUpb7OjEog.mp3",
+      "sourceSha256": "1ba9d2f5ecb3a549264ff0f04b21723e04efac66c66d1d8e07fce3e281baddff",
+      "bpm": 84.289,
+      "beatIntervalCV": 0.0236,
+      "notes": 20,
+      "reviewNotes": 13
+    },
+    {
+      "id": "reggae-f4ff8bf35d46",
+      "title": "Morgan Heritage SHESSTILLLOVINGME",
+      "source": "MorganHeritage-SHESSTILLLOVINGME-y79XfaTX9jw.mp3",
+      "sourceSha256": "3043a1b68d368671f5127cce1db50a08e85835a3bc5a9d392718f1963704ded9",
+      "bpm": 81.146,
+      "beatIntervalCV": 0.0164,
+      "notes": 18,
+      "reviewNotes": 8
+    },
+    {
+      "id": "reggae-2c0e8965df79",
+      "title": "Morgan Heritage A Man Is Still Aman Idx Lkmacq Y",
+      "source": "MorganHeritageAManIsStillAman-IdxLkmacqY.mp3",
+      "sourceSha256": "7817f364858d4e12810d2b1d6c20b5443d24b6ee9ac4cd80e42119f1d08dfbfa",
+      "bpm": 76.633,
+      "beatIntervalCV": 0.0128,
+      "notes": 20,
+      "reviewNotes": 11
+    },
+    {
+      "id": "reggae-f8b516103b20",
+      "title": "Morgan Heritage Down by the River.",
+      "source": "Morgan_Heritage_-Down_by_the_River.-5KVqvWDv7HE.mp3",
+      "sourceSha256": "1ad628bed49ca0ee184282a2739637ac6d98deb1b1ef9990cfc4393754fc5234",
+      "bpm": 80.908,
+      "beatIntervalCV": 0.0155,
+      "notes": 25,
+      "reviewNotes": 14
+    },
+    {
+      "id": "reggae-fbefeff7ebc4",
+      "title": "Peter Andre Mysterious Girl",
+      "source": "PeterAndre-MysteriousGirlOfficialMusicVideo-iqIq4B1rgl4.mp3",
+      "sourceSha256": "9c8eb5ea44c5125aacbe4bcf476815eb8203fa3c35e851af39c36181d20b3caf",
+      "bpm": 85.954,
+      "beatIntervalCV": 0.0081,
+      "notes": 15,
+      "reviewNotes": 8
+    },
+    {
+      "id": "reggae-6d73d88ba0cc",
+      "title": "Reggae Bring Back Love Morgan Heritage",
+      "source": "ReggaeBringBackLove-MorganHeritage-6ACwcgNMoEE.mp3",
+      "sourceSha256": "5c2833758d6990518cc69ce27e24b58eed4004b8b51ca1c5e021cdc242098213",
+      "bpm": 83.27,
+      "beatIntervalCV": 0.0145,
+      "notes": 30,
+      "reviewNotes": 11
+    },
+    {
+      "id": "reggae-452ea3ee4af9",
+      "title": "Sanchez Missingyou px4VZHE Mw E",
+      "source": "Sanchez-Missingyou-px4VZHEMwE.mp3",
+      "sourceSha256": "cb47a1b1fe9512304ca033179de8b065d5c642770c2906ec4dba7b1a538fd3b8",
+      "bpm": 83.27,
+      "beatIntervalCV": 0.0145,
+      "notes": 30,
+      "reviewNotes": 11
+    },
+    {
+      "id": "reggae-7bada9aa36fc",
+      "title": "Sanchez Never Dis Di Man",
+      "source": "Sanchez-NeverDisDiMan-4rDnPnD46Xs.mp3",
+      "sourceSha256": "5bbef4638d6b86843262ad0f2d766baa13e84f3527d242125451fcf5e3648a2f",
+      "bpm": 79.891,
+      "beatIntervalCV": 0.0119,
+      "notes": 16,
+      "reviewNotes": 13
+    },
+    {
+      "id": "reggae-9a1e693ed6e2",
+      "title": "Tarrus Riley Stay With You",
+      "source": "Tarrus Riley - Stay With You.mp3",
+      "sourceSha256": "c2ff34238d96c64954f36093ed712adec166c7e3ae4b619a228b1f06d1009718",
+      "bpm": 71.282,
+      "beatIntervalCV": 0.0084,
+      "notes": 29,
+      "reviewNotes": 19
+    },
+    {
+      "id": "reggae-025b5a945c42",
+      "title": "Third World Now That We Found Love 5s A8W Kxyj Q",
+      "source": "ThirdWorld-NowThatWeFoundLoveTopPop-5sA8WKxyjQ.mp3",
+      "sourceSha256": "7d558589682803b385332bae8e004b90fe6836a1f362383be7705a68d9a1308f",
+      "bpm": 79.355,
+      "beatIntervalCV": 0.0092,
+      "notes": 32,
+      "reviewNotes": 21
+    },
+    {
+      "id": "reggae-7103ed0ec49c",
+      "title": "Third World Try Jah Love",
+      "source": "ThirdWorld-TryJahLove-0JUsc69dHLY.mp3",
+      "sourceSha256": "3c8f25493a312e58afa2ab626e0b7963019efa73df9e03e20b4b3736035bbe4a",
+      "bpm": 74.292,
+      "beatIntervalCV": 0.0183,
+      "notes": 15,
+      "reviewNotes": 14
+    },
+    {
+      "id": "reggae-94e1693a5471",
+      "title": "Tony Rebel Swade Just Friends",
+      "source": "Tony Rebel  Swade Just Friends.mp3",
+      "sourceSha256": "ecf6bd20fb1c1cd0c18e00f0acb08f0f293d8601128984bdf60ba0d3bc3986eb",
+      "bpm": 82.77,
+      "beatIntervalCV": 0.024,
+      "notes": 20,
+      "reviewNotes": 17
+    },
+    {
+      "id": "reggae-e857e87759a9",
+      "title": "UB40 Kingston Town",
+      "source": "UB40-KingstonTown-ZBfSu4nGDfk.mp3",
+      "sourceSha256": "7a193897c572fd73c530df6288a956cd18ec3fe5f72d7b66c86b46614e29a1bf",
+      "bpm": 101.957,
+      "beatIntervalCV": 0.0152,
+      "notes": 16,
+      "reviewNotes": 6
+    },
+    {
+      "id": "reggae-b75192bb3f84",
+      "title": "UB40 The Way You Do The Things You Do",
+      "source": "UB40-TheWayYouDoTheThingsYouDo-vvIxxn36pUU.mp3",
+      "sourceSha256": "2caf370c2643f2d4a824cb373cdd109519e9be40d0bc94e99c4de08bfb26fc9f",
+      "bpm": 81.788,
+      "beatIntervalCV": 0.0115,
+      "notes": 14,
+      "reviewNotes": 3
+    }
+  ]
+}

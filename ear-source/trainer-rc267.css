@@ -293,3 +293,17 @@
   #earTrainerDialog #earFillStudy #fillNotes button{min-width:0!important}
  }
 }
+
+/* Individual restoration stays compact on a phone. */
+#earTrainerDialog #fillDeletedPanel{padding:10px;border:1px solid var(--border,#3c4b64);border-radius:10px;background:var(--panel,#172238);}
+#earTrainerDialog .fill-deleted-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+#earTrainerDialog .fill-deleted-heading h3{margin:0;}
+#earTrainerDialog #fillDeletedList{list-style:none;margin:8px 0 0;padding:0;max-height:45dvh;overflow:auto;}
+#earTrainerDialog #fillDeletedList li{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;padding:9px 0;border-top:1px solid #40516a;}
+#earTrainerDialog #fillDeletedList span{overflow-wrap:anywhere;}
+#earTrainerDialog #fillDeletedList small{display:block;opacity:.75;font-size:11px;margin-top:3px;}
+#earTrainerDialog #fillDeletedList button{min-width:78px;}
+
+@layer bass-ear-267 {
+#earTrainerDialog #earFillStudy:not([data-playing="true"]) #fillNotes{max-height:clamp(126px,25dvh,250px)!important;}
+}

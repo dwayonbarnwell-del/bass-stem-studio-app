@@ -1,9 +1,11 @@
 /* Bass studies and timed excerpts from the owner's supplied recordings. */
 window.BassUploadedCore=(()=>{
  'use strict';
- const items=(window.BassOriginalStudies||[]).map(c=>({...c})),groups=[['recorded-makossa','Makossa'],['recorded-seben','Seben']];
+ const legacy=[...(window.BassUploadedStudies||[]),...(window.BassLessonStudies||[]),...(window.BassAfricanStudies||[]),...(window.BassReggaeStudies||[])];
+ const items=[...(window.BassOriginalStudies||[]),...(window.BassReggaeRecordings||[]),...legacy.filter(c=>window.BassPracticeCatalogue.isRestored('uploaded',c.id))].map(c=>({...c})),groups=[['recorded-makossa','Makossa'],['recorded-seben','Seben'],['recorded-reggae','Reggae']];
  for(const c of items){
-  c.originalTitle=c.originalMix?(c.collection==='recorded-seben'?'Seben ':'Makossa ')+c.title:c.title;
+  if(window.BassLegacyRecordedPhrases?.[c.id])window.BassRecordedPhrases[c.id]=window.BassLegacyRecordedPhrases[c.id];
+  c.originalTitle=c.originalTitle||(c.originalMix&&c.collection!=='recorded-reggae'?(c.collection==='recorded-seben'?'Seben ':'Makossa ')+c.title:c.title);
   if(c.collection)continue;
   if(c.group==='bass-lady'){c.collection=/makossa/i.test(c.title)?'recorded-makossa':'recorded-soukous';c.title=c.title.replace('Bass Lady - ','').replace(/^(Makossa|Soukous)(.*)$/,'$1 · Bass Lady$2');}
   else if(c.group==='bassmatics'){c.collection='recorded-seben';c.title=c.title.replace('Bassmatics - Seben','Seben · Bassmatics');}
@@ -40,6 +42,8 @@ window.BassUploadedCore=(()=>{
  }
  const time=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
  function loop(id){
+  const original=items.find(c=>c.id===id&&c.collection==='recorded-reggae');
+  if(original)return {start:0,end:original.duration,step:original.duration/16,beats:16,originalMix:true};
   const row=window.BassRecordingGrids?.[id];
   if(!row)return null;
   const [start,step,beats,firstByte,lastByte,offset]=row;
@@ -157,5 +161,13 @@ window.BassUploadedCore=(()=>{
   }
   return bars.sort((a,b)=>b.length-a.length)[0]||[];
  }
- return {items,groups,plan,practicePlan,time,loop,rehearsalShape};
+ function restoreLegacy(id){
+  if(items.some(c=>c.id===id))return;
+  const row=legacy.find(c=>c.id===id);if(!row)return;
+  const item={...row,originalTitle:row.title};
+  if(window.BassLegacyRecordedPhrases?.[id])window.BassRecordedPhrases[id]=window.BassLegacyRecordedPhrases[id];
+  item.collection||='recorded-'+(window.BassAccompaniment.recordedStyle(item)||'review');
+  items.push(item);
+ }
+ return {items,groups,plan,practicePlan,time,loop,rehearsalShape,restoreLegacy,find:id=>items.find(c=>c.id===id)||legacy.find(c=>c.id===id)};
 })();
