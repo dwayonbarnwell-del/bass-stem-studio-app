@@ -191,7 +191,7 @@ window.BassFillTrainer=(()=>{
   }
   clipControls();if($('fillIdea').value===''){showPlan(null);return;}if($('fillFrom').value===$('fillTo').value)$('fillTo').value=String(Number($('fillFrom').value)%7+1);
   for(const o of $('fillTo').options)o.disabled=o.value===$('fillFrom').value;
-  remembered[kind]=$('fillIdea').value;const draft=P.make(kind,settings()),choice=H.resolve(draft,{kit:drumKit,groove:drumGroove}),identity=kind+':'+$('fillIdea').value+':'+choice.loop.id;if(identity!==tempoIdentity){nativeTempo=!choice.loop.id.startsWith('owner-')&&drumKit==='auto'&&drumGroove==='auto'?(choice.id==='reggae'?77:B.choose(choice.id).bpm):choice.loop.bpm;$('fillTempo').value=Number(nativeTempo.toFixed(2));tempoIdentity=identity;}$('fillTempo').value=Math.max(40,Math.min(220,Number($('fillTempo').value)||choice.loop.bpm));showPlan(P.make(kind,settings()));
+  remembered[kind]=$('fillIdea').value;const draft=P.make(kind,settings()),choice=H.resolve(draft,{kit:drumKit,groove:drumGroove}),identity=kind+':'+$('fillIdea').value+':'+choice.loop.id;if(identity!==tempoIdentity){nativeTempo=!['gs-','owner-'].some(prefix=>choice.loop.id.startsWith(prefix))&&drumKit==='auto'&&drumGroove==='auto'?(choice.id==='reggae'?77:B.choose(choice.id).bpm):choice.loop.bpm;$('fillTempo').value=Number(nativeTempo.toFixed(2));tempoIdentity=identity;}$('fillTempo').value=Math.max(40,Math.min(220,Number($('fillTempo').value)||choice.loop.bpm));showPlan(P.make(kind,settings()));
  }
  function showPlan(value){
   rendered=null;plan=value&&value.kind!=='uploaded'?R.plan(value):value;$('fillPlayer').hidden=!plan;$('fillEmpty').hidden=!!plan;state();soundSettings();if(!plan){stop();return;}

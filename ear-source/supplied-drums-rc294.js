@@ -7,6 +7,10 @@ window.BassSuppliedDrums=(()=>{
  const buffers=new Map(),renders=new Map(),loads=new Map();
  function choose(style,genre='auto',id='auto'){
   const exact=available.find(x=>x.id===id);if(exact)return exact;
+  if(genre!=='auto'){
+   const kitLoop=available.find(x=>x.genre===genre&&x.id.startsWith('gs-'));
+   if(kitLoop)return kitLoop;
+  }
   const target=genre!=='auto'?genre:({worship:'soul',gospel:'soul',jazz:'soul',blues:'soul',fusion:'funk',mbalax:'praise',mbaqanga:'highlife',sungura:'soukous'}[style]||style);
   const pool=loops.filter(x=>x.genre===(target==='worship'?'soul':target));
   return pool.find(x=>x.automaticDefault&&x.id.startsWith('correct-'))||pool.find(x=>x.automaticDefault)||pool[0]||loops.find(x=>x.genre==='soul');
