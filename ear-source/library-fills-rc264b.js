@@ -33,7 +33,7 @@ window.BassLibraryFills=(()=>{
     if(cancelled)break;message('Scanning '+(++index)+' / '+list.songs.length);
     const saved=old.get(meta.id);
     if(saved?.stamp===meta.stamp&&saved.version===2){songs.push(saved);if(!saved.items.length)missing++;continue;}
-    try{const p=await window.BassLibrary.practiceProject(meta.id),result=T.extract(p,meta);songs.push({...meta,version:2,...result});if(!result.items.length)missing++;}
+    try{const p=await window.BassLibrary.practiceProject(meta.id),result=T.extract(p,meta);result.items=result.items.filter(row=>!D.permanentlyRemoved('library',row.id));songs.push({...meta,version:2,...result});if(!result.items.length)missing++;}
     catch(e){failed++;issues.push(meta.title+': '+(e.message||'Could not read song'));if(saved)songs.push(saved);}
     // Release each parsed audio project before continuing and allow cancellation.
     await new Promise(resolve=>setTimeout(resolve,0));
@@ -55,5 +55,13 @@ window.BassLibraryFills=(()=>{
   for(const id of ['myFillFrom','myFillTo'])$(id).onchange=()=>{page=0;render();};$('myFillSearch').oninput=()=>{page=0;render();};$('myFillPrev').onclick=()=>{page--;render();};$('myFillNext').onclick=()=>{page++;render();};
   render();
  }
- return {init,show,refresh:render,cancel:()=>{cancelled=true;},time};
+ async function purgeDeleted(){
+  const current=loaded?catalogue:await storage()||catalogue;
+  const next={...current,songs:(current.songs||[]).map(song=>({...song,items:(song.items||[]).filter(row=>!D.permanentlyRemoved('library',row.id))}))};
+  await storage(next);catalogue=next;loaded=true;
+  favourites=new Set([...favourites].filter(id=>!D.permanentlyRemoved('library',id)));
+  localStorage.setItem('bass-fill-favourites-v1',JSON.stringify([...favourites]));
+  if($('myFillResults'))render();
+ }
+ return {init,show,refresh:render,purgeDeleted,cancel:()=>{cancelled=true;},time};
 })();

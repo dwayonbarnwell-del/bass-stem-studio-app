@@ -45,7 +45,7 @@ window.BassRehearsal=(()=>{
      <select id="rehearsalFill" aria-label="Fills"><option value="bar">Fill every bar</option><option value="ends">Fill on changes</option><option value="off">Fills off</option></select>
      <button id="rehearsalMix" type="button" aria-pressed="true">Original bass off</button>
     </div>
-    <label class="rehearsal-level">Music <input id="rehearsalMusic" type="range" min="0" max="100" value="30"><output id="rehearsalMusicValue">30%</output></label>
+    <label class="rehearsal-level">Music <input id="rehearsalMusic" type="range" min="0" max="100" value="50"><output id="rehearsalMusicValue">50%</output></label>
     <label class="rehearsal-level">Guide bass <input id="rehearsalGain" type="range" min="0" max="100" value="100"><output id="rehearsalGainValue">100%</output></label>
     <div class="rehearsal-row"><button id="rehearsalPlay" type="button">Play loop</button><button id="rehearsalGuide" type="button" aria-pressed="true">Guide on</button></div>
     <div class="rehearsal-readout"><output id="rehearsalTime"></output><output id="rehearsalCue"></output></div>
@@ -125,7 +125,7 @@ window.BassRehearsal=(()=>{
   resetClip();
   noBass=true;mixFailed=false;labelMix();
   $('rehearsalStyle').value='auto';
-  $('rehearsalMusic').value=30;$('rehearsalMusicValue').value='30%';
+  $('rehearsalMusic').value=50;$('rehearsalMusicValue').value='50%';
   $('rehearsalGain').value=100;$('rehearsalGainValue').value='100%';
   $('rehearsalEditor').hidden=!song?.buffer;
   $('rehearsalTitle').textContent=song?.buffer?song.title:'Choose a recording or a saved song.';

@@ -56,7 +56,7 @@ with sync_playwright() as p:
  # Original uploaded reggae still uses its own bass and drums.
  page.locator('#earSectionBasslines').dispatch_event('click');page.locator('#fillCollection').select_option('reggae')
  assert page.locator('#fillIdea option').count()==49
- assert page.locator('#fillDrums').is_hidden()
+ assert page.locator('#fillDrums').is_visible()
  assert not errors,errors
  print(json.dumps({'passed':True,'nativeTempoInInterface':True,'continuousNext':True,'originalReggaePreserved':True,**rendered}),flush=True)
  browser.close()

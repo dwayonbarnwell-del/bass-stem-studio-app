@@ -68,9 +68,10 @@ window.BassPracticeLoop=(()=>{
  }
  const originalBuffers=new Map();
  async function originalMix(context,plan,frames,cancelled){
-  const key=plan.audio+':'+context.sampleRate;
+  const asset=window.BassPracticeMixAssets?.[plan.audio]||window.BassWorldMethodMixes?.[plan.audio],url=asset?.url||plan.audio;
+  const key=url+':'+context.sampleRate;
   if(!originalBuffers.has(key))originalBuffers.set(key,(async()=>{
-   const response=await fetch(plan.audio);
+   const response=await fetch(url);
    if(!response.ok)throw Error('Original phrase unavailable');
    return context.decodeAudioData(await response.arrayBuffer());
   })().catch(error=>{originalBuffers.delete(key);throw error;}));
@@ -96,8 +97,18 @@ window.BassPracticeLoop=(()=>{
   if(recorded&&plan.recording?.originalMix){
    const buffer=await originalMix(context,plan,frames,cancelled);
    if(!buffer)return null;
-   let peak=0;for(let c=0;c<buffer.numberOfChannels;c++)for(const value of buffer.getChannelData(c))peak=Math.max(peak,Math.abs(value));
-   return {stems:{bass:buffer},frames:buffer.length,seconds:buffer.duration,beatSeconds:buffer.duration/plan.beats,beatFrames:buffer.length/plan.beats,rate,gain:Math.min(1,.88/(peak||1)),drumPhase:0};
+   const stems={};
+   if(buffer.numberOfChannels===6){
+    for(const [index,part] of ['bass','drums','chords'].entries()){
+     const stem=context.createBuffer(2,buffer.length,context.sampleRate);
+     for(let channel=0;channel<2;channel++)stem.copyToChannel(buffer.getChannelData(index*2+channel),channel);
+     stems[part]=stem;
+    }
+    const asset=window.BassWorldMethodMixes?.[plan.audio];
+    if(asset?.addDrums&&drums&&loop){const replacement=await D.render(context,loop,beatFrames,cancelled);if(cancelled())return null;if(replacement)stems.drums=replacement;}
+   }else stems.bass=buffer;
+   let bound=0;for(const stem of Object.values(stems)){let peak=0;for(let c=0;c<stem.numberOfChannels;c++)for(const value of stem.getChannelData(c))peak=Math.max(peak,Math.abs(value));bound+=peak;}
+   return {stems,frames:buffer.length,seconds:buffer.duration,beatSeconds:buffer.duration/plan.beats,beatFrames:buffer.length/plan.beats,rate,gain:Math.min(1,.88/(bound||1)),drumPhase:0,estimatedMix:buffer.numberOfChannels===6};
   }
   const beat=beatFrames/rate,stems={},K=window.BassPracticeKeys,keys=window.BassAccompaniment?window.BassAccompaniment.arrange(plan,style):plan.chords;
   const phrase=recorded&&plan.recording?.pack;
@@ -130,7 +141,7 @@ window.BassPracticeLoop=(()=>{
   let bound=0;for(const buffer of Object.values(stems)){let peak=0;for(let c=0;c<buffer.numberOfChannels;c++)for(const value of buffer.getChannelData(c))peak=Math.max(peak,Math.abs(value));bound+=peak;}
   return {pickup:plan.pickup,drumPhase:phrase?(useDrums?0:originalDrums?(assignedPhase??plan.recording.drumPhase):0):null,stems,frames,seconds,beatSeconds:beat,beatFrames,rate,gain:Math.min(1,.88/(bound||1))};
  }
- function start(context,rendered,{repeat=true,drums=.45,chords=1,onEnded=()=>{},when=context.currentTime+.08,offsetBeats=0,drumPhase=0,fadeIn=0}={}){
+ function start(context,rendered,{repeat=true,bass=1,drums=.5,chords=.5,other=.5,onEnded=()=>{},when=context.currentTime+.08,offsetBeats=0,drumPhase=0,fadeIn=0}={}){
   const sources=[],gains={},master=context.createGain();let stopped=false,ending=false;
   if(rendered.pickup&&!fadeIn&&!offsetBeats){
    const lead=rendered.pickup*rendered.beatSeconds;
@@ -141,7 +152,7 @@ window.BassPracticeLoop=(()=>{
   master.gain.setValueAtTime(fadeIn?0:rendered.gain,when);if(fadeIn)master.gain.linearRampToValueAtTime(rendered.gain,when+fadeIn);master.connect(context.destination);
   for(const [part,buffer] of Object.entries(rendered.stems)){
    const source=context.createBufferSource(),gain=context.createGain();source.buffer=buffer;source.loop=part==='bass'?repeat:true;source.loopStart=0;source.loopEnd=buffer.duration;
-   gain.gain.value=part==='drums'?drums:part==='chords'?chords:1;source.connect(gain).connect(master);sources.push({source,part});gains[part]=gain;
+   gain.gain.value=part==='bass'?bass:part==='drums'?drums:part==='chords'?chords:other;source.connect(gain).connect(master);sources.push({source,part});gains[part]=gain;
    source.onended=()=>{source.disconnect();gain.disconnect();if(part==='bass'&&!stopped){stopped=true;for(const other of sources)if(other.source!==source)try{other.source.stop();}catch{}master.disconnect();if(!ending)onEnded();}};
    const partOffset=offset+(part==='drums'?drumPhase*rendered.beatSeconds:0);
    source.start(when,((partOffset%buffer.duration)+buffer.duration)%buffer.duration);
@@ -149,5 +160,5 @@ window.BassPracticeLoop=(()=>{
   function stopAt(at=context.currentTime,fade=.006){if(stopped)return;ending=true;at=Math.max(context.currentTime,at);master.gain.cancelScheduledValues(at);master.gain.setValueAtTime(rendered.gain,at);master.gain.linearRampToValueAtTime(0,at+fade);for(const {source} of sources)try{source.stop(at+fade+.001);}catch{}}
   return {when,seconds:rendered.seconds,beatSeconds:rendered.beatSeconds,offsetBeats,setRepeat(value){for(const {source,part} of sources)if(part==='bass')source.loop=!!value;},level(part,value){const g=gains[part];if(g)g.gain.setTargetAtTime(Math.max(0,Math.min(1,value)),context.currentTime,.015);},position(){return context.currentTime-when+offset;},stopAt,stop(){stopAt(context.currentTime);}};
  }
- return {render,start};
+ return {render,start,defaults:Object.freeze({bass:1,drums:.5,chords:.5,other:.5})};
 })();

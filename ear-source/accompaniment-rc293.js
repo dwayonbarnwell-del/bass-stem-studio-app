@@ -10,7 +10,8 @@ window.BassAccompaniment=(()=>{
   for(const item of window.BassUploadedCore.items)if(D.isRestored('uploaded',item.id)&&D.visible('uploaded',item.id)){
    const id=category(item,true);if(id&&![...active,...additional].some(([key])=>key===id))additional.push([id,({soukous:'Soukous',soca:'Soca',zouk:'Zouk',african:'African',recordings:'Recordings',highlife:'Highlife',afrobeat:'Afrobeat',makossa:'Makossa'})[id]||id]);
   }
-  return [...active,...additional];
+  const methods=window.BassUploadedCore.items.some(item=>item.group==='world-method'&&D.visible('uploaded',item.id))?[['world-method','World Method']]:[];
+  return [...active,...methods,...additional];
  }
  const recordingStyles={
   'recorded-worship':'worship','recorded-reggae':'reggae','recorded-makossa':'makossa',
@@ -23,6 +24,7 @@ window.BassAccompaniment=(()=>{
   return null;
  }
  function recordedStyle(item){
+  if(item.practiceStyle&&profiles[item.practiceStyle])return item.practiceStyle;
   const named=namedGenre(item);
   if(named)return ['congolese','seben'].includes(named)?'soukous':named;
   if(recordingStyles[item.collection])return recordingStyles[item.collection];

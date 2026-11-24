@@ -18,6 +18,7 @@ class BassSeparator:
   with p.open('rb') as f:f.seek(max(0,p.stat().st_size-10240000));digest=hashlib.md5(f.read()).hexdigest()
   if digest!='6703e39f36f18aa7855ee1047765621d':raise ValueError('Unexpected separation model')
   options=ort.SessionOptions();options.intra_op_num_threads=threads;options.inter_op_num_threads=1
+  options.enable_cpu_mem_arena=False
   self.session=ort.InferenceSession(str(p),sess_options=options,providers=['CPUExecutionProvider'])
   self.fft=16384;self.hop=1024;self.dim_f=2048;self.dim_t=512;self.chunk=self.hop*(self.dim_t-1);self.trim=self.fft//2;self.gen=self.chunk-2*self.trim
  def separate(self,audio):

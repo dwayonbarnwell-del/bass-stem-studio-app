@@ -303,6 +303,13 @@
 #earTrainerDialog #fillDeletedList span{overflow-wrap:anywhere;}
 #earTrainerDialog #fillDeletedList small{display:block;opacity:.75;font-size:11px;margin-top:3px;}
 #earTrainerDialog #fillDeletedList button{min-width:78px;}
+#earTrainerDialog #fillEmptyDeleted{width:100%;margin-top:10px;border-color:#c88391;}
+@layer bass-ear-267 {
+#earTrainerDialog #fillDrumOptions .fill-band-choice[hidden]{display:none!important;}
+#earTrainerDialog #fillMixNotice,#earTrainerDialog #fillDifference{font-size:12px;margin:5px 0;opacity:.8;}
+#earTrainerDialog #fillMixNotice[hidden],#earTrainerDialog #fillDifference[hidden]{display:none!important;}
+@media(max-width:579px){#earTrainerDialog #earFillStudy #fillTempo{padding-inline:3px!important;font-size:12px!important;}}
+}
 
 @layer bass-ear-267 {
 #earTrainerDialog #earFillStudy:not([data-playing="true"]) #fillNotes{max-height:clamp(126px,25dvh,250px)!important;}

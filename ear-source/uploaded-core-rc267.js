@@ -2,7 +2,7 @@
 window.BassUploadedCore=(()=>{
  'use strict';
  const legacy=[...(window.BassUploadedStudies||[]),...(window.BassLessonStudies||[]),...(window.BassAfricanStudies||[]),...(window.BassReggaeStudies||[])];
- const items=[...(window.BassOriginalStudies||[]),...(window.BassReggaeRecordings||[]),...legacy.filter(c=>window.BassPracticeCatalogue.isRestored('uploaded',c.id))].map(c=>({...c})),groups=[['recorded-makossa','Makossa'],['recorded-seben','Seben'],['recorded-reggae','Reggae']];
+ const items=[...(window.BassOriginalStudies||[]),...(window.BassReggaeRecordings||[]),...(window.BassWorldMethods||[]),...legacy.filter(c=>window.BassPracticeCatalogue.isRestored('uploaded',c.id))].map(c=>({...c})),groups=[['recorded-makossa','Makossa'],['recorded-seben','Seben'],['recorded-reggae','Reggae']];
  for(const c of items){
   if(window.BassLegacyRecordedPhrases?.[c.id])window.BassRecordedPhrases[c.id]=window.BassLegacyRecordedPhrases[c.id];
   c.originalTitle=c.originalTitle||(c.originalMix&&c.collection!=='recorded-reggae'?(c.collection==='recorded-seben'?'Seben ':'Makossa ')+c.title:c.title);
@@ -65,7 +65,7 @@ window.BassUploadedCore=(()=>{
   const range=recording||clip.parts[index],step=recording?.step||1;
   const ratio=Math.max(25,Math.min(150,Number(speed)||100)),shift=Math.max(-12,Math.min(12,Math.round(Number(transpose)||0)));
   const bass=(recording?.notes||clip.notes).filter(n=>n.start<range.end&&n.end>range.start).map(n=>({midi:n.midi+shift,beat:Math.max(0,n.start-range.start)/step,length:(Math.min(n.end,range.end)-Math.max(n.start,range.start))/step,velocity:n.velocity||80,role:'bass',review:!!n.review,confidence:n.confidence,sourceTime:Math.max(n.start,range.start)})).filter(n=>n.length*step>.01&&n.midi>=21&&n.midi<=108);
-  return {kind:'uploaded',collection:clip.collection,recording,audio:recording?.audio||clip.audio,clipId:clip.id,title:clip.title,heading:clip.title,bpm:60*ratio/(100*step),beats:recording?.beats??range.end-range.start,bass,chords:[],sourceStart:range.start,sourceEnd:range.end,part:index,speed:ratio,transpose:shift,check:bass.some(n=>n.review),status:time(range.start)+'–'+time(range.end)+' · '+ratio+'% speed · Automatic notes'};
+  return {kind:'uploaded',collection:clip.collection,practiceStyle:clip.practiceStyle,recording,audio:recording?.audio||clip.audio,clipId:clip.id,title:clip.title,heading:clip.title,bpm:60*ratio/(100*step),beats:recording?.beats??range.end-range.start,bass,chords:[],sourceStart:range.start,sourceEnd:range.end,part:index,speed:ratio,transpose:shift,check:bass.some(n=>n.review),status:time(range.start)+'–'+time(range.end)+' · '+ratio+'% speed · Automatic notes'};
  }
 
  // The guide follows the supplied bass transcription. These are suggested
@@ -135,7 +135,7 @@ window.BassUploadedCore=(()=>{
    const beat=starts[i],root=48+(tonic+scale[degree])%12;
    for(const j of [0,2,4])value.chords.push({beat,midi:root+(scale[(degree+j)%7]-scale[degree]+12)%12,length:Math.min(4,value.beats-beat),velocity:65});
   });
-  if(clip.sections){
+  if(clip.sections||clip.collection==='recorded-world-method'){
    const key=value.recording?.key||clip.key;
    value.tonic=key?.tonic??tonic;value.minor=key?.minor??false;
    value.keyUncertain=!key||key.confidence<.7||key.margin<.08;
