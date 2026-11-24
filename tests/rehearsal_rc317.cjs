@@ -158,7 +158,7 @@ async function playerTest(){
   assert.equal($('rehearsalPassage').value,'0','new recordings select the full song');
   assert.equal($('rehearsalEnd').value,'0:36.00');
   assert.equal($('rehearsalStyle').value,'auto');
-  assert.equal(Number($('rehearsalMusic').value),30);
+  assert.equal(Number($('rehearsalMusic').value),50);
   assert.equal(Number($('rehearsalGain').value),100);
   $('rehearsalMix').onclick();
   $('rehearsalPlay').onclick();await new Promise(resolve=>setImmediate(resolve));

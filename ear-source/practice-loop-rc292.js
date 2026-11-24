@@ -68,7 +68,7 @@ window.BassPracticeLoop=(()=>{
  }
  const originalBuffers=new Map();
  async function originalMix(context,plan,frames,cancelled){
-  const asset=window.BassPracticeMixAssets?.[plan.audio]||window.BassWorldMethodMixes?.[plan.audio],url=asset?.url||plan.audio;
+  const asset=window.BassPracticeMixAssets?.[plan.audio]||window.BassWorldMethodMixes?.[plan.audio]||window.BassCulturalMixes?.[plan.audio],url=asset?.url||plan.audio;
   const key=url+':'+context.sampleRate;
   if(!originalBuffers.has(key))originalBuffers.set(key,(async()=>{
    const response=await fetch(url);

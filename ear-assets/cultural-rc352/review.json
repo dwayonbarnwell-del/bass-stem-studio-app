@@ -1,0 +1,925 @@
+{
+  "sourceRecordings": 24,
+  "reviewedPassages": 96,
+  "loops": 45,
+  "byGenre": {
+    "ariaria": 17,
+    "highlife": 16,
+    "makossa": 3,
+    "woro": 9
+  },
+  "representedSources": 20,
+  "duplicatesOmitted": 0,
+  "rejections": {
+    "No clear bass in this passage": 11,
+    "No complete returning phrase passed review": 33
+  },
+  "unrepresented": [
+    "African ARIARIA Bass Secret You Must Learn as a beginner \u00b7 A MUST WATCH bass",
+    "Intense Ariaria Praise and Worship DAVIDSCHRISTIANCENTRE",
+    "PRAISE FROM WITHIN Ariaria Praise Medley - Mista Olamilekan",
+    "Hot Naija Woro Praise Medley"
+  ],
+  "checks": [
+    {
+      "id": "ariaria-0566e7b8ecfea6c4",
+      "source": "Ariaria Praise TLCC \u00b7 Ruth Nwolu",
+      "sourceId": "7aa59995fb1c9e67",
+      "genre": "ariaria",
+      "start": 149.04,
+      "cut": {
+        "start": 9.04,
+        "end": 22.464,
+        "duration": 13.424,
+        "beats": 24,
+        "bpm": 107.27056019070322,
+        "closure": 0.9826754927635193,
+        "cv": 0.04168226090594963,
+        "score": 1.148265290962141,
+        "confidence": 0.7327096774193548,
+        "cadence": false
+      },
+      "difference": "Main pattern"
+    },
+    {
+      "id": "ariaria-b4e9af98add3e403",
+      "source": "Ariaria Praise TLCC \u00b7 Ruth Nwolu",
+      "sourceId": "7aa59995fb1c9e67",
+      "genre": "ariaria",
+      "start": 555.344,
+      "cut": {
+        "start": 3.344,
+        "end": 10.08,
+        "duration": 6.736000000000001,
+        "beats": 12,
+        "bpm": 106.88836104513064,
+        "closure": 0.8636215448379516,
+        "cv": 0.03177930679396607,
+        "score": 1.0009449538413757,
+        "confidence": 0.7119000000000001,
+        "cadence": false
+      },
+      "difference": "Adds A"
+    },
+    {
+      "id": "ariaria-cb4a7053509d2e20",
+      "source": "HOT ARIARIA PRAISE - AFTER A LONG REST FROM PLAYING ARIARIA I DID IT AGAIN- KOKO BASS - BAND CAM",
+      "sourceId": "99c83c06122baa80",
+      "genre": "ariaria",
+      "start": 751.968,
+      "cut": {
+        "start": 23.968,
+        "end": 29.36,
+        "duration": 5.3919999999999995,
+        "beats": 8,
+        "bpm": 89.02077151335313,
+        "closure": 0.8886142253875732,
+        "cv": 0.07262455935026954,
+        "score": 1.038339999165674,
+        "confidence": 0.738,
+        "cadence": false
+      },
+      "difference": "Main pattern"
+    },
+    {
+      "id": "ariaria-a7a53e5a3f03c437",
+      "source": "HOT TRENDING ARIARIA PRAISE BY EMMASINGS",
+      "sourceId": "cd1767b4349bdd0c",
+      "genre": "ariaria",
+      "start": 483.312,
+      "cut": {
+        "start": 11.312,
+        "end": 23.584,
+        "duration": 12.272,
+        "beats": 32,
+        "bpm": 156.45371577574966,
+        "closure": 0.8973481893539428,
+        "cv": 0.06035534288971397,
+        "score": 1.0740527046134385,
+        "confidence": 0.7550714285714285,
+        "cadence": false
+      },
+      "difference": "Main pattern"
+    },
+    {
+      "id": "ariaria-7d5b6136c2dd35c4",
+      "source": "LIGHT NATION CHOIR ON THIS RAW ARIARIA 6 \u00b7 8 AFRICAN PRAISE BASSMATICS",
+      "sourceId": "c99c10793caf394b",
+      "genre": "ariaria",
+      "start": 789.52,
+      "cut": {
+        "start": 9.52,
+        "end": 20.8,
+        "duration": 11.280000000000001,
+        "beats": 16,
+        "bpm": 85.1063829787234,
+        "closure": 0.8813462138175964,
+        "cv": 0.02040779371622441,
+        "score": 1.0513949193485146,
+        "confidence": 0.7230833333333333,
+        "cadence": false
+      },
+      "difference": "Main pattern"
+    },
+    {
+      "id": "ariaria-f3f82e12f710f705",
+      "source": "LIGHT NATION CHOIR ON THIS RAW ARIARIA 6 \u00b7 8 AFRICAN PRAISE BASSMATICS",
+      "sourceId": "c99c10793caf394b",
+      "genre": "ariaria",
+      "start": 1025.792,
+      "cut": {
+        "start": 9.792,
+        "end": 15.44,
+        "duration": 5.648,
+        "beats": 12,
+        "bpm": 127.4787535410765,
+        "closure": 0.9905422210693359,
+        "cv": 0.0686347956917042,
+        "score": 1.130649650481792,
+        "confidence": 0.7054615384615386,
+        "cadence": false
+      },
+      "difference": "Omits C, C\u266f, F\u266f"
+    },
+    {
+      "id": "ariaria-9af827abbfbbe38c",
+      "source": "Mr M and Revelation \u00b7 HOTTEST Ariaria Praise in the World Bdaystreamsofjoytv",
+      "sourceId": "8379d215f628fc4f",
+      "genre": "ariaria",
+      "start": 141.744,
+      "cut": {
+        "start": 13.744,
+        "end": 19.728,
+        "duration": 5.984000000000002,
+        "beats": 8,
+        "bpm": 80.21390374331548,
+        "closure": 0.98800288438797,
+        "cv": 0.02330962001893287,
+        "score": 1.1778078064338726,
+        "confidence": 0.788,
+        "cadence": false
+      },
+      "difference": "Main pattern"
+    },
+    {
+      "id": "ariaria-7df86b67e5e6b408",
+      "source": "Mr M and Revelation \u00b7 HOTTEST Ariaria Praise in the World Bdaystreamsofjoytv",
+      "sourceId": "8379d215f628fc4f",
+      "genre": "ariaria",
+      "start": 321.504,
+      "cut": {
+        "start": 5.504,
+        "end": 17.504,
+        "duration": 12.000000000000002,
+        "beats": 16,
+        "bpm": 79.99999999999999,
+        "closure": 0.994967806339264,
+        "cv": 0.05163977794943189,
+        "score": 1.167524506567691,
+        "confidence": 0.7195588235294118,
+        "cadence": false
+      },
+      "difference": "Adds F"
+    },
+    {
+      "id": "ariaria-d9cca2f5cb2674e7",
+      "source": "Mr M and Revelation \u00b7 HOTTEST Ariaria Praise in the World Bdaystreamsofjoytv",
+      "sourceId": "8379d215f628fc4f",
+      "genre": "ariaria",
+      "start": 535.472,
+      "cut": {
+        "start": 7.472,
+        "end": 19.472,
+        "duration": 12.0,
+        "beats": 16,
+        "bpm": 80.0,
+        "closure": 0.9854310870170593,
+        "cv": 0.01828174560106978,
+        "score": 1.1692130099887528,
+        "confidence": 0.73255,
+        "cadence": true
+      },
+      "difference": "Adds B\u266d"
+    },
+    {
+      "id": "ariaria-cf631e8944afebce",
+      "source": "Old skul African praise medley by Tobi Jeff Richards",
+      "sourceId": "1ef9828056452bb1",
+      "genre": "ariaria",
+      "start": 63.008,
+      "cut": {
+        "start": 11.008,
+        "end": 26.544,
+        "duration": 15.536000000000001,
+        "beats": 32,
+        "bpm": 123.58393408856847,
+        "closure": 0.9792233824729919,
+        "cv": 0.060324138601884736,
+        "score": 1.12212572707905,
+        "confidence": 0.7563500000000001,
+        "cadence": false
+      },
+      "difference": "Main pattern"
+    },
+    {
+      "id": "ariaria-5265eea960193028",
+      "source": "Old skul African praise medley by Tobi Jeff Richards",
+      "sourceId": "1ef9828056452bb1",
+      "genre": "ariaria",
+      "start": 140.368,
+      "cut": {
+        "start": 4.368,
+        "end": 12.064,
+        "duration": 7.696,
+        "beats": 16,
+        "bpm": 124.74012474012474,
+        "closure": 0.9810456156730651,
+        "cv": 0.029911631122532388,
+        "score": 1.1753517536427376,
+        "confidence": 0.7011052631578947,
+        "cadence": false
+      },
+      "difference": "Omits C, C\u266f, F"
+    },
+    {
+      "id": "ariaria-0aebda546aacd992",
+      "source": "Old skul African praise medley by Tobi Jeff Richards",
+      "sourceId": "1ef9828056452bb1",
+      "genre": "ariaria",
+      "start": 290.608,
+      "cut": {
+        "start": 10.608,
+        "end": 18.272,
+        "duration": 7.663999999999998,
+        "beats": 16,
+        "bpm": 125.26096033402926,
+        "closure": 0.9931901454925538,
+        "cv": 0.049359458945874284,
+        "score": 1.1746306994936087,
+        "confidence": 0.7172352941176471,
+        "cadence": false
+      },
+      "difference": "New note order"
+    },
+    {
+      "id": "ariaria-16f53116759ff93d",
+      "source": "Smooth Nigerian High Praise Ariaria Medley \u00b7 Diamond Abbie",
+      "sourceId": "51ae605d0ab74152",
+      "genre": "ariaria",
+      "start": 120.736,
+      "cut": {
+        "start": 16.736,
+        "end": 27.392,
+        "duration": 10.655999999999999,
+        "beats": 24,
+        "bpm": 135.13513513513516,
+        "closure": 0.9756715536117553,
+        "cv": 0.02144573101664648,
+        "score": 1.1429924681393038,
+        "confidence": 0.7146999999999999,
+        "cadence": false
+      },
+      "difference": "Main pattern"
+    },
+    {
+      "id": "ariaria-699a32efce9b1a04",
+      "source": "Smooth Nigerian High Praise Ariaria Medley \u00b7 Diamond Abbie",
+      "sourceId": "51ae605d0ab74152",
+      "genre": "ariaria",
+      "start": 249.792,
+      "cut": {
+        "start": 21.792,
+        "end": 27.424,
+        "duration": 5.631999999999998,
+        "beats": 12,
+        "bpm": 127.84090909090914,
+        "closure": 0.9532971024513244,
+        "cv": 0.056247130321658276,
+        "score": 1.090296397175808,
+        "confidence": 0.7073846153846155,
+        "cadence": false
+      },
+      "difference": "Adds B\u266d"
+    },
+    {
+      "id": "ariaria-480fcd6add91586f",
+      "source": "Smooth Nigerian High Praise Ariaria Medley \u00b7 Diamond Abbie",
+      "sourceId": "51ae605d0ab74152",
+      "genre": "ariaria",
+      "start": 412.944,
+      "cut": {
+        "start": 4.944,
+        "end": 15.776,
+        "duration": 10.832,
+        "beats": 24,
+        "bpm": 132.9394387001477,
+        "closure": 0.9450855731964112,
+        "cv": 0.06389225628916484,
+        "score": 1.1139007328726156,
+        "confidence": 0.7086190476190476,
+        "cadence": false
+      },
+      "difference": "Adds D, E"
+    },
+    {
+      "id": "ariaria-48d1e65ff5e4db15",
+      "source": "THE HOTTEST ARIARIA AFRICAN PRAISE MEDLEY EVER \u00b7 BASS CAM",
+      "sourceId": "b7671144f902d632",
+      "genre": "ariaria",
+      "start": 108.208,
+      "cut": {
+        "start": 24.208,
+        "end": 30.784,
+        "duration": 6.5760000000000005,
+        "beats": 12,
+        "bpm": 109.4890510948905,
+        "closure": 0.9837459325790405,
+        "cv": 0.0664995151762353,
+        "score": 1.1411504363957394,
+        "confidence": 0.7355,
+        "cadence": false
+      },
+      "difference": "Main pattern"
+    },
+    {
+      "id": "ariaria-e8adfa05c0385273",
+      "source": "THE HOTTEST ARIARIA AFRICAN PRAISE MEDLEY EVER \u00b7 BASS CAM",
+      "sourceId": "b7671144f902d632",
+      "genre": "ariaria",
+      "start": 264.64,
+      "cut": {
+        "start": 8.64,
+        "end": 14.912,
+        "duration": 6.272,
+        "beats": 12,
+        "bpm": 114.79591836734693,
+        "closure": 0.9632121086120605,
+        "cv": 0.03384311010566814,
+        "score": 1.1045508246811107,
+        "confidence": 0.7452500000000001,
+        "cadence": false
+      },
+      "difference": "Adds F\u266f"
+    },
+    {
+      "id": "highlife-493c17e9358c8e4d",
+      "source": "Emeka Songsz - HIGHLIFE PRAISE WITH LSM TheLOGICChurch Mainland",
+      "sourceId": "f0c5b6f84feefd53",
+      "genre": "highlife",
+      "start": 149.76,
+      "cut": {
+        "start": 21.76,
+        "end": 28.768,
+        "duration": 7.007999999999999,
+        "beats": 12,
+        "bpm": 102.73972602739727,
+        "closure": 0.9648059606552124,
+        "cv": 0.055362354579826925,
+        "score": 1.116174746511119,
+        "confidence": 0.7524545454545456,
+        "cadence": false
+      },
+      "difference": "Main pattern"
+    },
+    {
+      "id": "highlife-0297fb610ed75111",
+      "source": "Emeka Songsz - HIGHLIFE PRAISE WITH LSM TheLOGICChurch Mainland",
+      "sourceId": "f0c5b6f84feefd53",
+      "genre": "highlife",
+      "start": 317.648,
+      "cut": {
+        "start": 21.648,
+        "end": 30.976,
+        "duration": 9.328,
+        "beats": 24,
+        "bpm": 154.37392795883363,
+        "closure": 0.9506571173667908,
+        "cv": 0.04362983650763923,
+        "score": 1.106854441983289,
+        "confidence": 0.7073125,
+        "cadence": false
+      },
+      "difference": "Omits A"
+    },
+    {
+      "id": "highlife-72a44ca904fe97df",
+      "source": "Emeka Songsz - HIGHLIFE PRAISE WITH LSM TheLOGICChurch Mainland",
+      "sourceId": "f0c5b6f84feefd53",
+      "genre": "highlife",
+      "start": 478.4,
+      "cut": {
+        "start": 2.4,
+        "end": 11.68,
+        "duration": 9.28,
+        "beats": 16,
+        "bpm": 103.44827586206897,
+        "closure": 0.9148024916648865,
+        "cv": 0.07200211385455575,
+        "score": 1.054707602235917,
+        "confidence": 0.7590909090909093,
+        "cadence": false
+      },
+      "difference": "Adds D, E\u266d, A"
+    },
+    {
+      "id": "highlife-6dcdad2687cb4e16",
+      "source": "HIGHLIFE PRAISE MINISTER SAM",
+      "sourceId": "f13576c090cfe1dd",
+      "genre": "highlife",
+      "start": 186.32,
+      "cut": {
+        "start": 6.32,
+        "end": 13.84,
+        "duration": 7.52,
+        "beats": 16,
+        "bpm": 127.65957446808511,
+        "closure": 0.9681159973144531,
+        "cv": 0.07005139418363533,
+        "score": 1.1169309086932233,
+        "confidence": 0.7132499999999999,
+        "cadence": false
+      },
+      "difference": "Main pattern"
+    },
+    {
+      "id": "highlife-bc8bd4d88cd61a26",
+      "source": "Highlife Praise Medley 20th Anniversary Edition",
+      "sourceId": "1731edebe35666db",
+      "genre": "highlife",
+      "start": 71.264,
+      "cut": {
+        "start": 15.264,
+        "end": 23.44,
+        "duration": 8.176000000000002,
+        "beats": 16,
+        "bpm": 117.41682974559684,
+        "closure": 0.9258507490158081,
+        "cv": 0.05362892213716147,
+        "score": 1.124481551625096,
+        "confidence": 0.7323333333333334,
+        "cadence": false
+      },
+      "difference": "Main pattern"
+    },
+    {
+      "id": "highlife-f3c971a76172bb40",
+      "source": "Highlife Praise Medley 20th Anniversary Edition",
+      "sourceId": "1731edebe35666db",
+      "genre": "highlife",
+      "start": 592.576,
+      "cut": {
+        "start": 8.576,
+        "end": 14.928,
+        "duration": 6.352,
+        "beats": 12,
+        "bpm": 113.35012594458439,
+        "closure": 0.9654314875602723,
+        "cv": 0.03588868223872713,
+        "score": 1.125725327694321,
+        "confidence": 0.7582,
+        "cadence": false
+      },
+      "difference": "Adds C\u266f, E"
+    },
+    {
+      "id": "highlife-4881203e7430d598",
+      "source": "Highlife Praise Medley 20th Anniversary Edition",
+      "sourceId": "1731edebe35666db",
+      "genre": "highlife",
+      "start": 956.672,
+      "cut": {
+        "start": 24.672,
+        "end": 30.992,
+        "duration": 6.32,
+        "beats": 12,
+        "bpm": 113.92405063291137,
+        "closure": 0.9225208520889283,
+        "cv": 0.038143086514731646,
+        "score": 1.0917050789329783,
+        "confidence": 0.7204666666666666,
+        "cadence": false
+      },
+      "difference": "Adds G, A, B\u266d"
+    },
+    {
+      "id": "highlife-88d3803a617e96c2",
+      "source": "Igbo Highlife Medley",
+      "sourceId": "22631df5ff8d99e6",
+      "genre": "highlife",
+      "start": 310.512,
+      "cut": {
+        "start": 2.512,
+        "end": 16.368,
+        "duration": 13.855999999999998,
+        "beats": 24,
+        "bpm": 103.92609699769055,
+        "closure": 0.9935594201087952,
+        "cv": 0.03191749413645598,
+        "score": 1.1473287345438117,
+        "confidence": 0.7264137931034483,
+        "cadence": false
+      },
+      "difference": "Main pattern"
+    },
+    {
+      "id": "highlife-85c18efaed7420d1",
+      "source": "Igbo Highlife Medley",
+      "sourceId": "22631df5ff8d99e6",
+      "genre": "highlife",
+      "start": 426.096,
+      "cut": {
+        "start": 6.096,
+        "end": 16.48,
+        "duration": 10.384,
+        "beats": 24,
+        "bpm": 138.6748844375963,
+        "closure": 0.9725623369216918,
+        "cv": 0.03286707089014054,
+        "score": 1.1436538521711825,
+        "confidence": 0.7267727272727273,
+        "cadence": false
+      },
+      "difference": "Adds B"
+    },
+    {
+      "id": "highlife-f762f1c911a07347",
+      "source": "Igbo Highlife Medley",
+      "sourceId": "22631df5ff8d99e6",
+      "genre": "highlife",
+      "start": 589.296,
+      "cut": {
+        "start": 21.296,
+        "end": 28.192,
+        "duration": 6.896000000000001,
+        "beats": 12,
+        "bpm": 104.40835266821344,
+        "closure": 0.998168659210205,
+        "cv": 0.03675865317344532,
+        "score": 1.1476198594046534,
+        "confidence": 0.7339333333333333,
+        "cadence": false
+      },
+      "difference": "Adds E\u266d, F, A"
+    },
+    {
+      "id": "highlife-82533b09d9c02374",
+      "source": "Powerful Highlife Medly \u00b7 One Voice Choir GH",
+      "sourceId": "916a5160ed7361bd",
+      "genre": "highlife",
+      "start": 113.12,
+      "cut": {
+        "start": 1.12,
+        "end": 9.536,
+        "duration": 8.416,
+        "beats": 16,
+        "bpm": 114.06844106463878,
+        "closure": 0.9398523211479187,
+        "cv": 0.057789673587720976,
+        "score": 1.0868430469426955,
+        "confidence": 0.7153333333333333,
+        "cadence": false
+      },
+      "difference": "Main pattern"
+    },
+    {
+      "id": "highlife-8e83645a8785a7a2",
+      "source": "Powerful Highlife Medly \u00b7 One Voice Choir GH",
+      "sourceId": "916a5160ed7361bd",
+      "genre": "highlife",
+      "start": 332.8,
+      "cut": {
+        "start": 20.8,
+        "end": 27.744,
+        "duration": 6.943999999999999,
+        "beats": 12,
+        "bpm": 103.68663594470048,
+        "closure": 0.9246299266815186,
+        "cv": 0.061654784148660755,
+        "score": 1.0816317247941531,
+        "confidence": 0.7825454545454545,
+        "cadence": false
+      },
+      "difference": "Adds C, F, A"
+    },
+    {
+      "id": "highlife-ff41213132438632",
+      "source": "Powerful Highlife Medly \u00b7 One Voice Choir GH",
+      "sourceId": "916a5160ed7361bd",
+      "genre": "highlife",
+      "start": 387.872,
+      "cut": {
+        "start": 3.872,
+        "end": 12.704,
+        "duration": 8.832,
+        "beats": 16,
+        "bpm": 108.69565217391303,
+        "closure": 0.9380437731742859,
+        "cv": 0.07173547055515697,
+        "score": 1.0974625362038697,
+        "confidence": 0.7199999999999999,
+        "cadence": false
+      },
+      "difference": "Adds D, E\u266d"
+    },
+    {
+      "id": "highlife-ec27ef61f88ebb4a",
+      "source": "Thanksgiving Praise \u00b7 Nigeria Highlife praise - Elijah Daniel",
+      "sourceId": "d2c9ddc84737c06a",
+      "genre": "highlife",
+      "start": 290.816,
+      "cut": {
+        "start": 2.816,
+        "end": 12.56,
+        "duration": 9.744,
+        "beats": 16,
+        "bpm": 98.52216748768473,
+        "closure": 0.9597354531288147,
+        "cv": 0.0740010137224548,
+        "score": 1.1631559776293834,
+        "confidence": 0.7474761904761904,
+        "cadence": false
+      },
+      "difference": "Main pattern"
+    },
+    {
+      "id": "highlife-f4d7f80ef1e83da6",
+      "source": "Thanksgiving Praise \u00b7 Nigeria Highlife praise - Elijah Daniel",
+      "sourceId": "d2c9ddc84737c06a",
+      "genre": "highlife",
+      "start": 460.56,
+      "cut": {
+        "start": 16.56,
+        "end": 26.192,
+        "duration": 9.632000000000001,
+        "beats": 16,
+        "bpm": 99.66777408637873,
+        "closure": 0.9466093182563782,
+        "cv": 0.053877989170188434,
+        "score": 1.133004983808478,
+        "confidence": 0.7284166666666666,
+        "cadence": false
+      },
+      "difference": "Adds E\u266d, A\u266d"
+    },
+    {
+      "id": "highlife-2dcd8f0045c83283",
+      "source": "Thanksgiving Praise \u00b7 Nigeria Highlife praise - Elijah Daniel",
+      "sourceId": "d2c9ddc84737c06a",
+      "genre": "highlife",
+      "start": 757.648,
+      "cut": {
+        "start": 21.648,
+        "end": 27.36,
+        "duration": 5.712,
+        "beats": 12,
+        "bpm": 126.05042016806723,
+        "closure": 0.9538229942321776,
+        "cv": 0.06307187814676528,
+        "score": 1.143036881119639,
+        "confidence": 0.7554285714285712,
+        "cadence": false
+      },
+      "difference": "Omits C, E\u266d, F\u266f"
+    },
+    {
+      "id": "makossa-f11cad8fb2129026",
+      "source": "African-Praise-Medley-Makossa..Elic \u00b7 001 \u00b7 1080p",
+      "sourceId": "94ac2569df69325d",
+      "genre": "makossa",
+      "start": 322.048,
+      "cut": {
+        "start": 10.048,
+        "end": 17.072,
+        "duration": 7.023999999999999,
+        "beats": 12,
+        "bpm": 102.50569476082006,
+        "closure": 0.9530604243278504,
+        "cv": 0.05047498816892997,
+        "score": 1.1041629968797029,
+        "confidence": 0.7056666666666668,
+        "cadence": false
+      },
+      "difference": "Main pattern"
+    },
+    {
+      "id": "makossa-9af5a4ef635eb9ed",
+      "source": "African-Praise-Medley-Makossa..Elic \u00b7 001 \u00b7 1080p",
+      "sourceId": "94ac2569df69325d",
+      "genre": "makossa",
+      "start": 381.328,
+      "cut": {
+        "start": 21.328,
+        "end": 28.752,
+        "duration": 7.4239999999999995,
+        "beats": 16,
+        "bpm": 129.31034482758622,
+        "closure": 0.9643263339996337,
+        "cv": 0.05846836192349374,
+        "score": 1.1172187717537474,
+        "confidence": 0.7125625,
+        "cadence": false
+      },
+      "difference": "Adds B"
+    },
+    {
+      "id": "makossa-e61cd77ef8e3fc8a",
+      "source": "African-Praise-Medley-Makossa..Elic \u00b7 001 \u00b7 1080p",
+      "sourceId": "94ac2569df69325d",
+      "genre": "makossa",
+      "start": 1079.344,
+      "cut": {
+        "start": 15.344,
+        "end": 25.136,
+        "duration": 9.792,
+        "beats": 16,
+        "bpm": 98.03921568627452,
+        "closure": 0.9426067590713502,
+        "cv": 0.06568546157595397,
+        "score": 1.1005092558056995,
+        "confidence": 0.700421052631579,
+        "cadence": false
+      },
+      "difference": "Adds F, A\u266d"
+    },
+    {
+      "id": "woro-8ea770d65aab5f4d",
+      "source": "HOTTEST AFRICAN Woro PRAISE MEDLEY BY TLC CANAANLAND \u00b7 BANDCAM",
+      "sourceId": "76813fce47a121f4",
+      "genre": "woro",
+      "start": 214.928,
+      "cut": {
+        "start": 10.928,
+        "end": 24.8,
+        "duration": 13.872,
+        "beats": 24,
+        "bpm": 103.80622837370242,
+        "closure": 0.8820469498634339,
+        "cv": 0.07249940082960937,
+        "score": 1.01853529611647,
+        "confidence": 0.7194166666666667,
+        "cadence": false
+      },
+      "difference": "Main pattern"
+    },
+    {
+      "id": "woro-717054443ed6645e",
+      "source": "Hot Woro Praise Session Live \u00b7 Success Akinshade LMGC \u00b7 House On The Rock Sunday Worship",
+      "sourceId": "1bb0ecf2e5ce0e97",
+      "genre": "woro",
+      "start": 397.584,
+      "cut": {
+        "start": 5.584,
+        "end": 11.552,
+        "duration": 5.968,
+        "beats": 12,
+        "bpm": 120.64343163538874,
+        "closure": 0.8686456203460693,
+        "cv": 0.05487798791007735,
+        "score": 1.007838975511066,
+        "confidence": 0.7050000000000001,
+        "cadence": false
+      },
+      "difference": "Main pattern"
+    },
+    {
+      "id": "woro-d53b3547b5eb04b2",
+      "source": "Hot Woro Praise Session Live \u00b7 Success Akinshade LMGC \u00b7 House On The Rock Sunday Worship",
+      "sourceId": "1bb0ecf2e5ce0e97",
+      "genre": "woro",
+      "start": 600.16,
+      "cut": {
+        "start": 16.16,
+        "end": 25.776,
+        "duration": 9.616,
+        "beats": 24,
+        "bpm": 149.7504159733777,
+        "closure": 0.9333191990852356,
+        "cv": 0.0667011722223867,
+        "score": 1.092904581050917,
+        "confidence": 0.7651999999999999,
+        "cadence": false
+      },
+      "difference": "Adds C, F, G"
+    },
+    {
+      "id": "woro-78764660af9c664f",
+      "source": "LMGC - African Praise Medley Woro Style \u00b7 Live In House On The Rock",
+      "sourceId": "49298552ab1f9c64",
+      "genre": "woro",
+      "start": 256.336,
+      "cut": {
+        "start": 16.336,
+        "end": 23.536,
+        "duration": 7.200000000000003,
+        "beats": 16,
+        "bpm": 133.3333333333333,
+        "closure": 0.8963084101676941,
+        "cv": 0.06870944370551255,
+        "score": 1.0237043044026606,
+        "confidence": 0.7410833333333334,
+        "cadence": true
+      },
+      "difference": "Main pattern"
+    },
+    {
+      "id": "woro-f688b103bfd69cc9",
+      "source": "Woro praise flow",
+      "sourceId": "2eaa3e58221b5585",
+      "genre": "woro",
+      "start": 447.76,
+      "cut": {
+        "start": 7.76,
+        "end": 14.32,
+        "duration": 6.5600000000000005,
+        "beats": 12,
+        "bpm": 109.75609756097559,
+        "closure": 0.8934126019477844,
+        "cv": 0.046019420156373794,
+        "score": 1.0252305545060774,
+        "confidence": 0.7279999999999999,
+        "cadence": false
+      },
+      "difference": "Main pattern"
+    },
+    {
+      "id": "woro-095e6e4130087052",
+      "source": "Woro praise flow",
+      "sourceId": "2eaa3e58221b5585",
+      "genre": "woro",
+      "start": 813.76,
+      "cut": {
+        "start": 5.76,
+        "end": 12.112,
+        "duration": 6.352,
+        "beats": 12,
+        "bpm": 113.35012594458439,
+        "closure": 0.9325068950653076,
+        "cv": 0.06102791657221998,
+        "score": 1.0650814142619291,
+        "confidence": 0.7370000000000001,
+        "cadence": false
+      },
+      "difference": "Adds C, D, F\u266f"
+    },
+    {
+      "id": "woro-7ff6ab951f70cb67",
+      "source": "Woro Praise MedleyLive \u00b7 Evangelist Tolucci \u00b7 MRF 2026",
+      "sourceId": "f7eee781e31375b0",
+      "genre": "woro",
+      "start": 151.712,
+      "cut": {
+        "start": 23.712,
+        "end": 30.992,
+        "duration": 7.280000000000001,
+        "beats": 16,
+        "bpm": 131.86813186813185,
+        "closure": 0.9546728968620299,
+        "cv": 0.058272850916760176,
+        "score": 1.092526693558263,
+        "confidence": 0.7020000000000001,
+        "cadence": false
+      },
+      "difference": "Main pattern"
+    },
+    {
+      "id": "woro-afb20c6d97b3de51",
+      "source": "Woro Praise MedleyLive \u00b7 Evangelist Tolucci \u00b7 MRF 2026",
+      "sourceId": "f7eee781e31375b0",
+      "genre": "woro",
+      "start": 270.08,
+      "cut": {
+        "start": 6.08,
+        "end": 20.304,
+        "duration": 14.223999999999998,
+        "beats": 32,
+        "bpm": 134.98312710911136,
+        "closure": 0.9791936874389648,
+        "cv": 0.06346240968250384,
+        "score": 1.1457049414128113,
+        "confidence": 0.7253783783783785,
+        "cadence": false
+      },
+      "difference": "Adds C, C\u266f, F\u266f"
+    },
+    {
+      "id": "woro-ce4598b1e439566b",
+      "source": "Woro Praise MedleyLive \u00b7 Evangelist Tolucci \u00b7 MRF 2026",
+      "sourceId": "f7eee781e31375b0",
+      "genre": "woro",
+      "start": 375.376,
+      "cut": {
+        "start": 3.376,
+        "end": 10.512,
+        "duration": 7.136000000000001,
+        "beats": 16,
+        "bpm": 134.52914798206277,
+        "closure": 0.9833153247833252,
+        "cv": 0.0355930669649941,
+        "score": 1.1795578330156726,
+        "confidence": 0.7791333333333335,
+        "cadence": false
+      },
+      "difference": "Omits C, C\u266f, E"
+    }
+  ]
+}

@@ -1,47 +1,12 @@
-"""Offline bass-stem analysis for the owner's practice excerpts.
+"""Offline bass analysis compatibility entry point.
 
-The browser still plays the original mix. This helper is used only to obtain
-bass-note estimates, not to distribute a separation model. MDX transform layout:
-https://github.com/nomadkaraoke/python-audio-separator (UVR MDX architecture).
-Model: kuielab_a_bass.onnx from the public UVR model repository.
-Verified UVR tail-MD5: 6703e39f36f18aa7855ee1047765621d.
+The verified local MDX bass model now uses OpenCV's built-in CPU backend.
+No ONNX Runtime or telemetry client is imported. Model weights stay outside git.
+Spectrum layout: https://github.com/nomadkaraoke/python-audio-separator
 """
-from pathlib import Path
-import hashlib,subprocess,time
-import numpy as np
-import librosa,onnxruntime as ort
-from scipy.signal import resample_poly
-
-class BassSeparator:
- def __init__(self,model,threads=6):
-  p=Path(model)
-  with p.open('rb') as f:f.seek(max(0,p.stat().st_size-10240000));digest=hashlib.md5(f.read()).hexdigest()
-  if digest!='6703e39f36f18aa7855ee1047765621d':raise ValueError('Unexpected separation model')
-  options=ort.SessionOptions();options.intra_op_num_threads=threads;options.inter_op_num_threads=1
-  options.enable_cpu_mem_arena=False
-  self.session=ort.InferenceSession(str(p),sess_options=options,providers=['CPUExecutionProvider'])
-  self.fft=16384;self.hop=1024;self.dim_f=2048;self.dim_t=512;self.chunk=self.hop*(self.dim_t-1);self.trim=self.fft//2;self.gen=self.chunk-2*self.trim
- def separate(self,audio):
-  if audio.ndim!=2 or audio.shape[0]!=2:raise ValueError('Expected stereo 44.1 kHz audio')
-  length=audio.shape[1];padded=np.pad(audio,((0,0),(self.trim,self.gen+self.trim-length%self.gen)))
-  chunks=[]
-  for start in range(0,length,self.gen):
-   wave=padded[:,start:start+self.chunk].astype('float32')
-   spectrum=librosa.stft(wave,n_fft=self.fft,hop_length=self.hop,window='hann',center=True,pad_mode='reflect')
-   model_input=np.stack([spectrum.real,spectrum.imag],axis=1).reshape(1,4,self.fft//2+1,self.dim_t)[:,:,:self.dim_f,:].copy().astype('float32');model_input[:,:,:3,:]=0
-   prediction=self.session.run(None,{'input':model_input})[0]
-   data=prediction.reshape(2,2,self.dim_f,self.dim_t);complex_spec=data[:,0]+1j*data[:,1]
-   complex_spec=np.pad(complex_spec,((0,0),(0,self.fft//2+1-self.dim_f),(0,0)))
-   out=librosa.istft(complex_spec,n_fft=self.fft,hop_length=self.hop,window='hann',center=True,length=self.chunk)
-   chunks.append(out[:,self.trim:-self.trim])
-  return np.concatenate(chunks,axis=1)[:,:length]*1.035
- def file(self,file,start=0,seconds=None):
-  cmd=['ffmpeg','-v','error','-ss',str(start),'-i',str(file)]
-  if seconds is not None:cmd+=['-t',str(seconds)]
-  cmd+=['-ar','44100','-ac','2','-f','f32le','-']
-  audio=np.frombuffer(subprocess.check_output(cmd),'<f4').reshape(-1,2).T.copy()
-  return self.separate(audio)
- def mono8k(self,file,start=0,seconds=None):return resample_poly(self.file(file,start,seconds).mean(axis=0),80,441).astype('float32')
+import time
+import librosa,numpy as np
+from bass_stem_opencv_rc352 import BassSeparator
 
 if __name__=='__main__':
  import argparse,json

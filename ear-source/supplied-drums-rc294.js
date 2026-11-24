@@ -2,7 +2,7 @@
 window.BassSuppliedDrums=(()=>{
  'use strict';
  const brightLoops=new Set(["correct-worship-f7950a8d46", "correct-rock-3820baa306", "supplied-soul-6b7dd0fd59"]);
- const loops=(window.BassDrumLoops||[]).filter(l=>!brightLoops.has(l.id)),genres=[['worship','Worship'],['praise','Praise'],['soul','Soul & R&B'],['funk','Funk'],['reggae','Reggae'],['highlife','Highlife'],['afrobeat','Afrobeat'],['makossa','Makossa'],['soukous','Soukous & Seben'],['soca','Soca'],['zouk','Zouk'],['rock','Rock']];
+ const loops=[...(window.BassDrumLoops||[]).filter(l=>!brightLoops.has(l.id)),...(window.BassCulturalDrums||[])],genres=[['worship','Worship'],['praise','Praise'],['soul','Soul & R&B'],['funk','Funk'],['reggae','Reggae'],['woro','Woro'],['highlife','Highlife'],['ariaria','Ariaria'],['afrobeat','Afrobeat'],['makossa','Makossa'],['soukous','Soukous & Seben'],['soca','Soca'],['zouk','Zouk'],['rock','Rock']];
  const available=[...loops,...(window.BassGrooveLibrary?.loops||[]).filter(l=>!brightLoops.has(l.base)),...(window.BassFlDrums?.loops||[])];
  const buffers=new Map(),renders=new Map(),loads=new Map();
  function choose(style,genre='auto',id='auto'){
@@ -11,7 +11,7 @@ window.BassSuppliedDrums=(()=>{
    const kitLoop=available.find(x=>x.genre===genre&&x.id.startsWith('gs-'));
    if(kitLoop)return kitLoop;
   }
-  const target=genre!=='auto'?genre:({worship:'soul',gospel:'soul',jazz:'soul',blues:'soul',fusion:'funk',mbalax:'praise',mbaqanga:'highlife',sungura:'soukous'}[style]||style);
+  const target=genre!=='auto'?genre:({worship:'soul',gospel:'soul',rnb:'soul',jazz:'soul',blues:'soul',fusion:'funk',mbalax:'praise',mbaqanga:'highlife',sungura:'soukous'}[style]||style);
   const pool=loops.filter(x=>x.genre===(target==='worship'?'soul':target));
   return pool.find(x=>x.automaticDefault&&x.id.startsWith('correct-'))||pool.find(x=>x.automaticDefault)||pool[0]||loops.find(x=>x.genre==='soul');
  }

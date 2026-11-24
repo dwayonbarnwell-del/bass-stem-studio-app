@@ -5,8 +5,8 @@
 window.BassCulturalStudies=(()=>{
  'use strict';
  const C=window.BassCuratedStudies,P=window.BassPracticeCore,F=window.BassFillCore,D=window.BassPracticeCatalogue;
- const pc=n=>(n%12+12)%12,scale=F.scales.major,entries=[],limits={makossa:32,seben:24,soukous:20,zouk:12},priority=[5,7,2,9,3,10,4,1,11,8,6];
- const names={makossa:'Makossa',seben:'Seben',soukous:'Soukous',zouk:'Zouk',highlife:'Highlife',afrobeat:'Afrobeat',soca:'Soca',sungura:'Sungura',mbalax:'Mbalax',mbaqanga:'Mbaqanga'};
+ const pc=n=>(n%12+12)%12,scale=F.scales.major,entries=[],limits={makossa:32,seben:24,soukous:20,zouk:12,woro:32,highlife:32,ariaria:40},priority=[5,7,2,9,3,10,4,1,11,8,6];
+ const names={woro:'Woro',highlife:'Highlife',ariaria:'Ariaria',makossa:'Makossa',seben:'Seben',soukous:'Soukous',zouk:'Zouk',afrobeat:'Afrobeat',soca:'Soca',sungura:'Sungura',mbalax:'Mbalax',mbaqanga:'Mbaqanga'};
  const round=n=>Math.round(n*100000)/100000;
  function hash(text){let h=2166136261;for(let i=0;i<text.length;i++)h=Math.imul(h^text.charCodeAt(i),16777619);return (h>>>0).toString(16).padStart(8,'0');}
  function styleOf(row){
@@ -26,8 +26,8 @@ window.BassCulturalStudies=(()=>{
     const section=row.sections?.[part],start=section?0:phrase[0],end=section?.duration??phrase[1],beats=section?.beats??phrase[2];
     if(!Number.isFinite(beats)||end<=start)continue;
     const notes=(section?.notes||row.notes).filter(n=>n.start>=start&&n.start<end).map(n=>({...n,start:n.start-start,end:Math.min(end,n.end)-start}));
-    const family=row.group==='bass-lady'?'Bass Lady':row.group==='bassmatics'?'Bassmatics':row.group==='world-method'?'World Methods':'Recorded bass';
-    sources.push({kind:'uploaded',id:row.id,part,style,family,title:row.displayName||row.title,audio:section?.audio||row.audio,offset:(row.sourceStart||0)+start,step:(end-start)/beats,notes,estimated:true});
+    const family=row.sourceFamily||(row.group==='bass-lady'?'Bass Lady':row.group==='bassmatics'?'Bassmatics':row.group==='world-method'?'World Methods':'Recorded bass');
+    sources.push({kind:'uploaded',id:row.id,part,style,family,cohort:row.culturalUpload?'uploads-352':'legacy',title:row.displayName||row.title,audio:section?.audio||row.audio,offset:(row.sourceStart||0)+start,step:(end-start)/beats,notes,estimated:true});
    }
   }
   // New or individually restored cultural practice basslines use the same
@@ -44,18 +44,18 @@ window.BassCulturalStudies=(()=>{
  }
  function changes(interval){const out=[];for(let from=1;from<=7;from++)for(let to=1;to<=7;to++)if(from!==to&&pc(scale[to-1]-scale[from-1])===pc(interval))out.push([from,to]);return out;}
  const allChanges=Array.from({length:7},(_,i)=>i+1).flatMap(from=>Array.from({length:7},(_,i)=>i+1).filter(to=>to!==from).map(to=>[from,to]));
- function candidates(source,kind){
+ function candidates(source,kind,{maxSeconds=5,allowTempoAdaptation=false}={}){
   const notes=source.notes,out=[],lo=kind==='fills'?4:8,hi=kind==='fills'?7:14;
   for(let first=0;first<notes.length;first++)for(let count=lo;count<=hi;count++){
    const last=first+count-1;if(last>=notes.length)break;
    const take=notes.slice(first,last+1),a=take[0],b=take.at(-1),seconds=b.start-a.start,interval=b.midi-a.midi;
-   if(seconds<.65||seconds>5||!pc(interval))continue;
+   if(seconds<.65||seconds>maxSeconds||!pc(interval))continue;
    if(take.some(n=>!Number.isFinite(n.confidence)||n.midi<23||n.midi>59||n.end-n.start<.045))continue;
    const confidence=take.reduce((sum,n)=>sum+n.confidence,0)/count,pitches=take.map(n=>n.midi);
    if(confidence<.67||a.confidence<.65||b.confidence<.65||a.end-a.start<.09||b.end-b.start<.09)continue;
    if(new Set(pitches.map(pc)).size<3||Math.max(...pitches)-Math.min(...pitches)>24||pitches.some((p,i)=>i&&Math.abs(p-pitches[i-1])>14))continue;
    const span=Math.min(4,Math.max(1,Math.round(seconds/source.step*2)/2)),ratio=span/seconds,bpm=60*ratio;
-   if(bpm<40||bpm>220)continue;
+   if(!allowTempoAdaptation&&(bpm<40||bpm>220))continue;
    const events=take.map((n,i)=>({offset:n.midi-a.midi,beat:round(4-span+(n.start-a.start)*ratio),length:round(i===take.length-1?2.8:Math.max(.04,Math.min(n.end-n.start,(take[i+1].start-n.start)*.95)*ratio)),velocity:n.velocity||82,confidence:n.confidence,review:n.confidence<.76,sourceTime:round(source.offset+n.start)}));
    const shape=JSON.stringify(events.map(n=>[n.offset,Math.round((n.beat-events[0].beat)*16),Math.round(n.length*8)]));
    const id='culture-351-'+kind+'-'+hash([source.kind,source.id,source.part,round(a.start),round(b.start)].join(':'));
@@ -68,11 +68,12 @@ window.BassCulturalStudies=(()=>{
  const all=captures(),byGroup=new Map(),sourceNumbers=new Map(),familyCounts=new Map();
  for(const source of all){const familyKey=source.style+'/'+source.family,key=familyKey+'/'+source.kind+'/'+source.id+'/'+source.part;if(!sourceNumbers.has(key)){const n=(familyCounts.get(familyKey)||0)+1;familyCounts.set(familyKey,n);sourceNumbers.set(key,n);}}
  for(const source of all)for(const kind of ['runs','fills']){
-  const key=kind+'/'+source.style;if(!byGroup.has(key))byGroup.set(key,[]);byGroup.get(key).push(...candidates(source,kind));
+  const key=(source.cohort||'legacy')+'|'+kind+'/'+source.style;if(!byGroup.has(key))byGroup.set(key,[]);byGroup.get(key).push(...candidates(source,kind));
  }
- const duplicateIds=new Map(),summary={runs:{},fills:{},families:{},sourceCaptures:all.length};
- for(const [key,raw] of byGroup){
-  const [kind,style]=key.split('/'),unique=new Map();
+ const duplicateIds=new Map(),registeredShapes=new Map(),summary={runs:{},fills:{},families:{},sourceCaptures:all.length};
+ const batches=[...byGroup].filter(([key])=>key.startsWith('legacy|')).concat([...byGroup].filter(([key])=>!key.startsWith('legacy|')));
+ for(const [batchKey,raw] of batches){
+  const key=batchKey.split('|')[1],[kind,style]=key.split('/'),unique=new Map();
   for(const row of raw.sort((a,b)=>b.score-a.score||a.id.localeCompare(b.id))){
    if(!unique.has(row.shape)){unique.set(row.shape,row);duplicateIds.set(row.id,[]);}
    else duplicateIds.get(unique.get(row.shape).id).push(row.id);
@@ -93,19 +94,23 @@ window.BassCulturalStudies=(()=>{
    }
    if(!added)break;
   }
-  const numbers=new Map();
+  const numbers=new Map();let registered=0;
   for(const row of selected){
+   try{for(let interval=1;interval<12;interval++)retarget({events:row.events,interval:row.interval},interval);}catch{continue;}
+   const shapeKey=kind+'/'+style+'/'+row.shape,previous=registeredShapes.get(shapeKey);
+   if(previous){const list=kind==='runs'?P.runs:F.styles;list[previous.index].aliasIds.push(row.id,...(duplicateIds.get(row.id)||[]));continue;}
    const number=(numbers.get(row.source.id)||0)+1;numbers.set(row.source.id,number);
    const sourceNumber=String(sourceNumbers.get(style+'/'+row.source.family+'/'+row.source.kind+'/'+row.source.id+'/'+row.source.part)).padStart(2,'0');
-   const base=row.source.family==='World Methods'?'World '+sourceNumber:row.source.kind==='basslines'?'Line '+sourceNumber:row.source.title.replace(/^Bass Lady\s*/i,'Lady ').replace(/^Bassmatics?\s*/i,'Matics ');
+   const uploadedName=({Bassmatics:'Mat','Bass Lady':'Ldy','World Methods':'Wld'}[row.source.family]||{highlife:'Hlife',ariaria:'Aria',woro:'Woro',makossa:'Mk'}[style]||'Take')+' '+sourceNumber;
+   const base=row.source.cohort==='uploads-352'?uploadedName:row.source.family==='World Methods'?'World '+sourceNumber:row.source.kind==='basslines'?'Line '+sourceNumber:['Bass Lady','Bassmatics'].includes(row.source.family)?row.source.title.replace(/^Bass Lady\s*/i,'Lady ').replace(/^Bassmatics?\s*/i,'Matics '):uploadedName;
    const title=(base.slice(0,9)+'.'+number).slice(0,12);
    const recordedStudy={sourceKind:row.source.kind,sourceId:row.source.id,sourcePart:row.source.part,family:row.source.family,sourceTitle:row.source.title,style,start:row.start,end:row.end,nativeBpm:row.nativeBpm,interval:row.interval,changes:allChanges,nativeChanges:row.changes,events:row.events,confidence:row.confidence,estimated:true};
    const entry=C.register({id:row.id,kind,title,tip:'',genre:style,mode:'major',rhythm:'recorded',notes:[],tier:0,rank:-1000-row.score*100,culturalStyle:style,recordedStudy,source:{label:'Adapted from '+row.source.family+' · '+row.source.title,url:row.source.audio}});
-   entry.original=false;const list=kind==='runs'?P.runs:F.styles;list[entry.index].aliasIds=duplicateIds.get(row.id);entries.push(entry);
+   entry.original=false;const list=kind==='runs'?P.runs:F.styles;list[entry.index].aliasIds=duplicateIds.get(row.id);entries.push(entry);registeredShapes.set(shapeKey,entry);registered++;
    D.describe([{kind,id:entry.id,title:names[style]+' · '+row.source.family+' · '+row.source.title+' · '+(kind==='runs'?'run':'fill')}]);
    summary.families[row.source.family]=(summary.families[row.source.family]||0)+1;
   }
-  summary[kind][style]=selected.length;
+  summary[kind][style]=(summary[kind][style]||0)+registered;
  }
  function supports(entry,from,to){return !entry?.recordedStudy||entry.recordedStudy.changes.some(pair=>pair[0]===Number(from)&&pair[1]===Number(to));}
  function nativeMatch(entry,from,to){return !!entry?.recordedStudy?.nativeChanges.some(pair=>pair[0]===Number(from)&&pair[1]===Number(to));}
@@ -136,5 +141,5 @@ window.BassCulturalStudies=(()=>{
   const chordName=d=>{const root=degree(d-1),third=degree(d+1)-root,fifth=degree(d+3)-root;return F.names[pc(root)]+(fifth===6?'dim':third===3?'m':'');};
   return {kind,key,mode:'major',from,to,idea:entry.index,bpm:Math.max(40,Math.min(220,Number(opts.bpm)||r.nativeBpm)),beats:8,bass,chords:[...chord(from,0),...chord(to,4)],source,target,title:entry.title,tip:'',curated:entry,recordedStudy:r,culturalStyle:r.style,practiceStyle:r.style==='seben'?'soukous':r.style,requestedChangeSupported,sourceAdaptation:{pivot:adaptation.pivot,shift:adaptation.shift},heading:from+' → '+to+' · '+chordName(from)+' → '+chordName(to),fromChord:chordName(from),toChord:chordName(to)};
  }
- return {entries,summary,styleOf,supports,nativeMatch,available,make};
+ return {entries,summary,styleOf,supports,nativeMatch,available,make,retarget,candidates};
 })();

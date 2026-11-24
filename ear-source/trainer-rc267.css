@@ -284,6 +284,20 @@
  #earTrainerDialog :is(#rehearsalMix,#rehearsalGuide)[aria-pressed=false]{--rehearsal-a:#405467;--rehearsal-b:#303e51}
 }
 
+/* Keep the four practice destinations recognisable at a glance. */
+@layer bass-ear-267 {
+#earTrainerDialog #earBassSections #earSectionBasslines{background:linear-gradient(135deg,#254f79,#203b60)!important;border-color:#80b7ed!important;}
+#earTrainerDialog #earBassSections #earSectionRuns{background:linear-gradient(135deg,#574577,#3d335c)!important;border-color:#baa0e4!important;}
+#earTrainerDialog #earBassSections #earSectionMyFills{background:linear-gradient(135deg,#765936,#58412e)!important;border-color:#e0b47b!important;}
+#earTrainerDialog #earBassSections :is(#earSectionBasslines,#earSectionRuns,#earSectionMyFills)[aria-pressed=true]{box-shadow:inset 0 -3px 0 currentColor!important;}
+#earTrainerDialog #earBassSections #earSectionRehearsal{
+ background:linear-gradient(135deg,#713c58,#542e49)!important;border-color:#d88aae!important;color:#fff!important;
+}
+#earTrainerDialog #earBassSections #earSectionRehearsal[aria-pressed=true]{
+ background:linear-gradient(135deg,#8b4669,#673650)!important;border-color:#ffc2df!important;box-shadow:inset 0 -3px 0 #ffc2df!important;
+}
+}
+
 #earTrainerDialog #fillRecordedKey:not([hidden]){display:grid;place-items:center;border:1px solid #496278;border-radius:10px;background:#243b4b;color:#e3edf2;text-align:center;padding:6px;}
 
 @layer bass-ear-267 {

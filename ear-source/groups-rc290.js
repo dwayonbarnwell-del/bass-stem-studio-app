@@ -5,7 +5,7 @@
 window.BassStudyGroups=(()=>{
  'use strict';
  const C=window.BassCuratedStudies,P=window.BassPracticeCore,F=window.BassFillCore,D=window.BassPracticeCatalogue;
- const culturalGroups=[['makossa','Makossa'],['seben','Seben'],['soukous','Soukous'],['zouk','Zouk'],['highlife','Highlife'],['afrobeat','Afrobeat'],['sungura','Sungura'],['mbalax','Mbalax'],['mbaqanga','Mbaqanga'],['soca','Soca'],['african-praise','African praise'],['regional','Regional']];
+ const culturalGroups=[['woro','Woro'],['highlife','Highlife'],['ariaria','Ariaria'],['makossa','Makossa'],['seben','Seben'],['soukous','Soukous'],['zouk','Zouk'],['afrobeat','Afrobeat'],['sungura','Sungura'],['mbalax','Mbalax'],['mbaqanga','Mbaqanga'],['soca','Soca'],['african-praise','African praise'],['regional','Regional']];
  const groups=[['gospel','Gospel & Contemporary'],['jazz','Jazz & Chromatic'],['blues','Blues & Pentatonic'],['funk','Funk & Soul'],...culturalGroups];
  const map={contemporary:'gospel',jazz:'jazz',blues:'blues',pentatonic:'blues',fusion:'funk',other:'african',african:'african'};
  // Freeze legacy identities before consolidating an identical musical pattern.

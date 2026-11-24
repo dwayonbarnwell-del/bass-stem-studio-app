@@ -11,7 +11,9 @@ window.BassAccompaniment=(()=>{
    const id=category(item,true);if(id&&![...active,...additional].some(([key])=>key===id))additional.push([id,({soukous:'Soukous',soca:'Soca',zouk:'Zouk',african:'African',recordings:'Recordings',highlife:'Highlife',afrobeat:'Afrobeat',makossa:'Makossa'})[id]||id]);
   }
   const methods=window.BassUploadedCore.items.some(item=>item.group==='world-method'&&D.visible('uploaded',item.id))?[['world-method','World Method']]:[];
-  return [...active,...methods,...additional];
+  const uploads=[];
+  for(const item of window.BassUploadedCore.items)if(item.culturalUpload&&D.visible('uploaded',item.id)&&![...active,...uploads,...additional].some(([id])=>id===item.group))uploads.push([item.group,({woro:'Woro',highlife:'Highlife',ariaria:'Ariaria',makossa:'Makossa'})[item.group]||item.group]);
+  return [...active,...methods,...uploads,...additional];
  }
  const recordingStyles={
   'recorded-worship':'worship','recorded-reggae':'reggae','recorded-makossa':'makossa',
@@ -20,7 +22,7 @@ window.BassAccompaniment=(()=>{
  };
  function namedGenre(item){
   const text=[item.originalTitle,item.sourceFilename,item.title,item.name,item.feel].filter(Boolean).join(' ').toLowerCase();
-  for(const [id,re] of [['reggae',/reggae|rub.?a.?dub/],['makossa',/makoss?a|mokassa/],['highlife',/high.?life/],['afrobeat',/afro.?beat/],['seben',/seben/],['soukous',/soukous/],['congolese',/congolese/],['soca',/soca/],['zouk',/zouk/],['worship',/worship/],['praise',/praise/],['gospel',/gospel/]])if(re.test(text))return id;
+  for(const [id,re] of [['woro',/wor+o/],['ariaria',/ariaria|aria.?ria/],['reggae',/reggae|raggae|rub.?a.?dub/],['makossa',/makoss?a|mokassa/],['highlife',/high.?life/],['afrobeat',/afro.?beat/],['seben',/seben/],['soukous',/soukous/],['congolese',/congolese/],['soca',/soca/],['zouk',/zouk/],['rnb',/\br\s*&\s*b\b|rhythm.?and.?blues/],['soul',/\bsoul\b/],['jazz',/\bjazz\b/],['blues',/\bblues\b/],['fusion',/\bfunk\b|\bfusion\b/],['worship',/worship/],['praise',/praise/],['gospel',/gospel/]])if(re.test(text))return id;
   return null;
  }
  function recordedStyle(item){
@@ -36,10 +38,13 @@ window.BassAccompaniment=(()=>{
  }
  // The menu combines related genres. Each individual study still gets its own feel.
  const profiles={
+  woro:{label:'Woro',kit:'studio',groove:'woro',sound:'piano'},
+  ariaria:{label:'Ariaria',kit:'studio',groove:'ariaria',sound:'piano'},
   worship:{label:'Worship',kit:'vintage',groove:'worship',sound:'piano'},
   gospel:{label:'Gospel',kit:'studio',groove:'gospel',sound:'organ'},
   praise:{label:'Praise',kit:'studio',groove:'praise',sound:'piano'},
   soul:{label:'Soul',kit:'vintage',groove:'pocket',sound:'electric'},
+  rnb:{label:'R&B',kit:'vintage',groove:'pocket',sound:'electric'},
   jazz:{label:'Jazz',kit:'jazz',groove:'swing',sound:'piano'},
   blues:{label:'Blues',kit:'vintage',groove:'shuffle',sound:'electric'},
   fusion:{label:'Funk / fusion',kit:'studio',groove:'fusion',sound:'electric'},
@@ -87,6 +92,8 @@ window.BassAccompaniment=(()=>{
   const p=profile(plan),valid=(value,values,fallback)=>values.includes(value)?value:fallback;
   const key=plan.recordedStudy?'culture/'+plan.curated.id:plan.kind==='uploaded'?plan.clipId+'/'+String(plan.part).replace('phrase-',''):[plan.kind,plan.idea,plan.part||0].join('/');
   const assignment=window.BassFlDrums?.assignments[key]||window.BassGrooveLibrary?.assignments[key];
+  const source=plan.recordedStudy&&window.BassUploadedCore.find(plan.recordedStudy.sourceId),sourceDrums=source?.sourceDrumLoopId;
+  if(sourceDrums&&(!options.kit||options.kit==='auto')&&(!options.groove||options.groove==='auto'))options={...options,groove:sourceDrums};
   if(window.BassSuppliedDrums&&(!options.kit||options.kit==='auto')&&(!options.groove||options.groove==='auto')){
    const measured=window.BassRecordingTiming?.[plan.clipId]?.loop;
    const danceLoop=['seben','soukous'].includes(p.dance)&&window.BassSuppliedDrums.loops.find(loop=>loop.genre==='soukous'&&loop.title.toLowerCase().includes(p.dance));
@@ -107,6 +114,8 @@ window.BassAccompaniment=(()=>{
  }
  // [beat, gate, velocity, selection]: selection 'arp' follows the chord tones.
  const rhythms={
+  woro:[[0,.6,60,'all'],[1.5,.35,49,'top'],[2,.5,56,'all'],[3.5,.3,49,'top']],
+  ariaria:[[0,.7,57,'all'],[1+2/3,.3,48,'top'],[2,.6,55,'all'],[3+2/3,.28,47,'top']],
   worship:[[0,3.8,58,'all'],[2.5,.7,44,'top']],
   gospel:[[0,.7,65,'all'],[1.5,.35,52,'all'],[2.5,.45,61,'all'],[3+2/3,.25,48,'top']],
   praise:[[0,.35,69,'all'],[.75,.25,53,'top'],[1.5,.3,60,'all'],[2.5,.35,66,'all'],[3.5,.3,59,'all']],
@@ -125,6 +134,7 @@ window.BassAccompaniment=(()=>{
   soca:[[.5,.23,62,'all'],[1,.23,54,'top'],[1.5,.23,64,'all'],[2.5,.23,61,'all'],[3,.23,55,'top'],[3.5,.23,65,'all']],
   zouk:[[0,.55,56,'all'],[.75,.3,49,'top'],[1.5,.38,58,'all'],[2.5,.55,54,'arp'],[3.25,.3,50,'all']]
  };
+ rhythms.rnb=rhythms.soul;
  function arrange(plan,style='worship'){
   const sections=new Map();for(const n of plan.chords||[]){if(!sections.has(n.beat))sections.set(n.beat,[]);sections.get(n.beat).push(n);}
   const spans=[...sections].sort((a,b)=>a[0]-b[0]),out=[];let previous;
@@ -149,5 +159,5 @@ window.BassAccompaniment=(()=>{
   }
   return out;
  }
- return {groups,availableGroups,profiles,identify,category,recordedStyle,profile,resolve,arrange};
+ return {groups,availableGroups,profiles,identify,category,namedGenre,recordedStyle,profile,resolve,arrange};
 })();

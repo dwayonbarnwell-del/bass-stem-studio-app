@@ -1,0 +1,5 @@
+numpy==2.3.5
+scipy==1.17.0
+librosa==1.0.1
+soundfile==0.14.0
+opencv-python-headless==5.1.0.95

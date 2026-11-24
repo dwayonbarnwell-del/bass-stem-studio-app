@@ -42,7 +42,7 @@ window.BassRehearsal=(()=>{
      <select id="rehearsalPattern" aria-label="Pattern"></select>
     </div>
     <div class="rehearsal-row">
-     <select id="rehearsalFill" aria-label="Fills"><option value="bar">Fill every bar</option><option value="ends">Fill on changes</option><option value="off">Fills off</option></select>
+     <select id="rehearsalFill" aria-label="Fill and run placement"><option value="bar">Every bar</option><option value="ends">On changes</option><option value="off">Fills/runs off</option></select>
      <button id="rehearsalMix" type="button" aria-pressed="true">Original bass off</button>
     </div>
     <label class="rehearsal-level">Music <input id="rehearsalMusic" type="range" min="0" max="100" value="50"><output id="rehearsalMusicValue">50%</output></label>
@@ -57,7 +57,12 @@ window.BassRehearsal=(()=>{
     </div>
    </div>
    <p id="rehearsalStatus" role="status"></p>`;
-  C.styles.forEach(([id,caption])=>$('rehearsalStyle').add(new Option(caption,id)));
+  (window.BassRehearsalIdeas?.availableStyles()||C.styles).forEach(([id,caption])=>$('rehearsalStyle').add(new Option(caption,id)));
+  if(window.BassRehearsalIdeas){
+   const sources=document.createElement('optgroup');sources.label='Sources';
+   for(const [id,label]of window.BassRehearsalIdeas.sourceOptions())sources.append(new Option(label,id));
+   if(sources.children.length)$('rehearsalStyle').append(sources);
+  }
   $('rehearsalImport').onclick=()=>api.pickAudio($('rehearsalFile'),openFile);
   $('rehearsalFile').onchange=e=>{const file=e.target.files[0];e.target.value='';if(file)void openFile(file);};
   $('rehearsalLibrary').onclick=async()=>{await close();api.openLibrary();};
@@ -128,7 +133,7 @@ window.BassRehearsal=(()=>{
   $('rehearsalMusic').value=50;$('rehearsalMusicValue').value='50%';
   $('rehearsalGain').value=100;$('rehearsalGainValue').value='100%';
   $('rehearsalEditor').hidden=!song?.buffer;
-  $('rehearsalTitle').textContent=song?.buffer?song.title:'Choose a recording or a saved song.';
+  $('rehearsalTitle').textContent=song?.buffer?String(song.title).replace(/Y2Mate\.is\s*-\s*/gi,''):'Choose a recording or a saved song.';
   if(!song?.buffer){state('');return;}
   const fromSection=(song.sections||[])
    .filter(s=>s.end-s.start>=4)
@@ -214,6 +219,7 @@ window.BassRehearsal=(()=>{
 
  const recordingShapes=new Map();
  function shapes(style,grid,rhythm,automatic=false){
+  if(window.BassRehearsalIdeas)return window.BassRehearsalIdeas.bank(style,grid,rhythm,automatic);
   const P=window.BassPracticeCore,D=window.BassPracticeCatalogue,H=window.BassAccompaniment,U=window.BassUploadedCore;
   const used=new Set(),rows=[];
   if(grid?.meter===4&&U){
@@ -248,7 +254,14 @@ window.BassRehearsal=(()=>{
   featured=shapes(style,clip?.grid,clip?.rhythm,chosen==='auto');
   if(chosen==='auto'&&clip)featured.sort((a,b)=>C.patternScore(clip.grid,clip.rhythm,b.shape)-C.patternScore(clip.grid,clip.rhythm,a.shape));
   let number=0;
-  const choices=featured.map(p=>new Option(p.label||'Pattern '+(++number),p.id));
+  const choices=[];
+  if(window.BassRehearsalIdeas){
+   for(const [kind,label]of [['basslines','Bassline alternatives'],['runs','Runs'],['fills','Fills']]){
+    const group=document.createElement('optgroup');group.label=label;
+    for(const row of featured.filter(r=>r.kind===kind))group.append(new Option(row.label,row.id));
+    if(group.children.length)choices.push(group);
+   }
+  }else choices.push(...featured.map(p=>new Option(p.label||'Pattern '+(++number),p.id)));
   if(chosen==='auto'&&clip?.bassNotes?.length){
    const original=new Option('Song bassline','song-bass');
    choices.unshift(original);
@@ -261,6 +274,7 @@ window.BassRehearsal=(()=>{
  function plan(){
   if($('rehearsalPattern').value==='song-bass')return clip.bassNotes;
   const pattern=featured.find(p=>p.id===$('rehearsalPattern').value);
+  if(window.BassRehearsalIdeas)return window.BassRehearsalIdeas.fit(clip,pattern,$('rehearsalFill').value);
   return C.fit({...clip,shape:pattern?.shape,recorded:pattern?.recorded,
    fill:$('rehearsalFill').value});
  }
@@ -271,7 +285,7 @@ window.BassRehearsal=(()=>{
   viewNotes=notes;
   phraseEvents=notes.map(n=>({...n,start:n.time,end:n.stop}));
   setNotes.index=window.BassPlaybackTiming?.index?.(notes,n=>n.time,n=>n.stop);
-  fretNotes=notes.filter(n=>n.midi!==null).map(n=>({midi:n.midi,start:n.time,end:n.stop,isFill:n.role==='fill'}));
+  fretNotes=notes.filter(n=>n.midi!==null).map(n=>({midi:n.midi,start:n.time,end:n.stop,isFill:n.role==='fill'||n.role==='run'}));
   notePage=-1;
   $('rehearsalVisual').hidden=!notes.length;
   drawView();
@@ -310,9 +324,9 @@ window.BassRehearsal=(()=>{
      const start=Math.max(note.time,first);
      if(note.stop<=first||start<i||start>=i+1)continue;
      const chip=document.createElement('span');
-     chip.className=note.role==='fill'?'rehearsal-fill-note':'rehearsal-bass-note';
+     chip.className=['fill','run'].includes(note.role)?'rehearsal-fill-note':'rehearsal-bass-note';
      chip.textContent=noteName(note);
-     chip.title=note.midi===null?'Muted note':note.role==='fill'?'Fill note':'Bass note';
+     chip.title=note.midi===null?'Muted note':note.role==='fill'?'Fill note':note.role==='run'?'Run note':'Bass note';
      cell.append(chip);markers.push({note,chip});
     }
     columns.push(cell);
@@ -367,7 +381,8 @@ window.BassRehearsal=(()=>{
   }
   const preferred=C.suggest(chords,grid);
   let suggested=preferred;
-  if(grid){
+  if(grid&&window.BassRehearsalIdeas)suggested=window.BassRehearsalIdeas.strongestStyle(chords,grid,rhythm,current.title);
+  else if(grid){
    const candidates=C.styles.filter(([name])=>name!=='auto'&&name!=='roots');
    const ranked=candidates.map(([name])=>({name,score:Math.max(-1,...shapes(name,grid,rhythm,true).map(
     row=>C.patternScore(grid,rhythm,row.shape)))+(name===preferred?.15:0)}));

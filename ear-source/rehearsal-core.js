@@ -2,9 +2,10 @@
 (function(root){
  'use strict';
  const styles=[
-  ['auto','Suggested'],['roots','Roots'],['worship','Worship'],['gospel','Gospel'],
-  ['praise','Praise'],['afrobeat','Afrobeat'],['highlife','Highlife'],['makossa','Makossa'],
-  ['reggae','Reggae'],['soukous','Soukous & Seben'],['soca','Soca'],['zouk','Zouk']
+  ['auto','Suggested'],['roots','Roots'],['worship','Worship'],['gospel','Gospel'],['soul','Soul'],['rnb','R&B'],['jazz','Jazz'],['blues','Blues'],['fusion','Funk & fusion'],
+  ['praise','Praise'],['woro','Woro'],['highlife','Highlife'],['ariaria','Ariaria'],['makossa','Makossa'],
+  ['seben','Seben'],['soukous','Soukous'],['afrobeat','Afrobeat'],['mbalax','Mbalax'],['mbaqanga','Mbaqanga'],['sungura','Sungura'],
+  ['reggae','Reggae'],['soca','Soca'],['zouk','Zouk']
  ];
  const pc=n=>(n%12+12)%12;
  const median=values=>{const sorted=[...values].sort((a,b)=>a-b);return sorted[Math.floor(sorted.length/2)]||0;};
@@ -242,9 +243,11 @@
  function patternScore(grid,signal,shape){
   if(!grid||!signal||!shape.length)return 0;
   let total=0,hits=0;
-  for(let b=0;b<grid.points.length-1;b+=grid.meter){
+  const stride=Math.max(1,Math.ceil((grid.points.length-1)/grid.meter/32));
+  for(let b=0;b<grid.points.length-1;b+=grid.meter*stride){
    for(const hit of shape){
     if(hit.beat%1<.03)continue;
+    if(b+hit.beat*grid.meter/4>=grid.points.length-1)continue;
     const time=beatTime(grid,b+hit.beat*grid.meter/4);
     total+=Math.min(1.4,bestHit(signal,time,.055,'kick').strength)-.38;
     hits++;
@@ -265,6 +268,14 @@
    roots.find(c=>c.start<=t+.018&&c.end>t+.012);
   const bassPc=c=>Number.isInteger(c.bassPc)?c.bassPc:c.rootPc;
   const target=c=>safePitch(bassPc(c)+transpose);
+  const offsets=shape.filter(n=>Number.isFinite(n.semitones)).map(n=>n.semitones);
+  const bounded=pitch=>{while(pitch<23)pitch+=12;while(pitch>59)pitch-=12;return pitch;};
+  function shapeRoot(pitch){
+   if(!offsets.length)return safePitch(pitch);
+   const low=Math.min(0,...offsets),high=Math.max(0,...offsets),choices=[];
+   for(let midi=23;midi<=59;midi++)if(pc(midi)===pc(pitch)&&midi+low>=23&&midi+high<=59)choices.push(midi);
+   return choices.sort((a,b)=>Math.abs(a-35)-Math.abs(b-35))[0]??safePitch(pitch);
+  }
   const isQuiet=time=>quiet.some(r=>time>=r.start&&time<r.end);
   function push(time,stop,midi,role,accent=0){
    if(time<start-.002||isQuiet(time)||recorded&&midi===null)return;
@@ -272,17 +283,19 @@
    stop=Math.min(end,stop,nextQuiet?.start??end);
    if(stop-time>=.032)notes.push({time:Math.max(start,time),stop,midi,role,accent});
   }
-  function add(time,stop,role='root',accent=0){
-   const c=active(time),root=c?safePitch(c.rootPc+transpose):null;
-   let midi=c?target(c):null;
+  function add(time,stop,role='root',accent=0,semitones=null){
+   const c=active(time),root=c?shapeRoot(c.rootPc+transpose):null;
+   let midi=c?(offsets.length?shapeRoot(bassPc(c)+transpose):target(c)):null;
    const quality=c?.quality||'maj';
    if(c&&!c.rootOnly){
     const third=/^(min|dim)/.test(quality)?3:4;
     const fifth=/^(dim|min7b5)/.test(quality)?6:quality==='aug'?8:7;
     if(role==='third'&&(/sus/.test(quality)||(c.uncertain&&!c.manual)))midi=target(c);
-    else if(role==='third')midi=safePitch(root+third,root+3);
-    else if(role==='fifth')midi=safePitch(root+fifth,root+5);
-    else if(role==='octave')midi=root+(root<=47?12:0);
+    else if(role==='third')midi=Number.isFinite(semitones)?bounded(root+third+12*Math.floor(semitones/12)):safePitch(root+third,root+3);
+    else if(role==='fifth')midi=Number.isFinite(semitones)?bounded(root+fifth+12*Math.floor(semitones/12)):safePitch(root+fifth,root+5);
+    else if(role==='octave')midi=Number.isFinite(semitones)?bounded(root+semitones):root+(root<=47?12:0);
+    else if(role==='root'&&Number.isFinite(semitones))midi=bounded(midi+semitones);
+    else if(role==='passing'&&Number.isFinite(semitones)&&(!c.uncertain||c.manual))midi=bounded(root+semitones);
    }
    const finish=Math.min(c?.end??(time+.085),stop);
    if(finish-time>=.032)push(time,finish,midi,role,accent);
@@ -308,13 +321,14 @@
   for(let bar=0;bar<points.length-1;bar+=meter){
    for(const hit of shape){
     const beat=bar+hit.beat*meter/4;
+    if(beat>=points.length-1)continue;
     if(!recorded&&Math.abs(beat-Math.round(beat))<.04)continue;
     const count=Math.floor(beat),nominal=beatTime(grid,beat);
     const step=points[count+1]-points[count];
     const kick=rhythm?bestHit(rhythm,nominal,Math.min(.065,step*.14),'kick'):null;
     const time=grid.snap&&kick?.strength>=.65?Math.max(points[bar],kick.time):nominal;
-    const stop=beatTime(grid,Math.min(bar+meter,beat+hit.length*meter/4));
-    add(time,Math.max(time+.045,stop),hit.role,kick?Math.min(1,kick.strength*.6):0);
+    const stop=beatTime(grid,Math.min(points.length-1,bar+meter,beat+hit.length*meter/4));
+    add(time,Math.max(time+.045,stop),hit.role,kick?Math.min(1,kick.strength*.6):0,hit.semitones);
    }
   }
   if(fill!=='off')for(let b=meter;b<points.length;b+=meter){

@@ -2,7 +2,8 @@
 window.BassUploadedCore=(()=>{
  'use strict';
  const legacy=[...(window.BassUploadedStudies||[]),...(window.BassLessonStudies||[]),...(window.BassAfricanStudies||[]),...(window.BassReggaeStudies||[])];
- const items=[...(window.BassOriginalStudies||[]),...(window.BassReggaeRecordings||[]),...(window.BassWorldMethods||[]),...legacy.filter(c=>window.BassPracticeCatalogue.isRestored('uploaded',c.id))].map(c=>({...c})),groups=[['recorded-makossa','Makossa'],['recorded-seben','Seben'],['recorded-reggae','Reggae']];
+ Object.assign(window.BassRecordedPhrases,window.BassCulturalPhrases||{});
+ const items=[...(window.BassOriginalStudies||[]),...(window.BassReggaeRecordings||[]),...(window.BassWorldMethods||[]),...(window.BassCulturalUploads||[]),...legacy.filter(c=>window.BassPracticeCatalogue.isRestored('uploaded',c.id))].map(c=>({...c})),groups=[['recorded-makossa','Makossa'],['recorded-seben','Seben'],['recorded-reggae','Reggae']];
  for(const c of items){
   if(window.BassLegacyRecordedPhrases?.[c.id])window.BassRecordedPhrases[c.id]=window.BassLegacyRecordedPhrases[c.id];
   c.originalTitle=c.originalTitle||(c.originalMix&&c.collection!=='recorded-reggae'?(c.collection==='recorded-seben'?'Seben ':'Makossa ')+c.title:c.title);
@@ -42,6 +43,8 @@ window.BassUploadedCore=(()=>{
  }
  const time=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
  function loop(id){
+  const clip=items.find(c=>c.id===id);
+  if(clip?.originalMix&&window.BassRecordedPhrases?.[id]?.length)return phrase(id,'phrase-0');
   const original=items.find(c=>c.id===id&&c.collection==='recorded-reggae');
   if(original){const section=original.sections?.[0];return {start:0,end:section?.duration||original.duration,step:(section?.duration||original.duration)/(section?.beats||16),beats:section?.beats||16,originalMix:true,audio:section?.audio,notes:section?.notes};}
   const row=window.BassRecordingGrids?.[id];
@@ -135,7 +138,7 @@ window.BassUploadedCore=(()=>{
    const beat=starts[i],root=48+(tonic+scale[degree])%12;
    for(const j of [0,2,4])value.chords.push({beat,midi:root+(scale[(degree+j)%7]-scale[degree]+12)%12,length:Math.min(4,value.beats-beat),velocity:65});
   });
-  if(clip.sections||clip.collection==='recorded-world-method'){
+  if(clip.sections||clip.collection==='recorded-world-method'||clip.culturalUpload){
    const key=value.recording?.key||clip.key;
    value.tonic=key?.tonic??tonic;value.minor=key?.minor??false;
    value.keyUncertain=!key||key.confidence<.7||key.margin<.08;
@@ -146,28 +149,28 @@ window.BassUploadedCore=(()=>{
   return value;
  }
 
- function rehearsalShape(id){
-  const section=plan(id,'beat');
+ function rehearsalShape(id,part=0){
+  const section=plan(id,window.BassRecordedPhrases?.[id]?.length?'phrase-'+part:'beat');
   if(!section?.recording)return [];
-  const bars=[];
-  for(let bar=0;bar<section.beats;bar+=4){
-   const notes=section.bass.filter(n=>n.beat>=bar&&n.beat<bar+4&&n.midi>=23&&n.midi<=59&&
-    (!n.review||n.confidence>=.76&&n.length*section.recording.step>=.08));
-   if(notes.length<4||!notes.some(n=>Math.abs(n.beat-Math.round(n.beat))>=.12))continue;
+  const bars=[],meter=items.find(c=>c.id===id)?.meter||4;
+  for(let bar=0;bar<section.beats;bar+=meter){
+   const notes=section.bass.filter(n=>n.beat>=bar&&n.beat<bar+meter&&n.midi>=23&&n.midi<=59&&
+    (!n.review||n.confidence>=.64&&n.length*section.recording.step>=.06));
+   if(notes.length<2||new Set(notes.map(n=>n.midi)).size<2&&!notes.some(n=>Math.abs(n.beat-Math.round(n.beat))>=.12))continue;
    const weight=new Map();
-   for(const n of notes.filter(n=>!n.review)){
+   for(const n of notes){
     const pc=n.midi%12;
     weight.set(pc,(weight.get(pc)||0)+Math.min(1,n.length)*(1+(Math.abs(n.beat-Math.round(n.beat))<.1)));
    }
    const root=[...weight].sort((a,b)=>b[1]-a[1])[0]?.[0];
-   const anchor=notes.find(n=>!n.review&&n.midi%12===root)?.midi;
+   const anchor=notes.find(n=>n.midi%12===root)?.midi;
    const role=n=>{
-    if(n.review||anchor===undefined)return 'root';
+    if(anchor===undefined)return 'root';
     const interval=(n.midi-anchor+36)%12;
     if(!interval&&n.midi>anchor)return 'octave';
-    return ({3:'third',4:'third',7:'fifth'})[interval]||'root';
+    return ({3:'third',4:'third',7:'fifth'})[interval]||'passing';
    };
-   bars.push(notes.map(n=>({beat:n.beat-bar,length:Math.min(n.length,bar+4-n.beat),role:role(n)})));
+   bars.push(notes.map(n=>({beat:(n.beat-bar)*4/meter,length:Math.min(n.length,bar+meter-n.beat)*4/meter,role:role(n),semitones:anchor===undefined?null:n.midi-anchor,confidence:n.confidence,review:!!n.review})));
   }
   return bars.sort((a,b)=>b.length-a.length)[0]||[];
  }

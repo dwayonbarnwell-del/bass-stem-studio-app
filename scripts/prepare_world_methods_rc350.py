@@ -56,7 +56,7 @@ def nominate(root,legacy):
   result.extend(selected)
  return result
 
-def phrase(bass,notes,seconds):
+def phrase(bass,notes,seconds,counts=(16,32,8),minimum_confidence=.72):
  hop=128
  env=librosa.onset.onset_strength(y=bass,sr=8000,hop_length=hop,n_fft=1024)
  tempo,frames=librosa.beat.beat_track(onset_envelope=env,sr=8000,hop_length=hop,start_bpm=115,tightness=80,trim=False)
@@ -68,7 +68,7 @@ def phrase(bass,notes,seconds):
   return chroma[:,lo:hi].mean(axis=1)
  def cosine(a,b):return float(np.dot(a,b)/max(1e-8,np.linalg.norm(a)*np.linalg.norm(b)))
  options=[]
- for count in [16,32,8]:
+ for count in counts:
   for index in range(2,len(beats)-count-2):
    start,end=float(beats[index]),float(beats[index+count]);duration=end-start
    if not 5<=duration<=21 or end+.5>seconds:continue
@@ -78,7 +78,7 @@ def phrase(bass,notes,seconds):
    if len(selected)<5:continue
    voiced=sum(min(n['end'],end)-max(n['start'],start) for n in selected)/duration
    confidence=float(np.mean([n['confidence'] for n in selected]))
-   if voiced<.32 or confidence<.72:continue
+   if voiced<.32 or confidence<minimum_confidence:continue
    beat=duration/count
    forward=cosine(descriptor(start,start+beat*2),descriptor(end,end+beat*2))
    lead=cosine(descriptor(start-beat*2,start),descriptor(end-beat*2,end))
