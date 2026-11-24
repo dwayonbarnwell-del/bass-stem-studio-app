@@ -3,6 +3,7 @@
 window.BassRehearsalIdeas=(()=>{
  'use strict';
  const C=window.BassRehearsalCore,U=window.BassUploadedCore,P=window.BassPracticeCore,F=window.BassFillCore,G=window.BassStudyGroups,Q=window.BassCuratedStudies,D=window.BassPracticeCatalogue,H=window.BassAccompaniment,X=window.BassCulturalStudies,N=window.BassStudyDisplay;
+ const M=window.BassRehearsalHarmony;
  const pc=n=>(n%12+12)%12,cache=new Map(),derivatives=new Map(),families={'bass-lady':'Bass Lady',bassmatics:'Bassmatics','world-method':'World Methods'};
  function family(row){return row.sourceFamily||families[row.group]||(row.group==='reggae'?'Reggae recordings':'Recorded bass');}
  function genre(row){return X.styleOf(row)||H.recordedStyle(row);}
@@ -72,7 +73,7 @@ window.BassRehearsalIdeas=(()=>{
   const lead=events.filter(n=>n.beat<4),ratio=60/grid.bpm*(grid.meter||4)/4;
   return lead.length>=3&&lead.every(n=>n.length*ratio>=.032)&&lead.length/Math.max(.1,(4-lead[0].beat)*ratio)<=14;
  }
- function bank(style,grid,rhythm,automatic=false){
+ function bank(style,grid,rhythm,automatic=false,context=null,selection='all'){
   if(!style||style==='roots')return [];
   const basslines=[],runs=[],fills=[];
   function addDerived(source,onlyKind){
@@ -135,6 +136,8 @@ window.BassRehearsalIdeas=(()=>{
    basslines.push({...row,id:'motif:'+row.id,kind:'basslines',originEntry:row.entry,entry:undefined,shape,label:'Motif · '+row.label,score:row.score-.03});
    if(basslines.length===4)break;
   }
+  if(M&&context)for(const row of [...basslines,...runs,...fills])row.score+=M.matchScore(row,context,selection);
+  if(M&&context&&selection!=='all')for(const rows of [runs,fills])for(let i=rows.length-1;i>=0;i--)if(!M.canPlace(rows[i].entry,context,selection))rows.splice(i,1);
   return [...diverse(basslines,12),...diverse(runs,8),...diverse(fills,8)].map(row=>({...row,label:describe(row).label}));
  }
  function strongestStyle(chords,grid,rhythm,title=''){
@@ -182,7 +185,8 @@ window.BassRehearsalIdeas=(()=>{
   for(const note of ordered){const previous=out.at(-1);if(previous)previous.stop=Math.min(previous.stop,note.time-.007);if(note.stop-note.time>=.031)out.push(note);}
   return out;
  }
- function fit(clip,choice,placement='bar'){
+ function fit(clip,choice,placement='ends',selection='all',pool=null){
+  if(M)return M.fit(clip,choice,choice?.entry||placement==='off'?[]:pool||bank(choice?.style||'roots',clip.grid,clip.rhythm,false,clip,selection),placement,selection);
   const rows=choice?.entry?[choice]:bank(choice?.style||'roots',clip.grid,clip.rhythm),candidate=choice?.entry?choice:rows.find(row=>row.kind==='fills'&&row.sourceId===choice?.sourceId)||rows.find(row=>row.kind==='fills'&&row.family===choice?.family)||rows.find(row=>row.kind==='fills');
   const base=C.fit({...clip,shape:choice?.entry?[]:choice?.shape||[],recorded:choice?.entry?false:!!choice?.recorded,fill:candidate?'off':placement});
   return candidate?addTransitions(base,clip,candidate.entry,placement):base;

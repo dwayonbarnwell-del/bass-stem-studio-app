@@ -254,6 +254,21 @@
 #earTrainerDialog #rehearsalTimeline .rehearsal-fill-note{background:linear-gradient(145deg,#665088,#3a2d52);border-color:#9078b1;color:#f4e9ff}
 #earTrainerDialog #rehearsalTimeline .active{background:linear-gradient(145deg,#cbfff0,#72cbb8);color:#122c30;border-color:#e8fffb}
 #earTrainerDialog #rehearsalTimeline .rehearsal-fill-note.active{background:linear-gradient(145deg,#ead7ff,#b899eb);color:#2c1d3d;border-color:#f7eaff}
+@layer bass-ear-267 {
+ #earTrainerDialog #rehearsalHarmony{display:flex;flex-direction:column;gap:6px;flex:none}
+ #earTrainerDialog #rehearsalProgression{display:flex;gap:5px;justify-content:center}
+ #earTrainerDialog #rehearsalProgression>span{flex:1;max-width:64px;display:grid;place-items:center;min-height:29px;border:1px solid #55798d;border-radius:7px;background:#193345;color:#c8dce7;font-weight:750}
+ #earTrainerDialog #rehearsalProgression>.current{background:#285d86;border-color:#9cdaff;color:#fff}
+ #earTrainerDialog #rehearsalMovementBox{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 11px;border:1px solid #50778e;border-radius:9px;background:#173447}
+ #earTrainerDialog #rehearsalMovement{font-size:22px!important;font-weight:800!important;line-height:1.1!important;color:#e2f5ff!important;white-space:nowrap}
+ #earTrainerDialog #rehearsalMovementChords{font-size:12px;color:#c9dfeb;text-align:right}
+ #earTrainerDialog #rehearsalMovementBox.approaching{border-color:#e6b665;background:#483b2c}
+ #earTrainerDialog #rehearsalMovementBox.landed{border-color:#a2ebdc;background:#204d47}
+ #earTrainerDialog #rehearsalTimeline .rehearsal-change-label{font-size:13px;color:#ffe2a9;white-space:nowrap;align-self:stretch;text-align:center;line-height:1.3}
+ #earTrainerDialog #rehearsalTimeline .rehearsal-landing-note{background:linear-gradient(145deg,#826131,#514128)!important;border-color:#efc785!important;color:#fff1d2!important}
+ #earTrainerDialog #rehearsalTimeline .rehearsal-landing-note.active{background:linear-gradient(145deg,#ffe6a8,#e5b858)!important;color:#342807!important;border-color:#fff3cf!important}
+ #earTrainerDialog #rehearsalTimeline .rehearsal-landing-note.active::after{border-color:#ffe6a8!important}
+}
 #earTrainerDialog :is(#rehearsalTimeline span,#fillNotes,#fillNotes button){position:relative}
 #earTrainerDialog :is(#rehearsalTimeline .active,#fillNotes .sounding)::after{
  content:"";position:absolute;inset:-3px;border:2px solid #b8f1fc;border-radius:50%;pointer-events:none;

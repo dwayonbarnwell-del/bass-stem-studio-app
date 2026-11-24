@@ -13729,7 +13729,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 html body #appRoot #songTempoWrap.on-beat{box-shadow:inset 0 0 0 3px #b9f3da!important}
 html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel .piano-chord.current-chord{background:#a7e8d2!important;color:#102b25!important;font-weight:800!important;box-shadow:inset 0 -3px #fff!important}
 </style>
-<link rel="stylesheet" href="./ear-source/trainer-rc267.css?v=rc353">
+<link rel="stylesheet" href="./ear-source/trainer-rc267.css?v=rc354">
 <style id="rc260-key-audition">@layer bass-piano-audition-260{#appRoot #pianoKeyboard .piano-key.auditioning{background:#248bd1!important;color:white!important;box-shadow:inset 0 0 0 1px #b7e4ff!important}}</style>
 <link rel="stylesheet" href="./fretflow-source/controls.css?v=rc325">
 <link rel="stylesheet" href="./fretflow-source/view.css?v=rc320">
@@ -15787,10 +15787,11 @@ window.BassBatch = (() => {
 <script src="./ear-source/catalogue-review-rc347.js?v=rc351"></script>
 <script src="./ear-source/cultural-studies-rc351.js?v=rc352"></script>
 <script src="./ear-source/study-ui-rc267.js?v=rc351"></script>
-<script src="./ear-source/rehearsal-core.js?v=rc352"></script>
-<script src="./ear-source/rehearsal-ideas-rc352.js?v=rc353"></script>
+<script src="./ear-source/rehearsal-core.js?v=rc354"></script>
+<script src="./ear-source/rehearsal-harmony-rc354.js?v=rc354"></script>
+<script src="./ear-source/rehearsal-ideas-rc352.js?v=rc354"></script>
 <script src="./ear-source/phrase-view.js?v=rc343"></script>
-<script src="./ear-source/rehearsal.js?v=rc353"></script>
+<script src="./ear-source/rehearsal.js?v=rc354"></script>
 <script src="./ear-source/trainer-rc266.js?v=rc326"></script>
 <script src="./fretflow-source/core.js?v=rc277"></script>
 <script src="./fretflow-source/practice-stems.js?v=rc305"></script>
@@ -15803,7 +15804,7 @@ window.BassBatch = (() => {
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC353';
+  const APP_VERSION='RC354';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;
@@ -21420,7 +21421,7 @@ window.BassBatch = (() => {
       if(!buffer)void window.BassSongView.openLibrary();
     },
     rehearsal:{
-      get:()=>({...studySong(),buffer,strings:fretFlowStringCount,tempo:detectedTempoBpm,phase:detectedDownbeatPhase,confidence:beatGridConfidence}),
+      get:()=>({...studySong(),buffer,strings:fretFlowStringCount,tempo:detectedTempoBpm,phase:detectedDownbeatPhase,confidence:beatGridConfidence,keyRoot:detectedScaleContext?.rootPc??null,keyMode:detectedScaleContext?.mode||'',numbering:numberingConvention}),
       session:()=>songSession,
       pickAudio:(input,onAudio)=>chooseImportFile('audio',{input,onAudio}),
       importAudio:file=>importAudioCheckingLibrary(file,{automaticAnalysis:false}),

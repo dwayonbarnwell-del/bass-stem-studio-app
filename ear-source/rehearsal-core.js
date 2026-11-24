@@ -218,7 +218,7 @@
    return {rootPc:pitch(m[1],m[2]),quality:qualities[m[3]]||'maj',bassPc:m[4]?pitch(m[4],m[5]):null,label,manual:true};
   });
   const result=[];
-  for(let i=0;i<points.length-1;i+=meter)result.push({...progression[(i/meter)%progression.length],start:points[i],end:points[i+meter]});
+  for(let i=0;i<points.length-1;i+=meter)result.push({...progression[(i/meter)%progression.length],start:points[i],end:points[Math.min(i+meter,points.length-1)]});
   return result;
  }
 
