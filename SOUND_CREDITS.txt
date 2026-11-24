@@ -103,3 +103,5 @@ Adaptations: selected roots/velocities, source tuning and gain, mono PCM16 at 32
 
 Groove MIDI Dataset drum performances (CC BY 4.0)
 Two-bar excerpts retain the performers’ timing and dynamics and use the Virtuosity Drums sounds credited above. Source performances, performers, release details, attribution and modifications are listed in licenses/groove-midi/sources.txt.
+
+RC346 fingered practice bass: GeneralUser GS v2.0.3 by S. Christian Collins. Rendered note performances at two velocities, with original note timing, a warm bass filter and neighbouring-note pitch shifting. Source: https://github.com/mrbumpy409/GeneralUser-GS . Licence and notices: licenses/generaluser-gs/LICENSE.txt .

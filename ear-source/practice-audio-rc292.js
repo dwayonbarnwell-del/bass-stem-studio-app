@@ -12,9 +12,15 @@ window.BassPracticeAudio=(()=>{
   const proxy={get currentTime(){return context.currentTime;},destination:sub,createBufferSource:()=>context.createBufferSource(),createGain:()=>context.createGain()};
   buses.set(context,proxy);return proxy;
  }
- const prepare=(...args)=>A().prepare(...args);
+ async function prepare(sound='piano',context,options){
+  if(sound==='bass'&&window.BassFingeredBass){
+   try{return await window.BassFingeredBass.prepare(context,options);}catch{}
+  }
+  return A().prepare(sound,context,options);
+ }
  function tone(context,midi,when,length,sound='piano',age=0,velocity=80,level=1){
   const v=Math.max(1,Math.min(127,Number(velocity)||80));
+  if(sound==='bass'&&window.BassFingeredBass?.has(midi))return window.BassFingeredBass.tone(bassContext(context),midi,when,length,age,v,level*.82*(v/90)**.7);
   return A().tone(sound==='bass'?bassContext(context):context,midi,when,length,sound,age,v,level*(sound==='bass'?.82*(v/90)**.7:1));
  }
  function muted(context,when,level){
