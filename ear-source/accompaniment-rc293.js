@@ -79,13 +79,13 @@ window.BassAccompaniment=(()=>{
  }
  function profile(plan){
   const item=plan.kind==='basslines'?window.BassPracticeCore.lines[plan.idea]:plan.kind==='runs'?window.BassPracticeCore.runs[plan.idea]:plan.kind==='fills'?window.BassFillCore.styles[plan.idea]:plan;
-  const dance=namedGenre(item);
-  const id=plan.kind==='uploaded'?recordedStyle(plan)||identify(plan):identify(item);
+  const dance=plan.culturalStyle||namedGenre(item);
+  const id=profiles[plan.practiceStyle]?plan.practiceStyle:plan.kind==='uploaded'?recordedStyle(plan)||identify(plan):identify(item);
   return {id,dance,style:id,...profiles[id]};
  }
  function resolve(plan,options={}){
   const p=profile(plan),valid=(value,values,fallback)=>values.includes(value)?value:fallback;
-  const key=plan.kind==='uploaded'?plan.clipId+'/'+String(plan.part).replace('phrase-',''):[plan.kind,plan.idea,plan.part||0].join('/');
+  const key=plan.recordedStudy?'culture/'+plan.curated.id:plan.kind==='uploaded'?plan.clipId+'/'+String(plan.part).replace('phrase-',''):[plan.kind,plan.idea,plan.part||0].join('/');
   const assignment=window.BassFlDrums?.assignments[key]||window.BassGrooveLibrary?.assignments[key];
   if(window.BassSuppliedDrums&&(!options.kit||options.kit==='auto')&&(!options.groove||options.groove==='auto')){
    const measured=window.BassRecordingTiming?.[plan.clipId]?.loop;

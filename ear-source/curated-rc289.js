@@ -173,6 +173,7 @@ window.BassCuratedStudies=(()=>{
  const pc=n=>(n%12+12)%12;
  function make(kind,opts={}){
   const entry=get(kind,opts.idea);if(!entry)return null;
+  if(entry.recordedStudy)return window.BassCulturalStudies.make(kind,entry,opts);
   const key=pc(Math.round(Number(opts.key)||0)),mode=entry.mode,scale=F.scales[mode];
   const from=Math.max(1,Math.min(7,Math.round(Number(opts.from)||1)));let to=Math.max(1,Math.min(7,Math.round(Number(opts.to)||4)));if(from===to)to=from%7+1;
   const degree=n=>36+key+scale[(n%7+7)%7]+12*Math.floor(n/7),source=degree(from-1);

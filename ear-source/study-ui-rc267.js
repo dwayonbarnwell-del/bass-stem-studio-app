@@ -103,9 +103,26 @@ window.BassFillTrainer=(()=>{
  const collections=()=>kind==='runs'?P.runs:kind==='basslines'?P.lines.map(x=>[D.lineLabel(x),x.tip]):F.styles;
  function patternId(i){return kind==='basslines'?P.lines[i]?.id:collections()[i]?.id||String(i);}
  function loadGroup(){if(!G||kind==='basslines')return;$('fillGroup').value=selectedGroups[kind];}
+ function groupOptions(){
+  if(!G||kind==='basslines')return;
+  const groups=G.available(kind),select=$('fillGroup');select.replaceChildren();
+  for(const [id,label] of groups)select.add(new Option(label,id));
+  if(!groups.some(([id])=>id===selectedGroups[kind]))selectedGroups[kind]=groups[0]?.[0]||'gospel';
+  loadGroup();
+ }
+ function transitionOptions(){
+  if(!G||kind==='basslines')return;
+  const indices=G.matching(kind,selectedGroups[kind]),supported=(from,to)=>indices.some(i=>G.supports(kind,i,from,to));
+  for(const option of $('fillFrom').options)option.disabled=![1,2,3,4,5,6,7].some(to=>to!==Number(option.value)&&supported(option.value,to));
+  if($('fillFrom').selectedOptions[0]?.disabled)$('fillFrom').value=[...$('fillFrom').options].find(o=>!o.disabled)?.value||'1';
+  const from=Number($('fillFrom').value);
+  for(const option of $('fillTo').options)option.disabled=Number(option.value)===from||!supported(from,option.value);
+  if($('fillTo').selectedOptions[0]?.disabled)$('fillTo').value=[4,5,1,2,6,3,7].map(n=>[...$('fillTo').options].find(o=>Number(o.value)===n&&!o.disabled)).find(Boolean)?.value||'4';
+ }
  function ideaOptions(wanted=remembered[kind]){
-  const select=$('fillIdea');select.replaceChildren();const rows=collections().map((s,i)=>({s,i,line:kind==='basslines'?P.lines[i]:null})).filter(({i,line})=>kind==='basslines'?D.visible(kind,patternId(i))&&H.category(line)===$('fillCollection').value:G?G.visible(kind,i)&&G.groupOf(kind,i)===selectedGroups[kind]:D.visible(kind,patternId(i)));
-  rows.sort((a,b)=>C&&kind!=='basslines'?C.compare(kind,a.i,b.i):0);let studies;if(kind==='basslines'&&rows.length){studies=document.createElement('optgroup');studies.label='Practice patterns';select.append(studies);}
+  const select=$('fillIdea');select.replaceChildren();const rows=collections().map((s,i)=>({s,i,line:kind==='basslines'?P.lines[i]:null})).filter(({i,line})=>kind==='basslines'?D.visible(kind,patternId(i))&&H.category(line)===$('fillCollection').value:G?G.visible(kind,i)&&G.groupOf(kind,i)===selectedGroups[kind]&&G.supports(kind,i,$('fillFrom').value,$('fillTo').value):D.visible(kind,patternId(i)));
+  const sourcePriority=i=>{const entry=C?.get(kind,i);return entry?.recordedStudy?(window.BassCulturalStudies.nativeMatch(entry,$('fillFrom').value,$('fillTo').value)?0:1):2;};
+  rows.sort((a,b)=>C&&kind!=='basslines'?sourcePriority(a.i)-sourcePriority(b.i)||C.compare(kind,a.i,b.i):0);let studies;if(kind==='basslines'&&rows.length){studies=document.createElement('optgroup');studies.label='Practice patterns';select.append(studies);}
   for(const {s,i,line} of rows){
    const parts=line?P.phrases(line.degrees):[null];
    for(const [part,degrees] of parts.entries()){
@@ -181,7 +198,7 @@ window.BassFillTrainer=(()=>{
   $('fillDeletedEmpty').hidden=!!list.children.length;
   $('fillEmptyDeleted').disabled=!list.children.length;
  }
- function refreshDeleted(){collectionOptions();ideaOptions($('fillIdea').value);clipOptions();draw();deletedItems();}
+ function refreshDeleted(){collectionOptions();groupOptions();transitionOptions();ideaOptions($('fillIdea').value);clipOptions();draw();deletedItems();}
  function later(fn,ms){timers.push(setTimeout(fn,ms));}
  function playbackLayout(){
   const study=$('earFillStudy'),value=String(playing);
@@ -249,8 +266,9 @@ window.BassFillTrainer=(()=>{
  function showPlan(value){
   rendered=null;plan=value&&value.kind!=='uploaded'?R.plan(value):value;$('fillPlayer').hidden=!plan;$('fillEmpty').hidden=!!plan;state();soundSettings();if(!plan){stop();return;}
   const row=kind==='basslines'?(plan.kind==='uploaded'?U.items.find(c=>c.id===plan.clipId):P.lines[plan.idea]):collections()[plan.idea];$('fillHeading').textContent=plan.kind==='uploaded'?$('fillIdea').selectedOptions[0].dataset.name:$('fillIdea').selectedOptions[0].textContent;harmonyChips();
-  $('fillDifference').textContent=row?.difference?row.difference+' (est.)':'';$('fillDifference').hidden=!row?.difference;
-  $('fillStatus').textContent=plan.kind==='uploaded'?(row.collection==='recorded-reggae'?'Estimated sections & notes · check':row.originalMix?'Automatic notes · check':'Suggested chords'):'';$('fillNotes').replaceChildren();notePage=0;
+  const source=plan.recordedStudy;
+  $('fillDifference').textContent=source?'Adapted · '+source.family+' · '+source.sourceTitle+' · '+plan.from+'→'+plan.to+' (est.)':row?.difference?row.difference+' (est.)':'';$('fillDifference').hidden=!source&&!row?.difference;
+  $('fillStatus').textContent=source?'Adapted source notes · check':plan.kind==='uploaded'?(row.collection==='recorded-reggae'?'Estimated sections & notes · check':row.originalMix?'Automatic notes · check':'Suggested chords'):'';$('fillNotes').replaceChildren();notePage=0;
   plan.bass.forEach((n,i)=>{const b=document.createElement('button');b.type='button';b.textContent=F.note(n.midi);b.title=F.note(n.midi)+(plan.kind==='uploaded'?' · '+U.time(n.sourceTime):' · beat '+(Math.round((n.beat%4+1)*100)/100));if(n.review){b.classList.add('needs-review');b.title+=' · Check note';}b.setAttribute('aria-label','Hear '+F.note(n.midi));b.dataset.index=i;const chord=harmony[N.active(harmony,n.beat)];if(n.role==='landing'||(chord&&(n.midi%12+12)%12===chord.rootPc))b.classList.add('landing');b.onclick=()=>void preview(n);$('fillNotes').append(b);});notePages();state();if(playing)void updatePlayback();
  }
  async function preview(n){
@@ -430,7 +448,7 @@ window.BassFillTrainer=(()=>{
   $('fillBassVolume').oninput=()=>{bassVolume=Number($('fillBassVolume').value)/100;$('fillBassLevel').textContent=Math.round(bassVolume*100)+'%';level('bass',bassVolume);saveDrums();};
   $('fillDrumVolume').oninput=()=>{drumVolume=Number($('fillDrumVolume').value)/100;$('fillDrumLevel').textContent=Math.round(drumVolume*100)+'%';level('drums',drums?drumVolume:0);saveDrums();};
   $('fillDrums').onclick=()=>{drums=!drums;saveDrums();level('drums',drums?drumVolume:0);state();};
-  if(G){for(const [id,label] of G.groups)option('fillGroup',id,label);loadGroup();$('fillGroup').onchange=()=>{selectedGroups[kind]=$('fillGroup').value;try{localStorage.setItem(groupKey,JSON.stringify(selectedGroups));}catch{}ideaOptions();draw();};}
+  if(G){for(const [id,label] of G.groups)option('fillGroup',id,label);loadGroup();$('fillGroup').onchange=()=>{selectedGroups[kind]=$('fillGroup').value;try{localStorage.setItem(groupKey,JSON.stringify(selectedGroups));}catch{}transitionOptions();ideaOptions();draw();};}
   collectionOptions();
   
   clipOptions();
@@ -438,7 +456,8 @@ window.BassFillTrainer=(()=>{
   $('fillExcerpt').onchange=()=>{if(imported()){const id=$('fillClip').value,part=Number($('fillExcerpt').value.slice(7));$('fillIdea').selectedOptions[0].value='clip:'+id+(part?'/'+part:'');}draw();};
   for(let i=1;i<=7;i++){option('fillFrom',i,'From: '+i);option('fillTo',i,'To: '+i);} $('fillTo').value='4';
   F.names.forEach((n,i)=>option('fillKey',i,'Key: '+n));F.styles.forEach((s,i)=>option('fillIdea',i,(i+1)+'. '+s[0]));$('fillTempo').value='80';
-  for(const id of ['fillFrom','fillTo','fillKey','fillIdea'])$(id).onchange=draw;
+  for(const id of ['fillKey','fillIdea'])$(id).onchange=draw;
+  for(const id of ['fillFrom','fillTo'])$(id).onchange=()=>{transitionOptions();ideaOptions();draw();};
   let editedIdea='';
   function applyTempo(){
    clearTimeout(tempoTimer);
@@ -481,10 +500,10 @@ window.BassFillTrainer=(()=>{
    }catch{$('fillManageStatus').textContent='Could not empty deleted items.';}
   };
   $('fillDeletedClose').onclick=()=>{$('fillDeletedPanel').hidden=true;$('fillRestore').setAttribute('aria-expanded','false');$('fillRestore').focus();};
-  window.addEventListener('pagehide',stop);ideaOptions();draw();
+  window.addEventListener('pagehide',stop);groupOptions();transitionOptions();ideaOptions();draw();
  }
  function setKind(next){
-  kind=['fills','runs','basslines'].includes(next)?next:'fills';if(kind==='basslines')clipOptions();$('fillSettings').hidden=false;$('fillNext').hidden=false;loadGroup();ideaOptions();draw();
+  kind=['fills','runs','basslines'].includes(next)?next:'fills';if(kind==='basslines')clipOptions();$('fillSettings').hidden=false;$('fillNext').hidden=false;groupOptions();transitionOptions();loadGroup();ideaOptions();draw();
  }
  return {init,stop,setKind};
 })();

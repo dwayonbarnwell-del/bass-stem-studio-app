@@ -88,12 +88,14 @@ window.BassCatalogueReview=(()=>{
    const entry=describe(original),rows=entry.kind==='runs'?P.runs:entry.kind==='fills'?F.styles:[];
    const row=rows.find((r,i)=>(r.id||String(i))===entry.id||r.aliasIds?.includes(entry.id));
    const id=row?.id||entry.id,key=entry.kind+':'+id;
-   if(!merged.has(key))merged.set(key,{...entry,restoreItems:[]});
+   const blocked=row?.curated?.recordedStudy&&window.BassCulturalStudies?.available(row.curated)===false;
+   if(!merged.has(key))merged.set(key,{...entry,...(blocked?{available:false,reason:'Restore source recording first'}:{}),restoreItems:[]});
    merged.get(key).restoreItems.push({kind:entry.kind,id:entry.id});
   }
   return [...merged.values()].sort((a,b)=>a.kind.localeCompare(b.kind)||a.title.localeCompare(b.title));
  }
  function restore(entry){
+  if(entry.available===false)throw Error(entry.reason||'This pattern is unavailable');
   const items=[...entry.restoreItems],hide=[];
   for(const item of entry.restoreItems){
    const [id,part]=item.id.split('/');

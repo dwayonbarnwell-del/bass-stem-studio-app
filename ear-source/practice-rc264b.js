@@ -80,7 +80,7 @@ window.BassPracticeCore=(()=>{
  function make(kind,opts={}){
   const plan=makeStudy(kind,opts);
   if(kind!=='fills'&&kind!=='runs')return plan;
-  if(window.BassStudyGroups?.groupOf(kind,plan.idea)==='african')return plan;
+  if(plan.recordedStudy||window.BassStudyGroups?.isCultural(kind,plan.idea))return plan;
   const notes=plan.bass.slice(1,-1),landing=plan.bass.at(-1);
   const style=window.BassStudyGroups?.groupOf(kind,plan.idea)||'gospel';
   if(notes.length<5){
