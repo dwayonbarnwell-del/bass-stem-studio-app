@@ -14,8 +14,8 @@ window.BassRehearsal=(()=>{
  const $=id=>host.querySelector('#'+id);
  const state=text=>{$('rehearsalStatus').textContent=text;};
  const harmonyRevision=value=>JSON.stringify([value?.keyRoot,value?.keyMode,value?.root,value?.mode,value?.numbering,value?.tempo,value?.phase,value?.confidence,value?.meter,value?.beats,value?.chords?.map(c=>[c.start,c.end,c.rootPc,c.quality,c.bassPc,c.uncertain,c.manual,c.rootOnly]),value?.notes?.map(n=>[n.start,n.end,n.midi])]);
- let phraseRepeat=null,phrases,phraseEvents=[],previewClip=null,harmonyPage='';
- let featured=[],viewNotes=[],viewPosition=0,fretView,fretNotes=[],notePage=-1,markers=[],audible=false;
+ let phraseRepeat=null,phrases,phraseEvents=[],previewClip=null;
+ let featured=[],viewNotes=[],viewPosition=0,fretView,fretNotes=[],notePage=-1,markers=[],changeMarkers=[],audible=false;
 
  function init(panel,hooks){
   host=panel;api=hooks;
@@ -55,7 +55,6 @@ window.BassRehearsal=(()=>{
     <div class="rehearsal-readout"><output id="rehearsalTime"></output><output id="rehearsalCue"></output></div>
     <select id="rehearsalView" aria-label="Rehearsal view"><option value="notes">Note View</option><option value="phrase">Phrase View</option><option value="fret">Fret View</option><option value="fret2">Fret View 2</option></select>
     <div id="rehearsalVisual" hidden>
-     <div id="rehearsalHarmony" hidden><div id="rehearsalProgression" aria-label="Song progression"></div><div id="rehearsalMovementBox"><strong id="rehearsalMovement"></strong><small id="rehearsalMovementChords"></small></div></div>
      <div class="bass-phrase" id="rehearsalPhrases" hidden></div>
      <div id="rehearsalTimeline" aria-label="Rehearsal note timeline"></div>
      <div id="rehearsalFret" hidden></div>
@@ -216,7 +215,7 @@ window.BassRehearsal=(()=>{
  }
 
  function resetClip(){
-  phraseRepeat=null;stop();discardPreparation();clip=null;previewClip=null;harmonyPage='';
+  phraseRepeat=null;stop();discardPreparation();clip=null;previewClip=null;
   if(mixFailed){noBass=true;mixFailed=false;labelMix();}
   setNotes([]);
  }
@@ -320,7 +319,7 @@ window.BassRehearsal=(()=>{
   phraseEvents=notes.map(n=>({...n,start:n.time,end:n.stop}));
   setNotes.index=window.BassPlaybackTiming?.index?.(notes,n=>n.time,n=>n.stop);
   fretNotes=notes.filter(n=>n.midi!==null).map(n=>({midi:n.midi,start:n.time,end:n.stop,isFill:n.role==='fill'||n.role==='run'}));
-  notePage=-1;harmonyPage='';
+  notePage=-1;
   $('rehearsalVisual').hidden=!notes.length;
   drawView();
  }
@@ -328,7 +327,6 @@ window.BassRehearsal=(()=>{
  function drawView(){
   if(!clip||!viewNotes.length)return;
   const mode=$('rehearsalView').value,board=$('rehearsalFret'),timeline=$('rehearsalTimeline');
-  drawHarmony(mode);
   const phraseHost=$('rehearsalPhrases');
   phraseHost.hidden=mode!=='phrase';board.hidden=mode==='notes'||mode==='phrase';timeline.hidden=mode!=='notes';
   if(mode==='phrase'){
@@ -350,14 +348,22 @@ window.BassRehearsal=(()=>{
   const currentSecond=Math.min(endSecond-1,Math.max(startSecond,Math.floor(viewPosition)));
   const first=startSecond+4*Math.floor((currentSecond-startSecond)/4);
   if(first!==notePage){
-   notePage=first;markers=[];
+   notePage=first;markers=[];changeMarkers=[];
    const columns=[];
+   const changes=H?H.prepare(clip).transitions:[];
+   function changeLabel(cell,change,start,end){
+    const label=document.createElement('strong');label.className='rehearsal-change-label';label.textContent=change.label;label.title=change.names;cell.append(label);changeMarkers.push({label,start,end});
+   }
    for(let i=first;i<Math.min(endSecond,first+4);i++){
     const cell=document.createElement('div'),time=document.createElement('time');
-    time.textContent=minutesSeconds(i);cell.append(time);
-    if(H)for(const change of H.prepare(clip).transitions){
+    cell.dataset.second=String(i);time.textContent=minutesSeconds(i);cell.append(time);
+    if(H&&i===first){
+     const chord=H.at(clip,Math.max(first,clip.start)+.0001);
+     if(chord&&chord.start<first-.01){const previous=changes.find(change=>change.to===chord);changeLabel(cell,previous||{label:chord.number,names:chord.name},chord.start,chord.end);}
+    }
+    for(const change of changes){
      const at=change.loop?clip.start:change.at;if(at<i||at>=i+1)continue;
-     const label=document.createElement('strong');label.className='rehearsal-change-label';label.textContent=change.label;label.title=change.names;cell.append(label);
+     changeLabel(cell,change,at,change.to.end);
     }
     for(const note of viewNotes){
      const start=Math.max(note.time,first);
@@ -375,21 +381,12 @@ window.BassRehearsal=(()=>{
    timeline.replaceChildren(...columns);
   }
   for(const {note,chip} of markers)chip.classList.toggle('active',audible&&note.time<=viewPosition&&viewPosition<note.stop);
- }
-
- function drawHarmony(mode){
-  const host=$('rehearsalHarmony');if(!host)return;host.hidden=!H||mode!=='notes';if(host.hidden)return;
-  const prepared=H.prepare(clip),moving=H.movement(clip,viewPosition),index=prepared.segments.indexOf(moving.chord),first=Math.max(0,Math.min(prepared.segments.length-5,index-1)),page=first+'/'+prepared.segments.length;
-  if(page!==harmonyPage){
-   harmonyPage=page;const rows=prepared.segments.slice(first,first+5).map((chord,offset)=>{const node=document.createElement('span');node.dataset.index=String(first+offset);node.textContent=chord.number;node.title=chord.name;return node;});$('rehearsalProgression').replaceChildren(...rows);
+  for(const cell of timeline.children)cell.classList.toggle('current-time',audible&&Number(cell.dataset.second)===currentSecond);
+  const next=changeMarkers.filter(marker=>marker.start>viewPosition+.001).sort((a,b)=>a.start-b.start)[0],lead=60/(clip.grid?.bpm||100);
+  for(const marker of changeMarkers){
+   const active=audible&&marker.start<=viewPosition&&viewPosition<marker.end;
+   marker.label.classList.toggle('change-current',active);marker.label.classList.toggle('change-next',audible&&marker===next&&marker.start-viewPosition<=lead);marker.label.setAttribute('aria-current',active?'step':'false');
   }
-  for(const item of $('rehearsalProgression').children)item.classList.toggle('current',Number(item.dataset.index)===index);
-  const step=60/(clip.grid?.bpm||100),recent=prepared.transitions.find(t=>!t.loop&&viewPosition>=t.at&&viewPosition<t.at+step*.6),change=recent||moving.next;
-  const label=change?change.label.replace('→',' → '):moving.chord?.number||'—';
-  if($('rehearsalMovement').textContent!==label)$('rehearsalMovement').textContent=label;
-  const caption=change?(change.label===change.names?'':change.names.replace('→',' → ')+' · ')+(recent?'Now':Math.ceil(Math.max(0,moving.beats||0))+' beats'):moving.chord?.name||'Chords unavailable';
-  if($('rehearsalMovementChords').textContent!==caption)$('rehearsalMovementChords').textContent=caption;
-  $('rehearsalMovementBox').classList.toggle('approaching',!!change&&!recent&&moving.beats<=2);$('rehearsalMovementBox').classList.toggle('landed',!!recent);
  }
 
  function changePattern(){

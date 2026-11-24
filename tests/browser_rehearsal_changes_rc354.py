@@ -29,9 +29,12 @@ with sync_playwright()as p:
  for group in ['Basslines','Runs','Fills']:assert page.locator('#rehearsalPattern optgroup[label="'+group+'"] option').count()>0
  run=page.locator('#rehearsalPattern optgroup[label="Runs"] option').first.get_attribute('value');page.locator('#rehearsalPattern').select_option(run)
  page.locator('#rehearsalPlay').click();page.wait_for_function('bandStarts.length===1&&document.getElementById("rehearsalPlay").textContent==="Pause"')
- page.wait_for_function('document.getElementById("rehearsalMovementBox").classList.contains("approaching")&&document.getElementById("rehearsalMovement").textContent==="1 → 6"')
- page.wait_for_function('document.getElementById("rehearsalMovementBox").classList.contains("landed")&&document.getElementById("rehearsalMovement").textContent==="1 → 6"')
- assert page.locator('#rehearsalProgression .current').inner_text()=='6'
+ assert page.locator('#rehearsalHarmony,#rehearsalProgression,#rehearsalMovementBox').count()==0
+ page.wait_for_function('guideNotes.some(n=>Math.abs(n.when-bandStarts[0]-2)<.04&&n.midi%12===9)')
+ page.wait_for_function('document.querySelector("#rehearsalTimeline .change-current")?.textContent==="1→6"')
+ assert page.locator('#rehearsalTimeline .current-time>time').inner_text()=='0:02'
+ assert page.locator('#rehearsalTimeline .change-current').get_attribute('aria-current')=='step'
+ assert page.locator('#rehearsalTimeline time').all_text_contents()==['0:00','0:01','0:02','0:03']
  assert page.locator('#rehearsalTimeline .rehearsal-change-label').all_text_contents()==['5→1','1→6']
  assert page.locator('#rehearsalTimeline .rehearsal-landing-note').count()>=2
  assert page.evaluate('guideNotes.some(n=>Math.abs(n.when-bandStarts[0]-2)<.04&&n.midi%12===9)'),'1→6 did not land on A'
@@ -51,6 +54,6 @@ with sync_playwright()as p:
  page.wait_for_function('guideNotes.some(n=>Math.abs(n.when-bandStarts[1]-2)<.04&&n.midi%12===4)')
  page.locator('#rehearsalPlay').click();assert page.evaluate('bandStops.length===2')
  assert not errors,errors
- print(json.dumps(dict(passed=True,actualDegreeChanges=list(moves),focused16=True,numberedNoteView=True,approachAndLandingEmphasised=True,actualBassLandingA=True,continuousChangeAndGenreSwitch=True,correctedChordsInvalidateGuide=True)),flush=True)
+ print(json.dumps(dict(passed=True,actualDegreeChanges=list(moves),focused16=True,twoExtraRowsRemoved=True,currentChangeStronglyHighlighted=True,noteTimestampsPreserved=True,actualBassLandingA=True,continuousChangeAndGenreSwitch=True,correctedChordsInvalidateGuide=True)),flush=True)
  browser.close()
 server.shutdown()
