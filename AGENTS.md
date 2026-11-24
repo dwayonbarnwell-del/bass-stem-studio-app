@@ -42,3 +42,5 @@ On 17 November 2026, the user authorised publishing all Bass Stem Studio platfor
 - RC352 extension: standardise Rehearsal choices across every available genre, including Worship, R&B, Gospel, Soul, Reggae, Jazz and Blues. Each applicable genre should offer bassline, run and fill alternatives from its visible repertoire. Use actual song harmony and context, with adaptations labelled; honour all earlier source and pattern deletions.
 
 - RC352 clarification: the wider Rehearsal genres are additions. Keep Makossa, Woro and all other existing genre choices. Give the main Rehearse button its own clearly distinct colour alongside Basslines, Runs and My fills.
+
+- RC353 instruction: Rehearsal alternative names must be short, distinct and clear about their source and genre. Use the stored source metadata for Bassmatics, Bass Lady, World Methods and other recordings; keep generated practice patterns labelled Practice. Show Adapted once with the selected source details instead of repeating it throughout the menu. Preserve study IDs, music, genres, deletions and playback.

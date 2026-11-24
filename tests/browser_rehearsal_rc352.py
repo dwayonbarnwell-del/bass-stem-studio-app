@@ -54,7 +54,11 @@ with sync_playwright()as p:
  for style in ['worship','rnb','gospel','soul','reggae','jazz','blues','makossa','woro','highlife','ariaria','seben','soukous','zouk','source:bass-lady','source:bassmatics','source:world-method']:
   page.locator('#rehearsalStyle').select_option(style)
   groups=page.locator('#rehearsalPattern optgroup').evaluate_all('(rows)=>rows.map(r=>r.label)')
-  assert all(label in groups for label in ['Bassline alternatives','Runs','Fills']),(style,groups)
+  assert all(label in groups for label in ['Basslines','Runs','Fills']),(style,groups)
+  assert page.locator('#rehearsalSource').inner_text().endswith('Adapted')
+  labels=page.locator('#rehearsalPattern option').all_text_contents()
+  assert not any('Pattern' in label or 'adapted' in label or 'Chord-tone' in label for label in labels)
+  assert all(len(label)<=34 for label in labels),(style,labels)
  page.locator('#rehearsalStyle').select_option('woro')
  run=page.locator('#rehearsalPattern optgroup[label="Runs"] option').first.get_attribute('value');page.locator('#rehearsalPattern').select_option(run)
  page.locator('#rehearsalPlay').click();page.wait_for_function('bandStarts.length===1&&document.getElementById("rehearsalPlay").textContent==="Pause"')

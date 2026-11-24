@@ -43,7 +43,7 @@ for(const style of required){
  for(const kind of ['basslines','runs','fills']){
   const choices=rows.filter(r=>r.kind===kind);assert(choices.length,'Missing '+style+' '+kind);
   for(const choice of choices.slice(0,2)){
-   assert(/adapted/.test(choice.label));const notes=I.fit(clip,choice,'ends');
+   assert(/Adapted/.test(I.describe(choice).detail));const notes=I.fit(clip,choice,'ends');
    assert(notes.length);assert(notes.every(n=>Number.isFinite(n.time)&&Number.isFinite(n.stop)&&n.stop>n.time&&n.time>=0&&n.stop<=12&&(n.midi===null||n.midi>=23&&n.midi<=59)));
    if(choice.entry){assert(notes.some(n=>n.role===(kind==='runs'?'run':'fill')));assert(!I.fit(clip,choice,'off').some(n=>n.role==='run'||n.role==='fill'));}
    fitted++;

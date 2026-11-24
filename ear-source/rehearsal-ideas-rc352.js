@@ -13,6 +13,29 @@ window.BassRehearsalIdeas=(()=>{
   for(const row of U.items)if(D.visible('uploaded',row.id)){const id=genre(row);if(id&&H.profiles[id]&&!known.has(id)){styles.push([id,H.profiles[id].label]);known.add(id);}}
   return styles;
  }
+ const sourceNumbers=new Map(),sourceCounts=new Map();
+ function sourceNumber(row){
+  if(!sourceNumbers.has(row.id)){const name=family(row),number=Number(row.id.match(/^(?:lady|matics)-(\d+)$/)?.[1])||(sourceCounts.get(name)||0)+1;sourceCounts.set(name,Math.max(number,sourceCounts.get(name)||0));sourceNumbers.set(row.id,number);}
+  return sourceNumbers.get(row.id);
+ }
+ U.items.forEach(sourceNumber);
+ function describe(row){
+  const entry=row.entry||row.originEntry,study=entry?.recordedStudy,sourceId=study?.sourceId||row.sourceId,source=U.find(sourceId);
+  const sourceFamily=study?.family||row.family||'Practice',practice=/^Practice/.test(sourceFamily),genreLabel=C.styles.find(([id])=>id===row.style)?.[1]||H.profiles[row.style]?.label||'Genre unconfirmed';
+  let number,variant=0,part=study?.sourcePart??row.sourcePart??0;
+  if(source&&!practice)number=sourceNumber(source);
+  else if(study?.sourceKind==='basslines'||!entry)number=P.lines.findIndex(r=>r.id===sourceId)+1;
+  else number=Q.entries.findIndex(r=>r.id===(study?.sourceId||entry.id))+1;
+  if(study){
+   variant=entry.rehearsalVariant||X.entries.filter(r=>r.kind===entry.kind&&r.recordedStudy.sourceKind===study.sourceKind&&r.recordedStudy.sourceId===sourceId&&r.recordedStudy.sourcePart===part).findIndex(r=>r.id===entry.id)+1;
+  }
+  const sourceLabel=practice?'Practice':sourceFamily.replace(/ recordings$/,'');
+  const code=String(number||1).padStart(2,'0')+((window.BassRecordedPhrases?.[sourceId]?.length||0)>1?'.'+(part+1):'')+(variant?'.'+variant:'');
+  const label=sourceLabel+' '+code+(sourceLabel===genreLabel||row.style==='recordings'?'':' · '+genreLabel);
+  const detail=[practice?'Practice':sourceFamily,...sourceLabel===genreLabel?[]:[genreLabel],'Adapted'].join(' · ');
+  const original=source?.originalTitle||P.lines.find(r=>r.id===sourceId)?.name||entry?.title||'';
+  return {label,detail,source:practice?'Practice':sourceFamily,genre:genreLabel,sourceId,original};
+ }
  function derived(source){
   const key=source.kind+'/'+source.id+'/'+source.part;
   if(!derivatives.has(key)){
@@ -25,7 +48,7 @@ window.BassRehearsalIdeas=(()=>{
      if(shapes.has(row.shape))continue;
      try{for(let interval=0;interval<12;interval++)X.retarget({events:row.events,interval:row.interval},interval);}catch{continue;}
      shapes.add(row.shape);
-     list.push({id:row.id,kind,title:source.title,recordedStudy:{sourceKind:source.kind,sourceId:source.id,sourcePart:source.part,family:source.family,sourceTitle:source.title,style:source.style,interval:row.interval,nativeBpm:60/source.step,events:row.events,estimated:true}});
+     list.push({id:row.id,kind,title:source.title,rehearsalVariant:list.filter(r=>r.kind===kind).length+1,recordedStudy:{sourceKind:source.kind,sourceId:source.id,sourcePart:source.part,family:source.family,sourceTitle:source.title,style:source.style,interval:row.interval,nativeBpm:60/source.step,events:row.events,estimated:true}});
      if([...list].filter(r=>r.kind===kind).length===12)break;
     }
    }
@@ -109,10 +132,10 @@ window.BassRehearsalIdeas=(()=>{
   if(!basslines.length)for(const row of [...runs,...fills].sort((a,b)=>b.score-a.score)){
    const shape=row.shape.filter((n,i,all)=>i===0||n.beat-all[i-1].beat>=.45||Math.abs(n.beat-Math.round(n.beat))<.06).slice(0,8).map(n=>({...n,length:Math.min(n.length,.65)}));
    if(shape.length<3)continue;
-   basslines.push({...row,id:'motif:'+row.id,kind:'basslines',entry:undefined,shape,label:'Motif · '+row.label,score:row.score-.03});
+   basslines.push({...row,id:'motif:'+row.id,kind:'basslines',originEntry:row.entry,entry:undefined,shape,label:'Motif · '+row.label,score:row.score-.03});
    if(basslines.length===4)break;
   }
-  return [...diverse(basslines,12),...diverse(runs,8),...diverse(fills,8)];
+  return [...diverse(basslines,12),...diverse(runs,8),...diverse(fills,8)].map(row=>({...row,label:describe(row).label}));
  }
  function strongestStyle(chords,grid,rhythm,title=''){
   const hinted=H.namedGenre?.({title})||X.styleOf({title}),fallback=C.suggest(chords,grid);
@@ -164,5 +187,5 @@ window.BassRehearsalIdeas=(()=>{
   const base=C.fit({...clip,shape:choice?.entry?[]:choice?.shape||[],recorded:choice?.entry?false:!!choice?.recorded,fill:candidate?'off':placement});
   return candidate?addTransitions(base,clip,candidate.entry,placement):base;
  }
- return {sourceOptions,availableStyles,bank,strongestStyle,eventsBetween,addTransitions,fit,genre,family};
+ return {sourceOptions,availableStyles,bank,strongestStyle,eventsBetween,addTransitions,fit,genre,family,describe};
 })();

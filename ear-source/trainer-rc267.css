@@ -225,6 +225,10 @@
 #earTrainerDialog #rehearsalStatus:empty,#earTrainerDialog #rehearsalTime:empty,#earTrainerDialog #rehearsalCue:empty{display:none}
 #earTrainerDialog #earRehearsal[data-playing="true"] #rehearsalEditor{gap:7px}
 #earTrainerDialog #rehearsalCue{font-weight:700;color:#a7e5d9}
+@layer bass-ear-267 {
+ #earTrainerDialog #rehearsalSource{font-size:12px!important;color:#bfd4e3!important;line-height:1.3!important;overflow-wrap:anywhere!important}
+ #earTrainerDialog #rehearsalSource:empty{display:none!important}
+}
 #earTrainerDialog .rehearsal-readout{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px}
 #earTrainerDialog .rehearsal-readout:not(:has(output:not(:empty))){display:none}
 #earTrainerDialog #earRehearsal:not([hidden]),

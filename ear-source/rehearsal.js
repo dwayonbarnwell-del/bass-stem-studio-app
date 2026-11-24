@@ -41,6 +41,7 @@ window.BassRehearsal=(()=>{
      <select id="rehearsalStyle" aria-label="Style"></select>
      <select id="rehearsalPattern" aria-label="Pattern"></select>
     </div>
+    <p id="rehearsalSource" aria-live="polite"></p>
     <div class="rehearsal-row">
      <select id="rehearsalFill" aria-label="Fill and run placement"><option value="bar">Every bar</option><option value="ends">On changes</option><option value="off">Fills/runs off</option></select>
      <button id="rehearsalMix" type="button" aria-pressed="true">Original bass off</button>
@@ -256,9 +257,12 @@ window.BassRehearsal=(()=>{
   let number=0;
   const choices=[];
   if(window.BassRehearsalIdeas){
-   for(const [kind,label]of [['basslines','Bassline alternatives'],['runs','Runs'],['fills','Fills']]){
+   for(const [kind,label]of [['basslines','Basslines'],['runs','Runs'],['fills','Fills']]){
     const group=document.createElement('optgroup');group.label=label;
-    for(const row of featured.filter(r=>r.kind===kind))group.append(new Option(row.label,row.id));
+    for(const row of featured.filter(r=>r.kind===kind)){
+     const option=new Option(row.label,row.id),info=window.BassRehearsalIdeas.describe(row);
+     option.dataset.source=info.source;option.dataset.genre=info.genre;option.title=info.detail+(info.original?' · '+info.original:'');group.append(option);
+    }
     if(group.children.length)choices.push(group);
    }
   }else choices.push(...featured.map(p=>new Option(p.label||'Pattern '+(++number),p.id)));
@@ -269,6 +273,13 @@ window.BassRehearsal=(()=>{
   picker.replaceChildren(...choices);picker.add(new Option('Roots','roots'));
   if(chosen!=='auto'&&(previous==='roots'||featured.some(p=>p.id===previous)))picker.value=previous;
   else picker.selectedIndex=0;
+  sourceDetails();
+ }
+
+ function sourceDetails(){
+  const output=$('rehearsalSource');if(!output)return;
+  const value=$('rehearsalPattern').value,row=featured.find(r=>r.id===value);
+  output.textContent=row&&window.BassRehearsalIdeas?window.BassRehearsalIdeas.describe(row).detail:value==='song-bass'?'Current song · Bassline':value==='roots'?'Roots · Song chords':'';
  }
 
  function plan(){
@@ -338,6 +349,7 @@ window.BassRehearsal=(()=>{
  }
 
  function changePattern(){
+  sourceDetails();
   if(!clip)return;
   const notes=plan();
   if(playing)playing.pending=notes;
