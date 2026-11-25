@@ -5,15 +5,15 @@ window.BassEarAudio=(()=>{
  let model='',worker,idleTimer,PitchEngine,queue=Promise.resolve();const loads=new Map();
  function configure(options){model=options.model;}
  async function prepare(ctx){
-  if(graphs.has(ctx))return graphs.get(ctx).ready;
-  const input=ctx.createGain(),state={input,worklet:false,ready:null};graphs.set(ctx,state);
-  const limiter=window.BassAutoLevel.attach(ctx,input,ctx.destination,{normalise:false});state.limiter=limiter;
+  let state=graphs.get(ctx);if(state?.ready)return state.ready;
+  if(!state){const input=ctx.createGain();state={input,worklet:false,ready:null};graphs.set(ctx,state);state.limiter=window.BassAutoLevel.attach(ctx,input,ctx.destination,{normalise:false});}
+  const limiter=state.limiter;
   state.ready=(async()=>{
    await limiter.ready;
    PitchEngine=(await import('./pitch-engine-rc361.mjs')).PitchEngine;
    if(ctx.audioWorklet&&typeof AudioWorkletNode!=='undefined')try{await ctx.audioWorklet.addModule('./ear-source/pitch-worklet-rc361.js');state.worklet=true;}catch{}
    return state;
-  })();return state.ready;
+  })().catch(error=>{state.ready=null;throw error;});return state.ready;
  }
  function mixer(ctx,{semitones=0}={}){
   const state=graphs.get(ctx);if(!state)throw Error('Audio is not ready');

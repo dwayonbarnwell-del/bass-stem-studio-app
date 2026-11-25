@@ -129,7 +129,9 @@ async function playerTest(stemMode=false){
   await $('rehearsalImport').onclick();
   assert.equal($('rehearsalTitle').textContent,'Imported fixture');
   value('rehearsalStart','0:00');value('rehearsalEnd','0:04');value('rehearsalBpm','120');
-  $('rehearsalBpm').onchange();song.chords=[{start:0,end:2,rootPc:0,quality:'maj',manual:true},{start:2,end:4,rootPc:7,bassPc:11,quality:'maj',manual:true}];value('rehearsalGain','100');
+  $('rehearsalBpm').onchange();
+  for(const invalid of ['0','39','221','999','NaN','Infinity']){value('rehearsalBpm',invalid);$('rehearsalBpm').onchange();assert.equal(Number($('rehearsalBpm').value),120,'invalid BPM retains the last valid tempo');assert.match($('rehearsalStatus').textContent,/40–220/);}
+  song.chords=[{start:0,end:2,rootPc:0,quality:'maj',manual:true},{start:2,end:4,rootPc:7,bassPc:11,quality:'maj',manual:true}];value('rehearsalGain','100');
   value('rehearsalView','notes');value('rehearsalStyle','highlife');value('rehearsalFill','bar');
   $('rehearsalGuide').setAttribute('aria-pressed','true');
   $('rehearsalPlay').onclick();await new Promise(resolve=>setImmediate(resolve));

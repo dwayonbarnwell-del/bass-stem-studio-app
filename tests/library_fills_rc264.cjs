@@ -16,7 +16,7 @@ const put=(name,value)=>files.set(name,JSON.stringify(value));
  put('saved.bassstudio',project);names.forEach((name,i)=>put(name,charts[i]));data.settings.set('folder',folder);lib.init({});
  await lib.refresh();assert.equal(lib.getRows().length,1);assert.equal(status.textContent,'');assert.equal((await lib.analysisSummary()).issues,0);
  const initialReads=reads;await lib.refresh();assert.equal(reads,initialReads,'unchanged chart catalogues are cached without rereading');
- put('renamed-backup.json',charts[0]);files.set('broken.json','{invalid');await lib.refresh();assert.equal(lib.getRows().length,1);assert.equal(status.textContent,'1 unreadable saved file skipped.');assert.equal((await lib.analysisSummary()).issues,1);
+ put('renamed-backup.json',charts[0]);files.set('broken.json','{invalid');await lib.refresh();assert.equal(lib.getRows().length,1);assert.equal(status.textContent,'1 unreadable saved file could not be indexed.');assert.equal((await lib.analysisSummary()).issues,1);
  files.delete('broken.json');await lib.addFiles(names.map((n,i)=>new File([JSON.stringify(charts[i])],n)));assert.match(status.textContent,/Open chord backups in Song Chords/);assert.doesNotMatch(status.textContent,/could not be added|unreadable/);assert.equal(writes,0);assert.equal(files.size,4);
  put(names[0],{...project,projectName:'Audio saved under a chart filename',source:{...project.source,audioBase64:'BBBB'}});modified++;
  await lib.refresh();assert.equal(lib.getRows().length,2,'file content, not its name, decides whether it is an audio project');assert.equal(status.textContent,'');assert.equal((await lib.analysisSummary()).songs.length,2);

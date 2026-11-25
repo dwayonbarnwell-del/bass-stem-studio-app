@@ -1,0 +1,12 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),cp=require('node:child_process'),crypto=require('node:crypto');
+const tracked=new Set(cp.execFileSync('git',['ls-tree','-r','--name-only','HEAD'],{encoding:'utf8',maxBuffer:10000000}).trim().split('\n'));
+const files=['cultural-recordings-rc352','drum-loops-data-rc294','groove-library','fl-drums-rc349','supplied-drums-rc294','fills-rc264','practice-rc264b','catalogue-rc269','curated-rc289','groups-rc290','uploaded-data-rc267','lesson-data-rc272','african-data-rc274','recording-phrases','original-studies','world-methods-rc350','reggae-recordings-rc348','uploaded-core-rc267','accompaniment-rc293','catalogue-review-rc347','practice-mix-data-rc350'];
+const window={},env=vm.createContext({window,localStorage:{getItem:()=>null,setItem(){}}});for(const file of files)vm.runInContext(fs.readFileSync('ear-source/'+file+'.js','utf8'),env);
+const retired=new Set(JSON.parse(fs.readFileSync('tests/retired_assets_rc348.json'))),urls=new Set(),normalise=s=>s.replace(/^\.\//,'').split('?')[0];
+for(const row of window.BassUploadedCore.items.filter(r=>window.BassPracticeCatalogue.visible('uploaded',r.id))){const p=normalise(row.audio);assert(!retired.has(p),'retired audio remains hidden');urls.add(p);}
+for(const row of window.BassSuppliedDrums.available)if(row.url)urls.add(normalise(row.url));
+for(const map of [window.BassPracticeMixAssets,window.BassWorldMethodMixes,window.BassCulturalMixes])for(const row of Object.values(map||{}))urls.add(normalise(row.url));
+for(const path of urls)assert(tracked.has(path),'missing tracked playback asset: '+path);
+const sw=fs.readFileSync('sw.js','utf8');const shell=sw.match(/const APP_SHELL = (\[[\s\S]*?\]);/)[1];const paths=vm.runInNewContext(shell);for(const path of paths){const file=normalise(path)||'index.html';assert(tracked.has(file),'offline dependency missing: '+file);}
+const piano=JSON.parse(fs.readFileSync('ai-source/salamander/manifest.json'));let total=0;for(const row of piano.samples){const bytes=fs.readFileSync('ai-source/salamander/'+row.url);assert.equal(bytes.length,row.bytes);assert.equal(crypto.createHash('sha256').update(bytes).digest('hex'),row.sha256);total+=bytes.length;}assert.equal(total,piano.totalBytes);
+console.log(JSON.stringify({passed:true,playbackAssetReferences:urls.size,offlineDependencies:paths.length,pianoSampleHashes:piano.samples.length,retiredAudioHidden:true}));

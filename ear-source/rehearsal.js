@@ -80,7 +80,11 @@ window.BassRehearsal=(()=>{
   $('rehearsalPassage').onchange=()=>applyPassage(ranked[Number($('rehearsalPassage').value)]);
   for(const id of ['rehearsalStart','rehearsalEnd','rehearsalBpm']){
    $(id).onchange=()=>{
-    if(id==='rehearsalBpm')manualBpm=Number($(id).value);
+    if(id==='rehearsalBpm'){
+     const value=Number($(id).value);
+     if($(id).value!==''&&(!Number.isFinite(value)||value<40||value>220)){updateBpm();state('BPM must be 40–220.');return;}
+     manualBpm=value;
+    }
     resetClip();
     const picker=$('rehearsalPassage');
     if(![...picker.options].some(o=>o.value==='custom'))picker.add(new Option('Custom passage','custom'));
@@ -192,6 +196,7 @@ window.BassRehearsal=(()=>{
  }
 
  function updateBpm(){
+  clearTimeout(prepareTimer);prepareTimer=null;
   const input=$('rehearsalBpm');
   const {start,end}=passageRange();
   const valid=song?.buffer&&start>=0&&end<=song.duration+.006&&end-start>=(selectedGrid()? .5:2);
