@@ -46,10 +46,10 @@ window.BassRehearsal=(()=>{
     <label class="rehearsal-level rehearsal-setup">Music <input id="rehearsalMusic" type="range" min="0" max="100" value="21"><output id="rehearsalMusicValue">21%</output></label>
     <label class="rehearsal-level rehearsal-setup">Guide bass <input id="rehearsalGain" type="range" min="0" max="100" value="100"><output id="rehearsalGainValue">100%</output></label>
     <div class="rehearsal-transport" role="group" aria-label="Rehearsal playback">
-     <select id="rehearsalFill" aria-label="Fill and run placement" title="Place fills and runs on chord changes"><option value="ends">Changes</option><option value="bar">Each bar</option><option value="off">No fills</option></select>
-     <button id="rehearsalMix" type="button" aria-pressed="true" aria-label="Original bass muted. Unmute original bass" title="Original bass muted. Unmute original bass">Orig 🔇</button>
+     <select id="rehearsalFill" aria-label="Fill and run placement" title="Fill/run placement"><option value="ends" title="On chord changes">Change</option><option value="bar" title="Every bar">Bars</option><option value="off" title="Fills and runs off">Off</option></select>
+     <button id="rehearsalMix" type="button" aria-pressed="true" aria-label="Original bass muted. Unmute original bass" title="Original bass muted. Unmute original bass" data-icon="🔇">Orig</button>
      <button id="rehearsalPlay" type="button" aria-label="Play loop" title="Play loop">▶</button>
-     <button id="rehearsalGuide" type="button" aria-pressed="true" aria-label="Guide bass on. Mute guide bass" title="Guide bass on. Mute guide bass">Guide 🔊</button>
+     <button id="rehearsalGuide" type="button" aria-pressed="true" aria-label="Guide bass on. Mute guide bass" title="Guide bass on. Mute guide bass" data-icon="🔊">Guide</button>
     </div>
     <div class="rehearsal-readout"><output id="rehearsalTime"></output><output id="rehearsalCue" aria-label="Song key"></output></div>
     <div class="rehearsal-view-row">
@@ -103,7 +103,7 @@ window.BassRehearsal=(()=>{
   $('rehearsalGain').oninput=()=>{$('rehearsalGainValue').value=$('rehearsalGain').value+'%';};
   $('rehearsalGuide').onclick=()=>{
    const button=$('rehearsalGuide'),off=button.getAttribute('aria-pressed')==='true';
-   button.setAttribute('aria-pressed',String(!off));button.textContent=off?'Guide 🔇':'Guide 🔊';
+   button.setAttribute('aria-pressed',String(!off));button.textContent='Guide';button.dataset.icon=off?'🔇':'🔊';
    button.setAttribute('aria-label',off?'Guide bass muted. Unmute guide bass':'Guide bass on. Mute guide bass');button.title=button.getAttribute('aria-label');
    if(off)stopBass();
   };
@@ -538,7 +538,7 @@ window.BassRehearsal=(()=>{
  function labelMix(){
   const button=$('rehearsalMix');
   button.setAttribute('aria-pressed',String(noBass));
-  button.textContent=noBass?'Orig 🔇':'Orig 🔊';
+  button.textContent='Orig';button.dataset.icon=noBass?'🔇':'🔊';
   button.setAttribute('aria-label',noBass?'Original bass muted. Unmute original bass':'Original bass on. Mute original bass');button.title=button.getAttribute('aria-label');
  }
 
