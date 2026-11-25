@@ -16,7 +16,7 @@ window.BassRehearsal=(()=>{
  const state=text=>{$('rehearsalStatus').textContent=text;};
  const harmonyRevision=value=>JSON.stringify([value?.keyRoot,value?.keyMode,value?.root,value?.mode,value?.numbering,value?.tempo,value?.phase,value?.confidence,value?.meter,value?.beats,value?.chords?.map(c=>[c.start,c.end,c.rootPc,c.quality,c.bassPc,c.uncertain,c.manual,c.rootOnly]),value?.notes?.map(n=>[n.start,n.end,n.midi])]);
  let phraseRepeat=null,phrases,phraseEvents=[],previewClip=null,passageRevision='';
- const selectedSeconds=new Set();let pageOverride=null;
+ const selectedSeconds=new Set();let pageOverride=null,pausedPosition=null;
  let timelineResize;
  let featured=[],viewNotes=[],viewPosition=0,fretView,fretNotes=[],notePage=-1,markers=[],changeMarkers=[],audible=false;
 
@@ -43,22 +43,25 @@ window.BassRehearsal=(()=>{
      <select id="rehearsalPattern" aria-label="Pattern"></select>
     </div>
     <p id="rehearsalSource" aria-live="polite"></p>
-    <div class="rehearsal-row">
-     <select id="rehearsalFill" aria-label="Fill and run placement"><option value="ends">On changes</option><option value="bar">Every bar</option><option value="off">Fills/runs off</option></select>
-     <button id="rehearsalMix" type="button" aria-pressed="true">Original bass off</button>
-    </div>
     <label class="rehearsal-level rehearsal-setup">Music <input id="rehearsalMusic" type="range" min="0" max="100" value="21"><output id="rehearsalMusicValue">21%</output></label>
     <label class="rehearsal-level rehearsal-setup">Guide bass <input id="rehearsalGain" type="range" min="0" max="100" value="100"><output id="rehearsalGainValue">100%</output></label>
-    <div class="rehearsal-row"><button id="rehearsalPlay" type="button">Play loop</button><button id="rehearsalGuide" type="button" aria-pressed="true">Guide on</button></div>
+    <div class="rehearsal-transport" role="group" aria-label="Rehearsal playback">
+     <select id="rehearsalFill" aria-label="Fill and run placement" title="Place fills and runs on chord changes"><option value="ends">Changes</option><option value="bar">Each bar</option><option value="off">No fills</option></select>
+     <button id="rehearsalMix" type="button" aria-pressed="true" aria-label="Original bass muted. Unmute original bass" title="Original bass muted. Unmute original bass">Orig 🔇</button>
+     <button id="rehearsalPlay" type="button" aria-label="Play loop" title="Play loop">▶</button>
+     <button id="rehearsalGuide" type="button" aria-pressed="true" aria-label="Guide bass on. Mute guide bass" title="Guide bass on. Mute guide bass">Guide 🔊</button>
+    </div>
     <div class="rehearsal-readout"><output id="rehearsalTime"></output><output id="rehearsalCue" aria-label="Song key"></output></div>
     <div class="rehearsal-view-row">
      <select id="rehearsalView" aria-label="Rehearsal view"><option value="notes">Note View</option><option value="phrase">Phrase View</option><option value="fret">Fret View</option><option value="fret2">Fret View 2</option></select>
-     <button id="rehearsalPrev" type="button" aria-label="Previous timeline seconds" hidden>Back</button>
-     <button id="rehearsalFollow" type="button" aria-label="Follow current playback" hidden>Now</button>
-     <button id="rehearsalNext" type="button" aria-label="Next timeline seconds" hidden>Next</button>
-     <button id="rehearsalClear" type="button" aria-label="Clear selected timeline sections" hidden>Clear</button>
+     <button id="rehearsalControls" type="button" aria-label="Hide controls" title="Hide controls" aria-expanded="true">⚙</button>
+     <button id="rehearsalPrev" type="button" aria-label="Previous timeline seconds" title="Previous timeline seconds" hidden>‹</button>
+     <button id="rehearsalFollow" type="button" aria-label="Follow current playback" title="Follow current playback" hidden>◎</button>
+     <button id="rehearsalNext" type="button" aria-label="Next timeline seconds" title="Next timeline seconds" hidden>›</button>
+     <button id="rehearsalClear" type="button" aria-label="Clear selected timeline sections" title="Clear selected timeline sections" hidden>✕</button>
     </div>
     <div id="rehearsalVisual" hidden>
+     <div id="rehearsalNoteKey" aria-label="Note colours"><span class="rehearsal-key-main" title="Main bass pitch of the current chord, including its slash bass">Main</span><span class="rehearsal-key-chord">Chord</span><span class="rehearsal-key-fill">Fill/run</span><span class="rehearsal-key-passing" title="Passing pitch outside the current chord; this does not mean the chord has changed">Passing</span></div>
      <div class="bass-phrase" id="rehearsalPhrases" hidden></div>
      <div id="rehearsalTimeline" aria-label="Rehearsal note timeline"></div>
      <div id="rehearsalFret" hidden></div>
@@ -67,12 +70,7 @@ window.BassRehearsal=(()=>{
    <p id="rehearsalStatus" role="status"></p>`;
   timelineResize?.disconnect();
   if(typeof ResizeObserver!=='undefined'){timelineResize=new ResizeObserver(fitTimeline);timelineResize.observe($('rehearsalTimeline'));}
-  (window.BassRehearsalIdeas?.availableStyles()||C.styles).forEach(([id,caption])=>$('rehearsalStyle').add(new Option(caption,id)));
-  if(window.BassRehearsalIdeas){
-   const sources=document.createElement('optgroup');sources.label='Sources';
-   for(const [id,label]of window.BassRehearsalIdeas.sourceOptions())sources.append(new Option(label,id));
-   if(sources.children.length)$('rehearsalStyle').append(sources);
-  }
+  (window.BassRehearsalIdeas?.availableStyles()||C.styles).forEach(([id,caption])=>{const option=new Option(window.BassStudyDisplay?.menu(caption)||caption,id);option.title=caption;$('rehearsalStyle').add(option);});
   $('rehearsalImport').onclick=()=>api.pickAudio($('rehearsalFile'),openFile);
   $('rehearsalFile').onchange=e=>{const file=e.target.files[0];e.target.value='';if(file)void openFile(file);};
   $('rehearsalLibrary').onclick=async()=>{await close();api.openLibrary();};
@@ -92,6 +90,7 @@ window.BassRehearsal=(()=>{
   $('rehearsalFill').onchange=changePattern;
   $('rehearsalMix').onclick=()=>void toggleMix();
   $('rehearsalView').onchange=()=>{notePage=-1;drawView();};
+  $('rehearsalControls').onclick=()=>setCompact(host.dataset.playing!=='true');
   $('rehearsalPrev').onclick=()=>pageTimeline(-1);
   $('rehearsalNext').onclick=()=>pageTimeline(1);
   $('rehearsalFollow').onclick=()=>{pageOverride=null;notePage=-1;drawView();};
@@ -104,12 +103,13 @@ window.BassRehearsal=(()=>{
   $('rehearsalGain').oninput=()=>{$('rehearsalGainValue').value=$('rehearsalGain').value+'%';};
   $('rehearsalGuide').onclick=()=>{
    const button=$('rehearsalGuide'),off=button.getAttribute('aria-pressed')==='true';
-   button.setAttribute('aria-pressed',String(!off));button.textContent=off?'Guide off':'Guide on';
+   button.setAttribute('aria-pressed',String(!off));button.textContent=off?'Guide 🔇':'Guide 🔊';
+   button.setAttribute('aria-label',off?'Guide bass muted. Unmute guide bass':'Guide bass on. Mute guide bass');button.title=button.getAttribute('aria-label');
    if(off)stopBass();
   };
   $('rehearsalPlay').onclick=()=>{
    if(loading){discardPreparation();void api.cancelBand?.();}
-   if(playing||loading){stop();state('');}else void play();
+   if(playing||loading){stop({pause:!!playing});state('');}else void play();
   };
  }
 
@@ -202,6 +202,9 @@ window.BassRehearsal=(()=>{
 
  function setCompact(compact){
   host.dataset.playing=String(compact);
+  $('rehearsalControls').setAttribute('aria-expanded',String(!compact));
+  $('rehearsalControls').setAttribute('aria-label',compact?'Show controls':'Hide controls');
+  $('rehearsalControls').title=compact?'Show controls':'Hide controls';
   const navigation=host.closest?.('#earTrainerDialog')?.querySelector('#earSections');
   if(navigation)navigation.hidden=compact;
  }
@@ -211,13 +214,25 @@ window.BassRehearsal=(()=>{
   voices=[];
  }
 
- function stop(){
+ function playLabel(mode){
+  const button=$('rehearsalPlay'),label=mode==='pause'?'Pause rehearsal':mode==='cancel'?'Cancel preparation':pausedPosition===null?'Play loop':'Resume loop';
+  button.textContent=mode==='pause'?'⏸':mode==='cancel'?'✕':'▶';button.setAttribute('aria-label',label);button.title=label;
+ }
+
+ function timeReadout(){
+  const format=['phrase','notes'].includes($('rehearsalView').value)?minutesSeconds:fmt;
+  $('rehearsalTime').value=format(viewPosition)+' / '+format(clip.end);
+ }
+
+ function stop({pause=false}={}){
+  if(pause&&playing){viewPosition=R.position(playing.loop,Math.max(0,ctx.currentTime-playing.when-(window.BassPlaybackTiming?.outputDelay(ctx)||0)));pausedPosition=viewPosition;}
+  else pausedPosition=null;
   work++;mixRevision++;loading=false;
   if(host)$('rehearsalMix').disabled=false;
   clearInterval(clock);cancelAnimationFrame(visualFrame);stopBass();
   if(band){try{band.node.stop();}catch{}band.node.disconnect();band.gain.disconnect();band=null;}
   playing=null;audible=false;
-  if(host){setCompact(false);$('rehearsalPlay').textContent='Play loop';$('rehearsalTime').value='';keyReadout();drawView();}
+  if(host){setCompact(pause);playLabel();if(pause&&clip)timeReadout();else $('rehearsalTime').value='';keyReadout();drawView();}
  }
 
  function discardPreparation(){
@@ -246,7 +261,7 @@ window.BassRehearsal=(()=>{
     if(!recordingShapes.has(item.id))recordingShapes.set(item.id,U.rehearsalShape(item.id));
     const shape=recordingShapes.get(item.id),score=C.patternScore(grid,rhythm,shape);
     if(!shape.length||automatic&&score<.05)continue;
-    recordings.push({id:'clip:'+item.id,label:window.BassStudyDisplay.clip(item)+' · adapted',shape,recorded:true,score});
+    recordings.push({id:'clip:'+item.id,label:window.BassStudyDisplay.clip(item),shape,recorded:true,score});
    }
    rows.push(...recordings.sort((a,b)=>b.score-a.score).slice(0,4));
   }
@@ -289,7 +304,7 @@ window.BassRehearsal=(()=>{
    }
   }else choices.push(...featured.map(p=>new Option(p.label||'Pattern '+(++number),p.id)));
   if(chosen==='auto'&&clip?.bassNotes?.length){
-   const original=new Option('Song bassline','song-bass');
+   const original=new Option('Song bass','song-bass');original.title='Original song bassline';
    choices.unshift(original);
   }
   picker.replaceChildren(...choices);picker.add(new Option('Roots','roots'));
@@ -302,7 +317,9 @@ window.BassRehearsal=(()=>{
  function sourceDetails(){
   const output=$('rehearsalSource');if(!output)return;
   const value=$('rehearsalPattern').value,row=featured.find(r=>r.id===value);
-  output.textContent=row&&window.BassRehearsalIdeas?window.BassRehearsalIdeas.describe(row).detail:value==='song-bass'?'Current song · Bassline':value==='roots'?'Roots · Song chords':'';
+  const info=row&&window.BassRehearsalIdeas?.describe(row);
+  output.textContent=info?info.source+' · Adapted':value==='song-bass'?'Original':value==='roots'?'Song chords':row?.recorded?'Adapted':'';
+  output.title=info?info.detail+(info.original?' · '+info.original:''):value==='song-bass'?'Original song bassline':'';
  }
 
  function plan(){
@@ -345,6 +362,7 @@ window.BassRehearsal=(()=>{
   if(!ready)return;
   const mode=$('rehearsalView').value,board=$('rehearsalFret'),timeline=$('rehearsalTimeline');
   const phraseHost=$('rehearsalPhrases');
+  $('rehearsalNoteKey').hidden=mode!=='notes';
   phraseHost.hidden=mode!=='phrase';board.hidden=mode==='notes'||mode==='phrase';timeline.hidden=mode!=='notes';
   if(mode==='phrase'){
    phrases??=window.BassPhraseView.create(phraseHost,togglePhrase,()=>phraseRepeat);
@@ -370,8 +388,8 @@ window.BassRehearsal=(()=>{
    notePage=first;markers=[];changeMarkers=[];
    const columns=[];
    const changes=H?H.prepare(clip).transitions:[];
-   function changeLabel(cell,head,change,start,end){
-    const label=document.createElement('strong');label.className='rehearsal-change-label';label.textContent=change.label;label.title=change.names;head.append(label);changeMarkers.push({label,start,end,cell});
+   function changeLabel(cell,head,change,start,end,chord=change.to){
+    const label=document.createElement('strong');label.className='rehearsal-change-label';label.textContent=H.chordLabel(chord);label.title=(change.names?'Chord change · '+change.names+' · ':'')+'Current chord · '+chord.name;head.append(label);changeMarkers.push({label,start,end,cell,change,chord});
    }
    for(let i=first;i<Math.min(endSecond,first+4);i++){
     const cell=document.createElement('div'),time=document.createElement('time'),head=document.createElement('div');
@@ -383,7 +401,7 @@ window.BassRehearsal=(()=>{
     cell.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggleSecond(i);}};
     if(H&&i===first){
      const chord=H.at(clip,Math.max(first,clip.start)+.0001);
-     if(chord&&chord.start<first-.01){const previous=changes.find(change=>change.to===chord);changeLabel(cell,head,previous||{label:chord.number,names:chord.name},chord.start,chord.end);}
+     if(chord&&chord.start<first-.01){const previous=changes.find(change=>change.to===chord);changeLabel(cell,head,previous||{},chord.start,chord.end,chord);}
     }
     for(const change of changes){
      const at=change.loop?clip.start:change.at;if(at<i||at>=i+1)continue;
@@ -393,10 +411,12 @@ window.BassRehearsal=(()=>{
      const start=Math.max(note.time,first);
      if(note.stop<=first||start<i||start>=i+1)continue;
      const chip=document.createElement('span');
-     const landing=note.role==='landing'||H&&Math.abs((H.at(clip,note.time)?.start??-99)-note.time)<.045;
-     chip.className=landing?'rehearsal-landing-note':['fill','run'].includes(note.role)?'rehearsal-fill-note':'rehearsal-bass-note';
+     const info=H?.noteKind(clip,note)||{kind:['fill','run'].includes(note.role)?note.role:'unknown'},kind=info.kind;
+     chip.className=kind==='main'?'rehearsal-main-note':kind==='fill'||kind==='run'?'rehearsal-fill-note':kind==='passing'?'rehearsal-passing-note':'rehearsal-bass-note';
+     chip.dataset.noteKind=kind;chip.dataset.mark=info.phrase==='run'?'R':info.phrase==='fill'?'F':'';
      chip.textContent=noteName(note);
-     chip.title=(note.changeLabel?note.changeLabel+' · ':'')+(note.midi===null?'Muted note':landing?'Chord landing':note.role==='fill'?'Fill note':note.role==='run'?'Run note':'Bass note');
+     const caption=({main:'Main bass note',chord:'Chord note',fill:'Fill note',run:'Run note',passing:'Passing note',muted:'Muted note',unknown:'Transcribed bass note'})[kind];
+     chip.title=caption+' · '+noteName(note)+(info.chord?' · '+info.chord.number+' · '+info.chord.name:'')+(info.phrase?' · '+info.phrase:'');
      cell.append(chip);markers.push({note,chip});
     }
     columns.push(cell);
@@ -419,7 +439,9 @@ window.BassRehearsal=(()=>{
   }
   for(const marker of changeMarkers){
    const active=audible&&marker.start<=viewPosition&&viewPosition<marker.end;
-   marker.label.classList.toggle('change-current',active);marker.label.classList.toggle('change-next',audible&&marker===next&&marker.start-viewPosition<=lead);marker.label.setAttribute('aria-current',active?'step':'false');
+   const upcoming=audible&&marker===next&&marker.start-viewPosition<=lead;
+   marker.label.textContent=upcoming&&marker.change.from?.number!==marker.change.to?.number?marker.change.label:H.chordLabel(marker.chord);
+   marker.label.classList.toggle('change-current',active);marker.label.classList.toggle('change-next',upcoming);marker.label.setAttribute('aria-current',active?'step':'false');
   }
  }
 
@@ -516,7 +538,8 @@ window.BassRehearsal=(()=>{
  function labelMix(){
   const button=$('rehearsalMix');
   button.setAttribute('aria-pressed',String(noBass));
-  button.textContent=noBass?'Original bass off':'Original bass on';
+  button.textContent=noBass?'Orig 🔇':'Orig 🔊';
+  button.setAttribute('aria-label',noBass?'Original bass muted. Unmute original bass':'Original bass on. Mute original bass');button.title=button.getAttribute('aria-label');
  }
 
  function prepareBand(start,end){
@@ -580,7 +603,7 @@ window.BassRehearsal=(()=>{
   const changed=!!playing.pending;
   playing.notes=playing.pending||playing.notes;playing.pending=null;
   playing.loop=loop;playing.scheduled=R.notes(playing.notes,loop);
-  playing.when=when-phase;playing.seconds=loop.seconds;
+  playing.when=when-phase;playing.startedAt=when;playing.seconds=loop.seconds;
   viewPosition=R.position(loop,phase);
   playing.viewChange=null;if(changed)setNotes(playing.notes);
   playing.cycle=0;playing.index=0;schedule();
@@ -615,7 +638,7 @@ window.BassRehearsal=(()=>{
  async function play(){
   if(!song?.buffer)return;
   const id=++work;
-  loading=true;$('rehearsalMix').disabled=true;$('rehearsalPlay').textContent='Cancel';
+  loading=true;$('rehearsalMix').disabled=true;playLabel('cancel');
   setCompact(true);
   state('Checking chords and timing…');
   try{
@@ -641,20 +664,20 @@ window.BassRehearsal=(()=>{
    // Warm all notes before starting so style changes can take effect on the next loop.
    await window.BassPracticeAudio.prepare('bass',ctx,{notes:Array.from({length:37},(_,i)=>({midi:23+i,velocity:85}))});
    if(id!==work||currentId!==api.session())return;
-   const notes=plan(),loop=repeatLoop(tracks),when=ctx.currentTime+.06;
-   startBand(tracks,when,0,false,loop);
-   playing={when,seconds:loop.seconds,loop,notes,scheduled:R.notes(notes,loop),pending:null,cycle:0,index:0};
+   const notes=plan(),loop=repeatLoop(tracks),when=ctx.currentTime+.06,resuming=pausedPosition!==null,phase=resuming?R.phase(loop,pausedPosition):0;
+   startBand(tracks,when,phase,false,loop);
+   playing={when:when-phase,startedAt:when,seconds:loop.seconds,loop,notes,scheduled:R.notes(notes,loop),pending:null,cycle:0,index:0,resumeActive:resuming};
    setCompact(true);
-   $('rehearsalPlay').textContent='Pause';
+   playLabel('pause');
    state([originalFallback?'Original bass is still on.':'',!clip.bassNotes.length?'No bass notes detected here. Playing a suggested line.':''].filter(Boolean).join(' '));
-   pageOverride=null;viewPosition=R.position(loop,0);setNotes(notes);
+   if(!resuming)pageOverride=null;pausedPosition=null;viewPosition=R.position(loop,phase);setNotes(notes);
    schedule();
    clock=setInterval(schedule,40);
    visualFrame=requestAnimationFrame(display);
   }catch(error){
    if(id===work){stop();state(error.message||'Could not play this passage.');}
   }finally{
-   if(id===work){loading=false;$('rehearsalMix').disabled=false;if(!playing)$('rehearsalPlay').textContent='Play loop';}
+   if(id===work){loading=false;$('rehearsalMix').disabled=false;if(!playing)playLabel();}
   }
  }
 
@@ -662,7 +685,7 @@ window.BassRehearsal=(()=>{
   const s=playing;
   if(!s)return;
   if(clip.session!==api.session()){refresh();return;}
-  const now=ctx.currentTime,horizon=now+.14,cycle=Math.max(0,Math.floor((now-s.when)/s.seconds));
+  const now=Math.max(ctx.currentTime,s.startedAt??0),horizon=now+.14,cycle=Math.max(0,Math.floor((now-s.when)/s.seconds));
   if(s.cycle<cycle){s.cycle=cycle;s.index=0;}
   while(s.when+s.cycle*s.seconds<=horizon){
    const start=s.when+s.cycle*s.seconds;
@@ -689,13 +712,12 @@ window.BassRehearsal=(()=>{
  function display(){
   if(!playing)return;
   const now=ctx.currentTime-(window.BassPlaybackTiming?.outputDelay(ctx)||0);
-  audible=now>=playing.when;
+  audible=now>=(playing.startedAt??playing.when);
   viewPosition=R.position(playing.loop,Math.max(0,now-playing.when));
   if(playing.viewChange&&now>=playing.viewChange.at){
    setNotes(playing.viewChange.notes);playing.viewChange=null;
   }
-  const format=['phrase','notes'].includes($('rehearsalView').value)?minutesSeconds:fmt;
-  $('rehearsalTime').value=format(viewPosition)+' / '+format(clip.end);
+  timeReadout();
   keyReadout();
   drawView();
   visualFrame=requestAnimationFrame(display);

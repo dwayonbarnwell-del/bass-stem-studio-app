@@ -14,11 +14,7 @@ window.BassRehearsalIdeas=(()=>{
   for(const row of U.items)if(D.visible('uploaded',row.id)){const id=genre(row);if(id&&H.profiles[id]&&!known.has(id)){styles.push([id,H.profiles[id].label]);known.add(id);}}
   return styles;
  }
- const sourceNumbers=new Map(),sourceCounts=new Map();
- function sourceNumber(row){
-  if(!sourceNumbers.has(row.id)){const name=family(row),number=Number(row.id.match(/^(?:lady|matics)-(\d+)$/)?.[1])||(sourceCounts.get(name)||0)+1;sourceCounts.set(name,Math.max(number,sourceCounts.get(name)||0));sourceNumbers.set(row.id,number);}
-  return sourceNumbers.get(row.id);
- }
+ function sourceNumber(row){return N.recordingNumber(row);}
  U.items.forEach(sourceNumber);
  function describe(row){
   const entry=row.entry||row.originEntry,study=entry?.recordedStudy,sourceId=study?.sourceId||row.sourceId,source=U.find(sourceId);
@@ -32,7 +28,7 @@ window.BassRehearsalIdeas=(()=>{
   }
   const sourceLabel=practice?'Practice':sourceFamily.replace(/ recordings$/,'');
   const code=String(number||1).padStart(2,'0')+((window.BassRecordedPhrases?.[sourceId]?.length||0)>1?'.'+(part+1):'')+(variant?'.'+variant:'');
-  const label=sourceLabel+' '+code+(sourceLabel===genreLabel||row.style==='recordings'?'':' · '+genreLabel);
+  const label=N.sourceName(sourceLabel,code);
   const detail=[practice?'Practice':sourceFamily,...sourceLabel===genreLabel?[]:[genreLabel],'Adapted'].join(' · ');
   const original=source?.originalTitle||P.lines.find(r=>r.id===sourceId)?.name||entry?.title||'';
   return {label,detail,source:practice?'Practice':sourceFamily,genre:genreLabel,sourceId,original};

@@ -22,7 +22,7 @@ for name in names:
 fixture=r'''
   const qa=document.createElement('div');qa.id='qaControls';
   qa.style='position:fixed;bottom:0;left:0;right:0;z-index:999999;background:#102434;color:white;padding:4px;font:13px sans-serif;display:flex;flex-wrap:wrap;gap:4px';
-  qa.innerHTML='<button id="qaShort">Load 32s</button><button id="qaLong">Load 7:55</button><button id="qaDense">Dense song</button><button id="qaVerify">Check save</button><button id="qaReopen">Reopen saved</button><output id="qaResult">Local rehearsal QA</output><output id="qaVerified"></output><output id="qaLoop"></output>';
+  qa.innerHTML='<button id="qaShort">Load 32s</button><button id="qaLong">Load 7:55</button><button id="qaDense">Dense song</button><button id="qaRoles">Note roles</button><button id="qaVerify">Check save</button><button id="qaReopen">Reopen saved</button><output id="qaResult">Local rehearsal QA</output><output id="qaVerified"></output><output id="qaLoop"></output>';
   document.body.append(qa);
   let qaStarts=0;const qaStart=AudioBufferSourceNode.prototype.start;
   AudioBufferSourceNode.prototype.start=function(...args){
@@ -42,23 +42,26 @@ fixture=r'''
     if(!document.getElementById('earTrainerDialog').open)document.getElementById('openEarTraining').click();
     document.getElementById('earSectionRehearsal').click();
   };
-  async function qaLoad(duration,dense=false){
+  async function qaLoad(duration,dense=false,roles=false){
     document.getElementById('qaResult').textContent='Loading fixture';ensureCtx();
     const audio=ctx.createBuffer(1,Math.round(duration*8000),8000),step=60/117,noteStep=dense?.11:step,chordStep=dense?.45:step*4;
-    const pcm=audio.getChannelData(0);for(let i=0;i<pcm.length;i++)pcm[i]=.025*Math.sin(i/8000*Math.PI*2*80);
+    const pcm=audio.getChannelData(0);for(let i=0;i<pcm.length;i++)pcm[i]=.025*Math.sin(i/8000*Math.PI*2*(roles?82:dense?84:80));
     duration=audio.duration;
-    const chords=Array.from({length:Math.ceil(duration/chordStep)},(_,i)=>({start:i*chordStep,end:Math.min(duration,(i+1)*chordStep),rootPc:[0,5,7,5][i%4],quality:'maj',manual:true,confidence:.99,evidence_version:'chord-timeline-v4'}));
-    const project={format:'Bass Stem Studio Project',schemaVersion:2,projectName:'Phrase timeline QA',
-      source:{name:'Phrase timeline QA.wav',type:'audio/wav',duration,audioBase64:arrayBufferToBase64(await wavBlob(audio).arrayBuffer())},
+    const chords=roles?[[0,2,0,'maj'],[2,4,0,'maj7'],[4,8,5,'maj'],[8,duration,7,'maj']].map(([start,end,rootPc,quality])=>({start,end,rootPc,quality,manual:true,confidence:.99,evidence_version:'chord-timeline-v4'})):Array.from({length:Math.ceil(duration/chordStep)},(_,i)=>({start:i*chordStep,end:Math.min(duration,(i+1)*chordStep),rootPc:[0,5,7,5][i%4],quality:'maj',manual:true,confidence:.99,evidence_version:'chord-timeline-v4'}));
+    const notes=roles?[[0,41],[.5,43],[1,36],[2,40],[2.5,36],[3,42],[4,41],[5,45],[6,40],[7.5,42],[8,43],[9,47]].map(([start,midi])=>({start,end:start+.3,midi,confidence:.95,manual:true})):Array.from({length:Math.floor(duration/noteStep)},(_,i)=>({start:i*noteStep,end:Math.min(duration,i*noteStep+Math.min(.3,noteStep*.8)),midi:dense?36+[0,2,4,7,9][i%5]:24+[0,5,7,5][Math.floor(i/4)%4],confidence:.95,manual:true}));
+    const name=roles?'Note roles QA':dense?'Dense notes QA':'Phrase timeline QA';
+    const project={format:'Bass Stem Studio Project',schemaVersion:2,projectName:name,
+      source:{name:name+'.wav',type:'audio/wav',duration,audioBase64:arrayBufferToBase64(await wavBlob(audio).arrayBuffer())},
       analysis:{ready:true,scale:'C major',tempoBpm:117,beatGridConfidence:.98,beatsPerBar:4,downbeatPhase:0,melody:{version:2,notes:[],done:[{start:0,end:duration}],jobs:{}},
         beatTimes:Array.from({length:Math.floor(duration/step)+1},(_,i)=>i*step),chords,
-        notes:Array.from({length:Math.floor(duration/noteStep)},(_,i)=>({start:i*noteStep,end:Math.min(duration,i*noteStep+Math.min(.3,noteStep*.8)),midi:dense?36+[0,2,4,7,9][i%5]:24+[0,5,7,5][Math.floor(i/4)%4],confidence:.95,manual:true})),
+        notes,
         structure:{segments:[{name:'Intro',start:0,end:Math.min(16,duration)},{name:'Chorus',start:16,end:duration}].filter(s=>s.end>s.start)}},settings:{}};
     await qaOpen(project);
   }
   document.getElementById('qaShort').onclick=()=>qaLoad(32.137).catch(e=>document.getElementById('qaResult').textContent=e.message);
   document.getElementById('qaLong').onclick=()=>qaLoad(475.544).catch(e=>document.getElementById('qaResult').textContent=e.message);
   document.getElementById('qaDense').onclick=()=>qaLoad(12.137,true).catch(e=>document.getElementById('qaResult').textContent=e.message);
+  document.getElementById('qaRoles').onclick=()=>qaLoad(12.137,false,true).catch(e=>document.getElementById('qaResult').textContent=e.message);
   document.getElementById('qaVerify').onclick=()=>{
     const plan=qaSaved?.analysis?.rehearsalPhrases;
     if(!plan){document.getElementById('qaVerified').textContent='Waiting for automatic save';return;}

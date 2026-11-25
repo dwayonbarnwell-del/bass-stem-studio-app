@@ -1,23 +1,70 @@
 /* Short display names never replace stable study IDs or musical data. */
 window.BassStudyDisplay=(()=>{
  const pc=n=>(n%12+12)%12,F=window.BassFillCore;
- function short(text){
-  text=String(text||'Study').replace(/\s*·.*$/,'').replace(/\b(original|style|study|inspired|bassline|bass|lesson)\b/gi,'').replace(/\b(gospel|worship|reggae|praise|highlife|makossa|pentatonic|chromatic)\b/gi,'').replace(/\s+/g,' ').trim();
-  if(!text)text='Pattern';return text.length<=12?text:text.slice(0,12).trim();
+ const genres=/\b(gospel|worship|reggae|praise|highlife|makossa|seben|soukous|zouk|woro|ariaria|afrobeat|soca|sungura|mbalax|mbaqanga|african|jazz|blues|soul|funk|pentatonic|chromatic)\b/gi;
+ function fitName(text,limit=12){
+  text=String(text||'Pattern').replace(/\s+/g,' ').trim();if(text.length<=limit)return text;
+  const code=text.match(/\s+(\d+(?:\.\d+)*)$/);
+  if(code&&code[1].length<limit-2)return suffix(text.slice(0,-code[0].length),' '+code[1],limit);
+  const words=text.split(' ');let value='';
+  for(const word of words){if((value+' '+word).trim().length>limit)break;value=(value+' '+word).trim();}
+  const abbreviated=({World:'Wld',Bmatics:'Bmat',Practice:'Prac',Groove:'Grv',Pattern:'Pat',Diminished:'Dim',Conversation:'Talk',Turnaround:'Turn'})[words[0]]||'Pattern';
+  return value||(abbreviated.length<=limit?abbreviated:limit>=3?'Pat':'P');
  }
- function label(kind,row){
-  if(kind==='basslines'){
-   let name=row.artist==='marley'?'AstonBarrett':short(row.name);const progression=row.degrees.join('–');
-   const same=window.BassPracticeCore.lines.filter(x=>(x.artist==='marley'?'AstonBarrett':short(x.name))===name&&x.degrees.join('–')===progression);
-   if(same.length>1){const suffix=' '+(same.indexOf(row)+1);name=name.slice(0,12-suffix.length).trim()+suffix;}
-   return name+' '+progression;
+ function suffix(text,ending,limit=12){return fitName(text,Math.max(1,limit-ending.length))+ending;}
+ function sourceName(family,code){
+  const name=({'Bass Lady':'B Lady',Bassmatics:'Bmatics','World Methods':'World','Practice bassline':'Practice','Practice studies':'Practice','Recorded bass':'Take','Reggae recordings':'Take'})[family]||(/^Practice/.test(family)?'Practice':'Take');
+  const compact=code.length+name.length+1<=12?name:({'B Lady':'Lady',Bmatics:'Bmat',Practice:'Prac'})[name]||name;
+  return suffix(compact,' '+code);
+ }
+ const sourceFamilies={'bass-lady':'Bass Lady',bassmatics:'Bassmatics','world-method':'World Methods'};
+ let sourceCount=-1;const sourceNumbers=new Map();
+ function recordingNumber(row){
+  const rows=window.BassUploadedCore?.items||[];
+  if(sourceCount!==rows.length){
+   const counts=new Map();sourceNumbers.clear();
+   for(const item of rows){const family=item.sourceFamily||sourceFamilies[item.group]||(item.group==='reggae'?'Reggae recordings':'Recorded bass'),number=Number(item.id.match(/^(?:lady|matics)-(\d+)$/)?.[1])||(counts.get(family)||0)+1;counts.set(family,Math.max(number,counts.get(family)||0));sourceNumbers.set(item.id,number);}
+   sourceCount=rows.length;
   }
-  return short(row?.[0]);
+  return sourceNumbers.get(row.id)||1;
  }
- function clip(row){
+ function menu(text){return ({'Gospel & Contemporary':'Gospel/Cont.','Jazz & Chromatic':'Jazz/Chrom.','Blues & Pentatonic':'Blues/Pent.','Funk & Soul':'Funk/Soul','Funk & fusion':'Funk/Fusion','African praise':'Afr. Praise','World Methods':'World Method','Practice patterns':'Practice'})[text]||fitName(text);}
+ function names(rows,caption){const used=new Set();return new Map(rows.map((row,index)=>{const base=short(caption(row));let value=base;if(used.has(value))value=suffix(base,' '+(index+1));while(used.has(value))value=suffix(base,' '+(index+1)+'.'+used.size.toString(36));used.add(value);return [row,value];}));}
+ function short(text){
+  text=String(text||'Study').replace(/\s*·.*$/,'').replace(/\b(original|style|study|inspired|bassline|bass|lesson)\b/gi,'').replace(genres,'').replace(/R\s*&\s*B/gi,'').replace(/Chord-tone/gi,'Chord').replace(/Diminished/gi,'Dim').replace(/Minor/gi,'Min').replace(/Major/gi,'Maj').replace(/\s+/g,' ').trim();
+  if(/^\d+(?:\.\d+)*$/.test(text))text='Groove '+text;
+  return fitName(text||'Pattern');
+ }
+ const labelCache=new Map();
+ function label(kind,row){
+  const P=window.BassPracticeCore,Q=window.BassCuratedStudies,U=window.BassUploadedCore;
+  const rows=kind==='basslines'?P.lines:kind==='runs'?P.runs:F.styles;
+  if(labelCache.get(kind)?.length!==rows.length){
+   const used=new Set(),labels=new Map();
+   for(const [index,item]of rows.entries()){
+    const entry=kind==='basslines'?null:Q?.get(kind,index),recording=entry?.recordedStudy,source=recording&&U?.find(recording.sourceId);
+    let name=kind==='basslines'?item.artist==='marley'?'Barrett':short(item.name):short(item[0]);
+    if(source){
+     const peers=Q.entries.filter(e=>e.kind===kind&&e.recordedStudy?.sourceKind===recording.sourceKind&&e.recordedStudy?.sourceId===recording.sourceId&&e.recordedStudy?.sourcePart===recording.sourcePart);
+     name=suffix(phrase(source,recording.sourcePart||0,window.BassRecordedPhrases?.[source.id]?.length||1),'.'+(peers.indexOf(entry)+1));
+    }else if(recording?.sourceKind==='basslines'){
+     const peers=Q.entries.filter(e=>e.kind===kind&&e.recordedStudy?.sourceKind==='basslines'&&e.recordedStudy?.sourceId===recording.sourceId&&e.recordedStudy?.sourcePart===recording.sourcePart);
+     const number=P.lines.findIndex(x=>x.id===recording.sourceId)+1;
+     name=sourceName('Practice',String(number||index+1).padStart(2,'0')+(recording.sourcePart?'.'+(recording.sourcePart+1):'')+'.'+(peers.indexOf(entry)+1));
+    }
+    if(!source&&/^Pattern(?:\s*\d+)?$/.test(name))name=sourceName('Practice',String(index+1).padStart(2,'0'));
+    let caption=name;if(used.has(caption))caption=suffix(name,' '+(index+1));
+    while(used.has(caption))caption=suffix(name,' '+(index+1)+'.'+used.size.toString(36));
+    used.add(caption);labels.set(item,caption);
+   }
+   labelCache.set(kind,{length:rows.length,labels});
+  }
+  return labelCache.get(kind).labels.get(row)||short(row?.name||row?.[0]);
+ }
+ function originalClip(row){
   if(!row)return 'Recording';
   if(row.displayName)return row.displayName;
-  if(row.originalMix)return row.title.slice(0,12);
+  if(row.originalMix)return row.title;
   const number=Number(row.id?.slice(5));
   if(number>=23&&number<=32)return 'Bass Lady '+String(number-22).padStart(2,'0');
   if(number>=34&&number<=43){
@@ -33,7 +80,13 @@ window.BassStudyDisplay=(()=>{
    64:'Cameroon 1',65:'Cameroon 2',66:'Cameroon 3',67:'Bass Lesson',68:'Structure',69:'Bass Study',
    70:'Edd Bateman',71:'World Music',72:'Syncopation'
   };
-  return names[number]||row.title.slice(0,12);
+  return names[number]||row.title;
+ }
+ function clip(row){
+  const family=row?.sourceFamily||sourceFamilies[row?.group];
+  if(['Bass Lady','Bassmatics','World Methods'].includes(family))return sourceName(family,String(recordingNumber(row)).padStart(2,'0'));
+  const caption=originalClip(row).replace(/World Methods?/gi,'World').replace(/Bass Lady/gi,'B Lady').replace(/Bassmatics?/gi,'Bmatics');
+  return fitName(caption.replace(genres,'').replace(/\s+/g,' ').trim().replace(/^(\d+(?:\.\d+)*)$/,'Groove $1')||'Recording');
  }
  function phrase(row,index,count){
   const base=clip(row);
@@ -41,7 +94,7 @@ window.BassStudyDisplay=(()=>{
   const ending=base.match(/ (\d+)$/);
   const suffix=(ending?' '+ending[1]:'')+'.'+(index+1);
   const stem=ending?base.slice(0,-ending[0].length):base;
-  return stem.slice(0,12-suffix.length).trimEnd()+suffix;
+  return fitName(stem,12-suffix.length)+suffix;
  }
  function segments(plan){
   if(!plan?.chords?.length)return[];const map=new Map();
@@ -58,5 +111,5 @@ window.BassStudyDisplay=(()=>{
   while(lo<hi){const mid=(lo+hi)>>>1;if(segments[mid].end<=beat)lo=mid+1;else hi=mid;}
   return lo<segments.length&&segments[lo].beat<=beat?lo:-1;
  }
- return {short,label,clip,phrase,segments,active};
+ return {short,label,clip,phrase,segments,active,menu,fitName,suffix,sourceName,names,recordingNumber};
 })();

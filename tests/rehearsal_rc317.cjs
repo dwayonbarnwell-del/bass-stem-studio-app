@@ -94,7 +94,7 @@ async function playerTest(){
   assert(!host.innerHTML.includes('Bassline &amp; fill notes'));
   assert(!host.innerHTML.includes('id="rehearsalChange"'),'alternatives no longer require selecting a movement');
   assert(!host.innerHTML.includes('Timing &amp; chords'));
-  assert(host.innerHTML.includes('aria-pressed="true">Original bass off'));
+  assert(host.innerHTML.includes('Original bass muted. Unmute original bass'));
   assert.equal($('rehearsalPassage').options[0].text,'Full song');
   assert.equal($('rehearsalPassage').value,'0');
   assert.equal(savedPlans,1,'phrase times save automatically');
@@ -126,7 +126,7 @@ async function playerTest(){
   value('rehearsalView','notes');value('rehearsalStyle','highlife');value('rehearsalFill','bar');
   $('rehearsalGuide').setAttribute('aria-pressed','true');
   $('rehearsalPlay').onclick();await new Promise(resolve=>setImmediate(resolve));
-  assert.equal($('rehearsalPlay').textContent,'Pause');
+  assert.equal($('rehearsalPlay').getAttribute('aria-label'),'Pause rehearsal');
   assert.equal(host.dataset.playing,'true','setup collapses while the loop plays');
   assert.equal(bands.length,1);
   assert.equal($('rehearsalCue').value,'Key · C major');
@@ -160,9 +160,18 @@ async function playerTest(){
   assert.equal(mixRequests,1);
   $('rehearsalMix').onclick();await new Promise(resolve=>setImmediate(resolve));
   $('rehearsalPlay').onclick();
-  assert.equal(host.dataset.playing,'false');
+  assert.equal(host.dataset.playing,'true','pausing retains the large view and hidden setup');
   assert.equal(fretDraw.highlight,false,'pausing clears the fret highlight');
+  const pausedAt=fretDraw.time,pausedBands=bands.length;
+  assert(pausedAt>0&&$('rehearsalTime').value,'pausing retains the current position and readout');
+  assert.equal($('rehearsalPlay').getAttribute('aria-label'),'Resume loop');
+  $('rehearsalControls').onclick();assert.equal(host.dataset.playing,'false','setup opens only when requested');
+  $('rehearsalControls').onclick();assert.equal(host.dataset.playing,'true');
+  assert.equal(bands.length,pausedBands,'showing controls does not restart audio');
+  now+=.77;
   $('rehearsalPlay').onclick();await new Promise(resolve=>setImmediate(resolve));
+  assert(Math.abs(bands.at(-1).offset-pausedAt)<.001,'resume starts at the paused source position instead of the beginning');
+  assert(Math.abs(fretDraw.time-pausedAt)<.001,'resuming retains the visible notes');
   $('rehearsalPlay').onclick();$('rehearsalPlay').onclick();await new Promise(resolve=>setImmediate(resolve));
   assert.equal(mixRequests,1,'already prepared rehearsal audio is reused');
   await $('rehearsalLibrary').onclick();assert(library&&bands.at(-1).node.stopped);

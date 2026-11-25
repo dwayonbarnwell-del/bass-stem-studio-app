@@ -251,5 +251,20 @@ window.BassRehearsalHarmony=(()=>{
   const chord=at(clip,time),next=prepare(clip).transitions.find(t=>t.at>time+.012&&t.from===chord);
   return {chord,next,beats:next?(next.at-time)/stepAt(clip,time):null};
  }
- return {keyOf,prepare,at,changes,options,phraseOptions,timestamp,progression,degree,chordName,chordTones,passingTones,beat,matchScore,canPlace,conform,approach,fit,movement};
+ function chordLabel(chord){
+  if(!chord)return '';
+  const label=/^[♭♯]?[1-7]$/.test(chord.number)?chord.number+' '+names[pc(chord.rootPc)]:chord.name;
+  return label+(!safe(chord)?'?':'');
+ }
+ function noteKind(clip,note){
+  const chord=at(clip,note.time),phrase=['fill','run'].includes(note.role)?note.role:null;
+  if(note.midi===null)return {kind:'muted',phrase,chord};
+  // A note at a chord boundary is not necessarily that chord's landing.
+  // Match the actual bass pitch, including inversions, before marking Main.
+  if(safe(chord)&&pc(note.midi)===bass(chord))return {kind:'main',phrase,chord};
+  if(phrase)return {kind:phrase,phrase,chord};
+  if(!safe(chord))return {kind:'unknown',phrase,chord};
+  return {kind:chordTones(chord).has(pc(note.midi))?'chord':'passing',phrase,chord};
+ }
+ return {keyOf,prepare,at,changes,options,phraseOptions,timestamp,progression,degree,chordName,chordTones,passingTones,beat,matchScore,canPlace,conform,approach,fit,movement,chordLabel,noteKind};
 })();
