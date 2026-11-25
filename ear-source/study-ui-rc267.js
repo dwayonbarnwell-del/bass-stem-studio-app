@@ -205,16 +205,17 @@ window.BassFillTrainer=(()=>{
   const study=$('earFillStudy'),value=String(playing);
   if(study.dataset.playing===value)return;
   study.dataset.playing=value;
-  if(playing)$('earTrainerDialog').scrollTop=0;
+  if(playing)($('earContent')||$('earTrainerDialog')).scrollTop=0;
  }
  function muteLabel(id,label,on,available=true){
-  const button=$(id);button.textContent=label;button.dataset.icon=on&&available?'🔊':'🔇';button.setAttribute('aria-pressed',String(on&&available));button.disabled=!available;
+  const button=$(id);button.textContent=available?label:plan?.recording?.originalMix?'Voice n/a':'No vocals';button.dataset.icon=on&&available?'🔊':'🔇';button.setAttribute('aria-pressed',String(on&&available));button.disabled=!available;
   button.title=available?(on?'Mute ':'Unmute ')+label.toLowerCase():plan?.recording?.originalMix?'Voice separation unavailable. Play again to retry.':'No vocals in this pattern';button.setAttribute('aria-label',button.title);
  }
  function state(){
   const deleted=window.BassCatalogueReview.removed().length;playbackLayout();$('fillPlay').textContent=playing?'Stop':'Play';$('fillPlay').disabled=!plan;$('fillRepeat').disabled=!plan;$('fillNext').disabled=!plan;$('fillDelete').disabled=!deletionKey();$('fillRestore').disabled=!deleted;$('fillRestore').textContent='Deleted'+(deleted?' ('+deleted+')':'');$('fillRepeat').setAttribute('aria-pressed',String(repeating));
   muteLabel('fillBacking','Others',backing);muteLabel('fillDrums','Drums 🥁',drums);muteLabel('fillVoice','Voice 🎙',voice,!!plan?.recording?.originalMix&&voiceReady!==false);
   $('fillVoiceVolume').disabled=!plan?.recording?.originalMix||voiceReady===false;
+  $('fillVoiceVolume').parentElement.hidden=$('fillVoiceVolume').disabled;
  }
 
  function stop(){if(rendered?.voiceUnavailable)rendered=null;clearStreamBand?.();token++;revision++;for(const session of sessions)session.transport.stop();sessions=[];transport?.stop();transport=null;cancelAnimationFrame(recordedFrame);recordedAudio?.pause();recordedAudio=null;playing=false;repeating=false;timers.forEach(clearTimeout);timers=[];voices.forEach(v=>{try{v.stop();}catch{}});voices=[];if($('fillPlay')){state();highlightNotes([],0,false);}}

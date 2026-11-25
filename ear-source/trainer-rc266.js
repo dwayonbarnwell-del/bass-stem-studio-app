@@ -178,11 +178,12 @@ window.BassEarTrainer=(()=>{
  function resetQuestion(){if(answered)return;entered=[];text('earEntered','Choose '+question.answer.length+' notes.');controls();}
  function close(){window.BassFillTrainer?.stop();window.BassRehearsal?.close();repeatQuestion=false;stopSound();phase='idle';answered=false;question=null;round=null;if(context?.state==='running')void context.suspend();}
  function modeChanged(){if(!['fills','runs','basslines'].includes(selectedMode()))window.BassFillTrainer?.stop();stopSound();if(question||round){question=null;round=null;answered=false;phase='idle';}drawKeyboard();const mode=selectedMode();text('earHint',hints[mode]||'');$('earLevel').value=String(progress.modes[mode]?.level||1);controls();if(['fills','basslines','runs'].includes(mode))window.BassFillTrainer?.setKind(mode);}
- function selectSection(nextSection){if(section===nextSection)return;const practice=['fills','runs','basslines'];if(!practice.includes(section)||!practice.includes(nextSection))close();section=nextSection;modeChanged();status('No song needed');dialog.scrollTop=0;}
+ function selectSection(nextSection){if(section===nextSection)return;const practice=['fills','runs','basslines'];if(!practice.includes(section)||!practice.includes(nextSection))close();section=nextSection;modeChanged();status('No song needed');$('earContent').scrollTop=0;}
  function init(hooks){
   api=hooks;if(dialog)return;
   const wrap=document.createElement('div');wrap.innerHTML=`<dialog id="earTrainerDialog" aria-labelledby="earTitle">
 <header class="ear-header"><h2 id="earTitle">Ear training</h2><button id="earClose" type="button">Close</button></header>
+<div id="earContent">
 <div id="earSections" role="group" aria-label="Ear training sections"><select id="earMode" aria-label="Notes lesson" title="Notes lesson"><option value="" disabled hidden>Notes</option><option value="notes" selected>Notes</option><option value="intervals">Intervals</option><option value="chords">Chords</option><option value="progressions">Progressions</option></select><button id="earSectionFills" type="button" data-section="fills" aria-pressed="false">Bass</button></div>
 <div id="earBassSections" role="group" aria-label="Bass studies" hidden><button id="earSectionBasslines" type="button" data-section="basslines" aria-pressed="false">Basslines</button><button id="earSectionRuns" type="button" data-section="runs" aria-pressed="false">Runs</button><button id="earSectionMyFills" type="button" data-section="fills" aria-pressed="false">My fills</button><button id="earSectionRehearsal" type="button" data-section="rehearsal" aria-pressed="false">Rehearse</button></div>
 <div id="earSetup" class="ear-settings">
@@ -203,10 +204,10 @@ window.BassEarTrainer=(()=>{
 <section id="earFillStudy" hidden></section>
 <section id="earRehearsal" aria-label="Song rehearsal" hidden></section>
 <section id="earSummary" hidden><h3 id="earSummaryTitle"></h3><p id="earSummaryText"></p><button id="earAdvance" type="button" hidden>Next level</button></section>
-<details id="earProgress" class="ear-progress"><summary>Your progress</summary><ul id="earProgressList"></ul><small id="earStorageNote"></small></details></dialog>`;
+<details id="earProgress" class="ear-progress"><summary>Your progress</summary><ul id="earProgressList"></ul><small id="earStorageNote"></small></details></div></dialog>`;
   dialog=wrap.firstElementChild;$('appRoot').append(dialog);readProgress();modeChanged();updateProgress();
   window.addEventListener('resize',fitViewport);window.visualViewport?.addEventListener('resize',fitViewport);window.visualViewport?.addEventListener('scroll',fitViewport);screen.orientation?.addEventListener('change',fitViewport);fitViewport();
-  $('openEarTraining').onclick=()=>{if(api?.busy?.())return;api?.pause?.();close();drawKeyboard();$('earSummary').hidden=true;dialog.showModal();dialog.scrollTop=0;fitViewport();status('No song needed');controls();};
+  $('openEarTraining').onclick=()=>{if(api?.busy?.())return;api?.pause?.();close();drawKeyboard();$('earSummary').hidden=true;dialog.showModal();$('earContent').scrollTop=0;fitViewport();status('No song needed');controls();};
   if(hooks.rehearsal)window.BassRehearsal.init($('earRehearsal'),hooks.rehearsal);
   window.BassFillTrainer.init($('earFillStudy'),hooks);$('earAnswerSound').onclick=()=>void listen(true);
   for(const b of dialog.querySelectorAll('[data-section]'))b.onclick=()=>selectSection(b.dataset.section);

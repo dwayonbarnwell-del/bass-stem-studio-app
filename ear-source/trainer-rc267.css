@@ -13,7 +13,12 @@
 #earTrainerDialog select{display:block!important;width:100%!important;text-align:center!important;text-align-last:center!important;padding:8px 24px!important;background:linear-gradient(140deg,#102b3d,#102437)!important;appearance:auto!important;white-space:nowrap!important}
 #earTrainerDialog button:disabled,#earTrainerDialog select:disabled{opacity:.5!important;cursor:default!important}
 #earTrainerDialog button:focus-visible,#earTrainerDialog select:focus-visible{outline:2px solid #8ce2ff!important;outline-offset:2px!important}
-#earTrainerDialog .ear-header{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:var(--ear-gap)!important;margin:0!important;padding:0!important;position:sticky!important;top:calc(-1*var(--ear-pad))!important;z-index:5!important;background:#101f2d!important;min-height:var(--ear-control)!important}
+#earTrainerDialog .ear-header{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:var(--ear-gap)!important;margin:0!important;padding:0!important;position:relative!important;z-index:5!important;background:#101f2d!important;min-height:var(--ear-control)!important}
+/* Keep the heading outside the scroll area, including while a phone keyboard is open. */
+#earTrainerDialog#earTrainerDialog{overflow:hidden!important}
+#earTrainerDialog #earContent{display:flex!important;flex-direction:column!important;gap:var(--ear-gap)!important;flex:1 1 auto!important;min-height:0!important;width:100%!important;overflow:auto!important;overscroll-behavior:contain!important;scroll-padding-block:5px!important}
+#earTrainerDialog #earContent>*{flex-shrink:0!important}
+#earTrainerDialog:has(#earRehearsal[data-playing="true"]) #earContent{overflow:hidden!important}
 #earTrainerDialog #earClose{min-height:var(--ear-control)!important;height:var(--ear-control)!important;flex:0 0 auto!important;width:auto!important;background:linear-gradient(140deg,#624252,#382b47)!important;border-color:#af8398!important}
 #earTrainerDialog #earSections{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:var(--ear-gap)!important;margin:0!important;padding:0!important}
 #earTrainerDialog #earSections button{width:100%!important}
@@ -22,7 +27,7 @@
 #earTrainerDialog #earSectionFills{background:#654c31!important;border-color:#c8a271!important}
 #earTrainerDialog #earSectionFills[aria-pressed="true"]{background:linear-gradient(140deg,#765935,#594135)!important;border-color:#ffcf89!important;box-shadow:inset 0 -3px 0 #ffcf89!important}
 #earTrainerDialog #earBassSections{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:var(--ear-gap)!important}
-#earTrainerDialog:has(> #earFillStudy[data-playing="true"]:not([hidden])) > :is(.ear-header,#earSections,#earBassSections){display:none!important}
+#earTrainerDialog:has(#earFillStudy[data-playing="true"]:not([hidden])) > .ear-header,#earTrainerDialog:has(#earFillStudy[data-playing="true"]:not([hidden])) #earContent > :is(#earSections,#earBassSections){display:none!important}
 #earTrainerDialog #earBassSections button{background:linear-gradient(140deg,#333f61,#242b46)!important;border-color:#8295c4!important;font-size:13px!important;width:100%!important}
 #earTrainerDialog #earBassSections [aria-pressed="true"]{background:linear-gradient(140deg,#514370,#34365b)!important;border-color:#c7b2eb!important;box-shadow:inset 0 -3px 0 #c7b2eb!important}
 #earTrainerDialog #earSetup #earStart{width:100%!important;min-width:0!important}
@@ -163,7 +168,8 @@
 }
 
 @layer bass-ear-267 {
-#earTrainerDialog #fillDrumOptions .fill-band-choice{display:grid!important;grid-column:1/-1!important;gap:5px!important;font-size:12px!important;line-height:1.3!important;width:100%!important;min-width:0!important}
+#earTrainerDialog #fillDrumOptions .fill-band-choice{display:grid!important;grid-column:1/-1!important;grid-template-columns:minmax(76px,1fr) minmax(0,1.6fr)!important;align-items:center!important;gap:8px!important;font-size:12px!important;line-height:1.3!important;width:100%!important;min-width:0!important}
+#earTrainerDialog #fillDrumOptions .fill-band-choice>select{grid-column:2!important;min-width:0!important;width:100%!important}
 }
 
 @layer bass-ear-267 {
@@ -284,18 +290,20 @@
  #earTrainerDialog #earRehearsal .rehearsal-transport>:is(#rehearsalMix,#rehearsalGuide){flex-direction:column!important;gap:0!important;line-height:16px!important;padding-block:3px!important}
  #earTrainerDialog #earRehearsal .rehearsal-transport>:is(#rehearsalMix,#rehearsalGuide)::after{content:attr(data-icon);display:block;font-size:16px;line-height:18px}
  #earTrainerDialog #earRehearsal .rehearsal-transport>#rehearsalPlay{font-size:22px!important}
- #earTrainerDialog #earRehearsal .rehearsal-view-row{display:grid!important;grid-template-columns:minmax(80px,1fr) 48px!important;gap:4px!important}
+ #earTrainerDialog #earRehearsal .rehearsal-view-row{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:4px!important;width:100%!important;max-width:100%!important}
  #earTrainerDialog #earRehearsal .rehearsal-view-row:has(#rehearsalPrev:not([hidden])){grid-template-columns:minmax(80px,3fr) repeat(3,minmax(44px,1fr))!important}
  #earTrainerDialog #earRehearsal .rehearsal-view-row:has(#rehearsalPrev:not([hidden])):has(:is(#rehearsalFollow,#rehearsalClear):not([hidden])){grid-template-columns:minmax(80px,3fr) repeat(4,minmax(44px,1fr))!important}
  #earTrainerDialog #earRehearsal .rehearsal-view-row:has(#rehearsalFollow:not([hidden])):has(#rehearsalClear:not([hidden])){grid-template-columns:minmax(80px,3fr) repeat(5,minmax(44px,1fr))!important}
  #earTrainerDialog #earRehearsal .rehearsal-view-row>button{width:100%!important;min-width:44px!important;padding:3px!important;font-size:22px!important}
  #earTrainerDialog #earRehearsal .rehearsal-view-row>select{width:100%!important;min-width:0!important;font-size:13px!important;padding-left:4px!important;padding-right:18px!important}
+ #earTrainerDialog #earRehearsal #rehearsalView:focus-visible{outline-offset:-3px!important}
  #earTrainerDialog #earRehearsal .rehearsal-times>label{display:flex!important;flex-direction:column!important;justify-content:center!important;align-items:stretch!important;gap:0!important;height:44px!important;min-height:44px!important;margin:0!important;padding:3px 6px!important;border:1px solid #60819a!important;border-radius:9px!important;background:#142b3d!important;text-align:center!important}
  #earTrainerDialog #earRehearsal .rehearsal-times>label>span{font-size:11px!important;font-weight:700!important;line-height:12px!important;margin:0!important}
  #earTrainerDialog #earRehearsal .rehearsal-times>label>input{width:100%!important;height:22px!important;min-height:22px!important;max-height:22px!important;padding:0!important;margin:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;font-size:16px!important;line-height:22px!important;text-align:center!important;font-variant-numeric:tabular-nums!important}
  @media(max-width:360px){
-  #earTrainerDialog #earRehearsal .rehearsal-view-row:has(#rehearsalFollow:not([hidden])):has(#rehearsalClear:not([hidden])){grid-template-columns:repeat(5,minmax(44px,1fr))!important}
-  #earTrainerDialog #earRehearsal .rehearsal-view-row:has(#rehearsalFollow:not([hidden])):has(#rehearsalClear:not([hidden]))>select{grid-column:1/-1!important}
+  #earTrainerDialog #earRehearsal .rehearsal-view-row:has(#rehearsalFollow:not([hidden])):has(#rehearsalClear:not([hidden])){display:flex!important;flex-wrap:wrap!important}
+  #earTrainerDialog #earRehearsal .rehearsal-view-row:has(#rehearsalFollow:not([hidden])):has(#rehearsalClear:not([hidden]))>select{flex:0 0 calc(50% - 2px)!important;width:calc(50% - 2px)!important;max-width:calc(50% - 2px)!important}
+  #earTrainerDialog #earRehearsal .rehearsal-view-row:has(#rehearsalFollow:not([hidden])):has(#rehearsalClear:not([hidden]))>button{flex:1 1 44px!important;width:auto!important}
  }
  #earTrainerDialog #rehearsalNoteKey{display:flex!important;align-items:center!important;justify-content:center!important;gap:10px!important;flex:none!important;min-height:16px!important;font-size:12px!important;line-height:16px!important;color:#c5d8e6!important}
  #earTrainerDialog #rehearsalNoteKey>span{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
@@ -390,7 +398,7 @@
 #earTrainerDialog #fillDeletedList button{min-width:78px;}
 #earTrainerDialog #fillEmptyDeleted{width:100%;margin-top:10px;border-color:#c88391;}
 @layer bass-ear-267 {
-#earTrainerDialog #fillDrumOptions .fill-band-choice[hidden]{display:none!important;}
+#earTrainerDialog #fillDrumOptions .fill-band-choice[hidden],#earTrainerDialog #fillDrumOptions .fill-drum-volume[hidden]{display:none!important;}
 #earTrainerDialog #fillMixNotice,#earTrainerDialog #fillDifference{font-size:12px;margin:5px 0;opacity:.8;}
 #earTrainerDialog #fillMixNotice[hidden],#earTrainerDialog #fillDifference[hidden]{display:none!important;}
 @media(max-width:579px){#earTrainerDialog #earFillStudy #fillTempo{padding-inline:3px!important;font-size:12px!important;}}
