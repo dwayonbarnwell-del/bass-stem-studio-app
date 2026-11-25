@@ -6,7 +6,7 @@ window.BassPianoAudio=(()=>{
  const label=m=>names[((m%12)+12)%12]+(Math.floor(m/12)-1);
  const banks=new Map(),loads=new Map();
  let decoder;
- const valid=notes=>notes.filter(n=>Number.isFinite(n.start+n.end+n.midi)&&n.end>n.start&&n.midi>=21&&n.midi<=108);
+ const valid=(notes,minMidi=21)=>notes.filter(n=>Number.isFinite(n.start+n.end+n.midi)&&n.end>n.start&&n.midi>=minMidi&&n.midi<=108);
  const envelope=(age,length)=>Math.min(1,Math.max(0,age)/.006)*Math.min(1,Math.max(0,length-age)/.035);
  async function prepare(sound='piano',context,options){
   if(sound==='piano'&&window.BassGrandPiano)return window.BassGrandPiano.prepare(sound,context,options);
@@ -31,7 +31,7 @@ window.BassPianoAudio=(()=>{
  function sample(midi,sound){const bank=banks.get(sound);if(!bank?.length)throw Error('Sound loading');return bank.reduce((a,b)=>Math.abs(b.midi-midi)<Math.abs(a.midi-midi)?b:a);}
  function pcm(notes,from,length,rate,sound='piano'){
   const out=new Float32Array(length),to=from+length/rate;
-  for(const n of valid(notes)){if(n.end<=from||n.start>=to)continue;const s=sample(n.midi,sound),ratio=2**((n.midi-s.midi)/12),a=Math.max(0,Math.ceil((n.start-from)*rate)),b=Math.min(length,Math.ceil((n.end-from)*rate));
+  for(const n of valid(notes,sound==='bass'?0:21)){if(n.end<=from||n.start>=to)continue;const s=sample(n.midi,sound),ratio=2**((n.midi-s.midi)/12),a=Math.max(0,Math.ceil((n.start-from)*rate)),b=Math.min(length,Math.ceil((n.end-from)*rate));
    for(let i=a;i<b;i++){const age=from+i/rate-n.start,pos=age*s.rate*ratio,j=Math.floor(pos);if(j<0||j+1>=s.pcm.length)continue;const v=s.pcm[j]+(s.pcm[j+1]-s.pcm[j])*(pos-j);out[i]+=v*envelope(age,n.end-n.start);}
   }for(let i=0;i<length;i++)out[i]=clamp(out[i],-.95,.95);return out;
  }
@@ -58,7 +58,7 @@ window.BassPianoAudio=(()=>{
  }
  function vlq(value){let n=Math.max(0,Math.round(value)),out=[n&127];while((n>>=7)>0)out.unshift((n&127)|128);return out;}
  function midi(notes,start=0,end=Infinity,sound='piano'){
-  const events=[];for(const n of valid(notes)){if(n.end<=start||n.start>=end)continue;const a=Math.max(start,n.start),b=Math.min(end,n.end);events.push({t:Math.round((a-start)*960),bytes:[0x90,Math.round(n.midi),clamp(Math.round(n.velocity||80),1,127)],off:1},{t:Math.max(Math.round((a-start)*960)+1,Math.round((b-start)*960)),bytes:[0x80,Math.round(n.midi),0],off:0});}
+  const events=[];for(const n of valid(notes,sound==='bass'?0:21)){if(n.end<=start||n.start>=end)continue;const a=Math.max(start,n.start),b=Math.min(end,n.end);events.push({t:Math.round((a-start)*960),bytes:[0x90,Math.round(n.midi),clamp(Math.round(n.velocity||80),1,127)],off:1},{t:Math.max(Math.round((a-start)*960)+1,Math.round((b-start)*960)),bytes:[0x80,Math.round(n.midi),0],off:0});}
   events.sort((a,b)=>a.t-b.t||a.off-b.off);const track=[0,0xff,0x51,3,7,0xa1,0x20,0,0xc0,sound==='bass'?33:0];let prev=0;for(const e of events){track.push(...vlq(e.t-prev),...e.bytes);prev=e.t;}track.push(0,0xff,0x2f,0);
   const n=track.length;return new Blob([new Uint8Array([77,84,104,100,0,0,0,6,0,0,0,1,1,224,77,84,114,107,(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255,...track])],{type:'audio/midi'});
  }

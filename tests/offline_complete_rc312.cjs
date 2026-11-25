@@ -11,7 +11,8 @@ installationStatus=200;await install();assert(activated);
 const catalogue=ctx.paths.find(p=>p.includes('song-reference/data.js')),saved=await cache.match(catalogue);
 assert.equal(saved.headers.get('Content-Type'),'application/javascript');
 assert.deepEqual(Buffer.from(await saved.arrayBuffer()),fs.readFileSync('song-reference/data.js'));
-offline=true;for(const p of ctx.paths){const r=await fetchPath(p);assert.equal(r.status,200,p);assert((await r.arrayBuffer()).byteLength,p);}
+const typeOnly=new Set(['./ear-source/vendor/soundtouch/core/SampleBuffer.js','./ear-source/vendor/soundtouch/core/StretchPipe.js']);
+offline=true;for(const p of ctx.paths){const r=await fetchPath(p);assert.equal(r.status,200,p);const bytes=Buffer.from(await r.arrayBuffer()),expected=fs.readFileSync(p==='./'?'index.html':p.split('?')[0]);assert.deepEqual(bytes,expected,p);assert(bytes.byteLength||typeOnly.has(p),p);}
 for(const path of ['./?v=RC312','./reopened-song']){const r=await fetchPath(path,'navigate');assert((await r.text()).includes('Bass Stem Studio'));}
 assert.equal(await fetchPath('./private-song.json'),undefined,'private audio stays outside shell cache');
 offline=false;assert.equal(await(await fetchPath('./?v=RC312','navigate')).text(),'network');

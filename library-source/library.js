@@ -294,7 +294,7 @@ window.BassLibrary=(()=>{
     // Parse large embedded audio and calculate its identity off the UI thread.
     const job=scanJob;
     if(typeof Worker==='function'&&job){
-      const worker=job.worker||(job.worker=new Worker('./library-source/scan-worker-rc295.js?v=rc304'));
+      const worker=job.worker||(job.worker=new Worker('./library-source/scan-worker-rc295.js?v=rc364'));
       return new Promise((resolve,reject)=>{
         worker.onmessage=event=>{event.data.error?reject(Error(event.data.error)):resolve(event.data.meta);};
         worker.onerror=()=>reject(Error('Could not read this saved song.'));

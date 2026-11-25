@@ -3,7 +3,7 @@ const html=fs.readFileSync('index.html','utf8');
 const source=html.slice(html.indexOf("  const LAST_OPENED_SESSION="),html.indexOf('  function selectedAnalysisRange()'));
 function setup(preferred,rows){
  const saved=new Map(),loaded=[];if(preferred)saved.set('bassStemLastOpenedSessionRC254',JSON.stringify({signature:preferred}));
- const ctx={songImportBusy:false,buffer:null,activeAudioFile:null,pendingResumeBusy:false,songLoadRequest:4,songSession:7,RUNPOD_RECOVERY_STORE:'audio',localStorage:{getItem:k=>saved.get(k),setItem:(k,v)=>saved.set(k,v)},File:class{constructor(parts,name,options){Object.assign(this,options);this.name=name}},cloudFileSignature:f=>f.signature,recoveryStore:async()=>rows,loadAudioFile:async(f,options)=>{loaded.push({f,options});return true}};
+ const ctx={currentProjectTarget:null,songImportBusy:false,buffer:null,activeAudioFile:null,pendingResumeBusy:false,songLoadRequest:4,songSession:7,RUNPOD_RECOVERY_STORE:'audio',localStorage:{getItem:k=>saved.get(k),setItem:(k,v)=>saved.set(k,v)},File:class{constructor(parts,name,options){Object.assign(this,options);this.name=name}},cloudFileSignature:f=>f.signature,recoveryStore:async()=>rows,loadAudioFile:async(f,options)=>{loaded.push({f,options});return true}};
  vm.createContext(ctx);vm.runInContext(source,ctx);return {ctx,loaded,saved};
 }
 const rows=[{signature:'old-pending',name:'Old.mp3',blob:{},cachedAt:500},{signature:'last-opened',name:'Last.mp3',blob:{},cachedAt:100}];

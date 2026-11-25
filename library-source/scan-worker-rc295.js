@@ -1,4 +1,4 @@
-importScripts('./project-json.js?v=rc304');
+importScripts('./project-json.js?v=rc364');
 const SUPPORTED=/\.(bassstudio|bssproject|json)$/i;
 const clean=v=>String(v||'').trim();
   function metadata(p,file){

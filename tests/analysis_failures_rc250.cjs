@@ -8,7 +8,7 @@ const c={console,Error,String,Array,Math,Date,Number,JSON,songSession:1,songLoad
  recoveryStore:async(store,op)=>op({get:id=>cache.get(id),put:r=>cache.set(r.id,r)}),
  runPodFetch:async()=>{requests++;return response;},
  renderTimelinePartTabs:()=>{},clamp:x=>x,restoreAnalysisSnapshot:s=>{c.notes=s.notes;c.detectedChordChanges=s.chords;},
- currentTime:()=>0,updateAudioParams:()=>{},refreshEditedAnalysis:()=>{},window:{BassPiano:{exportData:()=>({notes:[]})}}
+ copyAnalysis:v=>v==null?v:JSON.parse(JSON.stringify(v)),currentTime:()=>0,updateAudioParams:()=>{},refreshEditedAnalysis:()=>{},window:{BassPiano:{exportData:()=>({notes:[]})}}
 };
 vm.createContext(c);for(const n of ['analysisFailureDetail','validateAnalysisPartResult','collectPendingAnalysisParts','restoreDeviceAnalysis'])vm.runInContext(fn(n),c);
 (async()=>{

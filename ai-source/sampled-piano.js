@@ -6,13 +6,19 @@ window.BassGrandPiano=(()=>{
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  const velocity=v=>clamp(Number.isFinite(v)?Math.round(v):80,1,127);
  const valid=notes=>(notes||[]).filter(n=>Number.isFinite(n.midi)&&n.midi>=21&&n.midi<=108);
- async function resource(path){
-  let cache;try{cache=await caches.open(cacheName);const saved=await cache.match(path);if(saved)return saved;}catch{}
+ async function resource(path,validate){
+  let cache,saved;try{cache=await caches.open(cacheName);saved=await cache.match(path);}catch{}
+  if(saved){
+   try{return await validate(saved);}catch{
+    try{await cache.delete(path);}catch{}
+   }
+  }
   const response=await fetch(path);if(!response.ok)throw Error('Piano sound unavailable');
+  const value=await validate(response.clone());
   if(cache)try{await cache.put(path,response.clone());}catch{}
-  return response;
+  return value;
  }
- async function manifest(){if(catalogue)return catalogue;if(!manifestTask)manifestTask=(async()=>{const data=await (await resource(base+'manifest.json')).json();if(data.id!=='salamander-grand-v3-rc257'||data.samples?.length!==90)throw Error('Piano sounds need updating');return catalogue=data.samples;})().catch(e=>{manifestTask=null;throw e;});return manifestTask;}
+ async function manifest(){if(catalogue)return catalogue;if(!manifestTask)manifestTask=resource(base+'manifest.json',async response=>{const data=await response.json();if(data.id!=='salamander-grand-v3-rc257'||!Array.isArray(data.samples)||data.samples.length!==90)throw Error('Piano sounds need updating');return data.samples;}).then(data=>catalogue=data).catch(e=>{manifestTask=null;throw e;});return manifestTask;}
  function descriptor(midi,v){const layer=velocity(v),pool=catalogue.filter(s=>layer>=s.velocityMin&&layer<=s.velocityMax);return pool.reduce((a,b)=>Math.abs(b.rootMidi-midi)<Math.abs(a.rootMidi-midi)?b:a);}
  function evict(protectedKeys){for(const [key,item] of [...decoded].sort((a,b)=>a[1].used-b[1].used)){if(bytes<=limit)break;if(protectedKeys.has(key))continue;decoded.delete(key);bytes-=item.bytes;}}
  async function prepare(sound='piano',context,{notes=[{midi:60,velocity:80}]}={}){
@@ -21,7 +27,7 @@ window.BassGrandPiano=(()=>{
   // Decode sequentially to avoid transient memory spikes on phones.
   for(const [key,d] of wanted){
    if(!decoded.has(key)){
-    if(!loading.has(key))loading.set(key,(async()=>{const buffer=await context.decodeAudioData(await (await resource(base+key)).arrayBuffer());if(buffer.numberOfChannels!==2)throw Error('Stereo piano sound unavailable');const item={...d,midi:d.rootMidi,buffer,channels:[buffer.getChannelData(0),buffer.getChannelData(1)],rate:buffer.sampleRate,bytes:buffer.length*8,used:++clock};decoded.set(key,item);bytes+=item.bytes;return item;})().finally(()=>loading.delete(key)));
+    if(!loading.has(key))loading.set(key,(async()=>{const buffer=await resource(base+key,async response=>{const buffer=await context.decodeAudioData(await response.arrayBuffer());if(buffer.numberOfChannels!==2)throw Error('Stereo piano sound unavailable');return buffer;});const item={...d,midi:d.rootMidi,buffer,channels:[buffer.getChannelData(0),buffer.getChannelData(1)],rate:buffer.sampleRate,bytes:buffer.length*8,used:++clock};decoded.set(key,item);bytes+=item.bytes;return item;})().finally(()=>loading.delete(key)));
     await loading.get(key);
    }decoded.get(key).used=++clock;evict(new Set(wanted.keys()));
   }return [...wanted.keys()].map(k=>decoded.get(k));

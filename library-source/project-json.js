@@ -81,15 +81,16 @@ globalThis.BassProjectJSON=(()=>{
     },
     async read(file,options){
       if(options?.playback)return this.playback(file,options);
+      if(options?.signal?.aborted)throw abort();
       if(file.size<16*1024*1024||typeof file.stream!=='function'||typeof TextDecoderStream!=='function')
-        return JSON.parse(await file.text());
+        return JSON.parse(await read(file.text(),options?.signal));
       const reader=file.stream().pipeThrough(new TextDecoderStream()).getReader();
       const prefix='bss_'+crypto.randomUUID()+'_',values=new Map(),metadata=[];
-      let inString=false,afterColon=false,escapedNext=false,segments=[],length=0;
+      let inString=false,afterColon=false,escapedNext=false,segments=[],length=0,finished=false;
       try{
         for(;;){
-          const {value:block,done}=await reader.read();
-          if(done)break;
+          const {value:block,done}=await read(reader.read(),options?.signal);
+          if(done){finished=true;break;}
           let at=0;
           while(at<block.length){
             if(!inString){
@@ -120,7 +121,11 @@ globalThis.BassProjectJSON=(()=>{
         }
         if(inString)throw SyntaxError('Incomplete saved project');
         return JSON.parse(metadata.join(''),(_,value)=>typeof value==='string'&&values.has(value)?values.get(value):value);
-      }finally{reader.releaseLock();}
+      }finally{
+        // An unresponsive source must not delay cancellation or a fresh attempt.
+        if(!finished)try{Promise.resolve(reader.cancel()).catch(()=>{});}catch{}
+        reader.releaseLock();
+      }
     }
   };
 })();
