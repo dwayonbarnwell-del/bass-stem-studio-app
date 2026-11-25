@@ -15787,11 +15787,11 @@ window.BassBatch = (() => {
 <script src="./ear-source/catalogue-review-rc347.js?v=rc351"></script>
 <script src="./ear-source/cultural-studies-rc351.js?v=rc352"></script>
 <script src="./ear-source/study-ui-rc267.js?v=rc351"></script>
-<script src="./ear-source/rehearsal-core.js?v=rc354"></script>
+<script src="./ear-source/rehearsal-core.js?v=rc357"></script>
 <script src="./ear-source/rehearsal-harmony-rc354.js?v=rc356"></script>
 <script src="./ear-source/rehearsal-ideas-rc352.js?v=rc354"></script>
 <script src="./ear-source/phrase-view.js?v=rc343"></script>
-<script src="./ear-source/rehearsal.js?v=rc356"></script>
+<script src="./ear-source/rehearsal.js?v=rc357"></script>
 <script src="./ear-source/trainer-rc266.js?v=rc326"></script>
 <script src="./fretflow-source/core.js?v=rc277"></script>
 <script src="./fretflow-source/practice-stems.js?v=rc305"></script>
@@ -15804,7 +15804,7 @@ window.BassBatch = (() => {
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC356';
+  const APP_VERSION='RC357';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;
@@ -15848,7 +15848,7 @@ window.BassBatch = (() => {
     updateProjectButtons();updateAnalysisToolsState();refreshBassPracticeToggle();
   }
   function replaceSongSession({preservePending=false}={}){
-    releasePracticeWorker();songSession++;currentProjectTarget=null;importedProjectFields=null;sourceEncoding=null;showProjectSave('');fretFlowStringCount=5;window.BassPracticeControls?.showControls();window.BassBacking?.reset();window.BassFretFlow?.invalidate();window.BassLoopFade?.reset();window.BassChordReview?.reset();window.BassSoundCheck?.cancel();window.BassTools?.cancelSession();window.BassRhythm?.cancel();window.BassLyrics?.cancel();window.BassPiano?.reset();
+    releasePracticeWorker();songSession++;currentProjectTarget=null;importedProjectFields=null;sourceEncoding=null;savedRehearsalPhrases=null;showProjectSave('');fretFlowStringCount=5;window.BassPracticeControls?.showControls();window.BassBacking?.reset();window.BassFretFlow?.invalidate();window.BassLoopFade?.reset();window.BassChordReview?.reset();window.BassSoundCheck?.cancel();window.BassTools?.cancelSession();window.BassRhythm?.cancel();window.BassLyrics?.cancel();window.BassPiano?.reset();
     resetSongStructure();
     aiBusy=false;pendingResumeBusy=false;offlineAnalysisRunning=false;
     if(aiAnalyse)aiAnalyse.removeAttribute('aria-busy');
@@ -15983,7 +15983,7 @@ window.BassBatch = (() => {
     const session=songSession;
     const record={signature:cloudFileSignature(activeAudioFile),savedAt:Date.now(),state:analysisSnapshot('Latest'),
       history:copyAnalysis(analysisHistory),parts:copyAnalysis(analysisParts),bassBase64:bassStemBase64,bassMime:bassStemMime,
-      noBassBase64,noBassMime,rehearsalVersion:currentRehearsalVersion,transpose:transposeSemitones,structure:copyAnalysis(songStructure)};
+      noBassBase64,noBassMime,rehearsalVersion:currentRehearsalVersion,rehearsalPhrases:copyAnalysis(savedRehearsalPhrases),transpose:transposeSemitones,structure:copyAnalysis(songStructure)};
     recoveryWriteQueue=recoveryWriteQueue.catch(()=>{}).then(()=>recoveryStore('analyses',s=>s.put(record)))
       .then(()=>true).catch(()=>{if(session===songSession)toolsMessage('Device backup unavailable. Use Save to keep your work.');return false;});
     return recoveryWriteQueue;
@@ -16013,7 +16013,7 @@ window.BassBatch = (() => {
         if(session!==songSession||request!==songLoadRequest)return false;
         if(saved.noBassBase64)await loadNoBassFromBase64(saved.noBassBase64,saved.noBassMime);}
       if(session!==songSession||request!==songLoadRequest)return false;
-      currentRehearsalVersion=saved.rehearsalVersion||'';updateAudioParams();refreshEditedAnalysis();
+      currentRehearsalVersion=saved.rehearsalVersion||'';savedRehearsalPhrases=copyAnalysis(saved.rehearsalPhrases||null);updateAudioParams();refreshEditedAnalysis();
       const hasMusic=!!(notes.length||detectedChordChanges.length||window.BassPiano?.exportData()?.notes?.length);
       toolsMessage(hasMusic?'Saved analysis restored.':'Audio restored. Analysis is unfinished.');return hasMusic;
     }catch(error){console.warn('Device analysis recovery unavailable',error);return false;}
@@ -16401,7 +16401,7 @@ window.BassBatch = (() => {
   }
 
   function updateProjectButtons(){
-    if(saveProjectBtn)saveProjectBtn.disabled=projectSaveBusy||autoWriting||songImportBusy||aiBusy||!(buffer && activeAudioFile && ((offlineAnalysisReady && notes.length) || detectedChordChanges.length || window.BassLyrics?.exportData().length || window.BassPiano?.exportData().notes.length || songStructure || window.BassBacking?.exportData()));
+    if(saveProjectBtn)saveProjectBtn.disabled=projectSaveBusy||autoWriting||songImportBusy||aiBusy||!(buffer && activeAudioFile && ((offlineAnalysisReady && notes.length) || detectedChordChanges.length || window.BassLyrics?.exportData().length || window.BassPiano?.exportData().notes.length || songStructure || savedRehearsalPhrases?.phrases?.length || window.BassBacking?.exportData()));
   }
 
   function arrayBufferToBase64(ab){
@@ -16430,7 +16430,7 @@ window.BassBatch = (() => {
   }
 
   let projectSaveBusy=false,autoWriting=false;
-  let currentProjectTarget=null,importedProjectFields=null,sourceEncoding=null;
+  let currentProjectTarget=null,importedProjectFields=null,sourceEncoding=null,savedRehearsalPhrases=null;
   function showProjectSave(text){
     window.BassPracticeControls?.setSaveStatus(text);
     if(text?.startsWith('Song not saved'))aiStatus(text);
@@ -16484,7 +16484,7 @@ window.BassBatch = (() => {
     if(songImportBusy||aiBusy||projectSaveBusy)throw Error('Wait for analysis to finish.');
     if(importedProjectFields?.awaitingBacking&&!window.BassBacking?.exportData())
       throw Error('The saved mute audio is still loading or could not be read. Wait for it to load before saving.');
-    if(!buffer||!activeAudioFile||(!(offlineAnalysisReady&&notes.length)&&!detectedChordChanges.length&&!window.BassLyrics?.exportData().length&&!window.BassPiano?.exportData().notes.length&&!window.BassPiano?.exportData().done.length&&!songStructure&&!window.BassBacking?.exportData()))throw Error('Analyse or transcribe this song first.');
+    if(!buffer||!activeAudioFile||(!(offlineAnalysisReady&&notes.length)&&!detectedChordChanges.length&&!window.BassLyrics?.exportData().length&&!window.BassPiano?.exportData().notes.length&&!window.BassPiano?.exportData().done.length&&!songStructure&&!savedRehearsalPhrases?.phrases?.length&&!window.BassBacking?.exportData()))throw Error('Analyse or transcribe this song first.');
     const session=songSession,projectName=safeProjectFilename(loadedProjectName||objectName||'Song');
     projectSaveBusy=true;updateProjectButtons();
     try{
@@ -16524,7 +16524,7 @@ window.BassBatch = (() => {
           audioBase64
         },
         analysis:{
-          ready:true,melody:window.BassPiano?.exportData(),structure:copyAnalysis(songStructure),bassBacking:window.BassBacking?.exportData()||importedProjectFields?.savedBacking||null,
+          ready:true,rehearsalPhrases:copyAnalysis(savedRehearsalPhrases),melody:window.BassPiano?.exportData(),structure:copyAnalysis(songStructure),bassBacking:window.BassBacking?.exportData()||importedProjectFields?.savedBacking||null,
           history:analysisHistory,manualCorrections,keyCorrections,
           keySections:audioKeySections,keyReady:audioKeyReady,baseScale:detectedBaseScale,
           noteCount:savedNotes.length,
@@ -16685,6 +16685,7 @@ window.BassBatch = (() => {
       origVol.value='7';bassVol.value='100';origVolText.textContent='7%';bassVolText.textContent='100%';
       currentProjectTarget=window.BassLibrary.targetFor(file)||null;
       sourceEncoding=src.audioBase64;
+      savedRehearsalPhrases=copyAnalysis(project.analysis.rehearsalPhrases||null);
       const {bassBacking,bassAudioBase64,noBassAudioBase64,parts,...otherAnalysis}=project.analysis;
       importedProjectFields={filename:file.name,library:project.library,analysis:otherAnalysis,settings:project.settings,
         awaitingBacking:!!project.analysis.bassBacking,bassAudioBase64,bassAudioMime:project.analysis.bassAudioMime,
@@ -21421,7 +21422,13 @@ window.BassBatch = (() => {
       if(!buffer)void window.BassSongView.openLibrary();
     },
     rehearsal:{
-      get:()=>({...studySong(),buffer,strings:fretFlowStringCount,tempo:detectedTempoBpm,phase:detectedDownbeatPhase,confidence:beatGridConfidence,keyRoot:detectedScaleContext?.rootPc??null,keyMode:detectedScaleContext?.mode||'',numbering:numberingConvention}),
+      get:()=>({...studySong(),buffer,strings:fretFlowStringCount,tempo:detectedTempoBpm,phase:detectedDownbeatPhase,confidence:beatGridConfidence,keyRoot:detectedScaleContext?.rootPc??null,keyMode:detectedScaleContext?.mode||'',numbering:numberingConvention,rehearsalPhrases:savedRehearsalPhrases}),
+      savePhrases:async(plan,session)=>{
+        if(session!==songSession||!buffer)return;
+        savedRehearsalPhrases=copyAnalysis(plan);updateProjectButtons();
+        await persistAnalysisRecovery(true);
+        if(session===songSession)queueMelodyProjectSave(true);
+      },
       session:()=>songSession,
       pickAudio:(input,onAudio)=>chooseImportFile('audio',{input,onAudio}),
       importAudio:file=>importAudioCheckingLibrary(file,{automaticAnalysis:false}),

@@ -197,6 +197,95 @@
   return {points,meter,bpm,source:override?'Manual BPM':detected?.confidence>=.25?'Drum timing':'Estimated timing',snap:!override};
  }
 
+ // One saved partition of the recording, rather than overlapping sets of picks.
+ function phraseSignature(song){
+  const text=JSON.stringify([song.duration,song.tempo||song.bpm,song.meter,song.phase,song.confidence,song.beats,
+   song.sections?.map(s=>[s.start,s.end,s.name]),song.chords?.map(c=>[c.start,c.end,c.rootPc,c.bassPc]),
+   song.notes?.map(n=>[n.start,n.end,n.midi])]);
+  let hash=2166136261;
+  for(let i=0;i<text.length;i++)hash=Math.imul(hash^text.charCodeAt(i),16777619);
+  return (hash>>>0).toString(36);
+ }
+
+ function validPhrasePlan(plan,song){
+  if(plan?.version!==1||plan.signature!==phraseSignature(song)||plan.duration!==song.duration||!Array.isArray(plan.phrases)||!plan.phrases.length)return false;
+  let end=0;
+  for(const p of plan.phrases){
+   if(!Number.isFinite(p.start)||!Number.isFinite(p.end)||p.start!==end||p.end<=p.start||p.end>song.duration)return false;
+   end=p.end;
+  }
+  const grid=plan.grid;
+  if(grid&&(!Array.isArray(grid.points)||!Number.isFinite(grid.bpm)||grid.bpm<40||grid.bpm>220||!Number.isInteger(grid.meter)||grid.meter<2||grid.meter>12||
+   grid.points.some((t,i)=>!Number.isFinite(t)||t<0||t>song.duration+.012||i>0&&t<=grid.points[i-1])))return false;
+  return end===song.duration;
+ }
+
+ function phrasePlan(song,saved=song.rehearsalPhrases){
+  if(validPhrasePlan(saved,song))return saved;
+  const duration=Number(song.duration);
+  if(!Number.isFinite(duration)||duration<=0)return null;
+  const grid=beatGrid({...song,start:0,end:duration,tempo:song.tempo||song.bpm||0});
+  const sections=(song.sections||[]).filter(s=>Number.isFinite(s.start)&&Number.isFinite(s.end)&&s.end>s.start&&s.end>0&&s.start<duration)
+   .map(s=>({start:Math.max(0,s.start),end:Math.min(duration,s.end),name:String(s.name||'').trim().slice(0,30)})).sort((a,b)=>a.start-b.start);
+  const chords=(song.chords||[]).filter(c=>Number.isFinite(c.start)&&Number.isFinite(c.end)&&c.end>c.start).sort((a,b)=>a.start-b.start);
+  const notes=(song.notes||[]).filter(n=>Number.isFinite(n.start)&&Number.isFinite(n.end)&&n.end>n.start);
+  const bars=grid?grid.points.filter((_,i)=>i%grid.meter===0&&grid.points[i]>=0&&grid.points[i]<=duration):[];
+  const round=t=>Math.round(t*100)/100;
+  // Keep known section boundaries, without creating several tiny fragments at
+  // overlapping/near-identical section edges. Every remaining sample is kept.
+  const anchors=[0];
+  const edges=[...new Set(sections.flatMap(s=>[round(s.start),round(s.end)]))].sort((a,b)=>a-b);
+  for(const time of edges)if(time-anchors.at(-1)>=6&&duration-time>=6)anchors.push(time);
+  anchors.push(duration);
+  const phrases=[];
+  const at=time=>chords.find(c=>c.start<=time+.015&&c.end>time+.015);
+  function boundaryCost(start,end){
+   let cost=0;
+   const from=at(start),to=at(end);
+   if(from&&to&&!from.uncertain&&!to.uncertain&&((from.bassPc??from.rootPc)!==(to.bassPc??to.rootPc)||from.quality!==to.quality))cost+=3.5;
+   // A release before a bar line is preferable to cutting a sustained bass note.
+   if(notes.some(n=>n.start<end-.06&&n.end>end+.08))cost+=.9;
+   if(notes.some(n=>n.end<=end&&n.end>=end-.25))cost-=.25;
+   if(sections.some(s=>Math.abs(s.start-end)<.015||Math.abs(s.end-end)<.015))cost-=.35;
+   return cost;
+  }
+  for(let region=0;region<anchors.length-1;region++){
+   const a=anchors[region],z=anchors[region+1];
+   let inside=bars.map(round).filter(t=>t>a+.05&&t<z-.05);
+   // Without a usable beat grid there is no claim of a verified turnaround.
+   // Balanced fallback phrases still cover the intro, rests and outro exactly.
+   const checkpoints=[a,...inside,z],fallback=[];
+   for(let i=1;i<checkpoints.length;i++){
+    const gap=checkpoints[i]-checkpoints[i-1],count=Math.ceil(gap/15);
+    for(let p=1;p<count;p++)fallback.push(round(checkpoints[i-1]+gap*p/count));
+   }
+   inside=[...new Set([...inside,...fallback])].sort((x,y)=>x-y);
+   const points=[a,...inside,z],cost=Array(points.length).fill(Infinity),next=[];
+   cost[points.length-1]=0;
+   for(let i=points.length-2;i>=0;i--)for(let j=i+1;j<points.length;j++){
+    const seconds=points[j]-points[i];
+    if(seconds>22&&j>i+1)break;
+    const outside=Math.max(0,10-seconds,seconds-15);
+    const short=seconds<6&&z-a>=6?30:0;
+    const score=2+.055*(seconds-12.5)**2+outside**2*.7+short+boundaryCost(points[i],points[j])+cost[j];
+    if(score<cost[i]){cost[i]=score;next[i]=j;}
+   }
+   for(let i=0;i<points.length-1;){
+    const j=next[i]??points.length-1,start=points[i],end=points[j];
+    const section=sections.find(s=>s.start<=start+.05&&s.end>start+.05);
+    phrases.push({start,end,section:section?.name||'',estimated:true});i=j;
+   }
+  }
+  return {version:1,signature:phraseSignature(song),duration,grid,phrases};
+ }
+
+ function phraseGrid(plan,phrase){
+  const grid=plan?.grid;
+  if(!grid)return null;
+  const points=grid.points.filter(t=>t>=phrase.start-.006&&t<=phrase.end+.006);
+  return points.length>=2?{...grid,points}:null;
+ }
+
  function suggest(chords,grid){
   if(!grid)return 'roots';
   const duration=median(chords.map(c=>c.end-c.start)),beatsPerChange=duration*grid.bpm/60;
@@ -361,6 +450,6 @@
   return distinct.filter(n=>n.stop-n.time>=.031);
  }
 
- const api={styles,passages,quietRanges,attacks,pulse,beatGrid,suggest,barChords,pattern,patternScore,fit};
+ const api={styles,passages,quietRanges,attacks,pulse,beatGrid,phraseSignature,validPhrasePlan,phrasePlan,phraseGrid,suggest,barChords,pattern,patternScore,fit};
  if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.BassRehearsalCore=api;
 })(globalThis);

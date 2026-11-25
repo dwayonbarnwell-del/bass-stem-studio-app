@@ -14,7 +14,7 @@ window.BassRehearsal=(()=>{
  const $=id=>host.querySelector('#'+id);
  const state=text=>{$('rehearsalStatus').textContent=text;};
  const harmonyRevision=value=>JSON.stringify([value?.keyRoot,value?.keyMode,value?.root,value?.mode,value?.numbering,value?.tempo,value?.phase,value?.confidence,value?.meter,value?.beats,value?.chords?.map(c=>[c.start,c.end,c.rootPc,c.quality,c.bassPc,c.uncertain,c.manual,c.rootOnly]),value?.notes?.map(n=>[n.start,n.end,n.midi])]);
- let phraseRepeat=null,phrases,phraseEvents=[],previewClip=null;
+ let phraseRepeat=null,phrases,phraseEvents=[],previewClip=null,passageRevision='';
  let featured=[],viewNotes=[],viewPosition=0,fretView,fretNotes=[],notePage=-1,markers=[],changeMarkers=[],audible=false;
 
  function init(panel,hooks){
@@ -79,7 +79,10 @@ window.BassRehearsal=(()=>{
   for(const id of ['rehearsalStart','rehearsalEnd','rehearsalBpm','rehearsalChords']){
    $(id).onchange=()=>{
     if(id==='rehearsalBpm')manualBpm=Number($(id).value);
-    resetClip();$('rehearsalPassage').value='custom';
+    resetClip();
+    const picker=$('rehearsalPassage');
+    if(![...picker.options].some(o=>o.value==='custom'))picker.add(new Option('Custom passage','custom'));
+    picker.value='custom';
     updateBpm();patterns();
    };
   }
@@ -129,46 +132,49 @@ window.BassRehearsal=(()=>{
 
  function refresh(){
   if(!host||host.hidden)return;
-  const next=api.get(),changed=song?.session!==next?.session||song?.buffer!==next?.buffer;
+  const next=api.get(),revision=next?.buffer?C.phraseSignature(next):'';
+  const newSong=song?.session!==next?.session||song?.buffer!==next?.buffer;
+  const changed=newSong||passageRevision!==revision;
+  const previous=ranked[Number($('rehearsalPassage').value)];
+  const custom=$('rehearsalPassage').value==='custom';
   song=next;
   if(!changed)return;
+  passageRevision=revision;
   resetClip();
-  noBass=true;mixFailed=false;labelMix();
-  $('rehearsalStyle').value='auto';
-  $('rehearsalMusic').value=50;$('rehearsalMusicValue').value='50%';
-  $('rehearsalGain').value=100;$('rehearsalGainValue').value='100%';
+  if(newSong){
+   noBass=true;mixFailed=false;
+   $('rehearsalStyle').value='auto';
+   $('rehearsalMusic').value=50;$('rehearsalMusicValue').value='50%';
+   $('rehearsalGain').value=100;$('rehearsalGainValue').value='100%';
+  }
+  labelMix();
   $('rehearsalEditor').hidden=!song?.buffer;
   $('rehearsalTitle').textContent=song?.buffer?String(song.title).replace(/Y2Mate\.is\s*-\s*/gi,''):'Choose a recording or a saved song.';
   if(!song?.buffer){state('');return;}
-  const fromSection=(song.sections||[])
-   .filter(s=>s.end-s.start>=4)
-   .map(s=>({start:s.start,end:Math.min(s.end,song.duration),name:s.name}));
-  const suggestions=C.passages(song.buffer).map(p=>({...p,pulse:C.pulse(song.buffer,p.start,p.end)}));
-  const best=[...suggestions].sort((a,b)=>(b.pulse?.confidence||0)-(a.pulse?.confidence||0)||b.score-a.score)[0];
-  const passages=[...fromSection,...(best?[best]:[]),...suggestions.filter(p=>p!==best)];
-  if(!passages.length&&song.duration>16)passages.push({start:0,end:16,name:'First passage'});
-  const phrases=[],seen=new Set();
-  for(const passage of [...passages,{start:0,end:song.duration,name:'Bass phrase'}]){
-   const grid=C.beatGrid({...song,start:passage.start,end:passage.end,pulseEstimate:passage.pulse});
-   if(!grid)continue;
-   const size=grid.meter*2;
-   for(let at=0;at+grid.meter<grid.points.length;at+=size){
-    const points=grid.points.slice(at,at+size+1);
-    const start=points[0],end=points.at(-1);
-    const key=[Math.round(start*10),Math.round(end*10)].join('/');
-    if(seen.has(key))continue;
-    seen.add(key);phrases.push({start,end,name:passage.name||'Phrase',grid:{...grid,points}});
-   }
-  }
-  ranked=[{start:0,end:song.duration,name:'Full song'},...phrases];
+  const plan=C.phrasePlan(song);
+  const ranges=(plan?.phrases||[]).map((p,i)=>({...p,name:'Phrase '+(i+1),timeline:true,grid:C.phraseGrid(plan,p)}));
+  ranked=[{start:0,end:song.duration,name:'Full song'},...ranges];
   const picker=$('rehearsalPassage');
-  picker.replaceChildren(...ranked.map((p,i)=>new Option(p.name==='Full song'?p.name:(p.name||'Passage')+' · '+fmt(p.start),i)));
-  picker.add(new Option('Custom passage','custom'));
-  picker.value='0';applyPassage(ranked[0]);
+  picker.replaceChildren(...ranked.map((p,i)=>{
+   const option=new Option(i?String(i).padStart(2,'0')+' · '+minutesSeconds(p.start)+'–'+minutesSeconds(p.end):'Full song',i);
+   if(i)option.title=(p.section?p.section+' · ':'')+fmt(p.start)+'–'+fmt(p.end)+' · Estimated phrase';
+   return option;
+  }));
+  if(!newSong&&custom){
+   picker.add(new Option('Custom passage','custom'));picker.value='custom';updateBpm();patterns();
+  }else{
+   const selected=!newSong&&previous?.timeline?Math.max(1,ranked.findIndex(p=>p.timeline&&p.start<=previous.start+.01&&p.end>previous.start+.01)):0;
+   picker.value=String(selected);applyPassage(ranked[selected]);
+  }
+  if(plan&&plan!==song.rehearsalPhrases)void Promise.resolve(api.savePhrases?.(plan,song.session)).catch(()=>{state('Phrase times could not be saved.');});
  }
 
  function selectedGrid(){
   return ranked[Number($('rehearsalPassage').value)]?.grid;
+ }
+ function passageRange(){
+  const p=ranked[Number($('rehearsalPassage').value)];
+  return p?{start:p.start,end:p.end}:{start:parseTime($('rehearsalStart').value),end:parseTime($('rehearsalEnd').value)};
  }
  function applyPassage(p){
   if(!p)return;
@@ -179,7 +185,7 @@ window.BassRehearsal=(()=>{
 
  function updateBpm(){
   const input=$('rehearsalBpm');
-  const start=parseTime($('rehearsalStart').value),end=parseTime($('rehearsalEnd').value);
+  const {start,end}=passageRange();
   const valid=song?.buffer&&start>=0&&end<=song.duration+.006&&end-start>=(selectedGrid()? .5:2);
   const validEnd=valid?Math.min(end,song.duration):end;
   const picked=valid?selectedGrid()||C.beatGrid({...song,start,end:validEnd,manualBpm}):null;
@@ -402,6 +408,7 @@ window.BassRehearsal=(()=>{
  }
 
  function bandRange(start,end,grid){
+  if(ranked[Number($('rehearsalPassage').value)]?.timeline)return {start,end};
   // Long and whole-song loops keep their exact endpoints, including any rests.
   if(end-start>32||start===0&&Math.abs(end-song.duration)<.006)return {start,end};
   return {start:grid?.points[0]??start,end:grid?.points.at(-1)??end};
@@ -414,7 +421,7 @@ window.BassRehearsal=(()=>{
  }
 
  async function analyse(id){
-  const current=api.get(),start=parseTime($('rehearsalStart').value),end=parseTime($('rehearsalEnd').value);
+  const current=api.get(),{start,end}=passageRange();
   const bpm=manualBpm;
   if(!current?.buffer||!(start>=0&&end<=current.duration+.006&&end-start>=(selectedGrid()? .5:2)))
    throw Error('Choose at least 2 seconds within the recording.');

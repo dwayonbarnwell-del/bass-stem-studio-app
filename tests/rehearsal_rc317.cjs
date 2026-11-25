@@ -54,7 +54,7 @@ console.log('PASS silence, detected pulse, variable timing, tap/manual grid, sty
 
 async function playerTest(){
   const items=new Map(),scheduled=[],bands=[],intervals=new Map();
-  let now=0,clock=0,songSession=0,mixRequests=0,library=false,fretDraw;
+  let now=0,clock=0,songSession=0,mixRequests=0,savedPlans=0,library=false,fretDraw;
   class Control{
     constructor(){this.value='';this.dataset={};this.options=[];this.children=[];this.attrs=new Map();this.style={};this.classList={toggle:(name,on)=>this[name]=on};}
     add(option){this.options.push(option);if(this.options.length===1)this.value=option.value;}
@@ -84,6 +84,7 @@ async function playerTest(){
   vm.runInContext(fs.readFileSync('ear-source/rehearsal.js','utf8'),context);
   const panel=context.window.BassRehearsal;
   panel.init(host,{get:()=>({...song}),session:()=>songSession,
+    savePhrases:(plan,session)=>{assert.equal(session,song.session);song.rehearsalPhrases=JSON.parse(JSON.stringify(plan));savedPlans++;},
     pickAudio:(input,open)=>open({name:'Imported fixture'}),
     importAudio:async file=>{song.title=file.name;song.session=++songSession;return true;},
     openLibrary:()=>{library=true;},band:async()=>{mixRequests++;return clip;}});
@@ -93,19 +94,27 @@ async function playerTest(){
   assert(host.innerHTML.includes('aria-pressed="true">Original bass off'));
   assert.equal($('rehearsalPassage').options[0].text,'Full song');
   assert.equal($('rehearsalPassage').value,'0');
+  assert.equal(savedPlans,1,'phrase times save automatically');
+  panel.refresh();assert.equal(savedPlans,1,'an unchanged song is not written again');
+  panel.close();panel.refresh();assert.equal(savedPlans,1,'reopening reuses the stored timeline');
   for(const meter of [3,4]){
    const fixture={...buffer,duration:24,length:24*sampleRate};
    Object.assign(song,{buffer:fixture,duration:24,sections:[{name:'Chorus',start:0,end:24}],meter,confidence:.98,phase:0,beats:Array.from({length:49},(_,i)=>i*.5)});
    panel.refresh();
-   const options=$('rehearsalPassage').options.filter(o=>o.text.startsWith('Chorus'));
-   assert(options.length>=4);
+   const options=$('rehearsalPassage').options.slice(1);
+   assert.equal(options.length,2,'one chronological set replaces the overlapping short picks');
    for(const o of options){
     $('rehearsalPassage').value=o.value;$('rehearsalPassage').onchange();
     const seconds=id=>Number($(id).value.slice(2));
     const count=(seconds('rehearsalEnd')-seconds('rehearsalStart'))/(meter*.5);
-    assert(count===1||count===2);
+    assert(Number.isInteger(count)&&count*meter*.5>=10&&count*meter*.5<=15);
    }
   }
+  value('rehearsalMusic','37');value('rehearsalGain','80');value('rehearsalStyle','highlife');
+  song.notes=[{start:1,end:1.3,midi:36}];panel.refresh();
+  assert.equal($('rehearsalPassage').value,'2','background analysis keeps the selected phrase');
+  assert.equal($('rehearsalMusic').value,'37');assert.equal($('rehearsalGain').value,'80');
+  assert.equal($('rehearsalStyle').value,'highlife','background analysis keeps manual source and levels');
   Object.assign(song,{buffer:clip,duration:4,sections:[],beats:[],confidence:0,meter:4});panel.refresh();
   await $('rehearsalImport').onclick();
   assert.equal($('rehearsalTitle').textContent,'Imported fixture');
@@ -151,12 +160,12 @@ async function playerTest(){
   $('rehearsalPlay').onclick();$('rehearsalPlay').onclick();await new Promise(resolve=>setImmediate(resolve));
   assert.equal(mixRequests,1,'already prepared rehearsal audio is reused');
   await $('rehearsalLibrary').onclick();assert(library&&bands.at(-1).node.stopped);
-  song.buffer={...clip,duration:36,length:36*sampleRate,getChannelData:()=>new Float32Array(36*sampleRate)};
-  song.duration=36;song.session=++songSession;
+  song.buffer={...clip,duration:36.137,length:Math.ceil(36.137*sampleRate),getChannelData:()=>new Float32Array(Math.ceil(36.137*sampleRate))};
+  song.duration=36.137;song.session=++songSession;
   song.notes=[{start:0,end:.18,midi:37},{start:.5,end:.8,midi:42}];
   panel.refresh();
   assert.equal($('rehearsalPassage').value,'0','new recordings select the full song');
-  assert.equal($('rehearsalEnd').value,'0:36.00');
+  assert.equal($('rehearsalEnd').value,'0:36.14');
   assert.equal($('rehearsalStyle').value,'auto');
   assert.equal(Number($('rehearsalMusic').value),50);
   assert.equal(Number($('rehearsalGain').value),100);
@@ -165,7 +174,13 @@ async function playerTest(){
   assert.equal($('rehearsalPattern').value,'song-bass');
   value('rehearsalView','fret');$('rehearsalView').onchange();
   assert.equal(JSON.stringify(fretDraw.notes.map(n=>[n.midi,n.start,n.end])),JSON.stringify([[37,0,.18],[42,.5,.8]]));
-  assert.equal(bands.at(-1).node.loopEnd,36,'whole song uses both exact endpoints');
+  assert.equal(bands.at(-1).node.loopEnd,36.137,'whole song uses both exact endpoints');
+  $('rehearsalPlay').onclick();
+  const last=$('rehearsalPassage').options.at(-1);$('rehearsalPassage').value=last.value;$('rehearsalPassage').onchange();
+  const lastPhrase=song.rehearsalPhrases.phrases.at(-1);
+  $('rehearsalPlay').onclick();await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(bands.at(-1).node.loopStart,lastPhrase.start);
+  assert.equal(bands.at(-1).node.loopEnd,36.137,'the final phrase retains the exact outro, rather than trimming to an earlier bar');
   panel.close();
   console.log('PASS import, playback and uninterrupted style switching, cached band mix, and Library hand-off.');
 }

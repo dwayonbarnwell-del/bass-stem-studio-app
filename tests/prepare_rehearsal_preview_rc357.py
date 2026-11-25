@@ -1,0 +1,71 @@
+"""Prepare the real application with local-only controls for browser QA.
+
+The generated preview is outside the repository. No fixture controls are shipped.
+"""
+from pathlib import Path
+import os, shutil, sys
+
+root=Path(__file__).resolve().parents[1]
+target=Path(sys.argv[1]).resolve()
+dist=target/'dist';dist.mkdir(parents=True,exist_ok=True)
+names=['ear-source','ear-assets','audio','ai-source','ai-assets-rc201.js','fretflow-source','library-source','song-reference','song-view','chord-source','vendor','icons','manifest.webmanifest','sw.js','guide.html']
+for name in names:
+ source=root/name
+ if not source.exists():continue
+ paths=source.rglob('*') if source.is_dir() else [source]
+ for path in paths:
+  if not path.is_file():continue
+  out=dist/path.relative_to(root);out.parent.mkdir(parents=True,exist_ok=True)
+  if out.exists():out.unlink()
+  os.link(path,out)
+
+fixture=r'''
+  const qa=document.createElement('div');qa.id='qaControls';
+  qa.style='position:fixed;bottom:0;left:0;right:0;z-index:999999;background:#102434;color:white;padding:4px;font:13px sans-serif;display:flex;flex-wrap:wrap;gap:4px';
+  qa.innerHTML='<button id="qaShort">Load 32s</button><button id="qaLong">Load 7:55</button><button id="qaVerify">Check save</button><button id="qaReopen">Reopen saved</button><output id="qaResult">Local rehearsal QA</output><output id="qaVerified"></output>';
+  document.body.append(qa);
+  let qaSaved=null;
+  const qaSave=window.BassLibrary.saveAnalysisProject;
+  window.BassLibrary.saveAnalysisProject=async function(project,...args){
+    const result=await qaSave.call(this,project,...args);qaSaved=JSON.parse(JSON.stringify(project));
+    document.getElementById('qaResult').textContent='Saved '+(project.analysis.rehearsalPhrases?.phrases.length||0)+' phrases';return result;
+  };
+  const qaOpen=async(project)=>{
+    await window.BassRehearsal.close();
+    await importBassStudioProject(new File([JSON.stringify(project)],'rehearsal-qa.bassstudio',{type:'application/json'}),{practiceOnly:true});
+    if(!document.getElementById('earTrainerDialog').open)document.getElementById('openEarTraining').click();
+    document.getElementById('earSectionRehearsal').click();
+  };
+  async function qaLoad(duration){
+    document.getElementById('qaResult').textContent='Loading fixture';ensureCtx();
+    const audio=ctx.createBuffer(1,Math.round(duration*8000),8000),step=60/117;
+    const pcm=audio.getChannelData(0);for(let i=0;i<pcm.length;i++)pcm[i]=.025*Math.sin(i/8000*Math.PI*2*80);
+    duration=audio.duration;
+    const chords=Array.from({length:Math.ceil(duration/(step*4))},(_,i)=>({start:i*step*4,end:Math.min(duration,(i+1)*step*4),rootPc:[0,5,7,5][i%4],quality:'maj',manual:true,confidence:.99,evidence_version:'chord-timeline-v4'}));
+    const project={format:'Bass Stem Studio Project',schemaVersion:2,projectName:'Phrase timeline QA',
+      source:{name:'Phrase timeline QA.wav',type:'audio/wav',duration,audioBase64:arrayBufferToBase64(await wavBlob(audio).arrayBuffer())},
+      analysis:{ready:true,scale:'C major',tempoBpm:117,beatGridConfidence:.98,beatsPerBar:4,downbeatPhase:0,melody:{version:2,notes:[],done:[{start:0,end:duration}],jobs:{}},
+        beatTimes:Array.from({length:Math.floor(duration/step)+1},(_,i)=>i*step),chords,
+        notes:Array.from({length:Math.floor(duration/step)},(_,i)=>({start:i*step,end:Math.min(duration,i*step+.3),midi:24+[0,5,7,5][Math.floor(i/4)%4],confidence:.95,manual:true})),
+        structure:{segments:[{name:'Intro',start:0,end:Math.min(16,duration)},{name:'Chorus',start:16,end:duration}]}},settings:{}};
+    await qaOpen(project);
+  }
+  document.getElementById('qaShort').onclick=()=>qaLoad(32.137).catch(e=>document.getElementById('qaResult').textContent=e.message);
+  document.getElementById('qaLong').onclick=()=>qaLoad(475.544).catch(e=>document.getElementById('qaResult').textContent=e.message);
+  document.getElementById('qaVerify').onclick=()=>{
+    const plan=qaSaved?.analysis?.rehearsalPhrases;
+    if(!plan){document.getElementById('qaVerified').textContent='Waiting for automatic save';return;}
+    let end=0;for(const phrase of plan.phrases){if(phrase.start!==end||phrase.end<=phrase.start)throw Error('Timeline gap/overlap');end=phrase.end;}
+    if(end!==buffer.duration||!qaSaved?.analysis?.rehearsalPhrases)throw Error('Timeline was not saved');
+    if(JSON.stringify(savedRehearsalPhrases)!==JSON.stringify(plan))throw Error('Saved timeline differs');
+    document.getElementById('qaVerified').textContent='PASS · '+plan.phrases.length+' saved phrases · '+end+'s';
+  };
+  document.getElementById('qaReopen').onclick=()=>qaSaved&&qaOpen(qaSaved);
+'''
+html=(root/'index.html').read_text()
+marker='  initAnalysisTools();\n  renderBassFretboard();'
+assert marker in html
+(dist/'index.html').write_text(html.replace(marker,fixture+'\n'+marker,1))
+manifest=target/'.openai/hosting.json';manifest.parent.mkdir(exist_ok=True)
+manifest.write_text('{"static":{"directory":"dist"}}')
+print('Prepared local rehearsal browser QA.')
