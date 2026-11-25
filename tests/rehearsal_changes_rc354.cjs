@@ -60,4 +60,21 @@ const partial={points:[0,.5,1,1.5,2,2.5],meter:4,bpm:120};assert.equal(W.BassReh
 const offbeat=fixture([1,6]);offbeat.chords[0].end=3.2;offbeat.chords[1].start=3.2;validate(I.fit(offbeat,picks[2],'ends'),offbeat);
 const variable=fixture([1,6]);variable.grid={...variable.grid,points:Array.from({length:17},(_,i)=>i*.5+(i%2?.04:0))};validate(I.fit(variable,picks[1],'ends'),variable);
 const chromatic=fixture([1]);const brief=H.conform([{time:1.75,stop:1.86,midi:42,role:'passing'},{time:2,stop:2.3,midi:43,role:'fifth'}],chromatic);assert(brief.some(n=>n.time===1.75&&n.midi%12===6),'Resolved brief chromatic approach was lost');
-console.log(JSON.stringify({passed:true,populatedGenres:common.length,genreAlternativesFitted:fitted,majorAndMinorChangesAcrossAllKeys:changes,fullProgression1454:true,focused16:true,minorAndDiminishedQuality:true,slashBassLandings:true,savedHarmonyPreserved:true}));
+// A repeated movement must be selectable by occurrence. Only the 1:02–1:05
+// phrase changes; another 5→6 at 0:10–0:13 and notes after 1:05 stay intact.
+const timed={keyRoot:0,keyMode:'major',start:0,end:75,grid:{points:Array.from({length:151},(_,i)=>i*.5),meter:4,bpm:120},quiet:[],chords:[{start:0,end:10,rootPc:0,quality:'maj',manual:true},{start:10,end:13,rootPc:7,quality:'maj',manual:true},{start:13,end:30,rootPc:9,quality:'min',manual:true},{start:30,end:62,rootPc:5,quality:'maj',manual:true},{start:62,end:65,rootPc:7,quality:'maj',manual:true},{start:65,end:75,rootPc:9,quality:'min',manual:true}]};
+timed.bassNotes=Array.from({length:150},(_,i)=>{const time=i*.5,chord=timed.chords.find(c=>c.start<=time&&c.end>time);return {time,stop:time+.32,midi:24+chord.rootPc,role:'transcribed',accent:.6};});
+const occurrences=H.phraseOptions(timed).filter(t=>t.label==='5→6'),target=occurrences.find(t=>t.range==='1:02–1:05');assert.equal(occurrences.length,2);assert(target);assert.notEqual(target.phraseId,occurrences[0].phraseId);assert.equal(H.changes(timed,target.phraseId).length,1);
+const projection=notes=>JSON.stringify(notes.map(n=>[n.time,n.stop,n.midi]));let exact=0;
+for(const style of common){
+ const rows=I.bank(style,timed.grid,null,false,timed,target.phraseId);
+ for(const kind of ['basslines','runs','fills']){
+  const choice=rows.find(r=>r.kind===kind);assert(choice,'No timed '+style+' '+kind);
+  const notes=I.fit(timed,choice,'ends',target.phraseId,rows),first=notes.find(n=>n.time===62),last=notes.find(n=>n.time===65);
+  assert(first&&last,'Phrase endpoints shifted');assert.equal(pc(first.midi),7);assert.equal(pc(last.midi),9);
+  assert.equal(projection(notes.filter(n=>n.time<62||n.time>65)),projection(timed.bassNotes.filter(n=>n.time<62||n.time>65)),'Changed notes outside 1:02–1:05');
+  if(choice.entry){const source=notes.filter(n=>n.sourceEntry===choice.entry.id);assert(source.length>=3);assert.equal(source[0].time,62);assert(source.every(n=>n.time>=62&&n.stop<65));}
+  exact++;
+ }
+}
+console.log(JSON.stringify({passed:true,populatedGenres:common.length,genreAlternativesFitted:fitted,majorAndMinorChangesAcrossAllKeys:changes,fullProgression1454:true,focused16:true,minorAndDiminishedQuality:true,slashBassLandings:true,savedHarmonyPreserved:true,exact6200To6500Alternatives:exact,otherOccurrenceAndSurroundingNotesUnchanged:true}));

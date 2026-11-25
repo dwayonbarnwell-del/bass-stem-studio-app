@@ -22,13 +22,16 @@ with sync_playwright()as p:
  }''')
  assert page.locator('#rehearsalFill').input_value()=='ends'
  assert page.locator('#rehearsalChange option').first.inner_text()=='All · 1–6–4–5'
- moves=page.locator('#rehearsalChange option').evaluate_all('(options)=>Object.fromEntries(options.slice(1).map(o=>[o.textContent.split(" · ")[0],o.value]))')
+ moves=page.locator('#rehearsalChange optgroup[label="Changes"] option').evaluate_all('(options)=>Object.fromEntries(options.map(o=>[o.textContent.split(" · ")[0],o.value]))')
  assert set(moves)=={'1→6','6→4','4→5','5→1'},moves
- page.locator('#rehearsalStyle').select_option('makossa');page.locator('#rehearsalChange').select_option(moves['1→6'])
- assert page.locator('#rehearsalSource').inner_text().startswith('1→6 · ')
+ timed=page.locator('#rehearsalChange optgroup[label="Phrases"] option').first
+ assert timed.inner_text()=='1→6 · 0:00–0:02';phrase=timed.get_attribute('value')
+ page.locator('#rehearsalStyle').select_option('makossa');page.locator('#rehearsalChange').select_option(phrase)
+ assert page.locator('#rehearsalSource').inner_text().startswith('1→6 · 0:00–0:02 · ')
  for group in ['Basslines','Runs','Fills']:assert page.locator('#rehearsalPattern optgroup[label="'+group+'"] option').count()>0
  run=page.locator('#rehearsalPattern optgroup[label="Runs"] option').first.get_attribute('value');page.locator('#rehearsalPattern').select_option(run)
  page.locator('#rehearsalPlay').click();page.wait_for_function('bandStarts.length===1&&document.getElementById("rehearsalPlay").textContent==="Pause"')
+ assert page.evaluate('guideNotes.some(n=>Math.abs(n.when-bandStarts[0])<.04&&n.midi%12===0)'),'Timed phrase did not start on C'
  assert page.locator('#rehearsalHarmony,#rehearsalProgression,#rehearsalMovementBox').count()==0
  page.wait_for_function('guideNotes.some(n=>Math.abs(n.when-bandStarts[0]-2)<.04&&n.midi%12===9)')
  page.wait_for_function('document.querySelector("#rehearsalTimeline .change-current")?.textContent==="1→6"')
@@ -54,6 +57,6 @@ with sync_playwright()as p:
  page.wait_for_function('guideNotes.some(n=>Math.abs(n.when-bandStarts[1]-2)<.04&&n.midi%12===4)')
  page.locator('#rehearsalPlay').click();assert page.evaluate('bandStops.length===2')
  assert not errors,errors
- print(json.dumps(dict(passed=True,actualDegreeChanges=list(moves),focused16=True,twoExtraRowsRemoved=True,currentChangeStronglyHighlighted=True,noteTimestampsPreserved=True,actualBassLandingA=True,continuousChangeAndGenreSwitch=True,correctedChordsInvalidateGuide=True)),flush=True)
+ print(json.dumps(dict(passed=True,actualDegreeChanges=list(moves),focused16=True,timedPhraseSelection=True,exactStartAndLanding=True,twoExtraRowsRemoved=True,currentChangeStronglyHighlighted=True,noteTimestampsPreserved=True,actualBassLandingA=True,continuousChangeAndGenreSwitch=True,correctedChordsInvalidateGuide=True)),flush=True)
  browser.close()
 server.shutdown()

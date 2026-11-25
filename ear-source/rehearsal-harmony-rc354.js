@@ -41,7 +41,8 @@ window.BassRehearsalHarmony=(()=>{
   const transitions=[];
   function append(from,to,at,loop=false){
    const id=from.signature+'>'+to.signature,interval=pc(bass(to)-bass(from));
-   transitions.push({id,from,to,at,loop,interval,label:from.number+'→'+to.number,names:from.name+'→'+to.name,safe:safe(from)&&safe(to)});
+   const phraseId=id+'@'+from.start.toFixed(5)+':'+at.toFixed(5);
+   transitions.push({id,phraseId,from,to,at,loop,interval,label:from.number+'→'+to.number,names:from.name+'→'+to.name,safe:safe(from)&&safe(to)});
   }
   for(let i=1;i<segments.length;i++)if(Math.abs(segments[i-1].end-segments[i].start)<.04)append(segments[i-1],segments[i],segments[i].start);
   if(segments.length&&Math.abs(segments[0].start-clip.start)<.04&&Math.abs(segments.at(-1).end-clip.end)<.04)append(segments.at(-1),segments[0],clip.end,true);
@@ -53,11 +54,16 @@ window.BassRehearsalHarmony=(()=>{
   const row=rows[lo-1];return row&&time<row.end-.0001?row:null;
  }
  function changes(clip,selection='all'){
-  return prepare(clip).transitions.filter(t=>t.safe&&(selection==='all'||t.id===selection));
+  return prepare(clip).transitions.filter(t=>t.safe&&(selection==='all'||t.id===selection||t.phraseId===selection));
  }
  function options(clip){
   const seen=new Set();return changes(clip).filter(t=>t.from.signature!==t.to.signature&&!seen.has(t.id)&&seen.add(t.id));
  }
+ function timestamp(time){
+  const centiseconds=Math.round(time*100),seconds=centiseconds%6000/100;
+  return Math.floor(centiseconds/6000)+':'+(centiseconds%100?seconds.toFixed(2):String(seconds)).padStart(centiseconds%100?5:2,'0');
+ }
+ function phraseOptions(clip){return changes(clip).filter(t=>t.from.signature!==t.to.signature).map(t=>({...t,range:timestamp(t.from.start)+'–'+timestamp(t.at)}));}
  function progression(clip){return prepare(clip).segments.map(c=>c.number).join('–');}
  function beat(clip,time){
   const grid=clip.grid;if(!grid)return 0;
@@ -117,6 +123,8 @@ window.BassRehearsalHarmony=(()=>{
  }
  function landing(notes,clip,chord,time,change){
   if(time>=clip.end-.01||time<clip.start-.01||(clip.quiet||[]).some(r=>r.start<=time&&r.end>time))return;
+  const existing=notes.find(n=>Math.abs(n.time-time)<.000001&&n.midi!==null&&pc(n.midi)===bass(chord));
+  if(existing){Object.assign(existing,{time,role:'landing',accent:1,changeId:change?.id,changeLabel:change?.label,chordNumber:chord.number,chordName:chord.name});return;}
   const previous=notes.filter(n=>n.time<time&&n.midi!==null).at(-1)?.midi??35;
   const midi=choose(new Set([bass(chord)]),35,previous),next=notes.find(n=>n.time>time+.018),stop=Math.min(chord.end,clip.end,time+stepAt(clip,time)*.72,next?.time-.006??Infinity);
   for(let i=notes.length-1;i>=0;i--)if(Math.abs(notes[i].time-time)<.018)notes.splice(i,1);
@@ -162,7 +170,7 @@ window.BassRehearsalHarmony=(()=>{
  }
  function scope(clip,selection,time){
   if(selection==='all')return true;
-  return changes(clip,selection).some(t=>t.loop?time>=t.from.start||time<t.to.end:time>=t.from.start&&time<t.to.end);
+  return changes(clip,selection).some(t=>time>=t.from.start&&time<t.at);
  }
  function transitionsFor(clip,placement,selection){
   const rows=changes(clip,selection);if(placement!=='bar'||selection!=='all'||!clip.grid)return rows;
@@ -170,16 +178,17 @@ window.BassRehearsalHarmony=(()=>{
   for(let i=meter;i<points.length-1;i+=meter){const time=points[i];if(rows.some(r=>Math.abs(r.at-time)<.04))continue;const from=at(clip,time-.02),to=at(clip,time+.02);if(safe(from)&&safe(to))rows.push({id:from.signature+'>'+to.signature,from,to,at:time,interval:pc(bass(to)-bass(from)),label:from.number+'→'+to.number,safe:true});}
   return rows.sort((a,b)=>a.at-b.at);
  }
- function windowFor(entry,change,clip){
+ function windowFor(entry,change,clip,exact=false){
   const events=study(entry).events.filter(n=>n.beat<4),step=stepAt(clip,change.at-.02);
   if(events.length<3)return null;
-  const span=4-events[0].beat,last=beat(clip,change.at),count=Math.min(entry.kind==='runs'?clip.grid.meter:Math.min(2,clip.grid.meter),last-beat(clip,change.from.start)),first=last-count,start=beatTime(clip,first),duration=change.at-start;
+  const span=4-events[0].beat,last=beat(clip,change.at),available=last-beat(clip,change.from.start),count=exact?available:Math.min(entry.kind==='runs'?clip.grid.meter:Math.min(2,clip.grid.meter),available),first=last-count,start=exact?change.from.start:beatTime(clip,first),duration=change.at-start;
   const times=events.map(n=>beatTime(clip,first+(n.beat-events[0].beat)*count/span));
+  if(exact)times[0]=change.from.start;
   if(count<(entry.kind==='runs'?1.5:.65)||duration<=0||events.length/duration>12||times.some((time,i)=>i&&time-times[i-1]<.055))return null;
   return {events,step,span,duration,start,times};
  }
- function approach(entry,change,clip,previous=35){
-  const window=windowFor(entry,change,clip);if(!window)return [];
+ function approach(entry,change,clip,previous=35,exact=false){
+  const window=windowFor(entry,change,clip,exact);if(!window)return [];
   const s=study(entry),{events,step,span,duration,start,times}=window,ratio=duration/span;
   if((clip.quiet||[]).some(r=>r.start<change.at&&r.end>start))return [];
   const origin=choose(new Set([bass(change.from)]),35,previous),target=choose(new Set([bass(change.to)]),origin+Math.max(-12,Math.min(12,s.interval)),origin),key=prepare(clip).key,out=[];
@@ -197,7 +206,7 @@ window.BassRehearsalHarmony=(()=>{
    }
    const midi=choose(allowed,wanted,out.at(-1)?.midi??origin),gate=Math.min(gap*.86,Math.max(.055,note.length*ratio));
    if(gate<.031)return [];
-   out.push({time,stop:Math.min(change.at-.007,time+gate),midi,role:entry.kind==='runs'?'run':'fill',accent:.6,confidence:note.confidence,review:note.review,sourceId:s.sourceId,sourceEntry:entry.id,adapted:true,changeId:change.id,changeLabel:change.label,chordNumber:change.from.number,chordName:change.from.name});
+   out.push({time,stop:Math.min(change.at-.007,time+gate),midi,role:entry.kind==='runs'?'run':'fill',accent:.6,confidence:note.confidence,review:note.review,sourceId:s.sourceId,sourceEntry:entry.id,adapted:true,changeId:change.id,phraseId:change.phraseId,changeLabel:change.label,chordNumber:change.from.number,chordName:change.from.name});
   }
   return new Set(out.map(n=>pc(n.midi))).size>=2?out:[];
  }
@@ -205,23 +214,27 @@ window.BassRehearsalHarmony=(()=>{
   if(!clip.grid)return false;
   return changes(clip,selection).some(change=>{
    if(change.from.signature===change.to.signature)return false;
-   const window=windowFor(entry,change,clip);return !!window&&!(clip.quiet||[]).some(r=>r.start<change.at&&r.end>window.start);
+   const window=windowFor(entry,change,clip,selection===change.phraseId);return !!window&&!(clip.quiet||[]).some(r=>r.start<change.at&&r.end>window.start);
   });
  }
  function fit(clip,choice,pool=[],placement='ends',selection='all'){
   const hasSong=clip.bassNotes?.length,original=hasSong?clip.bassNotes.map(n=>({...n})):C.fit({...clip,shape:[],fill:'off'});
   let base=choice?.entry?original:conform(C.fit({...clip,shape:choice?.shape||[],recorded:!!choice?.recorded,fill:'off'}),clip);
   if(selection!=='all'&&!choice?.entry)base=original.filter(n=>!scope(clip,selection,n.time)).concat(base.filter(n=>scope(clip,selection,n.time))).sort((a,b)=>a.time-b.time);
+  if(selection!=='all'&&(!choice?.entry||placement!=='off'))for(const change of changes(clip,selection)){
+   landing(base,clip,change.from,change.from.start,change);landing(base,clip,change.to,change.loop?clip.start:change.at,change);
+  }
   if(placement==='off'||!clip.grid)return normalise(base);
   const eligible=choice?.entry?[choice]:pool.filter(r=>r.kind==='fills'&&r.style===choice?.style);
   for(const change of transitionsFor(clip,placement,selection)){
    if(placement==='ends'&&change.from.signature===change.to.signature)continue;
    const candidates=eligible.map(row=>({row,score:matchScore(row,clip,change.id)+(row.sourceId===choice?.sourceId?2:row.family===choice?.family?1:0)})).sort((a,b)=>b.score-a.score||b.row.score-a.row.score);
    let added=[];
-   for(const {row}of candidates){added=approach(row.entry,change,clip,base.filter(n=>n.time<change.at&&n.midi!==null).at(-1)?.midi);if(added.length)break;}
+   for(const {row}of candidates){added=approach(row.entry,change,clip,base.filter(n=>n.time<change.at&&n.midi!==null).at(-1)?.midi,selection===change.phraseId);if(added.length)break;}
    if(!added.length)continue;
    const begin=added[0].time;
    base=base.filter(n=>n.time<begin-.012||n.time>=change.at-.012).map(n=>n.time<begin?{...n,stop:Math.min(n.stop,begin-.006)}:n).concat(added).sort((a,b)=>a.time-b.time);
+   landing(base,clip,change.from,change.from.start,change);
    landing(base,clip,change.to,change.loop?clip.start:change.at,change);
   }
   return normalise(base);
@@ -230,5 +243,5 @@ window.BassRehearsalHarmony=(()=>{
   const chord=at(clip,time),next=prepare(clip).transitions.find(t=>t.at>time+.012&&t.from===chord);
   return {chord,next,beats:next?(next.at-time)/stepAt(clip,time):null};
  }
- return {keyOf,prepare,at,changes,options,progression,degree,chordName,chordTones,passingTones,beat,matchScore,canPlace,conform,approach,fit,movement};
+ return {keyOf,prepare,at,changes,options,phraseOptions,timestamp,progression,degree,chordName,chordTones,passingTones,beat,matchScore,canPlace,conform,approach,fit,movement};
 })();

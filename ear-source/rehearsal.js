@@ -264,7 +264,10 @@ window.BassRehearsal=(()=>{
   const picker=$('rehearsalChange');if(!H||!context||!picker)return;
   const previous=picker.value||'all',progression=H.progression(context),all=new Option(progression?'All · '+(progression.length>27?progression.slice(0,25)+'…':progression):'All changes','all');all.title=progression;
   const options=H.options(context).map(t=>new Option(t.label+(t.label===t.names?'':' · '+t.names),t.id));
-  picker.replaceChildren(all,...options);picker.value=options.some(o=>o.value===previous)?previous:'all';picker.disabled=!options.length;
+  const changes=document.createElement('optgroup');changes.label='Changes';changes.append(...options);
+  const phrases=document.createElement('optgroup');phrases.label='Phrases';
+  const times=H.phraseOptions(context).map(t=>new Option(t.label+' · '+t.range,t.phraseId));phrases.append(...times);
+  picker.replaceChildren(all,...(options.length?[changes,phrases]:[]));picker.value=[...options,...times].some(o=>o.value===previous)?previous:'all';picker.disabled=!options.length;
  }
  function patterns(preferBest=false){
   const context=preview();changeOptions(context);
@@ -300,7 +303,8 @@ window.BassRehearsal=(()=>{
  function sourceDetails(){
   const output=$('rehearsalSource');if(!output)return;
   const value=$('rehearsalPattern').value,row=featured.find(r=>r.id===value);
-  const context=clip||previewClip,movement=H&&context&&selectedChange()!=='all'?H.options(context).find(t=>t.id===selectedChange())?.label:'';
+  const context=clip||previewClip,timed=H&&context?H.phraseOptions(context).find(t=>t.phraseId===selectedChange()):null;
+  const movement=timed?timed.label+' · '+timed.range:H&&context&&selectedChange()!=='all'?H.options(context).find(t=>t.id===selectedChange())?.label:'';
   output.textContent=(movement?movement+' · ':'')+(row&&window.BassRehearsalIdeas?window.BassRehearsalIdeas.describe(row).detail:value==='song-bass'?'Current song · Bassline':value==='roots'?'Roots · Song chords':'');
  }
 
