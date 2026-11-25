@@ -249,9 +249,9 @@ window.BassBacking=(()=>{
    void compactWhenIdle(blobs,mine);
   }catch{if(mine===token){ready=false;message=availableBlobs?'Saved mute audio could not load. Tap Vocals to retry.':'Saved mute audio is incomplete.';changed();}}
  }
- async function bandExcerpt(start,end){
+ async function bandExcerpt(start,end,{separate=false}={}){
   if(session!==api?.get().session||availableBlobs?.length!==3||!(start>=0&&end>start))return null;
-  const mine=token,stems=[availableBlobs[0],availableBlobs[2]];
+  const mine=token,stems=separate?availableBlobs:[availableBlobs[0],availableBlobs[2]];
   const headers=await Promise.all(stems.map(async blob=>new DataView(await blob.slice(0,44).arrayBuffer())));
   if(mine!==token||headers.some(h=>h.byteLength!==44||h.getUint32(36)!==0x64617461||
     h.getUint16(20,true)!==1||h.getUint16(22,true)!==2||h.getUint16(34,true)!==16))return null;
@@ -260,7 +260,8 @@ window.BassBacking=(()=>{
   if(!length||headers.some((h,i)=>h.getUint32(24,true)!==rate||44+to*4>stems[i].size))return null;
   const pcm=await Promise.all(stems.map(async blob=>new DataView(await blob.slice(44+from*4,44+to*4).arrayBuffer())));
   if(mine!==token)return null;
-  const audio=new AudioBuffer({numberOfChannels:2,length,sampleRate:rate});
+  const audio=new AudioBuffer({numberOfChannels:separate?6:2,length,sampleRate:rate});
+  if(separate){for(let c=0;c<6;c++){const output=audio.getChannelData(c),view=pcm[Math.floor(c/2)];for(let i=0;i<length;i++)output[i]=view.getInt16((i*2+c%2)*2,true)/32768;}return audio;}
   for(let c=0;c<2;c++){
     const samples=audio.getChannelData(c);
     for(let i=0;i<length;i++){
@@ -273,7 +274,47 @@ window.BassBacking=(()=>{
  // Cache fixed slices so nearby and repeated loops share the same separation.
  let rehearsalSession,rehearsalVersion=0,rehearsalQueue=Promise.resolve();
  const rehearsalBlocks=new Map();
+ const stemBlocks=new Map();let stemSession;
  function cancelRehearsalBand(){rehearsalVersion++;return rehearsalQueue;}
+ async function rehearsalStems(start,end,progress,cancelled){
+  const song=api.get(),version=rehearsalVersion,rate=32000,sourceRate=44100,blockSeconds=10;
+  const abandoned=()=>cancelled()||version!==rehearsalVersion||song.session!==api.get().session;
+  const check=()=>{if(abandoned())throw new DOMException('Preparation cancelled.','AbortError');};
+  if(stemSession!==song.session){stemBlocks.clear();stemSession=song.session;}
+  const first=Math.round(start*rate),last=Math.round(end*rate),output=new AudioBuffer({numberOfChannels:8,length:last-first,sampleRate:rate});
+  let key=await api.cacheKey?.().catch(()=>'');check();
+  for(let a=Math.floor(start/blockSeconds)*blockSeconds;a<end;a+=blockSeconds){
+   check();const z=Math.min(song.duration,a+blockSeconds),from=Math.max(first,Math.round(a*rate)),to=Math.min(last,Math.round(z*rate));
+   let block=stemBlocks.get(a);
+   if(!block){
+    let original=await bandExcerpt(a,z,{separate:true});check();
+    while(!original&&(api.get().busy||busy)){
+     if(busy){
+      key??=await api.cacheKey?.().catch(()=>'');
+      const base=Math.floor(a/20)*20,shared=key?await api.readCache(key+':part:'+base).catch(()=>null):null;
+      check();const offset=Math.round((a-base)*sourceRate)*4,count=Math.round((z-a)*sourceRate),bytes=count*4;
+      if(shared?.parts?.length===3&&shared.parts.every(p=>p.size>=offset+bytes)){
+       const pcm=await Promise.all(shared.parts.map(async blob=>new DataView(await blob.slice(offset,offset+bytes).arrayBuffer())));check();
+       original=new AudioBuffer({numberOfChannels:6,length:count,sampleRate:sourceRate});
+       for(let c=0;c<6;c++){const channel=original.getChannelData(c),view=pcm[Math.floor(c/2)];for(let i=0;i<count;i++)channel[i]=view.getInt16((i*2+c%2)*2,true)/32768;}
+       break;
+      }
+     }
+     await new Promise(resolve=>setTimeout(resolve,160));check();original=await bandExcerpt(a,z,{separate:true});
+    }
+    if(!original)original=await api.extract(a,z,p=>progress(Math.min(99,Math.round((a-start+(z-a)*p/100)/(end-start)*100))),abandoned);
+    check();if(original.numberOfChannels!==6)throw Error('Band controls are incomplete');
+    const drumId=key&&key+':ear-drums-rc361:'+a+':'+z,stored=drumId?await window.BassEarAudio.drumCache(drumId).catch(()=>null):null;
+    check();const count=Math.round(original.duration*rate),cached=stored?.rate===rate&&stored.drums?.length===2&&stored.drums.every(c=>c?.length===count)?stored.drums:null;
+    block=await window.BassEarAudio.bandStems(original,abandoned,cached);check();if(!block)throw Error('Preparation cancelled');
+    if(drumId&&!cached)void window.BassEarAudio.drumCache(drumId,{rate,drums:[block[2],block[3]]}).catch(()=>{});
+    stemBlocks.set(a,block);while(stemBlocks.size>3)stemBlocks.delete(stemBlocks.keys().next().value);
+   }
+   for(let c=0;c<8;c++)output.getChannelData(c).set(block[c].subarray(from-Math.round(a*rate),to-Math.round(a*rate)),from-first);
+   progress(Math.min(100,Math.round((Math.min(z,end)-start)/(end-start)*100)));
+  }
+  return output;
+ }
  async function rehearsalBand(start,end,progress,cancelled){
   const song=api.get(),rate=44100,blockSeconds=10,version=rehearsalVersion;
   const stopped=()=>version!==rehearsalVersion||song.session!==api.get().session;
@@ -350,5 +391,5 @@ window.BassBacking=(()=>{
   }
  }
  function init(hooks){api=hooks;const master=api.get().master;for(const event of ['play','pause','seeking','seeked','ratechange','ended'])master.addEventListener(event,()=>void sync(true));}
- return {init,canRestore,prepareForSong,toggle,cancel,reset,sync,restore,bandExcerpt,rehearsalBand,cancelRehearsalBand,exportData:()=>saved,state:()=>({enabled,busy,ready,vocalsReady:ready&&saved?.version===2,canRetry:attemptedSession!==null&&attemptedSession===api?.get().session&&!busy,vocalsMuted,bassMuted:!!api?.get().bassMuted,message}),pcmPart,wav};
+ return {init,canRestore,prepareForSong,toggle,cancel,reset,sync,restore,bandExcerpt,rehearsalBand,rehearsalStems,cancelRehearsalBand,exportData:()=>saved,state:()=>({enabled,busy,ready,vocalsReady:ready&&saved?.version===2,canRetry:attemptedSession!==null&&attemptedSession===api?.get().session&&!busy,vocalsMuted,bassMuted:!!api?.get().bassMuted,message}),pcmPart,wav};
 })();

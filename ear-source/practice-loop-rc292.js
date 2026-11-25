@@ -66,8 +66,8 @@ window.BassPracticeLoop=(()=>{
   if(cancelled())return null;
   return channels.map(data=>{const out=context.createBuffer(1,frames,context.sampleRate);out.copyToChannel(data,0);return out;});
  }
- const originalBuffers=new Map();
- async function originalMix(context,plan,frames,cancelled){
+ const originalBuffers=new Map(),separatedBuffers=new Map();
+ async function originalMix(context,plan,frames,cancelled,progress){
   const asset=window.BassPracticeMixAssets?.[plan.audio]||window.BassWorldMethodMixes?.[plan.audio]||window.BassCulturalMixes?.[plan.audio],url=asset?.url||plan.audio;
   const key=url+':'+context.sampleRate;
   if(!originalBuffers.has(key))originalBuffers.set(key,(async()=>{
@@ -75,9 +75,21 @@ window.BassPracticeLoop=(()=>{
    if(!response.ok)throw Error('Original phrase unavailable');
    return context.decodeAudioData(await response.arrayBuffer());
   })().catch(error=>{originalBuffers.delete(key);throw error;}));
-  const audio=await originalBuffers.get(key);
+  let audio=await originalBuffers.get(key);
   while(originalBuffers.size>3)originalBuffers.delete(originalBuffers.keys().next().value);
   if(cancelled())return null;
+  if(window.BassEarAudio){
+   const original=audio;
+   try{
+   if(!separatedBuffers.has(key)){
+    const task=window.BassEarAudio.recording(context,audio,{key:url,progress,cancelled});separatedBuffers.set(key,task);
+    task.then(value=>{if(!value)separatedBuffers.delete(key);},()=>separatedBuffers.delete(key));
+   }
+   audio=await separatedBuffers.get(key);if(cancelled())return null;if(!audio){separatedBuffers.delete(key);return originalMix(context,plan,frames,cancelled,progress);}
+   while(separatedBuffers.size>2)separatedBuffers.delete(separatedBuffers.keys().next().value);
+   }catch(error){if(cancelled())return null;separatedBuffers.delete(key);if(original.numberOfChannels!==6)throw error;audio=original;}
+  }
+  if(audio.sampleRate!==context.sampleRate){const off=new OfflineAudioContext(audio.numberOfChannels,Math.round(audio.duration*context.sampleRate),context.sampleRate),node=off.createBufferSource();node.buffer=audio;node.connect(off.destination);node.start();audio=await off.startRendering();if(cancelled())return null;}
   if(Math.abs(audio.length-frames)<context.sampleRate*.001)return audio;
   const channels=Array.from({length:audio.numberOfChannels},(_,i)=>audio.getChannelData(i).slice());
   const data=await new Promise((resolve,reject)=>{
@@ -91,15 +103,15 @@ window.BassPracticeLoop=(()=>{
   const output=context.createBuffer(data.length,frames,context.sampleRate);
   data.forEach((d,i)=>output.copyToChannel(d,i));return output;
  }
- async function render(context,plan,{drums=true,loop=null,style='worship',sound='piano',chords=true,recorded=false,originalDrums=true,originalKeys=true,assignedPhase,cancelled=()=>false}={}){
+ async function render(context,plan,{drums=true,loop=null,style='worship',sound='piano',chords=true,recorded=false,originalDrums=true,originalKeys=true,assignedPhase,cancelled=()=>false,sourceCancelled=cancelled,progress=()=>{}}={}){
   const A=window.BassPracticeAudio,D=window.BassSuppliedDrums,rate=context.sampleRate,beatFrames=Math.round(60/plan.bpm*rate),frames=Math.round(plan.beats*beatFrames),seconds=frames/rate;
   if(!Number.isFinite(seconds)||seconds<=0||seconds>240)throw Error('Practice loop is too long');
   if(recorded&&plan.recording?.originalMix){
-   const buffer=await originalMix(context,plan,frames,cancelled);
+   const buffer=await originalMix(context,plan,frames,sourceCancelled,progress);
    if(!buffer)return null;
    const stems={};
-   if(buffer.numberOfChannels===6){
-    for(const [index,part] of ['bass','drums','chords'].entries()){
+   if([6,8].includes(buffer.numberOfChannels)){
+    for(const [index,part] of (buffer.numberOfChannels===8?['bass','drums','chords','voice']:['bass','drums','chords']).entries()){
      const stem=context.createBuffer(2,buffer.length,context.sampleRate);
      for(let channel=0;channel<2;channel++)stem.copyToChannel(buffer.getChannelData(index*2+channel),channel);
      stems[part]=stem;
@@ -107,8 +119,7 @@ window.BassPracticeLoop=(()=>{
     const asset=window.BassWorldMethodMixes?.[plan.audio];
     if(asset?.addDrums&&drums&&loop){const replacement=await D.render(context,loop,beatFrames,cancelled);if(cancelled())return null;if(replacement)stems.drums=replacement;}
    }else stems.bass=buffer;
-   let bound=0;for(const stem of Object.values(stems)){let peak=0;for(let c=0;c<stem.numberOfChannels;c++)for(const value of stem.getChannelData(c))peak=Math.max(peak,Math.abs(value));bound+=peak;}
-   return {stems,frames:buffer.length,seconds:buffer.duration,beatSeconds:buffer.duration/plan.beats,beatFrames:buffer.length/plan.beats,rate,gain:Math.min(1,.88/(bound||1)),drumPhase:0,estimatedMix:buffer.numberOfChannels===6};
+   return {stems,frames:buffer.length,seconds:buffer.duration,beatSeconds:buffer.duration/plan.beats,beatFrames:buffer.length/plan.beats,rate,gain:1,levels:levels(stems),semitones:plan.semitones||0,drumPhase:0,estimatedMix:true,voiceUnavailable:!stems.voice};
   }
   const beat=beatFrames/rate,stems={},K=window.BassPracticeKeys,keys=window.BassAccompaniment?window.BassAccompaniment.arrange(plan,style):plan.chords;
   const phrase=recorded&&plan.recording?.pack;
@@ -136,29 +147,27 @@ window.BassPracticeLoop=(()=>{
    stems[part]=loop;
   }
   if(drumBuffer)stems.drums=drumBuffer;
-  // Different phrase lengths share an integer-sample beat, never a UI timer.
-  // Sum peak bounds so every relative phase is safe, including odd progressions.
-  let bound=0;for(const buffer of Object.values(stems)){let peak=0;for(let c=0;c<buffer.numberOfChannels;c++)for(const value of buffer.getChannelData(c))peak=Math.max(peak,Math.abs(value));bound+=peak;}
-  return {pickup:plan.pickup,drumPhase:phrase?(useDrums?0:originalDrums?(assignedPhase??plan.recording.drumPhase):0):null,stems,frames,seconds,beatSeconds:beat,beatFrames,rate,gain:Math.min(1,.88/(bound||1))};
+  return {pickup:plan.pickup,drumPhase:phrase?(useDrums?0:originalDrums?(assignedPhase??plan.recording.drumPhase):0):null,stems,frames,seconds,beatSeconds:beat,beatFrames,rate,gain:1,levels:levels(stems),semitones:recorded?plan.semitones||0:0,unpitched:recorded&&!useKeys?['chords']:[]};
  }
- function start(context,rendered,{repeat=true,bass=1,drums=.5,chords=.5,other=.5,onEnded=()=>{},when=context.currentTime+.08,offsetBeats=0,drumPhase=0,fadeIn=0}={}){
-  const sources=[],gains={},master=context.createGain();let stopped=false,ending=false;
+ function levels(stems){return Object.fromEntries(Object.entries(stems).map(([part,buffer])=>[part,window.BassEarAudio?.normalisation(buffer,part==='drums'?.18:.16)??1]));}
+ function start(context,rendered,{repeat=true,bass=1,drums=.21,chords=.07,voice=.21,other=.07,onEnded=()=>{},when=context.currentTime+.08,offsetBeats=0,drumPhase=0,fadeIn=0}={}){
+  const sources=[],gains={},route=window.BassEarAudio?.mixer(context,{semitones:rendered.semitones||0}),master=route?.master||context.createGain();let stopped=false,ending=false;
   if(rendered.pickup&&!fadeIn&&!offsetBeats){
    const lead=rendered.pickup*rendered.beatSeconds;
    when=Math.max(when,context.currentTime+lead+.012);
-   sources.push({source:window.BassPracticeAudio.muted(context,when-lead,.15),part:'pickup'});
+   sources.push({source:window.BassPracticeAudio.muted(route?.context||context,when-lead,.15),part:'pickup'});
   }
   when=Math.max(context.currentTime,when);const offset=offsetBeats*rendered.beatSeconds;
-  master.gain.setValueAtTime(fadeIn?0:rendered.gain,when);if(fadeIn)master.gain.linearRampToValueAtTime(rendered.gain,when+fadeIn);master.connect(context.destination);
+  master.gain.setValueAtTime(fadeIn?0:rendered.gain,when);if(fadeIn)master.gain.linearRampToValueAtTime(rendered.gain,when+fadeIn);if(!route)master.connect(context.destination);
   for(const [part,buffer] of Object.entries(rendered.stems)){
    const source=context.createBufferSource(),gain=context.createGain();source.buffer=buffer;source.loop=part==='bass'?repeat:true;source.loopStart=0;source.loopEnd=buffer.duration;
-   gain.gain.value=part==='bass'?bass:part==='drums'?drums:part==='chords'?chords:other;source.connect(gain).connect(master);sources.push({source,part});gains[part]=gain;
-   source.onended=()=>{source.disconnect();gain.disconnect();if(part==='bass'&&!stopped){stopped=true;for(const other of sources)if(other.source!==source)try{other.source.stop();}catch{}master.disconnect();if(!ending)onEnded();}};
+   gain.gain.value=(part==='bass'?bass:part==='drums'?drums:part==='chords'?chords:part==='voice'?voice:other)*(rendered.levels?.[part]||1);source.connect(gain).connect(route?(part==='drums'?route.drums:rendered.unpitched?.includes(part)?route.guide:route.pitched):master);sources.push({source,part});gains[part]=gain;
+   source.onended=()=>{source.disconnect();gain.disconnect();if(part==='bass'&&!stopped){stopped=true;for(const other of sources)if(other.source!==source)try{other.source.stop();}catch{}route?.disconnect();master.disconnect();if(!ending)onEnded();}};
    const partOffset=offset+(part==='drums'?drumPhase*rendered.beatSeconds:0);
    source.start(when,((partOffset%buffer.duration)+buffer.duration)%buffer.duration);
   }
-  function stopAt(at=context.currentTime,fade=.006){if(stopped)return;ending=true;at=Math.max(context.currentTime,at);master.gain.cancelScheduledValues(at);master.gain.setValueAtTime(rendered.gain,at);master.gain.linearRampToValueAtTime(0,at+fade);for(const {source} of sources)try{source.stop(at+fade+.001);}catch{}}
-  return {when,seconds:rendered.seconds,beatSeconds:rendered.beatSeconds,offsetBeats,setRepeat(value){for(const {source,part} of sources)if(part==='bass')source.loop=!!value;},level(part,value){const g=gains[part];if(g)g.gain.setTargetAtTime(Math.max(0,Math.min(1,value)),context.currentTime,.015);},position(){return context.currentTime-when+offset;},stopAt,stop(){stopAt(context.currentTime);}};
+  function stopAt(at=context.currentTime,fade=.006){if(stopped)return;ending=true;at=Math.max(context.currentTime,at)+(route?.latency||0);master.gain.cancelScheduledValues(at);master.gain.setValueAtTime(rendered.gain,at);master.gain.linearRampToValueAtTime(0,at+fade);for(const {source} of sources)try{source.stop(at+fade+.001);}catch{}}
+  return {when,latency:route?.latency||0,seconds:rendered.seconds,beatSeconds:rendered.beatSeconds,offsetBeats,setRepeat(value){for(const {source,part} of sources)if(part==='bass')source.loop=!!value;},level(part,value){const g=gains[part];if(g)g.gain.setTargetAtTime(Math.max(0,Math.min(1,value))*(rendered.levels?.[part]||1),context.currentTime,.015);},position(){return context.currentTime-when+offset;},stopAt,stop(){stopAt(context.currentTime);}};
  }
- return {render,start,defaults:Object.freeze({bass:1,drums:.5,chords:.5,other:.5})};
+ return {render,start,defaults:Object.freeze({bass:1,drums:.21,chords:.07,voice:.21,other:.07})};
 })();

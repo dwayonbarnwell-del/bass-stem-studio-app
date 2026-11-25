@@ -35,8 +35,8 @@
     const period=2*n-2,position=((i%period)+period)%period;
     return position<n?position:period-position;
   }
+  globalThis.BassStemTransforms={fftInPlace,ifftInPlace,reflectIndex};
   if(typeof document!=='undefined'){
-    globalThis.BassStemTransforms={fftInPlace,ifftInPlace,reflectIndex};
     return;
   }
   let aiSession;
@@ -86,7 +86,7 @@
     const length=samples[0].length;
     const pad=AI_CHUNK-Math.floor(AI_CHUNK/2),step=Math.floor(AI_CHUNK/2),fade=Math.floor(AI_CHUNK/10),n=length+2*pad;
     const channels=[0,1].map(c=>{const a=new Float32Array(n),x=samples[c];for(let i=0;i<n;i++)a[i]=x[reflectIndex(i-pad,x.length)];return a;});
-    const mixes=stem==='rehearsal'?[[0,2],[1],[3]]:stem==='practice'?[[0,2,3],[1]]:[[stem]],channelsOut=mixes.length*2;
+    const mixes=stem==='mixer'?[[1],[0],[2],[3]]:stem==='rehearsal'?[[0,2],[1],[3]]:stem==='practice'?[[0,2,3],[1]]:[[stem]],channelsOut=mixes.length*2;
     const output=Array.from({length:channelsOut},()=>new Float32Array(n)),weight=new Float32Array(n),starts=[];
     for(let s=0;s<n;s+=step)starts.push(s);
     for(let ci=0;ci<starts.length;ci++){
@@ -114,7 +114,7 @@
     for(const data of rendered){
       for(let i=0;i<length;i++){data[i]/=Math.max(1e-6,weight[i+pad]);peak=Math.max(peak,Math.abs(data[i]));}
     }
-    if(stem!=='practice'&&stem!=='rehearsal'&&peak>.95){
+    if(stem!=='mixer'&&stem!=='practice'&&stem!=='rehearsal'&&peak>.95){
       for(const data of rendered)for(let i=0;i<length;i++)data[i]*=.95/peak;
     }
     self.postMessage({channels:rendered},rendered.map(data=>data.buffer));

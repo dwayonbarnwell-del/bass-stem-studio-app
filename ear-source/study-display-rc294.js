@@ -28,7 +28,7 @@ window.BassStudyDisplay=(()=>{
   }
   return sourceNumbers.get(row.id)||1;
  }
- function menu(text){return ({'Gospel & Contemporary':'Gospel/Cont.','Jazz & Chromatic':'Jazz/Chrom.','Blues & Pentatonic':'Blues/Pent.','Funk & Soul':'Funk/Soul','Funk & fusion':'Funk/Fusion','African praise':'Afr. Praise','World Methods':'World Method','Practice patterns':'Practice'})[text]||fitName(text);}
+ function menu(text){return ({'Gospel & Contemporary':'Gospel/Cont.','Jazz & Chromatic':'Jazz/Chrom.','Blues & Pentatonic':'Blues/Pent.','Funk & Soul':'Funk/Soul','Funk / soul':'Funk/Soul','Soukous / seben':'Souk./Seben','Soukous & Seben':'Souk./Seben','Soukous & seben':'Souk./Seben','Funk & fusion':'Funk/Fusion','African praise':'Afr. Praise','World Methods':'World Method','Practice patterns':'Practice'})[text]||fitName(text);}
  function names(rows,caption){const used=new Set();return new Map(rows.map((row,index)=>{const base=short(caption(row));let value=base;if(used.has(value))value=suffix(base,' '+(index+1));while(used.has(value))value=suffix(base,' '+(index+1)+'.'+used.size.toString(36));used.add(value);return [row,value];}));}
  function short(text){
   text=String(text||'Study').replace(/\s*·.*$/,'').replace(/\b(original|style|study|inspired|bassline|bass|lesson)\b/gi,'').replace(genres,'').replace(/R\s*&\s*B/gi,'').replace(/Chord-tone/gi,'Chord').replace(/Diminished/gi,'Dim').replace(/Minor/gi,'Min').replace(/Major/gi,'Maj').replace(/\s+/g,' ').trim();

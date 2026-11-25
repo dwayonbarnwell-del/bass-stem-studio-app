@@ -47,11 +47,11 @@ window.BassPlaybackTiming=(()=>{
    Target -16 dBFS RMS; at most +12 dB gain; ceiling -1 dBFS. This is not a LUFS/true-peak meter. */
 window.BassAutoLevel=(()=>{
  class LevelEngine {
-  constructor(rate){this.rate=rate;this.delay=Math.max(1,Math.round(rate*.01));this.size=this.delay+1;this.ring=[new Float32Array(this.size),new Float32Array(this.size)];this.peaks=new Float64Array(this.size+1);this.times=new Float64Array(this.size+1);this.head=0;this.tail=0;this.index=0;this.gain=1;this.limit=1;this.energy=0;this.ceiling=10**(-1/20);this.release=1-Math.exp(-1/(rate*.12));}
+  constructor(rate,normalise=true){this.normalise=normalise;this.rate=rate;this.delay=Math.max(1,Math.round(rate*.01));this.size=this.delay+1;this.ring=[new Float32Array(this.size),new Float32Array(this.size)];this.peaks=new Float64Array(this.size+1);this.times=new Float64Array(this.size+1);this.head=0;this.tail=0;this.index=0;this.gain=1;this.limit=1;this.energy=0;this.ceiling=10**(-1/20);this.release=1-Math.exp(-1/(rate*.12));}
   process(input,output){const count=output[0].length,channels=input.length;let energy=0;
    for(let i=0;i<count;i++){let sum=0;for(let c=0;c<channels;c++){const x=input[c]?.[i];if(Number.isFinite(x))sum+=x*x;}energy+=sum/Math.max(1,channels);}
    const rms=Math.sqrt(energy/count);this.energy+=(energy/count-this.energy)*(1-Math.exp(-count/(this.rate*.4)));
-   const target=rms>.00316?Math.max(1,Math.min(4,.15849/Math.sqrt(Math.max(1e-12,this.energy)))):1;
+   const target=this.normalise&&rms>.00316?Math.max(1,Math.min(4,.15849/Math.sqrt(Math.max(1e-12,this.energy)))):1;
    const alpha=1-Math.exp(-1/(this.rate*(target<this.gain?.03:2)));
    const cap=this.peaks.length;
    for(let i=0;i<count;i++){
@@ -67,13 +67,13 @@ window.BassAutoLevel=(()=>{
   }
  }
  const graphs=new WeakMap();
- function attach(ctx,source,destination){if(graphs.has(source))return graphs.get(source);
-  const engine=new LevelEngine(ctx.sampleRate),fallback=ctx.createScriptProcessor(1024,2,2);
+ function attach(ctx,source,destination,{normalise=true}={}){if(graphs.has(source))return graphs.get(source);
+  const engine=new LevelEngine(ctx.sampleRate,normalise),fallback=ctx.createScriptProcessor(1024,2,2);
   fallback.onaudioprocess=e=>engine.process([e.inputBuffer.getChannelData(0),e.inputBuffer.getChannelData(1)],[e.outputBuffer.getChannelData(0),e.outputBuffer.getChannelData(1)]);
   source.connect(fallback);fallback.connect(destination);const state={mode:'compatible',node:fallback,ready:null};graphs.set(source,state);
   state.ready=(async()=>{if(!ctx.audioWorklet||typeof AudioWorkletNode==='undefined')return state;
-   const code=LevelEngine.toString()+`;class BassLevelProcessor extends AudioWorkletProcessor{constructor(){super();this.engine=new LevelEngine(sampleRate);}process(inputs,outputs){this.engine.process(inputs[0]||[],outputs[0]);return true;}}registerProcessor('bass-auto-level-rc186',BassLevelProcessor);`;
-   const url=URL.createObjectURL(new Blob([code],{type:'text/javascript'}));try{await ctx.audioWorklet.addModule(url);const node=new AudioWorkletNode(ctx,'bass-auto-level-rc186',{numberOfInputs:1,numberOfOutputs:1,outputChannelCount:[2],channelCount:2,channelCountMode:'explicit'});
+   const code=LevelEngine.toString()+`;class BassLevelProcessor extends AudioWorkletProcessor{constructor(options){super();this.engine=new LevelEngine(sampleRate,options.processorOptions.normalise);}process(inputs,outputs){this.engine.process(inputs[0]||[],outputs[0]);return true;}}registerProcessor('bass-auto-level-rc186',BassLevelProcessor);`;
+   const url=URL.createObjectURL(new Blob([code],{type:'text/javascript'}));try{await ctx.audioWorklet.addModule(url);const node=new AudioWorkletNode(ctx,'bass-auto-level-rc186',{numberOfInputs:1,numberOfOutputs:1,outputChannelCount:[2],channelCount:2,channelCountMode:'explicit',processorOptions:{normalise}});
     node.onprocessorerror=()=>{try{source.disconnect(node);node.disconnect();source.connect(fallback);fallback.connect(destination);state.node=fallback;state.mode='compatible';}catch{}};
     source.disconnect(fallback);fallback.disconnect();source.connect(node);node.connect(destination);state.node=node;state.mode='worklet';
    }catch{state.mode='compatible';}finally{URL.revokeObjectURL(url);}return state;})();return state;
@@ -13729,7 +13729,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 html body #appRoot #songTempoWrap.on-beat{box-shadow:inset 0 0 0 3px #b9f3da!important}
 html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel .piano-chord.current-chord{background:#a7e8d2!important;color:#102b25!important;font-weight:800!important;box-shadow:inset 0 -3px #fff!important}
 </style>
-<link rel="stylesheet" href="./ear-source/trainer-rc267.css?v=rc360">
+<link rel="stylesheet" href="./ear-source/trainer-rc267.css?v=rc361">
 <style id="rc260-key-audition">@layer bass-piano-audition-260{#appRoot #pianoKeyboard .piano-key.auditioning{background:#248bd1!important;color:white!important;box-shadow:inset 0 0 0 1px #b7e4ff!important}}</style>
 <link rel="stylesheet" href="./fretflow-source/controls.css?v=rc325">
 <link rel="stylesheet" href="./fretflow-source/view.css?v=rc320">
@@ -15765,14 +15765,16 @@ window.BassBatch = (() => {
 <script src="./ear-source/supplied-drums-rc294.js?v=rc352"></script>
 <script src="./ear-source/practice-keys-rc293.js?v=rc293"></script>
 <script src="./ear-source/accompaniment-rc293.js?v=rc352"></script>
-<script src="./ear-source/practice-loop-rc292.js?v=rc352"></script>
+<script src="./ear-source/audio-dsp-rc361.js?v=rc361"></script>
+<script src="./ear-source/ear-audio-rc361.js?v=rc361"></script>
+<script src="./ear-source/practice-loop-rc292.js?v=rc361"></script>
 <script src="./ear-source/core-rc261.js?v=rc292"></script>
 <script src="./ear-source/fills-rc264.js?v=rc336"></script>
 <script src="./ear-source/practice-rc264b.js?v=rc351"></script>
 <script src="./ear-source/catalogue-rc269.js?v=rc350"></script>
 <script src="./ear-source/curated-rc289.js?v=rc351"></script>
 <script src="./ear-source/groups-rc290.js?v=rc352"></script>
-<script src="./ear-source/study-display-rc294.js?v=rc359"></script>
+<script src="./ear-source/study-display-rc294.js?v=rc361"></script>
 <!-- Library songs use the full-song view; independent studies remain in My fills. -->
 <script src="./ear-source/uploaded-data-rc267.js?v=rc267"></script>
 <script src="./ear-source/lesson-data-rc272.js?v=rc272"></script>
@@ -15786,17 +15788,17 @@ window.BassBatch = (() => {
 <script src="./ear-source/uploaded-core-rc267.js?v=rc352"></script>
 <script src="./ear-source/catalogue-review-rc347.js?v=rc351"></script>
 <script src="./ear-source/cultural-studies-rc351.js?v=rc352"></script>
-<script src="./ear-source/study-ui-rc267.js?v=rc359"></script>
+<script src="./ear-source/study-ui-rc267.js?v=rc361"></script>
 <script src="./ear-source/rehearsal-core.js?v=rc358"></script>
 <script src="./ear-source/rehearsal-harmony-rc354.js?v=rc359"></script>
 <script src="./ear-source/rehearsal-ideas-rc352.js?v=rc359"></script>
 <script src="./ear-source/phrase-view.js?v=rc343"></script>
-<script src="./ear-source/rehearsal.js?v=rc360"></script>
+<script src="./ear-source/rehearsal.js?v=rc361"></script>
 <script src="./ear-source/trainer-rc266.js?v=rc359"></script>
 <script src="./fretflow-source/core.js?v=rc277"></script>
-<script src="./fretflow-source/practice-stems.js?v=rc305"></script>
+<script src="./fretflow-source/practice-stems.js?v=rc361"></script>
 <script src="./fretflow-source/bass-evidence.js?v=rc315"></script>
-<script src="./fretflow-source/backing.js?v=rc340"></script>
+<script src="./fretflow-source/backing.js?v=rc361"></script>
 <script src="./fretflow-source/view.js?v=rc325"></script>
 <script src="./fretflow-source/controls.js?v=rc303"></script>
 <script src="./song-view/core.js?v=rc308"></script>
@@ -15804,7 +15806,7 @@ window.BassBatch = (() => {
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC360';
+  const APP_VERSION='RC361';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;
@@ -17529,6 +17531,7 @@ window.BassBatch = (() => {
   // ---------- RC11 mobile AI bass separation: SCNet Tran ----------
   // 47.2 MB fixed 2.75 s browser model; output is a 4-stem complex spectrogram.
   const AI_MODEL_URL='https://huggingface.co/t4t2k1m/yt-precount-scnet-tran-onnx/resolve/main/scnet-tran-core-2.75s-v1.onnx';
+  window.BassEarAudio.configure({model:AI_MODEL_URL});
   const CREPE_MODEL_URL='https://huggingface.co/wok000/weights/resolve/main/crepe/onnx/small.onnx';
   const PRO_MODEL_URL='https://huggingface.co/elicwhite/bs-roformer-sw-6stem-onnx/resolve/main/bs_roformer_sw_6stem_fp16.onnx';
   const PRO_NFFT=2048, PRO_HOP=512, PRO_BINS=1025, PRO_SAMPLES=176400, PRO_FRAMES=345, PRO_STEP=154350; // 3.5 s step: 12.5% overlap for faster Pro analysis
@@ -21053,7 +21056,7 @@ window.BassBatch = (() => {
       const input=await off.startRendering();
       assertSongSession(session);if(cancelled())throw Error('Preparation cancelled.');
       clearTimeout(workerIdleTimer);
-      const worker=practiceWorker||=new Worker('./fretflow-source/practice-stems.js?v=rc305');
+      const worker=practiceWorker||=new Worker('./fretflow-source/practice-stems.js?v=rc361');
       const samples=[input.getChannelData(0).slice(),input.getChannelData(1).slice()];
       const channels=await new Promise((resolve,reject)=>{
         activeWork={reject};
@@ -21355,7 +21358,7 @@ window.BassBatch = (() => {
       queueMelodyProjectSave(true);
     },encode:fileToBase64,setMuted:value=>{bassPracticeMuted=!!value;},
     graph:()=>{ensureCtx();buildGraph();return {ctx,main:sourceBus,bass:[bassPitchDryGain,bassPitchShift.input]};},
-    practiceActive:()=>window.BassRehearsal?.isActive?.(),
+    practiceActive:()=>window.BassRehearsal?.isPlaying?.(),
     progress:()=>window.BassPracticeControls?.update(),
     update:()=>{updateAudioParams();refreshBassPracticeToggle();window.BassFretFlow?.draw();},
     extract:(a,b,p,c)=>separatePracticeStem(a,b,p,c,'rehearsal')
@@ -21443,6 +21446,7 @@ window.BassBatch = (() => {
         $('bassLibraryDialog')?.addEventListener('close',()=>window.BassRehearsal.refresh(),{once:true});
       },
       band:(...args)=>window.BassBacking.rehearsalBand(...args),
+      stems:(...args)=>window.BassBacking.rehearsalStems(...args),
       cancelBand:()=>window.BassBacking.cancelRehearsalBand()
     }
   });

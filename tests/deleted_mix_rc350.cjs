@@ -26,7 +26,7 @@ const initial=broken.BassCatalogueReview.removed().length;assert.throws(()=>brok
 // additional instrument, rather than only reading the displayed labels.
 const env={window:{},Float32Array,Math,Object};vm.createContext(env);vm.runInContext(fs.readFileSync('ear-source/practice-loop-rc292.js','utf8'),env);
 function context(){const gains=[];return {currentTime:0,gains,destination:{},createGain(){const node={gain:{value:1,setValueAtTime(value){this.value=value},setTargetAtTime(value){this.value=value},linearRampToValueAtTime(value){this.value=value},cancelScheduledValues(){}},connect(){return this},disconnect(){}};gains.push(node);return node},createBufferSource(){return {connect(){return this},start(){},stop(){},disconnect(){}}}};}
-const ctx=context(),buffer={duration:4},rendered={stems:{bass:buffer,drums:buffer,chords:buffer,other:buffer},gain:1,seconds:4,beatSeconds:1};
-const transport=env.window.BassPracticeLoop.start(ctx,rendered);assert.equal(ctx.gains[1].gain.value,1);for(const gain of ctx.gains.slice(2))assert.equal(gain.gain.value,.5);
+const ctx=context(),buffer={duration:4},rendered={stems:{bass:buffer,drums:buffer,chords:buffer,other:buffer,voice:buffer},gain:1,seconds:4,beatSeconds:1};
+const transport=env.window.BassPracticeLoop.start(ctx,rendered);assert.equal(ctx.gains[1].gain.value,1);assert.deepEqual(ctx.gains.slice(1).map(g=>g.gain.value),[1,.21,.07,.07,.21]);
 transport.level('bass',.7);assert.equal(ctx.gains[1].gain.value,.7);
-console.log(JSON.stringify({passed:true,emptiedItems:count,permanentAfterReload:true,siblingsPreserved:true,storageFailureAtomic:true,actualDefaultGains:[100,50,50,50]}));
+console.log(JSON.stringify({passed:true,emptiedItems:count,permanentAfterReload:true,siblingsPreserved:true,storageFailureAtomic:true,actualDefaultGains:[100,21,7,7,21]}));

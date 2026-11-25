@@ -121,6 +121,8 @@
 @media (prefers-reduced-motion:reduce){#earTrainerDialog{scroll-behavior:auto!important}}
 }
 
+
+
 #earTrainerDialog #fillTip,#earTrainerDialog #fillManageStatus{font-size:12px!important;margin:0!important;line-height:1.35!important}
 #earTrainerDialog #fillManageStatus:empty{display:none!important}
 #earTrainerDialog #fillSource{color:#83d5ff!important;font-size:12px!important;overflow-wrap:anywhere!important}
@@ -403,7 +405,7 @@
  #earTrainerDialog #earFillStudy[data-sections="true"] #fillCollection{grid-column:1/-1!important;}
  #earTrainerDialog #earFillStudy[data-sections="true"] #fillIdea{grid-column:span 3!important;}
  #earTrainerDialog #earFillStudy[data-sections="true"] #fillExcerpt{grid-column:span 3!important;}
- #earTrainerDialog #earFillStudy[data-sections="true"] :is(#fillRecordedKey,#fillTempoWrap){grid-column:span 3!important;}
+
 }
 
 @layer bass-ear-267 {
@@ -415,4 +417,27 @@
 @layer bass-ear-267 {
  #earTrainerDialog #rehearsalTimeline .rehearsal-column-head>.rehearsal-change-label{min-height:18px!important;padding:1px 2px!important;font-size:12px!important;line-height:1!important;white-space:nowrap!important;overflow-wrap:normal!important}
  #earTrainerDialog #rehearsalTimeline .rehearsal-column-head>.rehearsal-change-label[hidden]{display:none!important}
+}
+
+/* RC361: one clear card per setting and three independent band controls. */
+@layer bass-ear-267 {
+ #earTrainerDialog #earFillStudy .fill-pitch-row,
+ #earTrainerDialog .ear-stem-row,
+ #earTrainerDialog #earFillStudy .fill-actions{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:var(--ear-gap)!important;min-width:0!important;grid-column:1/-1!important}
+ #earTrainerDialog #earFillStudy .fill-actions>button{grid-column:auto!important}
+ #earTrainerDialog #earFillStudy .fill-pitch-row>*{width:100%!important;min-width:0!important;min-height:var(--ear-control)!important;height:var(--ear-control)!important;grid-column:auto!important;margin:0!important}
+ #earTrainerDialog #earFillStudy #fillTempoWrap{grid-column:auto!important;display:grid!important;grid-template-rows:auto minmax(0,1fr)!important;align-items:center!important;justify-items:center!important;gap:0!important;border:1px solid #6d8b9e!important;border-radius:9px!important;background:#142b3d!important;padding:3px 6px!important;line-height:1!important;cursor:text}
+ #earTrainerDialog #fillTempoWrap>span{font-size:10px!important;font-weight:700!important;line-height:1.1!important}
+ #earTrainerDialog #earFillStudy #fillTempo{appearance:textfield!important;-moz-appearance:textfield!important;width:100%!important;height:24px!important;min-height:0!important;border:0!important;padding:0!important;margin:0!important;background:transparent!important;box-shadow:none!important;text-align:center!important;font-size:16px!important;line-height:1.1!important;font-variant-numeric:tabular-nums!important}
+ #earTrainerDialog #earFillStudy #fillTempoReset{padding:4px!important;font-size:13px!important}
+ #earTrainerDialog #fillTempo::-webkit-inner-spin-button,#earTrainerDialog #rehearsalBpm::-webkit-inner-spin-button{appearance:none!important;margin:0!important}
+ #earTrainerDialog #earFillStudy #fillKey{appearance:none!important;text-align:center!important;text-align-last:center!important;font-size:13px!important;padding:4px 2px!important;background:linear-gradient(140deg,#394d6b,#343d59)!important}
+ #earTrainerDialog .ear-stem-row>button{min-height:44px!important;height:44px!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:2px!important;width:100%!important;padding:3px!important;font-size:13px!important;line-height:1.1!important;white-space:nowrap!important;background:linear-gradient(140deg,#314c61,#203646)!important;border-color:#7893a6!important}
+ #earTrainerDialog .ear-stem-row>button::after{content:attr(data-icon);font-size:14px!important;line-height:1!important}
+ #earTrainerDialog .ear-stem-row>button[aria-pressed="false"]{background:linear-gradient(140deg,#513d56,#332b40)!important;border-color:#b291b7!important}
+ #earTrainerDialog .ear-stem-row>button:disabled{opacity:.45!important;cursor:default!important}
+ #earTrainerDialog #earRehearsal #rehearsalCue{appearance:none!important;min-height:32px!important;height:32px!important;min-width:0!important;width:145px!important;padding:4px!important;border:1px solid #6d8b9e!important;border-radius:9px!important;text-align:center!important;text-align-last:center!important;background:#203b49!important;color:#a7e5d9!important;font-size:13px!important}
+ #earTrainerDialog .rehearsal-readout:not(:has(output:not(:empty))):has(select){display:flex!important}
+ #earTrainerDialog #rehearsalBpm{appearance:textfield!important;-moz-appearance:textfield!important;text-align:center!important}
+ #earTrainerDialog #earRehearsal[data-playing="true"] .ear-stem-row.rehearsal-setup{display:none!important}
 }
