@@ -68,7 +68,7 @@ async function playerTest(){
   const $=id=>host.querySelector('#'+id);
   function value(id,text){$(id).value=text;}
   const clip={...buffer,duration:4,length:4*sampleRate,getChannelData:()=>pcm.subarray(8*sampleRate,12*sampleRate)};
-  const song={title:'Fixture',session:0,buffer:clip,duration:4,chords:[],sections:[]};
+  const song={title:'Fixture',session:0,buffer:clip,duration:4,keyRoot:0,keyMode:'major',chords:[],sections:[]};
   Object.assign(context.window,{BassRehearsalCore:C,BassChordRecovery:{scan:async()=>({added:[]})},
     BassFretFlow:{create:()=>({init({get},host){this.get=get;this.host=host;},draw(time){fretDraw={...this.get(),time,wide:this.host['ff-single-board']};}})},
     BassPracticeAudio:{prepare:async()=>{},muted:(ctx,when)=>{scheduled.push({midi:null,when});return {stop(){}};},tone:(ctx,midi,when)=>{scheduled.push({midi,when});return {stop(){}};}}});
@@ -78,6 +78,7 @@ async function playerTest(){
     AudioContext:class{
       get currentTime(){return now;}
       async resume(){}
+      createBuffer(channels,length,sampleRate){const pcm=Array.from({length:channels},()=>new Float32Array(length));return {numberOfChannels:channels,length,sampleRate,duration:length/sampleRate,getChannelData:c=>pcm[c]};}
       createBufferSource(){return {connect(gain){return gain;},start(when,offset){bands.push({node:this,when,offset});},stop(){this.stopped=true;},disconnect(){}};}
       createGain(){return {gain:{setValueAtTime(){},linearRampToValueAtTime(){}},connect(){},disconnect(){}};}
     }});
@@ -91,6 +92,8 @@ async function playerTest(){
   panel.refresh();
   assert.equal($('rehearsalTitle').textContent,'Fixture');
   assert(!host.innerHTML.includes('Bassline &amp; fill notes'));
+  assert(!host.innerHTML.includes('id="rehearsalChange"'),'alternatives no longer require selecting a movement');
+  assert(!host.innerHTML.includes('Timing &amp; chords'));
   assert(host.innerHTML.includes('aria-pressed="true">Original bass off'));
   assert.equal($('rehearsalPassage').options[0].text,'Full song');
   assert.equal($('rehearsalPassage').value,'0');
@@ -119,30 +122,33 @@ async function playerTest(){
   await $('rehearsalImport').onclick();
   assert.equal($('rehearsalTitle').textContent,'Imported fixture');
   value('rehearsalStart','0:00');value('rehearsalEnd','0:04');value('rehearsalBpm','120');
-  $('rehearsalBpm').onchange();value('rehearsalChords','C G/B');value('rehearsalGain','100');
+  $('rehearsalBpm').onchange();song.chords=[{start:0,end:2,rootPc:0,quality:'maj',manual:true},{start:2,end:4,rootPc:7,bassPc:11,quality:'maj',manual:true}];value('rehearsalGain','100');
   value('rehearsalView','notes');value('rehearsalStyle','highlife');value('rehearsalFill','bar');
   $('rehearsalGuide').setAttribute('aria-pressed','true');
   $('rehearsalPlay').onclick();await new Promise(resolve=>setImmediate(resolve));
   assert.equal($('rehearsalPlay').textContent,'Pause');
   assert.equal(host.dataset.playing,'true','setup collapses while the loop plays');
   assert.equal(bands.length,1);
+  assert.equal($('rehearsalCue').value,'Key · C major');
   assert.equal(bands[0].node.loopEnd-bands[0].node.loopStart,4);
   assert.equal(mixRequests,1,'separation is used for the default mix');
   assert(scheduled.length);
   const timeline=$('rehearsalTimeline');
-  assert.deepEqual(timeline.children.map(column=>column.children[0].textContent),['0:00','0:01','0:02','0:03']);
-  assert(timeline.children.every(column=>/^\d+:\d{2}$/.test(column.children[0].textContent)));
+  assert.deepEqual(timeline.children.map(column=>column.children[0].children[0].textContent),['0:00','0:01','0:02','0:03']);
+  assert(timeline.children.every(column=>/^\d+:\d{2}$/.test(column.children[0].children[0].textContent)));
   assert(timeline.children.some(column=>column.children.some(note=>note.className==='rehearsal-fill-note')));
   assert(!timeline.children.some(column=>column.children.some(note=>note.active)),'the highlight waits for the audible loop');
   now=.08;for(const run of [...intervals.values()])run();
+  assert.equal($('rehearsalCue').value,'Key · C major','the key stays steady while individual notes sound');
   assert(timeline.children.some(column=>column.children.some(note=>note.active)));
   value('rehearsalView','fret');$('rehearsalView').onchange();
   assert(fretDraw.notes.some(note=>note.isFill));assert.equal(fretDraw.wide,false);
   value('rehearsalView','fret2');$('rehearsalView').onchange();
   assert.equal(fretDraw.wide,true);
   assert.equal(bands.length,1,'view switches leave the audio clock running');
-  const firstPattern=$('rehearsalPattern').value;value('rehearsalStyle','makossa');$('rehearsalStyle').onchange();
+  const firstPattern=$('rehearsalPattern').value,scheduledBefore=scheduled.length;value('rehearsalStyle','makossa');$('rehearsalStyle').onchange();
   assert.notEqual($('rehearsalPattern').value,firstPattern);
+  assert(scheduled.slice(scheduledBefore).some(n=>n.when<bands[0].when+4),'a new approach applies during the current loop');
   for(let i=1;i<=53;i++){now=i*.08;for(const run of [...intervals.values()])run();}
   assert.equal(bands.length,1,'the original band continues when the style switches');
   assert(scheduled.some(n=>n.when>=4),'bass continues after the recording loop');
@@ -167,7 +173,7 @@ async function playerTest(){
   assert.equal($('rehearsalPassage').value,'0','new recordings select the full song');
   assert.equal($('rehearsalEnd').value,'0:36.14');
   assert.equal($('rehearsalStyle').value,'auto');
-  assert.equal(Number($('rehearsalMusic').value),50);
+  assert.equal(Number($('rehearsalMusic').value),21);
   assert.equal(Number($('rehearsalGain').value),100);
   $('rehearsalMix').onclick();
   $('rehearsalPlay').onclick();await new Promise(resolve=>setImmediate(resolve));
@@ -178,9 +184,34 @@ async function playerTest(){
   $('rehearsalPlay').onclick();
   const last=$('rehearsalPassage').options.at(-1);$('rehearsalPassage').value=last.value;$('rehearsalPassage').onchange();
   const lastPhrase=song.rehearsalPhrases.phrases.at(-1);
+  song.notes.push({start:lastPhrase.start+.1,end:lastPhrase.start+.4,midi:36});
   $('rehearsalPlay').onclick();await new Promise(resolve=>setImmediate(resolve));
   assert.equal(bands.at(-1).node.loopStart,lastPhrase.start);
   assert.equal(bands.at(-1).node.loopEnd,36.137,'the final phrase retains the exact outro, rather than trimming to an earlier bar');
+  value('rehearsalView','notes');$('rehearsalView').onchange();
+  const cells=()=>$('rehearsalTimeline').children;
+  const beginning=lastPhrase.start;
+  const firstSeconds=Math.floor(beginning)+1-beginning;
+  assert.equal(cells()[0].getAttribute('role'),'button');
+  cells()[0].onclick();assert.equal(cells()[0].getAttribute('aria-pressed'),'true');
+  assert.equal(bands.at(-1).node.loopEnd-bands.at(-1).node.loopStart,firstSeconds);
+  cells()[2].onclick();
+  assert(Math.abs(bands.at(-1).node.buffer.duration-(firstSeconds+1))<1e-9,'two separate seconds repeat without the gap between them');
+  assert.equal(cells().filter(c=>c.getAttribute('aria-pressed')==='true').length,2);
+  $('rehearsalNext').onclick();assert(Number(cells()[0].dataset.second)>=Math.floor(beginning)+4);
+  cells()[0].onclick();assert(Math.abs(bands.at(-1).node.buffer.duration-(firstSeconds+2))<1e-9,'another page joins the existing repeat');
+  const loopingBands=bands.length;value('rehearsalStyle','makossa');$('rehearsalStyle').onchange();
+  assert.equal(bands.length,loopingBands,'a style change does not restart selected backing sections');
+  $('rehearsalPlay').onclick();
+  $('rehearsalPrev').onclick();assert.equal(cells().filter(c=>c.getAttribute('aria-pressed')==='true').length,2,'pause and page changes retain the selections');
+  let prevented=false;cells()[0].onkeydown({key:'Enter',preventDefault(){prevented=true;}});assert(prevented);
+  assert.equal(cells()[0].getAttribute('aria-pressed'),'false','keyboard activation toggles a section');
+  $('rehearsalPlay').onclick();await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(bands.at(-1).node.buffer.duration,2,'remaining choices survive pause/resume');
+  $('rehearsalClear').onclick();
+  assert.equal(bands.at(-1).node.loopStart,lastPhrase.start);assert.equal(bands.at(-1).node.loopEnd,36.137);
+  assert(cells().every(c=>c.getAttribute('aria-pressed')==='false'));
+  assert.equal($('rehearsalClear').hidden,true,'Clear restores the full passage');
   panel.close();
   console.log('PASS import, playback and uninterrupted style switching, cached band mix, and Library hand-off.');
 }

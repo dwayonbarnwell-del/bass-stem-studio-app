@@ -286,6 +286,68 @@
   return points.length>=2?{...grid,points}:null;
  }
 
+ const repeat={
+  ranges(clip,selected=[],phrase=null){
+   const cells=Array.from(selected),rows=cells.length?cells.map(t=>({start:Math.max(clip.start,t),end:Math.min(clip.end,t+1)})):[phrase||clip];
+   const result=[];
+   for(const r of rows.map(r=>({start:Math.max(clip.start,r.start),end:Math.min(clip.end,r.end)})).filter(r=>Number.isFinite(r.start+r.end)&&r.end>r.start).sort((a,b)=>a.start-b.start)){
+    const last=result.at(-1);
+    if(last&&r.start<=last.end+.000001)last.end=Math.max(last.end,r.end);else result.push(r);
+   }
+   return result.length?result:[{start:clip.start,end:clip.end}];
+  },
+  pack(context,tracks,clip,ranges){
+   const source=tracks.source,rate=source.sampleRate,map=[];
+   let frames=0;
+   for(const r of ranges){
+    const a=Math.max(0,tracks.offset+(r.start-clip.start)),z=Math.min(tracks.end,tracks.offset+(r.end-clip.start));
+    const first=Math.round(a*rate),last=Math.min(source.length??Math.round(source.duration*rate),Math.round(z*rate));
+    if(last<=first)continue;
+    const duration=(last-first)/rate;
+    map.push({...r,offset:frames/rate,duration,first,last});frames+=last-first;
+   }
+   if(!map.length)throw Error('Choose a section within this passage.');
+   if(map.length===1){
+    const r=map[0],start=Math.max(0,tracks.offset+(r.start-clip.start)),end=Math.min(tracks.end,tracks.offset+(r.end-clip.start));
+    r.duration=end-start;
+    return {source,start,end,seconds:end-start,map};
+   }
+   const joined=context.createBuffer(source.numberOfChannels,frames,rate);
+   for(let channel=0;channel<source.numberOfChannels;channel++){
+    const output=joined.getChannelData(channel),input=source.getChannelData(channel);let offset=0;
+    for(const r of map){
+     const length=r.last-r.first;output.set(input.subarray(r.first,r.last),offset);
+     // A very short edge fade prevents clicks at skipped sections. It adds no
+     // samples or time, so bass and backing retain the same audio-clock loop.
+     const fade=Math.min(Math.floor(rate*.002),Math.floor(length/8));
+     for(let i=0;i<fade;i++){output[offset+i]*=i/fade;output[offset+length-1-i]*=i/fade;}
+     offset+=length;
+    }
+   }
+   return {source:joined,start:0,end:frames/rate,seconds:frames/rate,map};
+  },
+  notes(notes,loop){
+   const result=[];
+   for(const r of loop.map)for(const n of notes){
+    const from=Math.max(n.time,r.start),to=Math.min(n.stop,r.end);
+    if(to<=from)continue;
+    const scale=r.duration/(r.end-r.start);
+    result.push({...n,time:r.offset+(from-r.start)*scale,stop:Math.min(loop.seconds,r.offset+(to-r.start)*scale)});
+   }
+   return result.sort((a,b)=>a.time-b.time);
+  },
+  position(loop,phase){
+   const p=phase>=0?phase%loop.seconds:((phase%loop.seconds)+loop.seconds)%loop.seconds;
+   const r=loop.map.find(r=>p<r.offset+r.duration)||loop.map.at(-1);
+   return r.start+Math.max(0,p-r.offset)/r.duration*(r.end-r.start);
+  },
+  phase(loop,position){
+   const r=loop.map.find(r=>position>=r.start&&position<r.end);
+   if(r)return r.offset+(position-r.start)/(r.end-r.start)*r.duration;
+   return (loop.map.find(r=>r.start>=position)||loop.map[0]).offset;
+  }
+ };
+
  function suggest(chords,grid){
   if(!grid)return 'roots';
   const duration=median(chords.map(c=>c.end-c.start)),beatsPerChange=duration*grid.bpm/60;
@@ -450,6 +512,6 @@
   return distinct.filter(n=>n.stop-n.time>=.031);
  }
 
- const api={styles,passages,quietRanges,attacks,pulse,beatGrid,phraseSignature,validPhrasePlan,phrasePlan,phraseGrid,suggest,barChords,pattern,patternScore,fit};
+ const api={styles,passages,quietRanges,attacks,pulse,beatGrid,phraseSignature,validPhrasePlan,phrasePlan,phraseGrid,repeat,suggest,barChords,pattern,patternScore,fit};
  if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.BassRehearsalCore=api;
 })(globalThis);

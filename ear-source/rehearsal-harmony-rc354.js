@@ -181,7 +181,15 @@ window.BassRehearsalHarmony=(()=>{
  function windowFor(entry,change,clip,exact=false){
   const events=study(entry).events.filter(n=>n.beat<4),step=stepAt(clip,change.at-.02);
   if(events.length<3)return null;
-  const span=4-events[0].beat,last=beat(clip,change.at),available=last-beat(clip,change.from.start),count=exact?available:Math.min(entry.kind==='runs'?clip.grid.meter:Math.min(2,clip.grid.meter),available),first=last-count,start=exact?change.from.start:beatTime(clip,first),duration=change.at-start;
+  const span=4-events[0].beat,last=beat(clip,change.at),available=last-beat(clip,change.from.start);
+  const gap=Math.min(...events.slice(1).map((n,i)=>n.beat-events[i].beat));
+  if(!(span>0&&gap>0))return null;
+  // Give a dense source enough of this chord's existing time to be heard.
+  // The landing stays at the song's original change, and the source order
+  // and relative rhythm stay intact. Never extend into the previous chord.
+  const required=Math.max(events.length/12,.055*span/gap)/step;
+  const preferred=Math.max(entry.kind==='runs'?clip.grid.meter:Math.min(2,clip.grid.meter),Math.ceil(required*2)/2);
+  const count=exact?available:Math.min(preferred,available),first=last-count,start=exact?change.from.start:beatTime(clip,first),duration=change.at-start;
   const times=events.map(n=>beatTime(clip,first+(n.beat-events[0].beat)*count/span));
   if(exact)times[0]=change.from.start;
   if(count<(entry.kind==='runs'?1.5:.65)||duration<=0||events.length/duration>12||times.some((time,i)=>i&&time-times[i-1]<.055))return null;

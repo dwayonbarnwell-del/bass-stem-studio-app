@@ -78,3 +78,18 @@ for(const style of common){
  }
 }
 console.log(JSON.stringify({passed:true,populatedGenres:common.length,genreAlternativesFitted:fitted,majorAndMinorChangesAcrossAllKeys:changes,fullProgression1454:true,focused16:true,minorAndDiminishedQuality:true,slashBassLandings:true,savedHarmonyPreserved:true,exact6200To6500Alternatives:exact,otherOccurrenceAndSurroundingNotesUnchanged:true}));
+
+// RC358: the selected approach applies throughout the song. No movement
+// selection is required; later changes must receive alternatives as well.
+const whole=fixture([1,4,5,6,2,5,1,6]);let automatic=0;
+for(const style of common){
+ const rows=I.bank(style,whole.grid,null,false,whole,'all');
+ for(const kind of ['basslines','runs','fills']){
+  const row=rows.find(r=>r.kind===kind),notes=I.fit(whole,row,'ends','all',rows);validate(notes,whole);
+  const changed=row.entry?notes.filter(n=>n.sourceEntry===row.entry.id):notes;
+  assert(changed.some(n=>n.time<8)&&changed.some(n=>n.time>=24),style+' '+kind+' was confined to one part');
+  if(row.entry)assert(new Set(changed.map(n=>n.phraseId)).size>=4,style+' '+kind+' missed suitable movements');
+  automatic++;
+ }
+}
+console.log(JSON.stringify({automaticWholeSongAlternatives:automatic,beginningAndEndingCovered:true,multipleMovementsAdapted:true,originalHarmonyKept:true}));
