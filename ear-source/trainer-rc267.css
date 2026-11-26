@@ -452,3 +452,8 @@
  #earTrainerDialog #rehearsalBpm{appearance:textfield!important;-moz-appearance:textfield!important;text-align:center!important}
  #earTrainerDialog #earRehearsal[data-playing="true"] .ear-stem-row.rehearsal-setup{display:none!important}
 }
+
+@layer bass-ear-267 {
+ #earTrainerDialog #earContent:has(#earFillStudy:not([hidden])) {box-sizing:border-box!important;padding-inline:8px!important;scrollbar-gutter:stable}
+ #earTrainerDialog #earFillStudy :is(button,select):focus-visible {outline-offset:-3px!important}
+}

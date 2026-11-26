@@ -136,6 +136,7 @@ window.BassPracticeLoop=(()=>{
   if(useKeys&&chords)stems.chords=bassBuffer[2];
   if(cancelled())return null;
   for(const part of [...(recorded?[]:['bass']),...(chords&&!useKeys&&keys.length?['chords']:[])]){
+   if(cancelled())return null;
    const offline=new OfflineAudioContext(part==='bass'?1:2,frames+Math.ceil(tail*rate),rate);
    if(part==='bass'&&plan.pickup)A.muted(offline,(plan.beats-plan.pickup)*beat,.15);
    for(const n of part==='bass'?plan.bass:keys){if(part==='chords'&&K)K.tone(offline,n,n.beat*beat,n.length*beat,sound,.22);else A.tone(offline,n.midi,n.beat*beat,n.length*beat,part==='bass'?'bass':'piano',0,n.velocity,part==='bass'?.72:.18,n);}
@@ -151,7 +152,7 @@ window.BassPracticeLoop=(()=>{
  }
  function levels(stems){return Object.fromEntries(Object.entries(stems).map(([part,buffer])=>[part,window.BassEarAudio?.normalisation(buffer,part==='drums'?.18:.16)??1]));}
  function start(context,rendered,{repeat=true,bass=1,drums=.21,chords=.07,voice=.21,other=.07,onEnded=()=>{},when=context.currentTime+.08,offsetBeats=0,drumPhase=0,fadeIn=0}={}){
-  const sources=[],gains={},route=window.BassEarAudio?.mixer(context,{semitones:rendered.semitones||0}),master=route?.master||context.createGain();let stopped=false,ending=false;
+  const sources=[],gains={},route=window.BassEarAudio?.mixer(context,{semitones:rendered.semitones||0,fixedKey:true}),master=route?.master||context.createGain();let stopped=false,ending=false;
   if(rendered.pickup&&!fadeIn&&!offsetBeats){
    const lead=rendered.pickup*rendered.beatSeconds;
    when=Math.max(when,context.currentTime+lead+.012);
@@ -167,7 +168,11 @@ window.BassPracticeLoop=(()=>{
    source.start(when,((partOffset%buffer.duration)+buffer.duration)%buffer.duration);
   }
   function stopAt(at=context.currentTime,fade=.006){if(stopped)return;ending=true;at=Math.max(context.currentTime,at)+(route?.latency||0);master.gain.cancelScheduledValues(at);master.gain.setValueAtTime(rendered.gain,at);master.gain.linearRampToValueAtTime(0,at+fade);for(const {source} of sources)try{source.stop(at+fade+.001);}catch{}}
-  return {when,latency:route?.latency||0,seconds:rendered.seconds,beatSeconds:rendered.beatSeconds,offsetBeats,setRepeat(value){for(const {source,part} of sources)if(part==='bass')source.loop=!!value;},level(part,value){const g=gains[part];if(g)g.gain.setTargetAtTime(Math.max(0,Math.min(1,value))*(rendered.levels?.[part]||1),context.currentTime,.015);},position(){return context.currentTime-when+offset;},stopAt,stop(){stopAt(context.currentTime);}};
+  return {when,latency:route?.latency||0,seconds:rendered.seconds,beatSeconds:rendered.beatSeconds,offsetBeats,setRepeat(value){for(const {source,part} of sources)if(part==='bass')source.loop=!!value;},level(part,value){const g=gains[part];if(g)g.gain.setTargetAtTime(Math.max(0,Math.min(1,value))*(rendered.levels?.[part]||1),context.currentTime,.015);},cancelPending(){
+   ending=true;
+   master.disconnect();
+   for(const {source} of sources)try{source.stop(context.currentTime);}catch{}
+  },position(){return context.currentTime-when+offset;},stopAt,stop(){stopAt(context.currentTime);}};
  }
  return {render,start,defaults:Object.freeze({bass:1,drums:.21,chords:.07,voice:.21,other:.07})};
 })();

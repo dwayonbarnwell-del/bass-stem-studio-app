@@ -74,6 +74,7 @@ window.BassRehearsal=(()=>{
   timelineResize?.disconnect();
   if(typeof ResizeObserver!=='undefined'){timelineResize=new ResizeObserver(fitTimeline);timelineResize.observe($('rehearsalTimeline'));}
   (window.BassRehearsalIdeas?.availableStyles()||C.styles).forEach(([id,caption])=>{const option=new Option(window.BassStudyDisplay?.menu(caption)||caption,id);option.title=caption;$('rehearsalStyle').add(option);});
+  for(const id of ['rehearsalView','rehearsalFill','rehearsalStyle'])window.BassStudyDisplay.sortMenu($(id));
   $('rehearsalImport').onclick=()=>api.pickAudio($('rehearsalFile'),openFile);
   $('rehearsalFile').onchange=e=>{const file=e.target.files[0];e.target.value='';if(file)void openFile(file);};
   $('rehearsalLibrary').onclick=async()=>{await close();api.openLibrary();};
@@ -316,10 +317,10 @@ window.BassRehearsal=(()=>{
    const original=new Option('Song bass','song-bass');original.title='Original song bassline';
    choices.unshift(original);
   }
-  picker.replaceChildren(...choices);picker.add(new Option('Roots','roots'));
+  picker.replaceChildren(...choices);picker.add(new Option('Roots','roots'));window.BassStudyDisplay.sortMenu(picker);
   if(chosen!=='auto'&&(previous==='roots'||featured.some(p=>p.id===previous)))picker.value=previous;
   else if(preferBest&&previousKind&&featured.some(row=>row.kind===previousKind))picker.value=featured.find(row=>row.kind===previousKind).id;
-  else picker.selectedIndex=0;
+  else picker.value=choices[0]?.value || featured[0]?.id || 'roots';
   sourceDetails();
  }
 

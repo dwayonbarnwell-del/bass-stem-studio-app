@@ -111,5 +111,15 @@ window.BassStudyDisplay=(()=>{
   while(lo<hi){const mid=(lo+hi)>>>1;if(segments[mid].end<=beat)lo=mid+1;else hi=mid;}
   return lo<segments.length&&segments[lo].beat<=beat?lo:-1;
  }
- return {short,label,clip,phrase,segments,active,menu,fitName,suffix,sourceName,names,recordingNumber};
+ const collator=new Intl.Collator('en-GB',{numeric:true,sensitivity:'base'});
+ function sortMenu(menu){
+  const selected=menu.value;
+  for(const group of menu.querySelectorAll('optgroup'))sortMenu(group);
+  const children=[...menu.children],pinned=new Set(['auto','roots','song-bass']);
+  const label=node=>node.label||node.textContent;
+  children.sort((a,b)=>Number(pinned.has(b.value))-Number(pinned.has(a.value))||collator.compare(label(a),label(b)));
+  menu.append(...children);
+  if(selected!==undefined)menu.value=selected;
+ }
+ return {sortMenu,short,label,clip,phrase,segments,active,menu,fitName,suffix,sourceName,names,recordingNumber};
 })();

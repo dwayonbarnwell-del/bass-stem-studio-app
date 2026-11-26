@@ -11,21 +11,26 @@ window.BassEarAudio=(()=>{
   state.ready=(async()=>{
    await limiter.ready;
    PitchEngine=(await import('./pitch-engine-rc361.mjs')).PitchEngine;
-   if(ctx.audioWorklet&&typeof AudioWorkletNode!=='undefined')try{await ctx.audioWorklet.addModule('./ear-source/pitch-worklet-rc361.js');state.worklet=true;}catch{}
+   if(ctx.audioWorklet&&typeof AudioWorkletNode!=='undefined')try{await ctx.audioWorklet.addModule('./ear-source/pitch-worklet-rc361.js?v=rc368');state.worklet=true;}catch{}
    return state;
   })().catch(error=>{state.ready=null;throw error;});return state.ready;
  }
- function mixer(ctx,{semitones=0}={}){
+ function mixer(ctx,{semitones=0,fixedKey=false}={}){
   const state=graphs.get(ctx);if(!state)throw Error('Audio is not ready');
-  const master=ctx.createGain(),pitched=ctx.createGain(),drums=ctx.createDelay(.5),guide=ctx.createDelay(.5),engine=new PitchEngine(ctx.sampleRate,semitones);let pitch;
+  const master=ctx.createGain(),pitched=ctx.createGain(),drums=ctx.createDelay(.5),guide=ctx.createDelay(.5);
+  const direct=fixedKey && semitones===0;
+  const engine=!direct && !state.worklet ? new PitchEngine(ctx.sampleRate,semitones) : null;
+  const latency=.18;
+  let pitch;
   const extra=state.worklet?0:1024/ctx.sampleRate;
-  drums.delayTime.value=guide.delayTime.value=engine.latency+extra;
-  if(state.worklet){pitch=new AudioWorkletNode(ctx,'bass-ear-pitch-rc361',{outputChannelCount:[2],channelCount:2,channelCountMode:'explicit',parameterData:{semitones}});}
+  drums.delayTime.value=guide.delayTime.value=latency+extra;
+  if(direct){pitch=ctx.createDelay(.5);pitch.delayTime.value=latency+extra;}
+  else if(state.worklet){pitch=new AudioWorkletNode(ctx,'bass-ear-pitch-rc361',{outputChannelCount:[2],channelCount:2,channelCountMode:'explicit',parameterData:{semitones}});}
   else{pitch=ctx.createScriptProcessor(1024,2,2);pitch.onaudioprocess=e=>engine.process([e.inputBuffer.getChannelData(0),e.inputBuffer.getChannelData(1)],[e.outputBuffer.getChannelData(0),e.outputBuffer.getChannelData(1)],semitones);}
   pitched.connect(pitch).connect(master);drums.connect(master);guide.connect(master);master.connect(state.input);
   const proxy={get currentTime(){return ctx.currentTime;},get sampleRate(){return ctx.sampleRate;},destination:guide};
   for(const name of ['createBufferSource','createGain','createBiquadFilter','createBuffer'])proxy[name]=(...args)=>ctx[name](...args);
-  return {master,pitched,drums,guide,context:proxy,get latency(){return engine.latency+.01+extra+(state.limiter.mode==='compatible'?1024/ctx.sampleRate:0);},setSemitones(value){semitones=value;pitch.parameters?.get('semitones').setTargetAtTime(value,ctx.currentTime,.012);},disconnect(){for(const n of [pitched,pitch,drums,guide,master])n.disconnect();}};
+  return {master,pitched,drums,guide,context:proxy,get latency(){return latency+.01+extra+(state.limiter.mode==='compatible'?1024/ctx.sampleRate:0);},setSemitones(value){semitones=value;pitch.parameters?.get('semitones').setTargetAtTime(value,ctx.currentTime,.012);},disconnect(){if(pitch.port){pitch.port.postMessage('stop');pitch.port.close();}if(engine)pitch.onaudioprocess=null;for(const n of [pitched,pitch,drums,guide,master])n.disconnect();}};
  }
  function buffer(ctx,channels,rate=ctx.sampleRate){const out=ctx.createBuffer(channels.length,channels[0].length,rate);channels.forEach((data,c)=>out.copyToChannel(data,c));return out;}
  function stereo(ctx,source,first=0){return buffer(ctx,[source.getChannelData(first),source.getChannelData(Math.min(first+1,source.numberOfChannels-1))],source.sampleRate);}

@@ -15,7 +15,7 @@ window.BassFillTrainer=(()=>{
  }catch{}
  const saveDrums=()=>{try{localStorage.setItem(drumKey,JSON.stringify({enabled:drums,chords:backing,kit:drumKit,groove:drumGroove,style:keyStyle,sound:keySound,volume:drumVolume,keyVolume,bassVolume,voiceVolume,voice}));}catch{}};
  const accompaniment=()=>({...H.resolve(plan,{kit:drumKit,groove:drumGroove,style:keyStyle,sound:keySound}),originalDrums:drumKit==='auto'&&drumGroove==='auto',originalKeys:keyStyle==='auto'&&keySound==='auto'});
- function drumOptions(){const select=$('fillDrumGroove'),names=N.names(B.available,row=>row.title);select.replaceChildren(new Option('Auto','auto'));for(const row of B.available.filter(x=>drumKit==='auto'||x.genre===drumKit||(drumKit==='worship'&&['soul','funk'].includes(x.genre)))){const option=new Option(names.get(row),row.id);option.title=row.title+' · '+Number(row.bpm.toFixed(2))+' BPM'+(row.tempoSource==='estimated'?' · Estimated':'');select.add(option);}select.value=drumGroove;if(!select.value){drumGroove='auto';select.value='auto';}}
+ function drumOptions(){const select=$('fillDrumGroove'),names=N.names(B.available,row=>row.title);select.replaceChildren(new Option('Auto','auto'));for(const row of B.available.filter(x=>drumKit==='auto'||x.genre===drumKit||(drumKit==='worship'&&['soul','funk'].includes(x.genre)))){const option=new Option(names.get(row),row.id);option.title=row.title+' · '+Number(row.bpm.toFixed(2))+' BPM'+(row.tempoSource==='estimated'?' · Estimated':'');select.add(option);}N.sortMenu(select);select.value=drumGroove;if(!select.value){drumGroove='auto';select.value='auto';}}
  function soundSettings(){if(!plan){$('fillAccompaniment').textContent='';return;}const a=accompaniment(),auto=H.resolve(plan),names={piano:'Grand piano',electric:'Wurlitzer electric piano',organ:'Drawbar organ'};
   for(const [id,text] of [['fillDrumKit',B.genres.find(x=>x[0]===auto.loop.genre)?.[1]||auto.loop.genre],['fillDrumGroove',(drumKit==='auto'?auto.loop:B.choose(auto.id,drumKit)).title],['fillKeyStyle',H.profiles[auto.style].label],['fillKeySound',names[auto.sound]]]){$(id).options[0].textContent='Auto';$(id).options[0].title='Auto · '+text;}
   if(plan.recording?.pack){
@@ -73,10 +73,11 @@ window.BassFillTrainer=(()=>{
  const groupKey='bass-study-groups-v1',selectedGroups={fills:'gospel',runs:'gospel'};
  try{const saved=JSON.parse(localStorage.getItem(groupKey)||'null'),old=JSON.parse(localStorage.getItem('bass-curated-filters-v1')||'{}');for(const k of ['fills','runs'])selectedGroups[k]=G?.migrate(saved?.[k]||old[k]?.style)||'gospel';}catch{}
  const imported=()=>kind==='basslines'&&$('fillIdea').value.startsWith('clip:');
- const matchesGenre=(c,genre)=>H.category(c,true)===genre;
+ const matchesGenre=(c,genre)=>H.category(c,true)===genre||H.practiceGenre(c)===genre;
  function clipOptions(){
   const group=$('fillCollection').value;$('fillClip').replaceChildren();
   for(const c of U.items.filter(c=>matchesGenre(c,group)&&D.visible('uploaded',c.id))){const o=document.createElement('option');o.value=c.id;o.textContent=N.clip(c);o.title=N.clip(c);$('fillClip').append(o);}
+  N.sortMenu($('fillClip'));
   if(rememberedClips[group])$('fillClip').value=rememberedClips[group];
   if(!$('fillClip').value&&$('fillClip').options.length)$('fillClip').selectedIndex=0;partOptions();
  }
@@ -109,6 +110,7 @@ window.BassFillTrainer=(()=>{
   if(!G||kind==='basslines')return;
   const groups=G.available(kind),select=$('fillGroup');select.replaceChildren();
   for(const [id,label] of groups){const option=new Option(N.menu(label),id);option.title=label;select.add(option);}
+  N.sortMenu(select);
   if(!groups.some(([id])=>id===selectedGroups[kind]))selectedGroups[kind]=groups[0]?.[0]||'gospel';
   loadGroup();
  }
@@ -168,6 +170,7 @@ window.BassFillTrainer=(()=>{
    }
    if(group.children.length)select.append(group);
   }
+  N.sortMenu(select);
   if([...select.options].some(o=>o.value===String(wanted)))select.value=String(wanted);else if(select.options.length)select.selectedIndex=0;
   if(G&&kind!=='basslines')$('fillCount').textContent=rows.length+' '+(kind==='runs'?'runs':'fills');
  }
@@ -180,6 +183,7 @@ window.BassFillTrainer=(()=>{
  function collectionOptions(){
   const select=$('fillCollection'),current=select.value;select.replaceChildren();
   for(const [id,label] of H.availableGroups()){const option=new Option(N.menu(label),id);option.title=label;select.add(option);}
+  N.sortMenu(select);
   if([...select.options].some(o=>o.value===current))select.value=current;
  }
  function deletedItems(){
@@ -196,6 +200,7 @@ window.BassFillTrainer=(()=>{
    }catch{$('fillManageStatus').textContent='Could not restore this item.';}};
    item.append(label,button);list.append(item);
   }
+  list.append(...[...list.children].sort((a,b)=>a.firstChild.firstChild.textContent.localeCompare(b.firstChild.firstChild.textContent,'en-GB',{numeric:true})));
   $('fillDeletedEmpty').hidden=!!list.children.length;
   $('fillEmptyDeleted').disabled=!list.children.length;
  }
@@ -294,30 +299,46 @@ window.BassFillTrainer=(()=>{
   if(api?.busy?.()){$('fillStatus').textContent='Finish recording first';return;}
   playing=true;repeating=true;state();api?.pause?.();await updatePlayback();
  }
- async function updatePlayback(){
+ let pendingRender=Promise.resolve();
+ function updatePlayback(){
+  const request=++revision;
+  pendingRender=pendingRender.catch(()=>{}).then(async()=>{
+   if(request!==revision)return;
+   if(transport||recordedAudio)await new Promise(resolve=>setTimeout(resolve,85));
+   if(request===revision && playing)return preparePlayback(request);
+  });
+  return pendingRender;
+ }
+ async function preparePlayback(request){
   if(!playing||!plan)return;
-  const mine=token,request=++revision,current=plan,choices=accompaniment();
-  $('fillStatus').textContent=transport?'Changing…':'Loading…';
+  const mine=token,current=plan,choices=accompaniment();
+  $('fillStatus').textContent=transport||recordedAudio?'':'Loading…';
   try{
    if(current.kind==='uploaded'&&!current.recording){
     await playRecording(mine,request,current,choices);return;
    }
    ctx??=new AudioContext();await ctx.resume();await E.prepare(ctx);
+   if(request!==revision||mine!==token)return;
    let audio;
    try{audio=rendered||await L.render(ctx,current,{...choices,recorded:!!current.recording,cancelled:()=>mine!==token||request!==revision,sourceCancelled:()=>mine!==token||!playing||plan?.audio!==current.audio,progress:p=>{if(mine===token&&request===revision)$('fillStatus').textContent='Preparing voices '+p+'%';}});}
    catch(error){if(!current.recording||current.recording.pack||current.recording.originalMix)throw error;if(mine===token&&request===revision)await playRecording(mine,request,current,choices);return;}
    if(mine!==token||request!==revision||!audio||!$('earTrainerDialog').open)return;
    const previous=transport,oldPlan=sessions.at(-1)?.plan;
    const same=oldPlan&&oldPlan.kind===current.kind&&oldPlan.idea===current.idea&&oldPlan.clipId===current.clipId&&oldPlan.part===current.part&&oldPlan.from===current.from&&oldPlan.to===current.to;
-   const tempoChanged=same&&oldPlan.bpm!==current.bpm;
-   const quantum=tempoChanged?1:4;
+   const quantum=1;
    const priorOffset=previous?.offsetBeats||0;
    const nextBeat=previous?Math.ceil((priorOffset+Math.max(0,ctx.currentTime+.12-previous.when)/previous.beatSeconds)/quantum)*quantum:0;
-   const when=previous?previous.when+(nextBeat-priorOffset)*previous.beatSeconds:ctx.currentTime+.08;
+   const when=previous&&previous.when>ctx.currentTime?previous.when:previous?previous.when+(nextBeat-priorOffset)*previous.beatSeconds:ctx.currentTime+.08;
    rendered=audio;voiceReady=!!audio.stems.voice;state();
    const offsetBeats=previous&&same?nextBeat:0;
    const next=L.start(ctx,audio,{when,offsetBeats,drumPhase:audio.drumPhase??(current.recording?current.phase:0),repeat:true,fadeIn:previous?.006:0,bass:bassVolume,drums:drums?drumVolume:0,chords:backing?keyVolume:0,voice:voice?voiceVolume:0});
-   previous?.stopAt(when,.006);transport=next;
+   // A prepared loop may still be waiting for its first beat.
+   // Drop that silent replacement before the new one begins.
+   if(previous && previous.when>ctx.currentTime){
+    previous.cancelPending();
+    sessions=sessions.filter(session=>session.transport!==previous);
+   }else previous?.stopAt(when,.006);
+   transport=next;
    sessions.push({transport:next,plan:current,rendered:audio});
    clearStreamBand?.();const previousRecording=recordedAudio;if(previousRecording){previousRecording.pause();recordedAudio=null;}
    for(const voice of voices)try{voice.stop();}catch{}voices=[];
@@ -344,11 +365,17 @@ window.BassFillTrainer=(()=>{
   const continuing=recordedAudio&&streamPlan?.clipId===current.clipId&&streamPlan?.part===current.part;
   const audio=continuing?recordedAudio:new Audio(),beat=60/current.bpm,keys=H.arrange(current,choices.style);
   const K=window.BassPracticeKeys;
+  let route=continuing?streamRoute:null;
   let metadata,media=continuing?streamMedia:null,bassGain=continuing?streamBassGain:null,drumBuffer;
   if(!continuing){
    audio.preload='auto';audio.preservesPitch=true;
    metadata=new Promise((resolve,reject)=>{
-    audio.onloadedmetadata=resolve;audio.onerror=()=>reject(Error('Recording unavailable'));
+    const started=performance.now();
+    const timer=setInterval(()=>{
+     if(stale()||performance.now()-started>20000)finish(Error('Recording load interrupted'));
+    },150);
+    function finish(error){clearInterval(timer);audio.onloadedmetadata=audio.onerror=null;error?reject(error):resolve();}
+    audio.onloadedmetadata=()=>finish();audio.onerror=()=>finish(Error('Recording unavailable'));
     audio.src=current.audio;audio.load();
    });
   }
@@ -360,14 +387,14 @@ window.BassFillTrainer=(()=>{
    audio.defaultPlaybackRate=current.speed/100;audio.playbackRate=current.speed/100;
    if(!continuing){
     audio.currentTime=current.sourceStart;audio.muted=true;
-    streamRoute=E.mixer(ctx,{semitones:current.semitones||0});media=ctx.createMediaElementSource(audio);bassGain=ctx.createGain();bassGain.gain.value=bassVolume;window.BassAutoLevel.attach(ctx,media,bassGain);bassGain.connect(streamRoute.pitched);
+    route=E.mixer(ctx,{semitones:current.semitones||0});media=ctx.createMediaElementSource(audio);bassGain=ctx.createGain();bassGain.gain.value=bassVolume;window.BassAutoLevel.attach(ctx,media,bassGain);bassGain.connect(route.pitched);
     await audio.play();
    }
-  }catch(error){if(!continuing){audio.pause();media?.disconnect();bassGain?.disconnect();}throw error;}
-  if(stale()){if(!continuing){audio.pause();media?.disconnect();}return;}
+  }catch(error){if(!continuing){audio.pause();media?.disconnect();bassGain?.disconnect();route?.disconnect();}throw error;}
+  if(stale()){if(!continuing){audio.pause();media?.disconnect();bassGain?.disconnect();route?.disconnect();}return;}
   if(!continuing)recordedAudio?.pause();
   for(const s of sessions)s.transport.stop();sessions=[];transport=null;clearStreamBand?.(!!continuing);
-  streamMedia=media;streamBassGain=bassGain;streamRoute.setSemitones(current.semitones||0);audio.muted=false;
+  streamRoute=route;streamMedia=media;streamBassGain=bassGain;streamRoute.setSemitones(current.semitones||0);audio.muted=false;
   recordedAudio=audio;streamPlan=current;cancelAnimationFrame(recordedFrame);
   const gain=ctx.createGain();gain.connect(streamRoute.drums);streamKeyGain=ctx.createGain();streamKeyGain.gain.value=backing?keyVolume:0;streamKeyGain.connect(streamRoute.guide);const keyContext=Object.assign(Object.create(streamRoute.context),{destination:streamKeyGain});
   let source=null,origin=0,keyIndex=0,liveKeys=[];
@@ -419,7 +446,7 @@ window.BassFillTrainer=(()=>{
   audio.onwaiting=audio.onseeking=stopBand;audio.onplaying=schedule;
   audio.onerror=()=>{if(recordedAudio===audio){stop();$('fillStatus').textContent='Recording unavailable';}};
   const timer=setInterval(schedule,25);
-  clearStreamBand=(keepMedia=false)=>{clearInterval(timer);audio.onplaying=audio.onwaiting=audio.onseeking=audio.onerror=null;stopBand();gain.disconnect();streamKeyGain?.disconnect();streamKeyGain=null;if(!keepMedia){streamRoute?.disconnect();streamRoute=null;media.disconnect();bassGain?.disconnect();if(streamBassGain===bassGain)streamBassGain=null;if(streamMedia===media)streamMedia=null;}clearStreamBand=null;};
+  clearStreamBand=(keepMedia=false)=>{clearInterval(timer);audio.onplaying=audio.onwaiting=audio.onseeking=audio.onerror=null;stopBand();gain.disconnect();streamKeyGain?.disconnect();streamKeyGain=null;if(!keepMedia){route?.disconnect();if(streamRoute===route)streamRoute=null;media.disconnect();bassGain?.disconnect();if(streamBassGain===bassGain)streamBassGain=null;if(streamMedia===media)streamMedia=null;}clearStreamBand=null;};
   const tick=()=>{
    if(recordedAudio!==audio||mine!==token)return;
    const pos=(audio.currentTime-current.sourceStart)/current.step;
@@ -444,6 +471,7 @@ window.BassFillTrainer=(()=>{
   function option(id,value,label){const o=document.createElement('option');o.value=value;o.textContent=label;$(id).append(o);}
   for(const id of ['fillDrumKit','fillDrumGroove','fillKeyStyle','fillKeySound'])option(id,'auto','Auto');
   for(const [id,label] of B.genres)option('fillDrumKit',id,N.menu(label));drumOptions();for(const [id,p] of Object.entries(H.profiles))option('fillKeyStyle',id,N.menu(p.label));for(const [id,label] of [['piano','Grand piano'],['electric','Wurlitzer'],['organ','Organ']])option('fillKeySound',id,label);
+  for(const id of ['fillDrumKit','fillKeyStyle','fillKeySound'])N.sortMenu($(id));
   $('fillDrumKit').value=drumKit;$('fillDrumGroove').value=drumGroove;$('fillKeyStyle').value=keyStyle;$('fillKeySound').value=keySound;$('fillDrumVolume').value=Math.round(drumVolume*100);$('fillDrumLevel').textContent=Math.round(drumVolume*100)+'%';$('fillKeyVolume').value=Math.round(keyVolume*100);$('fillKeyLevel').textContent=Math.round(keyVolume*100)+'%';
   const changeSound=event=>{drumKit=$('fillDrumKit').value;if(event?.target.id==='fillDrumKit'){drumGroove='auto';drumOptions();}else drumGroove=$('fillDrumGroove').value;keyStyle=$('fillKeyStyle').value;keySound=$('fillKeySound').value;saveDrums();draw();};
   for(const id of ['fillDrumKit','fillDrumGroove','fillKeyStyle','fillKeySound'])$(id).onchange=changeSound;

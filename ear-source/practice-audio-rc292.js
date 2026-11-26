@@ -6,15 +6,15 @@ window.BassPracticeAudio=(()=>{
   if(buses.has(context))return buses.get(context);
   const sub=context.createBiquadFilter(),body=context.createBiquadFilter(),top=context.createBiquadFilter();
   sub.type='highpass';sub.frequency.value=25;sub.Q.value=.5;
-  body.type='lowshelf';body.frequency.value=150;body.gain.value=3;
-  top.type='lowpass';top.frequency.value=1850;top.Q.value=.55;
+  body.type='lowshelf';body.frequency.value=150;body.gain.value=1;
+  top.type='lowpass';top.frequency.value=2800;top.Q.value=.55;
   sub.connect(body).connect(top).connect(context.destination);
   const proxy={get currentTime(){return context.currentTime;},destination:sub,createBufferSource:()=>context.createBufferSource(),createGain:()=>context.createGain()};
   buses.set(context,proxy);return proxy;
  }
  async function prepare(sound='piano',context,options){
   if(sound==='bass'&&window.BassFingeredBass){
-   try{return await window.BassFingeredBass.prepare(context,options);}catch{}
+   return window.BassFingeredBass.prepare(context,options);
   }
   return A().prepare(sound,context,options);
  }

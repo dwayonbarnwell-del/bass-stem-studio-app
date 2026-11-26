@@ -11,11 +11,11 @@ window.BassExpressiveStudies=(()=>{
   jazz:{label:'Technique reference · Jon Burr: line construction and chord connections',url:'https://www.notreble.com/buzz/2010/01/11/lesson-basic-line-construction-types/'}
  };
  const designs={
-  worship:{fills:[['Gentle fold','pent',[1.5,2,2.5,3,3.5,3.75],'p2 p4 p3 p1 t2 t-1'],['Grace reply','grace',[1.75,2,2.75,3.5,3.75],'g d3 d5 t2 t-1'],['Open door','fifth',[1.5,2.25,2.75,3.5,3.75],'d3 d5 d6 t2 t7'],['Soft answer','enclosure',[1.5,2,2.5,3,3.5,3.75],'d5 d6 d3 t2 t1 t-1']],runs:[['Pearl fall','pent',[1.5,1.75,2,2.25,2.75,3,3.5,3.75],'p7 p5 p6 p4 p3 p1 t2 t-1'],['Triplet sigh','triplet',[1.5,2,7/3,8/3,3,10/3,11/3],'d5 d8 d6 d5 d3 t2 t-1'],['Ninth arch','guide',[1.25,1.75,2,2.5,2.75,3.25,3.5,3.75],'d3 d9 d8 d6 d5 d3 t2 t-1'],['Upper reply','octave',[1.5,1.75,2,2.5,2.75,3.25,3.5,3.75],'d8 d5 d3 d10 d8 d6 t2 t-1']]},
-  gospel:{fills:[['Blue grace','grace',[1.5,1.75,2,2.75,3.5,3.75],'g d3 d5 d6 t2 t-1'],['Amen turn','triplet',[1.5,2,7/3,8/3,3,10/3,11/3],'d3 d5 d8 d6 d5 t2 t-1'],['Fifth lift','fifth',[1,1.75,2.5,3,3.5,3.75],'d3 d8 d5 d6 t2 t7'],['Side door','enclosure',[1.5,2,2.5,3,3.25,3.5,3.75],'d3 d7 d9 d5 t2 t1 t-1']],runs:[['Sunday fall','pent',[1,1.5,1.75,2,2.5,2.75,3.25,3.5,3.75],'p7 p4 p6 p3 p5 p2 p1 t2 t-1'],['Rolling turn','triplet',[1,4/3,5/3,2,7/3,8/3,3,10/3,11/3],'d3 d5 d8 d9 d8 d6 d5 t2 t-1'],['Guide weave','guide',[1,1.5,1.75,2.25,2.5,2.75,3.25,3.5,3.75],'d7 d5 d3 d9 d8 d6 d5 t1 t-1'],['Octave call','octave',[1,1.75,2,2.25,2.75,3,3.5,3.75],'d8 d1 d5 d10 d8 d6 t2 t-1']]},
-  rnb:{fills:[['Late pocket','pent',[1.75,2.25,2.5,3,3.5,3.75],'p2 p4 p2 p1 t2 t-1'],['Velvet touch','grace',[1.75,2,2.75,3.25,3.75],'g d3 d6 d5 t-1'],['Low answer','fifth',[1.5,2.25,2.75,3.5,3.75],'d5 d3 d6 t2 t7'],['Close curl','enclosure',[1.75,2.25,2.5,3,3.5,3.75],'d3 d5 d9 t2 t1 t-1']],runs:[['Silk pairs','pent',[1.25,1.75,2,2.25,2.75,3.25,3.5,3.75],'p6 p4 p5 p3 p4 p1 t2 t-1'],['Pocket three','triplet',[1.5,2,7/3,8/3,3,10/3,11/3],'d5 d3 d6 d9 d8 t2 t-1'],['Seventh arc','guide',[1.5,1.75,2.25,2.5,3,3.25,3.5,3.75],'d7 d5 d9 d6 d3 d5 t2 t-1'],['High whisper','octave',[1.25,1.75,2.25,2.5,2.75,3.25,3.5,3.75],'d8 d5 d10 d9 d6 d3 t2 t-1']]},
-  soul:{fills:[['Warm echo','pent',[1.5,2.25,2.5,3,3.5,3.75],'p2 p2 p4 p1 t2 t-1'],['Third sigh','grace',[1.75,2,2.5,3.25,3.75],'g d3 d5 d6 t-1'],['Fifth bridge','fifth',[1.5,2,2.75,3.5,3.75],'d3 d6 d5 t2 t7'],['Small reply','enclosure',[1.5,2.25,2.5,3,3.5,3.75],'d5 d3 d6 t2 t1 t-1']],runs:[['Golden fold','pent',[1.5,1.75,2.25,2.5,2.75,3.25,3.5,3.75],'p6 p4 p3 p5 p3 p1 t2 t-1'],['Sunday sway','triplet',[1,5/3,2,7/3,8/3,3,10/3,11/3],'d3 d5 d6 d8 d6 d5 t2 t-1'],['Third thread','guide',[1.25,1.75,2,2.5,2.75,3.25,3.5,3.75],'d3 d7 d5 d9 d6 d3 t2 t-1'],['Octave echo','octave',[1.5,1.75,2,2.5,2.75,3.25,3.5,3.75],'d8 d5 d8 d10 d6 d3 t2 t-1']]},
-  jazz:{fills:[['Ninth reply','guide',[1.5,2,2.5,3,3.5,3.75],'d3 d7 d9 d5 t2 t-1'],['Blue brush','grace',[1.75,2,2.75,3.5,3.75],'g d3 d7 t2 t-1'],['Fifth pivot','fifth',[1.5,2.25,2.75,3.5,3.75],'d7 d3 d5 t2 t7'],['Double door','enclosure',[1,5/3,2,8/3,3,3.5,3.75],'d3 d7 d9 d5 t2 t1 t-1']],runs:[['Broken ninth','pent',[1,1.5,1.75,2.25,2.5,2.75,3.25,3.5,3.75],'p6 p4 p7 p5 p3 p4 p1 t2 t-1'],['Three by two','triplet',[1,4/3,5/3,2,7/3,8/3,3,10/3,11/3],'d3 d7 d9 d10 d8 d6 d5 t2 t-1'],['Seventh path','guide',[1,1.5,2,2.25,2.75,3,3.5,3.75],'d7 d3 d9 d5 d6 d3 t1 t-1'],['Wide answer','octave',[1,1.75,2,2.5,2.75,3.25,3.5,3.75],'d8 d3 d10 d5 d9 d7 t2 t-1']]}
+  worship:{fills:[['Gentle fold','pent',[1.5,2,2.5,3,3.5,3.75],'p2 p4 p3 p1 t2 t2'],['Grace reply','grace',[1.75,2,2.75,3.5,3.75],'g d3 d5 t2 t-1'],['Open door','fifth',[1.5,2.25,2.75,3.5,3.75],'d3 d5 d6 t2 t7'],['Soft answer','enclosure',[1.5,2,2.5,3,3.5,3.75],'d5 d6 d3 t2 t1 t-1']],runs:[['Pearl fall','pent',[1.5,1.75,2,2.25,2.75,3,3.5,3.75],'p7 p5 p6 p4 p3 p1 t7 t2'],['Triplet sigh','triplet',[1.5,2,7/3,8/3,3,10/3,11/3],'d5 d8 d6 d5 d3 t2 t-1'],['Ninth arch','guide',[1.25,1.75,2,2.5,2.75,3.25,3.5,3.75],'d3 d9 d8 d6 d5 d3 t2 t7'],['Upper reply','octave',[1.5,1.75,2,2.5,2.75,3.25,3.5,3.75],'d8 d5 d3 d10 d8 d6 t7 t12']]},
+  gospel:{fills:[['Blue grace','grace',[1.5,1.75,2,2.75,3.5,3.75],'g d3 d5 d6 d5 t2'],['Amen turn','triplet',[1.5,2,7/3,8/3,3,10/3,11/3],'d3 d5 d8 d6 d5 t7 t2'],['Fifth lift','fifth',[1,1.75,2.5,3,3.5,3.75],'d3 d8 d5 d6 t2 t7'],['Side door','enclosure',[1.5,2,2.5,3,3.25,3.5,3.75],'d3 d7 d9 d5 t2 t1 t-1']],runs:[['Sunday fall','pent',[1,1.5,1.75,2,2.5,2.75,3.25,3.5,3.75],'p7 p4 p6 p3 p5 p2 p1 t7 t2'],['Rolling turn','triplet',[1,4/3,5/3,2,7/3,8/3,3,10/3,11/3],'d3 d5 d8 d9 d8 d6 d5 t2 t-1'],['Guide weave','guide',[1,1.5,1.75,2.25,2.5,2.75,3.25,3.5,3.75],'d7 d5 d3 d9 d8 d6 d5 t1 t2'],['Octave call','octave',[1,1.75,2,2.25,2.75,3,3.5,3.75],'d8 d1 d5 d10 d8 d6 t7 t12']]},
+  rnb:{fills:[['Late pocket','pent',[1.75,2.25,2.5,3,3.5,3.75],'p2 p4 p2 p1 d5 t2'],['Velvet touch','grace',[1.75,2,2.75,3.25,3.75],'g d3 d6 d5 t-1'],['Low answer','fifth',[1.5,2.25,2.75,3.5,3.75],'d5 d3 d6 t2 t7'],['Close curl','enclosure',[1.75,2.25,2.5,3,3.5,3.75],'d3 d5 d9 t2 t1 t-1']],runs:[['Silk pairs','pent',[1.25,1.75,2,2.25,2.75,3.25,3.5,3.75],'p6 p4 p5 p3 p4 p1 t7 t2'],['Pocket three','triplet',[1.5,2,7/3,8/3,3,10/3,11/3],'d5 d3 d6 d9 d8 t2 t7'],['Seventh arc','guide',[1.5,1.75,2.25,2.5,3,3.25,3.5,3.75],'d7 d5 d9 d6 d3 d5 t2 t-1'],['High whisper','octave',[1.25,1.75,2.25,2.5,2.75,3.25,3.5,3.75],'d8 d5 d10 d9 d6 d3 t7 t12']]},
+  soul:{fills:[['Warm echo','pent',[1.5,2.25,2.5,3,3.5,3.75],'p2 p2 p4 p1 d5 t2'],['Third sigh','grace',[1.75,2,2.5,3.25,3.75],'g d3 d5 d6 t-1'],['Fifth bridge','fifth',[1.5,2,2.75,3.5,3.75],'d3 d6 d5 t2 t7'],['Small reply','enclosure',[1.5,2.25,2.5,3,3.5,3.75],'d5 d3 d6 t2 t1 t-1']],runs:[['Golden fold','pent',[1.5,1.75,2.25,2.5,2.75,3.25,3.5,3.75],'p6 p4 p3 p5 p3 p1 t7 t2'],['Sunday sway','triplet',[1,5/3,2,7/3,8/3,3,10/3,11/3],'d3 d5 d6 d8 d6 d5 t2 t-1'],['Third thread','guide',[1.25,1.75,2,2.5,2.75,3.25,3.5,3.75],'d3 d7 d5 d9 d6 d3 t2 t7'],['Octave echo','octave',[1.5,1.75,2,2.5,2.75,3.25,3.5,3.75],'d8 d5 d8 d10 d6 d3 t7 t12']]},
+  jazz:{fills:[['Ninth reply','guide',[1.5,2,2.5,3,3.5,3.75],'d3 d7 d9 d5 t7 t2'],['Blue brush','grace',[1.75,2,2.75,3.5,3.75],'g d3 d7 t2 t-1'],['Fifth pivot','fifth',[1.5,2.25,2.75,3.5,3.75],'d7 d3 d5 t2 t7'],['Double door','enclosure',[1,5/3,2,8/3,3,3.5,3.75],'d3 d7 d9 d5 t2 t1 t-1']],runs:[['Broken ninth','pent',[1,1.5,1.75,2.25,2.5,2.75,3.25,3.5,3.75],'p6 p4 p7 p5 p3 p4 p1 t7 t2'],['Three by two','triplet',[1,4/3,5/3,2,7/3,8/3,3,10/3,11/3],'d3 d7 d9 d10 d8 d6 d5 t2 t-1'],['Seventh path','guide',[1,1.5,2,2.25,2.75,3,3.5,3.75],'d7 d3 d9 d5 d6 d3 t1 t2'],['Wide answer','octave',[1,1.75,2,2.5,2.75,3.25,3.5,3.75],'d8 d3 d10 d5 d9 d7 t7 t12']]}
  };
  const tips={pent:'Sing the paired shape; leave its gaps open and settle on the next root.',grace:'Brush into the chord third softly; let the following chord tones speak.',fifth:'Aim the last weak pickup at the fifth of the NEXT chord, then land on its bass.',enclosure:'Keep the chromatic neighbours short and quiet; the destination releases them.',triplet:'Feel three equal notes inside the beat; keep the root steady and soften the answer.',guide:'Connect chord colours as a melody. The actual chord quality decides the third and seventh.',octave:'Let the upper register answer the low root; return without rushing the destination.'};
  const entries=[];
@@ -24,6 +24,19 @@ window.BassExpressiveStudies=(()=>{
   entries.push(Q.register({id,kind,title,genre:style==='jazz'?'jazz':style==='soul'||style==='rnb'?'fusion':'contemporary',practiceStyle:style,mode:'major',rhythm:rhythmId,notes:tokens.replaceAll('g','s3'),tokens:tokens.split(' '),technique,tip:tips[technique],source:refs[technique==='fifth'?'approach':technique==='enclosure'?'enclosure':style==='jazz'?'jazz':'pocket'],tier:0,rank:-300+i,expressive:true}));
  }
  for(const [style,label]of [['worship','Worship'],['rnb','R&B'],['soul','Soul']])if(!G.groups.some(([id])=>id===style))G.groups.push([style,label]);
+ for(const [style,kind,title,rhythm,notes] of [
+  ['afrobeat','runs','Cross pulse','r7','d1 d5 d6 d5 d3 t2 t7'],
+  ['african-praise','runs','Praise climb','r6','d1 d3 d5 d6 t7 t2'],
+  ['reggae','fills','Dub reply','f5','d1 d5 d3 t7 t2'],
+  ['reggae','runs','Island turn','r7','d1 d3 d5 d8 d5 t2 t-1'],
+  ['praise','fills','Lift off','f5','d3 d5 d6 t2 t7'],
+  ['praise','runs','Choir walk','r6','d3 d5 d8 d6 t2 t-1']
+ ]) Q.register({id:'transition366-'+style+'-'+kind,kind,title,rhythm,notes,practiceStyle:style,genre:style,mode:'major',tier:0,rank:-250,tip:'Keep the pulse steady and land on the next chord.'});
+ P.lines.push({id:'afrobeat366-cross',name:'Cross step',degrees:[1,4,6,5],feel:'afrobeat',practiceStyle:'afrobeat',tip:'Keep the repeating pulse through each change.'});
+ P.lines.push({id:'praise366-rise',name:'Rising step',degrees:[1,4,5,1],feel:'praise',practiceStyle:'african-praise',tip:'Keep the root clear on each landing.'});
+ P.lines.push({id:'sungura366-step',name:'String step',degrees:[1,4,1,5],feel:'sungura',practiceStyle:'sungura',tip:'Keep the returning root steady beneath the upper notes.'});
+ P.lines.push({id:'funk366-pocket',name:'Pocket step',degrees:[1,6,4,5],feel:'pocket',practiceStyle:'funk',tip:'Keep the short notes tight against the drums.'});
+ P.lines.push({id:'blues366-shuffle',name:'Shuffle walk',degrees:[1,4,5,4],feel:'walk',practiceStyle:'blues',tip:'Let the walking notes lead into the next root.'});
  const beds={worship:['Prayer bed','Open chorus'],gospel:['Church bed','Sunday pulse'],rnb:['Low pocket','Late answer'],soul:['Warm pocket','Steady home'],jazz:['Two bar walk','Guide loop']};
  for(const [style,sets]of Object.entries(designs))for(let i=0;i<2;i++)P.lines.push({id:'expressive365-basslines-'+style+'-'+i,name:beds[style][i],displayName:beds[style][i],degrees:i?[1,6,2,5]:[1,4,5,4],feel:style,practiceStyle:style,expressive:true,rank:-300+i,variant:i,tip:'Keep the low motif consistent; add the shaped answer at the end of the phrase.'});
  function styleOf(kind,idea){
@@ -71,6 +84,7 @@ window.BassExpressiveStudies=(()=>{
  function shapeEntry(plan){return plan.curated||{kind:plan.kind,index:plan.idea,practiceStyle:styleOf(plan.kind,plan.idea),rhythm:'expressive365-legacy-'+plan.kind+'-'+plan.idea,notes:[],tokens:[],technique:'pent'};}
  function make(kind,opts={}){
   const idea=Math.max(0,Math.round(Number(opts.idea)||0)),style=styleOf(kind,idea);
+  if(kind!=='basslines' && Q.get(kind,idea)?.id.startsWith('transition366-'))return Q.make(kind,opts);
   if(!style)return originalMake(kind,opts);
   if(kind==='basslines')return bassline(originalMake(kind,opts),style);
   const entry=Q.get(kind,idea),plan=entry?Q.make(kind,opts):originalMake(kind,opts),e=shapeEntry(plan);
@@ -109,16 +123,26 @@ window.BassExpressiveStudies=(()=>{
   const idea=P.lines.findIndex(line=>line.id===choice.sourceId),style=styleOf('basslines',idea);if(!style||!clip.grid)return null;
   const M=window.BassRehearsalHarmony,{points,meter}=clip.grid,variant=P.lines[idea].variant??idea%2,out=[];
   const timeAt=b=>{const i=clamp(Math.floor(b),0,points.length-2);return points[i]+(b-i)*(points[i+1]-points[i]);};
-  for(const chord of M.prepare(clip).segments){
+  const segments=M.prepare(clip).segments;
+  for(const [index,chord] of segments.entries()){
    if(chord.rootOnly||chord.uncertain&&!chord.manual||/unknown|none|^n$/i.test(chord.quality||''))continue;
    const start=M.beat(clip,chord.start),end=M.beat(clip,chord.end);
-   for(let bar=start;bar<end;bar+=meter)for(const note of pocket(style,chord,variant)){
+   const next=segments[index+1];
+   for(let bar=start;bar<end;bar+=meter){
+    let notes=pocket(style,chord,variant);
+    if(index%2===1 && next && !next.rootOnly && (!next.uncertain || next.manual) && Math.abs(chord.end-next.start)<.025 && Math.abs(bar+meter-end)<.02){
+     const entry=entries.find(e=>e.kind==='fills' && e.practiceStyle===style && e.technique===(variant?'fifth':style==='jazz'?'guide':style==='gospel'?'grace':'pent'));
+     const key=M.prepare(clip).key;
+     notes=phrase(entry,{from:chord,to:next,key:key?.tonic,mode:key?.mode,keyKnown:!!key,bpm:clip.grid.bpm,variant:index+variant}).notes.filter(n=>n.beat<4);
+    }
+    for(const note of notes){
     const at=bar+note.beat*meter/4;if(at>=end-.0001)continue;
     const time=timeAt(at),quiet=(clip.quiet||[]).find(r=>r.end>time&&r.start<timeAt(Math.min(end,at+note.length*meter/4)));
     if(quiet&&quiet.start<=time)continue;
     const stop=Math.min(chord.end,clip.end,timeAt(Math.min(end,at+note.length*meter/4)),quiet?.start??Infinity);
     if(stop-time>=.032)out.push({...note,time,stop,adapted:true,chordNumber:chord.number,chordName:chord.name});
    }
+  }
   }
   return out;
  }

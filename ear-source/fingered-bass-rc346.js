@@ -4,7 +4,15 @@
 window.BassFingeredBass=(()=>{
  'use strict';
  const banks=new Map(),loads=new Map(),anchors=Array.from({length:13},(_,i)=>23+i*3);
- let decoder;
+ let decoder,backupLoad;
+ async function backup(context){
+  if(!backupLoad)backupLoad=(async()=>{
+   const response=await fetch('./audio/bass-rc346/backup-b1.wav');
+   if(!response.ok)throw Error('Bass sample unavailable');
+   return context.decodeAudioData(await response.arrayBuffer());
+  })().catch(error=>{backupLoad=null;throw error;});
+  return backupLoad;
+ }
  const anchor=midi=>anchors.reduce((a,b)=>Math.abs(b-midi)<Math.abs(a-midi)?b:a);
  async function load(context,midi){
   if(banks.has(midi))return;
@@ -14,11 +22,15 @@ window.BassFingeredBass=(()=>{
     const url='./audio/bass-rc346/'+midi+'-'+velocity+'.flac';
     let cache,response;
     try{cache=await caches.open('bass-fingered-gs-rc346');response=await cache.match(url);}catch{}
-    if(!response){
-     response=await fetch(url);if(!response.ok)throw Error('Bass sound unavailable');
-     if(cache)try{await cache.put(url,response.clone());}catch{}
+    if(response){
+     try{layers.push(await context.decodeAudioData(await response.arrayBuffer()));continue;}catch{await cache.delete(url).catch(()=>{});}
     }
-    layers.push(await context.decodeAudioData(await response.arrayBuffer()));
+    {
+     response=await fetch(url);if(!response.ok)throw Error('Bass sound unavailable');
+     const copy=response.clone();
+     layers.push(await context.decodeAudioData(await response.arrayBuffer()));
+     if(cache)try{await cache.put(url,copy);}catch{}
+    }
    }
    banks.set(midi,layers);
   })().finally(()=>loads.delete(midi)));
@@ -28,20 +40,20 @@ window.BassFingeredBass=(()=>{
   context??=(decoder??=new AudioContext());
   const notes=options?.notes?.map(n=>Number(n.midi)).filter(Number.isFinite);
   const wanted=notes?.length?[...new Set(notes.map(anchor))]:anchors;
-  for(let i=0;i<wanted.length;i+=4)await Promise.all(wanted.slice(i,i+4).map(midi=>load(context,midi)));
+  for(let i=0;i<wanted.length;i+=4)await Promise.all(wanted.slice(i,i+4).map(midi=>load(context,midi).catch(async()=>{const sample=await backup(context);banks.set(midi,Object.assign([sample,sample],{root:35}));})));
  }
  function has(midi){return Number.isFinite(midi)&&banks.has(anchor(midi));}
  function tone(context,midi,when,length,age=0,velocity=80,level=1,expression={}){
   const key=anchor(midi),layers=banks.get(key);
   if(!layers)throw Error('Bass sound loading');
-  const start=Math.max(context.currentTime,when),remaining=Math.max(.015,length-age),ratio=2**((midi-key)/12);
+  const start=Math.max(context.currentTime,when),remaining=Math.max(.015,length-age),ratio=2**((midi-(layers.root??key))/12);
   const blend=Math.max(0,Math.min(1,(velocity-64)/40)),voices=[];
   for(const [i,weight] of [1-blend,blend].entries()){
    if(weight<=0||age*ratio>=layers[i].duration)continue;
    const source=context.createBufferSource(),gain=context.createGain(),release=Math.min(.035,remaining/3);
    source.buffer=layers[i];source.playbackRate.value=ratio;
    if(age===0&&Number.isFinite(expression.slideFrom)&&Math.abs(expression.slideFrom-midi)<=5&&source.playbackRate.exponentialRampToValueAtTime){
-    source.playbackRate.setValueAtTime(2**((expression.slideFrom-key)/12),start);
+    source.playbackRate.setValueAtTime(2**((expression.slideFrom-(layers.root??key))/12),start);
     source.playbackRate.exponentialRampToValueAtTime(ratio,start+Math.min(remaining/3,Math.max(.025,Math.min(.09,expression.slideSeconds||.045))));
    }
    gain.gain.setValueAtTime(0,start);

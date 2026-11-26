@@ -6,7 +6,7 @@ window.BassStudyGroups=(()=>{
  'use strict';
  const C=window.BassCuratedStudies,P=window.BassPracticeCore,F=window.BassFillCore,D=window.BassPracticeCatalogue;
  const culturalGroups=[['woro','Woro'],['highlife','Highlife'],['ariaria','Ariaria'],['makossa','Makossa'],['seben','Seben'],['soukous','Soukous'],['zouk','Zouk'],['afrobeat','Afrobeat'],['sungura','Sungura'],['mbalax','Mbalax'],['mbaqanga','Mbaqanga'],['soca','Soca'],['african-praise','African praise'],['regional','Regional']];
- const groups=[['gospel','Gospel & Contemporary'],['jazz','Jazz & Chromatic'],['blues','Blues & Pentatonic'],['funk','Funk & Soul'],...culturalGroups];
+ const groups=[['worship','Worship'],['gospel','Gospel'],['rnb','R&B'],['soul','Soul'],['jazz','Jazz'],['blues','Blues'],['funk','Funk'],['reggae','Reggae'],['praise','Praise'],...culturalGroups];
  const map={contemporary:'gospel',jazz:'jazz',blues:'blues',pentatonic:'blues',fusion:'funk',other:'african',african:'african'};
  // Freeze legacy identities before consolidating an identical musical pattern.
  for(const list of [P.runs,F.styles])list.forEach((row,i)=>{row.id??=String(i);});
@@ -76,7 +76,7 @@ window.BassStudyGroups=(()=>{
  const ids=(kind,index)=>[id(kind,index),...(rows(kind)[index]?.aliasIds||[])];
  const visible=(kind,index)=>ids(kind,index).every(key=>D.visible(kind,key))&&window.BassCulturalStudies?.available(C.get(kind,index))!==false;
  function culturalStyle(row){return row?.curated?.culturalStyle||culturalGroups.find(([id])=>new RegExp(id.replace('-','[ -]'),'i').test(row?.[0]||''))?.[0]||'regional';}
- function groupOf(kind,index){const row=rows(kind)[index];if(['worship','rnb','soul'].includes(row.curated?.practiceStyle))return row.curated.practiceStyle;if(row.curated)return ['african','other'].includes(row.curated.genre)||row.curated.culturalStyle?culturalStyle(row):map[row.curated.genre];if(/Highlife|Makossa/i.test(row[0]))return culturalStyle(row);if(/Soul|Syncopat|Octave/i.test(row[0]))return'funk';if(/Pentatonic|Blues/i.test(row[0]))return'blues';if(/Jazz|Chromatic|Modal|Enclosure|Outside|Neighbour-note|Upper-register|Descending octave/i.test(row[0]))return'jazz';return'gospel';}
+ function groupOf(kind,index){const row=rows(kind)[index];if(['worship','rnb','soul','reggae','praise','afrobeat','african-praise'].includes(row.curated?.practiceStyle))return row.curated.practiceStyle;if(row.curated)return ['african','other'].includes(row.curated.genre)||row.curated.culturalStyle?culturalStyle(row):map[row.curated.genre];if(/Highlife|Makossa/i.test(row[0]))return culturalStyle(row);if(/Soul|Syncopat|Octave/i.test(row[0]))return'funk';if(/Pentatonic|Blues/i.test(row[0]))return'blues';if(/Jazz|Chromatic|Modal|Enclosure|Outside|Neighbour-note|Upper-register|Descending octave/i.test(row[0]))return'jazz';return'gospel';}
  const label=(kind,index)=>rows(kind)[index][0];
  const aliases=(kind,index)=>rows(kind)[index]?.aliasTitles||[];
  const matching=(kind,group)=>rows(kind).map((_,i)=>i).filter(i=>visible(kind,i)&&groupOf(kind,i)===group).sort((a,b)=>C.compare(kind,a,b));
