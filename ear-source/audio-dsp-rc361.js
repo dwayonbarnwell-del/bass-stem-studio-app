@@ -5,7 +5,7 @@
  const keyLabel=(tonic,mode='major')=>Number.isInteger(tonic)?'Key: '+names[(tonic%12+12)%12]+' '+(mode==='minor'?'Min':'Maj'):'Key: ?';
  const shift=(from,to)=>((Number(to)-Number(from)+18)%12+12)%12-6;
  function transposePlan(plan,semitones){
-  const notes=rows=>rows?.map(n=>({...n,...(Number.isFinite(n.midi)?{midi:n.midi+semitones}:{}),...(Number.isInteger(n.rootPc)?{rootPc:(n.rootPc+semitones+120)%12}:{})}));
+  const notes=rows=>rows?.map(n=>({...n,...(Number.isFinite(n.midi)?{midi:n.midi+semitones}:{}),...(Number.isFinite(n.slideFrom)?{slideFrom:n.slideFrom+semitones}:{}),...(Number.isInteger(n.rootPc)?{rootPc:(n.rootPc+semitones+120)%12}:{})}));
   return {...plan,semitones,tonic:(plan.tonic+semitones+120)%12,bass:notes(plan.bass),chords:notes(plan.chords)};
  }
  function normalisation(buffer,target=.16){

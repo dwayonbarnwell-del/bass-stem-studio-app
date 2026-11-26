@@ -381,6 +381,7 @@
 
  function pattern(line,practice,idea){
   if(!line)return [];
+  const expressive=window.BassExpressiveStudies?.basslineShape(line,idea);if(expressive)return expressive;
   const plan=practice.make('basslines',{idea,key:0,bpm:120});
   const root=plan.chords[0]?.midi;
   if(!Number.isFinite(root))return [];

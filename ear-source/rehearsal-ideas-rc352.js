@@ -28,7 +28,8 @@ window.BassRehearsalIdeas=(()=>{
   }
   const sourceLabel=practice?'Practice':sourceFamily.replace(/ recordings$/,'');
   const code=String(number||1).padStart(2,'0')+((window.BassRecordedPhrases?.[sourceId]?.length||0)>1?'.'+(part+1):'')+(variant?'.'+variant:'');
-  const label=N.sourceName(sourceLabel,code);
+  const line=P.lines.find(r=>r.id===sourceId);
+  const label=entry?.expressive?N.short(entry.title):line?.expressive?N.short(line.name):N.sourceName(sourceLabel,code);
   const detail=[practice?'Practice':sourceFamily,...sourceLabel===genreLabel?[]:[genreLabel],'Adapted'].join(' · ');
   const original=source?.originalTitle||P.lines.find(r=>r.id===sourceId)?.name||entry?.title||'';
   return {label,detail,source:practice?'Practice':sourceFamily,genre:genreLabel,sourceId,original};
@@ -97,7 +98,10 @@ window.BassRehearsalIdeas=(()=>{
    const category=H.category(row),identified=H.identify(row),rowStyle=category==='african'||identified==='fusion'?identified:category;
    if(!D.visible('basslines',row.id)||!D.visible('basslines',row.id+'/0')||rowStyle!==style)continue;
    const shape=C.pattern(row,P,idea);if(!shape.length)continue;
-   basslines.push({id:row.id,kind:'basslines',label:N.short(row.name)+' · Practice (adapted)',family:'Practice bassline',style,sourceId:row.id,shape,recorded:false,score:C.patternScore(grid,rhythm,shape)});
+   basslines.push({id:row.id,kind:'basslines',label:N.short(row.name)+' · Practice (adapted)',family:'Practice bassline',style,sourceId:row.id,shape,recorded:false,score:C.patternScore(grid,rhythm,shape)+(row.expressive?.15:0)});
+   // These loops already have their own authored runs and fills above.
+   // Do not mint further near-duplicate derivatives with the loop's name.
+   if(row.expressive)continue;
    const plan=P.make('basslines',{idea,key:0,bpm:100}),step=60/plan.bpm;
    addDerived({kind:'basslines',id:row.id,part:0,style,family:'Practice bassline',title:N.short(row.name),step,offset:0,notes:plan.bass.map(n=>({midi:n.midi,start:n.beat*step,end:(n.beat+n.length)*step,confidence:1,velocity:n.velocity}))});
   }
@@ -107,11 +111,11 @@ window.BassRehearsalIdeas=(()=>{
     const entry=Q.get(kind,idea);if(!entry||!G.visible(kind,idea))continue;
     const source=entry.recordedStudy,rowStyle=entry.culturalStyle||H.profile(P.make(kind,{idea,from:1,to:4,key:0})).id,rowFamily=source?.family||'Practice studies';
     if(!matches(style,rowStyle,rowFamily))continue;
-    const native=source?.events||Q.make(kind,{idea,from:1,to:4,key:0}).bass.map(n=>({...n,offset:n.midi-36}));
+    const native=source?.events||P.make(kind,{idea,from:1,to:4,key:0}).bass.map(n=>({...n,offset:n.midi-36}));
     if(!playable(native,grid))continue;
     const shape=native.filter(n=>n.beat<4).map(n=>({beat:n.beat,length:Math.min(n.length,4-n.beat),role:'passing',semitones:n.offset}));
     const value=score(grid,rhythm,shape,source?.nativeBpm,automatic);if(!shape.length||automatic&&value<-.05)continue;
-    (kind==='runs'?runs:fills).push({id:'study:'+kind+':'+entry.id,kind,label:N.label(kind,row)+' · '+rowFamily+' (adapted)',family:rowFamily,style:rowStyle,sourceId:source?.sourceId,entry,shape,recorded:true,score:value+(source?.family==='Practice bassline'?0:.04)});
+    (kind==='runs'?runs:fills).push({id:'study:'+kind+':'+entry.id,kind,label:N.label(kind,row)+' · '+rowFamily+' (adapted)',family:rowFamily,style:rowStyle,sourceId:source?.sourceId,entry,shape,recorded:true,score:value+(entry.expressive?.16:source?.family==='Practice bassline'?0:.04)});
    }
   }
   // Where a genre has only transition studies, draw the missing type from

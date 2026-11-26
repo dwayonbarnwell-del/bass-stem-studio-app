@@ -124,7 +124,7 @@ window.BassFillTrainer=(()=>{
  function ideaOptions(wanted=remembered[kind]){
   const select=$('fillIdea');select.replaceChildren();const rows=collections().map((s,i)=>({s,i,line:kind==='basslines'?P.lines[i]:null})).filter(({i,line})=>kind==='basslines'?D.visible(kind,patternId(i))&&H.category(line)===$('fillCollection').value:G?G.visible(kind,i)&&G.groupOf(kind,i)===selectedGroups[kind]&&G.supports(kind,i,$('fillFrom').value,$('fillTo').value):D.visible(kind,patternId(i)));
   const sourcePriority=i=>{const entry=C?.get(kind,i);return entry?.recordedStudy?(window.BassCulturalStudies.nativeMatch(entry,$('fillFrom').value,$('fillTo').value)?0:1):2;};
-  rows.sort((a,b)=>C&&kind!=='basslines'?sourcePriority(a.i)-sourcePriority(b.i)||C.compare(kind,a.i,b.i):0);let studies;if(kind==='basslines'&&rows.length){studies=document.createElement('optgroup');studies.label='Practice patterns';select.append(studies);}
+  rows.sort((a,b)=>kind==='basslines'?(a.line.rank??0)-(b.line.rank??0):C?sourcePriority(a.i)-sourcePriority(b.i)||C.compare(kind,a.i,b.i):0);let studies;if(kind==='basslines'&&rows.length){studies=document.createElement('optgroup');studies.label='Practice patterns';select.append(studies);}
   for(const {s,i,line} of rows){
    const parts=line?P.phrases(line.degrees):[null];
    for(const [part,degrees] of parts.entries()){

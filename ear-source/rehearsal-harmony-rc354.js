@@ -2,6 +2,7 @@
  * Source recordings do not establish a verified original chord progression. */
 window.BassRehearsalHarmony=(()=>{
  'use strict';
+ const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
  const F=window.BassFillCore,C=window.BassRehearsalCore,Q=window.BassCuratedStudies,P=window.BassPracticeCore;
  const pc=n=>(n%12+12)%12,memo=new WeakMap(),studyCache=new WeakMap(),names=F.names;
  function keyOf(clip){
@@ -147,7 +148,8 @@ window.BassRehearsalHarmony=(()=>{
   for(const chord of prepare(clip).segments)landing(out,clip,chord,chord.start,changes(clip).find(t=>Math.abs((t.loop?clip.start:t.at)-chord.start)<.018));
   return normalise(out);
  }
- function study(entry){
+ function study(entry,change=null,clip=null){
+  if(change&&clip){const expressive=window.BassExpressiveStudies?.rehearsalStudy(entry,change,clip);if(expressive)return expressive;}
   if(entry.recordedStudy)return entry.recordedStudy;
   if(studyCache.has(entry))return studyCache.get(entry);
   const plan=Q.make(entry.kind,{idea:entry.index,key:0,from:1,to:4,bpm:100});
@@ -160,7 +162,10 @@ window.BassRehearsalHarmony=(()=>{
    prepared.matches.set(selection,{counts,total:moves.length});
   }
   const {counts,total}=prepared.matches.get(selection);if(!total)return 0;
+  if(window.BassExpressiveStudies?.handles(row.entry))return .45;
+  if(row.kind==='basslines'&&!row.recorded&&window.BassExpressiveStudies?.styleOf('basslines',P.lines.findIndex(line=>line.id===row.sourceId)))return .45;
   const r=row.entry?.recordedStudy;let intervals=[];
+  if(r?.sourceKind==='basslines'&&window.BassExpressiveStudies?.styleOf('basslines',P.lines.findIndex(line=>line.id===r.sourceId)))return .45;
   if(row.entry)intervals=[pc(r?r.interval:study(row.entry).interval)];
   else{
    const line=P.lines.find(l=>l.id===row.sourceId),scale=F.scales[line?.mode]||F.scales.major;
@@ -179,7 +184,7 @@ window.BassRehearsalHarmony=(()=>{
   return rows.sort((a,b)=>a.at-b.at);
  }
  function windowFor(entry,change,clip,exact=false){
-  const events=study(entry).events.filter(n=>n.beat<4),step=stepAt(clip,change.at-.02);
+  const events=study(entry,change,clip).events.filter(n=>n.beat<4),step=stepAt(clip,change.at-.02);
   if(events.length<3)return null;
   const span=4-events[0].beat,last=beat(clip,change.at),available=last-beat(clip,change.from.start);
   const gap=Math.min(...events.slice(1).map((n,i)=>n.beat-events[i].beat));
@@ -197,14 +202,14 @@ window.BassRehearsalHarmony=(()=>{
  }
  function approach(entry,change,clip,previous=35,exact=false){
   const window=windowFor(entry,change,clip,exact);if(!window)return [];
-  const s=study(entry),{events,step,span,duration,start,times}=window,ratio=duration/span;
+  const s=study(entry,change,clip),{events,step,span,duration,start,times}=window,ratio=duration/span;
   if((clip.quiet||[]).some(r=>r.start<change.at&&r.end>start))return [];
   const origin=choose(new Set([bass(change.from)]),35,previous),target=choose(new Set([bass(change.to)]),origin+Math.max(-12,Math.min(12,s.interval)),origin),key=prepare(clip).key,out=[];
   for(let i=0;i<events.length;i++){
    const note=events[i],time=times[i],gap=(times[i+1]??change.at)-time,phase=beat(clip,time),strong=Math.abs(phase-Math.round(phase))<.075;
    let allowed=strong?chordTones(change.from):passingTones(change.from,key),wanted=origin+note.offset;
    if(i===0)allowed=new Set([bass(change.from)]);
-   if(i===events.length-1){
+   if(i===events.length-1&&!(s.expressive&&s.technique==='fifth'&&!strong&&gap<step*.65)){
     const neighbours=new Set([...allowed].filter(n=>Math.min(pc(n-bass(change.to)),pc(bass(change.to)-n))<=2));
     if(neighbours.size)allowed=neighbours;
     else if(!strong)allowed=new Set([pc(target-1),pc(target+1)]);
@@ -212,9 +217,11 @@ window.BassRehearsalHarmony=(()=>{
     if(!strong&&gap<step*.65&&[1,11].includes(originalApproach))allowed.add(pc(target+(originalApproach===1?-1:1)));
     wanted=target+(wanted>target?1:-1);
    }
-   const midi=choose(allowed,wanted,out.at(-1)?.midi??origin),gate=Math.min(gap*.86,Math.max(.055,note.length*ratio));
+   if(s.expressive&&!strong&&note.slideOffset===undefined&&gap<step*.65&&i+1<events.length){const next=events[i+1],distance=Math.min(pc(next.offset-note.offset),pc(note.offset-next.offset));if(distance===1&&chordTones(change.from).has(pc(origin+next.offset)))allowed.add(pc(wanted));}
+   if(s.expressive&&s.technique==='fifth'&&i===events.length-1&&!strong&&gap<step*.65)allowed=new Set([pc(bass(change.to)+7)]);
+   const midi=choose(allowed,wanted,out.at(-1)?.midi??origin),gate=Math.min(gap*(s.expressive?.96:.86),Math.max(.055,note.length*ratio));
    if(gate<.031)return [];
-   out.push({time,stop:Math.min(change.at-.007,time+gate),midi,role:entry.kind==='runs'?'run':'fill',accent:.6,confidence:note.confidence,review:note.review,sourceId:s.sourceId,sourceEntry:entry.id,adapted:true,changeId:change.id,phraseId:change.phraseId,changeLabel:change.label,chordNumber:change.from.number,chordName:change.from.name});
+   out.push({time,stop:Math.min(change.at-.007,time+gate),midi,role:entry.kind==='runs'?'run':'fill',accent:Number.isFinite(note.velocity)?clamp((note.velocity-60)/45,0,1):.6,velocity:note.velocity,articulation:note.articulation,slideFrom:note.slideOffset==null?undefined:out.at(-1)?.midi,slideSeconds:note.slideSeconds,confidence:note.confidence,review:note.review,sourceId:s.sourceId,sourceEntry:entry.id,adapted:true,changeId:change.id,phraseId:change.phraseId,changeLabel:change.label,chordNumber:change.from.number,chordName:change.from.name});
   }
   return new Set(out.map(n=>pc(n.midi))).size>=2?out:[];
  }
@@ -227,7 +234,8 @@ window.BassRehearsalHarmony=(()=>{
  }
  function fit(clip,choice,pool=[],placement='ends',selection='all'){
   const hasSong=clip.bassNotes?.length,original=hasSong?clip.bassNotes.map(n=>({...n})):C.fit({...clip,shape:[],fill:'off'});
-  let base=choice?.entry?original:conform(C.fit({...clip,shape:choice?.shape||[],recorded:!!choice?.recorded,fill:'off'}),clip);
+  const expressive=window.BassExpressiveStudies?.rehearsalBassline(clip,choice);
+  let base=choice?.entry?original:expressive?conform(expressive,clip):conform(C.fit({...clip,shape:choice?.shape||[],recorded:!!choice?.recorded,fill:'off'}),clip);
   if(selection!=='all'&&!choice?.entry)base=original.filter(n=>!scope(clip,selection,n.time)).concat(base.filter(n=>scope(clip,selection,n.time))).sort((a,b)=>a.time-b.time);
   if(selection!=='all'&&(!choice?.entry||placement!=='off'))for(const change of changes(clip,selection)){
    landing(base,clip,change.from,change.from.start,change);landing(base,clip,change.to,change.loop?clip.start:change.at,change);

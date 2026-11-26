@@ -76,7 +76,7 @@ window.BassStudyGroups=(()=>{
  const ids=(kind,index)=>[id(kind,index),...(rows(kind)[index]?.aliasIds||[])];
  const visible=(kind,index)=>ids(kind,index).every(key=>D.visible(kind,key))&&window.BassCulturalStudies?.available(C.get(kind,index))!==false;
  function culturalStyle(row){return row?.curated?.culturalStyle||culturalGroups.find(([id])=>new RegExp(id.replace('-','[ -]'),'i').test(row?.[0]||''))?.[0]||'regional';}
- function groupOf(kind,index){const row=rows(kind)[index];if(row.curated)return ['african','other'].includes(row.curated.genre)||row.curated.culturalStyle?culturalStyle(row):map[row.curated.genre];if(/Highlife|Makossa/i.test(row[0]))return culturalStyle(row);if(/Soul|Syncopat|Octave/i.test(row[0]))return'funk';if(/Pentatonic|Blues/i.test(row[0]))return'blues';if(/Jazz|Chromatic|Modal|Enclosure|Outside|Neighbour-note|Upper-register|Descending octave/i.test(row[0]))return'jazz';return'gospel';}
+ function groupOf(kind,index){const row=rows(kind)[index];if(['worship','rnb','soul'].includes(row.curated?.practiceStyle))return row.curated.practiceStyle;if(row.curated)return ['african','other'].includes(row.curated.genre)||row.curated.culturalStyle?culturalStyle(row):map[row.curated.genre];if(/Highlife|Makossa/i.test(row[0]))return culturalStyle(row);if(/Soul|Syncopat|Octave/i.test(row[0]))return'funk';if(/Pentatonic|Blues/i.test(row[0]))return'blues';if(/Jazz|Chromatic|Modal|Enclosure|Outside|Neighbour-note|Upper-register|Descending octave/i.test(row[0]))return'jazz';return'gospel';}
  const label=(kind,index)=>rows(kind)[index][0];
  const aliases=(kind,index)=>rows(kind)[index]?.aliasTitles||[];
  const matching=(kind,group)=>rows(kind).map((_,i)=>i).filter(i=>visible(kind,i)&&groupOf(kind,i)===group).sort((a,b)=>C.compare(kind,a,b));

@@ -18,9 +18,9 @@ window.BassPracticeAudio=(()=>{
   }
   return A().prepare(sound,context,options);
  }
- function tone(context,midi,when,length,sound='piano',age=0,velocity=80,level=1){
+ function tone(context,midi,when,length,sound='piano',age=0,velocity=80,level=1,expression={}){
   const v=Math.max(1,Math.min(127,Number(velocity)||80));
-  if(sound==='bass'&&window.BassFingeredBass?.has(midi))return window.BassFingeredBass.tone(bassContext(context),midi,when,length,age,v,level*.82*(v/90)**.7);
+  if(sound==='bass'&&window.BassFingeredBass?.has(midi))return window.BassFingeredBass.tone(bassContext(context),midi,when,length,age,v,level*.82*(v/90)**.7,expression);
   return A().tone(sound==='bass'?bassContext(context):context,midi,when,length,sound,age,v,level*(sound==='bass'?.82*(v/90)**.7:1));
  }
  function muted(context,when,level){

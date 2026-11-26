@@ -1,5 +1,5 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),cp=require('node:child_process'),crypto=require('node:crypto');
-const tracked=new Set(cp.execFileSync('git',['ls-tree','-r','--name-only','HEAD'],{encoding:'utf8',maxBuffer:10000000}).trim().split('\n'));
+const tracked=new Set(cp.execFileSync('git',['ls-files'],{encoding:'utf8',maxBuffer:10000000}).trim().split('\n'));
 const files=['cultural-recordings-rc352','drum-loops-data-rc294','groove-library','fl-drums-rc349','supplied-drums-rc294','fills-rc264','practice-rc264b','catalogue-rc269','curated-rc289','groups-rc290','uploaded-data-rc267','lesson-data-rc272','african-data-rc274','recording-phrases','original-studies','world-methods-rc350','reggae-recordings-rc348','uploaded-core-rc267','accompaniment-rc293','catalogue-review-rc347','practice-mix-data-rc350'];
 const window={},env=vm.createContext({window,localStorage:{getItem:()=>null,setItem(){}}});for(const file of files)vm.runInContext(fs.readFileSync('ear-source/'+file+'.js','utf8'),env);
 const retired=new Set(JSON.parse(fs.readFileSync('tests/retired_assets_rc348.json'))),urls=new Set(),normalise=s=>s.replace(/^\.\//,'').split('?')[0];

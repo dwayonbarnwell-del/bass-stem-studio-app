@@ -10,7 +10,7 @@ window.BassRegister=(()=>{
   for(const ceiling of [preferredHigh,high]){for(let shift=-120;shift<=120;shift+=12)if(min+shift>=low&&max+shift<=ceiling)shifts.push(shift);if(shifts.length)break;}
   shifts.sort((a,b)=>Math.abs((min+max)/2+a-35)-Math.abs((min+max)/2+b-35)||Math.abs(a)-Math.abs(b));
   const shift=shifts[0];
-  return {shift:shift??0,revoiced:shift===undefined,notes:notes.map(n=>{let midi=n.midi+(shift??0);while(midi<low)midi+=12;while(midi>high)midi-=12;return {...n,midi};})};
+  return {shift:shift??0,revoiced:shift===undefined,notes:notes.map(n=>{let midi=n.midi+(shift??0);while(midi<low)midi+=12;while(midi>high)midi-=12;return {...n,midi,...Number.isFinite(n.slideFrom)?{slideFrom:n.slideFrom+midi-n.midi}:{}};})};
  }
  function plan(value){if(!value)return value;const f=fit(value.bass);return {...value,bass:f.notes,bassShift:f.shift,bassRevoiced:f.revoiced};}
  function question(q){

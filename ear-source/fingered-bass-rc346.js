@@ -31,7 +31,7 @@ window.BassFingeredBass=(()=>{
   for(let i=0;i<wanted.length;i+=4)await Promise.all(wanted.slice(i,i+4).map(midi=>load(context,midi)));
  }
  function has(midi){return Number.isFinite(midi)&&banks.has(anchor(midi));}
- function tone(context,midi,when,length,age=0,velocity=80,level=1){
+ function tone(context,midi,when,length,age=0,velocity=80,level=1,expression={}){
   const key=anchor(midi),layers=banks.get(key);
   if(!layers)throw Error('Bass sound loading');
   const start=Math.max(context.currentTime,when),remaining=Math.max(.015,length-age),ratio=2**((midi-key)/12);
@@ -40,8 +40,12 @@ window.BassFingeredBass=(()=>{
    if(weight<=0||age*ratio>=layers[i].duration)continue;
    const source=context.createBufferSource(),gain=context.createGain(),release=Math.min(.035,remaining/3);
    source.buffer=layers[i];source.playbackRate.value=ratio;
+   if(age===0&&Number.isFinite(expression.slideFrom)&&Math.abs(expression.slideFrom-midi)<=5&&source.playbackRate.exponentialRampToValueAtTime){
+    source.playbackRate.setValueAtTime(2**((expression.slideFrom-key)/12),start);
+    source.playbackRate.exponentialRampToValueAtTime(ratio,start+Math.min(remaining/3,Math.max(.025,Math.min(.09,expression.slideSeconds||.045))));
+   }
    gain.gain.setValueAtTime(0,start);
-   gain.gain.linearRampToValueAtTime(level*weight,start+Math.min(.004,remaining/3));
+   gain.gain.linearRampToValueAtTime(level*weight,start+Math.min(expression.articulation==='legato'?.01:.004,remaining/3));
    gain.gain.setValueAtTime(level*weight,start+remaining-release);
    gain.gain.linearRampToValueAtTime(0,start+remaining);
    source.connect(gain).connect(context.destination);

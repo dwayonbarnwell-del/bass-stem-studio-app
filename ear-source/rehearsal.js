@@ -741,9 +741,9 @@ window.BassRehearsal=(()=>{
     const level=band?.guideGain?1:Number($('rehearsalGain').value)/100;
     if(!level)continue;
     const instrument=window.BassPracticeAudio,when=Math.max(now,beat);
-    const velocity=(['root','landing'].includes(note.role)?86:75)+Math.round(note.accent*15);
+    const velocity=Number.isFinite(note.velocity)?Math.max(1,Math.min(127,note.velocity)):(['root','landing'].includes(note.role)?86:75)+Math.round(note.accent*15);
     const duration=note.stop-note.time-Math.max(0,now-beat);
-    if(duration>0)voices.push(note.midi===null?instrument.muted(band?.voiceContext||ctx,when,level):instrument.tone(band?.voiceContext||ctx,note.midi,when,duration,'bass',age,velocity,level));
+    if(duration>0)voices.push(note.midi===null?instrument.muted(band?.voiceContext||ctx,when,level):instrument.tone(band?.voiceContext||ctx,note.midi,when,duration,'bass',age,velocity,level,note));
    }
    s.cycle++;s.index=0;
   }

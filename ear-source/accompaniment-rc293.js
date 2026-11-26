@@ -60,6 +60,7 @@ window.BassAccompaniment=(()=>{
   zouk:{label:'Zouk',kit:'vintage',groove:'zouk',sound:'electric'}
  };
  function identify(item={}){
+  if(profiles[item.practiceStyle])return item.practiceStyle;
   const text=[item.name,item.title,item[0],item.feel,item.collection,item.group].filter(Boolean).join(' ').toLowerCase();
   // Specific dance styles take priority over a broad description such as praise.
   for(const [id,match] of [['makossa',/makossa/],['highlife',/highlife/],['afrobeat',/afrobeat/],['soukous',/soukous|seben|congolese|rumba/],['mbalax',/mbalax/],['mbaqanga',/mbaqanga|maskandi/],['sungura',/sungura/],['soca',/soca/],['zouk',/zouk/],['reggae',/reggae|onedrop|one.drop|dub/],['worship',/worship|anthem|prayer/],['praise',/praise/],['soul',/soul/],['gospel',/gospel|church/],['jazz',/jazz|bebop|modal|chromatic|enclosure|dorian/],['blues',/blues|blue.fire|shuffle/],['fusion',/funk|fusion/]])if(match.test(text))return id;
@@ -80,7 +81,7 @@ window.BassAccompaniment=(()=>{
   const id=recording?recordedStyle(item)||identify(item):identify(item);
   if(!recording&&id==='soul'&&item.feel==='pocket')return'rnb';
   if(!recording&&item.feel==='walk'&&!/soul|gospel/i.test(item.name||''))return'jazz';
-  return {worship:'worship',gospel:'gospel',soul:'soul',jazz:'jazz',blues:'blues',fusion:'soul',praise:'praise',reggae:'reggae',highlife:'highlife',afrobeat:'afrobeat',makossa:'makossa',soukous:'soukous',mbalax:'african',mbaqanga:'african',sungura:'african',soca:'soca',zouk:'zouk'}[id];
+  return {worship:'worship',gospel:'gospel',rnb:'rnb',soul:'soul',jazz:'jazz',blues:'blues',fusion:'soul',praise:'praise',reggae:'reggae',highlife:'highlife',afrobeat:'afrobeat',makossa:'makossa',soukous:'soukous',mbalax:'african',mbaqanga:'african',sungura:'african',soca:'soca',zouk:'zouk'}[id];
  }
  function profile(plan){
   const item=plan.kind==='basslines'?window.BassPracticeCore.lines[plan.idea]:plan.kind==='runs'?window.BassPracticeCore.runs[plan.idea]:plan.kind==='fills'?window.BassFillCore.styles[plan.idea]:plan;

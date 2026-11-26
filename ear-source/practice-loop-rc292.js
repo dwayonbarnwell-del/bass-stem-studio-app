@@ -138,7 +138,7 @@ window.BassPracticeLoop=(()=>{
   for(const part of [...(recorded?[]:['bass']),...(chords&&!useKeys&&keys.length?['chords']:[])]){
    const offline=new OfflineAudioContext(part==='bass'?1:2,frames+Math.ceil(tail*rate),rate);
    if(part==='bass'&&plan.pickup)A.muted(offline,(plan.beats-plan.pickup)*beat,.15);
-   for(const n of part==='bass'?plan.bass:keys){if(part==='chords'&&K)K.tone(offline,n,n.beat*beat,n.length*beat,sound,.22);else A.tone(offline,n.midi,n.beat*beat,n.length*beat,part==='bass'?'bass':'piano',0,n.velocity,part==='bass'?.72:.18);}
+   for(const n of part==='bass'?plan.bass:keys){if(part==='chords'&&K)K.tone(offline,n,n.beat*beat,n.length*beat,sound,.22);else A.tone(offline,n.midi,n.beat*beat,n.length*beat,part==='bass'?'bass':'piano',0,n.velocity,part==='bass'?.72:.18,n);}
    const buffer=await offline.startRendering();if(cancelled())return null;
    // Carry each decaying cymbal/note across the seam rather than cutting it off.
    for(let ch=0;ch<buffer.numberOfChannels;ch++){const data=buffer.getChannelData(ch);for(let i=frames;i<data.length;i++)data[(i-frames)%frames]+=data[i];}
