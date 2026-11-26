@@ -61,6 +61,47 @@ window.BassPracticeSeries=(()=>{
  for(const [kind,list] of Object.entries(rows)){
   window.BassPracticeCatalogue.exclude(list.filter((r,i)=>group(kind,i)==='reggae'&&!r.curated?.recordedStudy).map(row=>({kind,id:row.id})));
  }
+ // Retain the source index for numbering. Exclude these recordings and their
+ // practice adaptations even on devices that previously restored them.
+ const removedWorld=new Set([
+  'method-69fbf742a97e98ec', // World 01
+  'method-537e38cd0e05a369', // World 02
+  'method-30484fdf68cc4a14', // World 04
+  'method-e56c5c08cd300fb0', // World 05
+  'method-2d6ba1158cff9f7e', // World 06
+  'method-1b6f79f27cfdd535', // World 08
+  'method-32dac4275645a139', // World 09
+  'method-a6b0718a3ff1af32', // World 10
+  'method-830dd4dac8d212d3', // World 11
+  'method-6f46c3033b00c566', // World 16
+  'method-0d1341beea8e3b9c', // World 18
+  'method-9a94f4afb0726ecb', // World 21
+  'method-bf0f93b5c2b15f9e', // World 22
+  'method-75b8c11dc5dd76b8', // World 23
+  'method-e007e16fcc560ed9', // World 24
+  'method-1a6d6e96d7d4428e', // World 27
+  'method-08d42208d781dadc', // World 29
+  'method-656c936cdae6015a', // World 30
+  'method-671783f09f0bedd8', // World 31
+  'method-59522906753e82a5', // World 34
+  'method-cd25d353a890e243', // World 35
+  'method-3cafb24484cad6cd', // World 36
+  'method-39a7db8899eb6c3d', // World 37
+  'method-9df75450a1446280', // World 38
+  'method-6da95ebc3eec29be', // World 47
+  'method-560a5c052fdb8df4', // World 48
+  'method-ca84499125ad7baf', // World 55
+  'method-f02e4a64dc32169c', // World 56
+  'method-45ce32a4971f59d5', // World 57
+  'method-73aa025bc2c4ad94', // World 58
+  'method-28435f5d3dd22881', // World 60
+  'method-2c7bdac12f59a9c2', // World 63
+ ]);
+ const removed=Array.from(removedWorld,id=>({kind:'uploaded',id}));
+ for(const entry of Q.entries){
+  if(removedWorld.has(entry.recordedStudy?.sourceId))removed.push({kind:entry.kind,id:entry.id});
+ }
+ window.BassPracticeCatalogue.exclude(removed);
  const settings=new Map();
  for(const [kind,list] of Object.entries(rows)){
   const groups=new Map();
@@ -81,7 +122,15 @@ window.BassPracticeSeries=(()=>{
   }
  }
  const get=(kind,i,part=0)=>settings.get([kind,i,part].join('/'));
- const label=(kind,i,part)=>{const s=get(kind,i,part);return s?'Practice '+String(s.number).padStart(2,'0'):null;};
+ function label(kind,i,part){
+  const s=get(kind,i,part);if(!s)return null;
+  let number=s.number;
+  if(kind==='basslines'&&s.genre==='afrobeat'){
+   if(P.lines[i].id==='afrobeat366-cross')number=1;
+   else if(number===1)number=5;
+  }
+  return 'Practice '+String(number).padStart(2,'0');
+ }
  // Keep the two praise repertoires in one menu without renumbering their music.
  const praiseMax={};
  for(const [key,s] of settings)if(s.genre==='praise'){
