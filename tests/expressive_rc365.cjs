@@ -47,3 +47,71 @@ for(const meter of [3,6]){const clip=fixture(1,4,0,'major');clip.grid.meter=mete
 const trip=E.entries.find(e=>e.technique==='triplet'),plan=P.make(trip.kind,{idea:trip.index});assert(plan.bass.some(n=>Math.abs(n.beat*3-Math.round(n.beat*3))<1e-6&&Math.abs(n.beat*4-Math.round(n.beat*4))>.1));
 const deleted=E.entries[0];W.BassPracticeCatalogue.remove(deleted.kind,deleted.id);assert(!W.BassStudyGroups.visible(deleted.kind,deleted.index));const reload=load(saved);assert(!reload.BassStudyGroups.visible(deleted.kind,reload.BassExpressiveStudies.entries.find(e=>e.id===deleted.id).index));
 console.log(JSON.stringify({passed:true,newOriginalStudies:40,newBasslineLoops:10,studyChangesAcrossKeys:studies,majorMinorRehearsalFits:phrases,legacyPlans,distinctRehearsalGrooves:fingerprints.size,recordingsPreserved:true,authoredRhythms:true,sourceQualityAndSlashBass:true,deletionsPersist:true}));
+
+// Golden performances from RC365, identified by the labels in the owner's recording.
+const approvedWorship = [
+ [
+  "line-0",
+  0,
+  "Practice 01",
+  "8c7b31246afdf6f0aaa7906a1d49b556c8c5baa3d266566bf4ca9fa5252e8586"
+ ],
+ [
+  "line-1",
+  0,
+  "Practice 02",
+  "ba0d77d9e96311c6fc78189694c1a4f32d8119849d78def6ec92c38fdae96437"
+ ],
+ [
+  "line-8",
+  0,
+  "Practice 09",
+  "88f2065f7bc08eceeccf475633d0865615f0798c30de828206fde514f36d7fdb"
+ ],
+ [
+  "line-14",
+  0,
+  "Practice 15",
+  "c928f8aa02455cd4e328225cff5385ca64ba06be7a6071671a97cbef8a5b78b6"
+ ],
+ [
+  "progression-6-5-4-5-3",
+  0,
+  "lift.1",
+  "9443d3f6af444f4bcc6e869f4a6cb387e1f010b7abf848ae5c7cfc113a787c1a"
+ ],
+ [
+  "progression-6-5-4-5-3",
+  1,
+  "lift.2",
+  "f62e7e1a97bdbbfdf6c2ad88edb75bc29772b7b39c255333c0fe8683f388cc1c"
+ ],
+ [
+  "progression-6-4-1-3",
+  0,
+  "lift 25",
+  "a87537c873411f245b10db8fdc5113da662d3ac6bc7b880a53f1e9ff02f84094"
+ ],
+ [
+  "progression-2-3-6-5",
+  0,
+  "lift 31",
+  "4ae9316476d344f7f21e9954c3e1b7e11b0e6d64ecaaf6361b1bc04370881d42"
+ ],
+ [
+  "progression-2-6-3-6",
+  0,
+  "lift 37",
+  "27d0ad483109575666d11bc3898f5cf270e82c66815470d1b14709fa31433eca"
+ ]
+];
+for(const [id,part,name,signature] of approvedWorship){
+ const idea=P.lines.findIndex(row=>row.id===id);
+ const plan=P.make('basslines',{idea,part,key:0,bpm:90});
+ const band=W.BassAccompaniment.resolve(plan);
+ const parts=P.phrases(P.lines[idea].degrees),display=W.BassStudyDisplay;
+ const label=display.label('basslines',P.lines[idea]);
+ assert.equal(parts.length>1?display.suffix(label,'.'+(part+1)):label,name);
+ const values=[plan.bass,plan.chords,band.loop.id,band.loop.bpm,band.style,band.sound];
+ assert.equal(require('node:crypto').createHash('sha256').update(JSON.stringify(values)).digest('hex'),signature,name);
+}

@@ -105,20 +105,6 @@ window.BassAccompaniment=(()=>{
   const id=profiles[plan.practiceStyle]?plan.practiceStyle:plan.kind==='uploaded'?recordedStyle(plan)||identify(plan):identify(item);
   return {id,dance,style:id,...profiles[id]};
  }
- const expressiveBeats={
-  worship:['fl-e3967c4940f0', 'fl-9360be7cd322', 'fl-81b44bb0416c', 'fl-dfaf8e33e9d4', 'fl-cfe29020c26b', 'fl-4ab0bb254034', 'fl-a34af18933fd', 'fl-91142c3e8b2a', 'fl-213aebf730a8', 'fl-c2f63be6b4f4'],
-  gospel:['fl-c80468f78f16', 'fl-e0d796903656', 'fl-776bc0163eb2', 'fl-02dbdeb62640', 'fl-e5e4b1546a01', 'fl-7f9a51b43bb4', 'fl-155b196c5026', 'fl-4001d69e6f0b', 'fl-8339d6e53119', 'fl-930f0501bdae'],
-  rnb:['fl-0f6304ecc20e', 'fl-20eb250f8695', 'fl-da562c96fcc8', 'fl-c1aef6ed3b70', 'fl-e0e63f2a98e6', 'fl-9f2c170fae46', 'fl-fc72a5e08596', 'fl-dcf63f1c31b4', 'fl-63ea92d3cbd8', 'fl-d7ffd5bfc095'],
-  soul:['fl-e5fe57723a39', 'fl-caf2cd142291', 'fl-81f6a10569e4', 'fl-e47340d7e62e', 'fl-cbdd5a7d63c9', 'fl-1b53d29a50e0', 'fl-4be65d5a7d88', 'fl-66c2410008f5', 'fl-80ceb31cf9cd', 'fl-c96b09c60fb9'],
-  jazz:['fl-e577c9afb5b9', 'fl-9fa7a8a44452', 'fl-8ce469203f7f', 'fl-8fcaf1d65c2c', 'fl-68a0c5dee80e', 'fl-3bf2a68700be', 'fl-40b2d76a7d12', 'fl-444f1737ec27', 'fl-9b620a32bf9a', 'fl-08cda956472c'],
- };
- function studyBeat(plan){
-  const row=plan.kind==='basslines'?window.BassPracticeCore.lines[plan.idea]:plan.curated;
-  const match=/^expressive365-(fills|runs|basslines)-(worship|gospel|rnb|soul|jazz)-([0-3])$/.exec(row?.id||'');
-  if(!match)return null;
-  const slot={fills:0,runs:4,basslines:8}[match[1]]+Number(match[3]);
-  return expressiveBeats[match[2]][slot];
- }
  function resolve(plan,options={}){
   const p=profile(plan),valid=(value,values,fallback)=>values.includes(value)?value:fallback;
   const key=plan.recordedStudy?'culture/'+plan.curated.id:plan.kind==='uploaded'?plan.clipId+'/'+String(plan.part).replace('phrase-',''):[plan.kind,plan.idea,plan.part||0].join('/');
@@ -128,7 +114,7 @@ window.BassAccompaniment=(()=>{
   if(window.BassSuppliedDrums&&(!options.kit||options.kit==='auto')&&(!options.groove||options.groove==='auto')){
    const measured=window.BassRecordingTiming?.[plan.clipId]?.loop;
    const danceLoop=['seben','soukous'].includes(p.dance)&&window.BassSuppliedDrums.loops.find(loop=>loop.genre==='soukous'&&loop.title.toLowerCase().includes(p.dance));
-   const groove=studyBeat(plan)||assignment?.[0]||measured||danceLoop?.id;
+   const groove=assignment?.[0]||measured||danceLoop?.id;
    if(groove)options={...options,groove};
   }
   if(window.BassSuppliedDrums)return {...p,assignedPhase:assignment?.[1],loop:window.BassSuppliedDrums.choose(p.id,options.kit,options.groove),style:valid(options.style,Object.keys(profiles),p.style),sound:valid(options.sound,['piano','electric','organ'],'piano')};

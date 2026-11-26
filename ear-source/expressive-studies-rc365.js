@@ -19,9 +19,11 @@ window.BassExpressiveStudies=(()=>{
  };
  const tips={pent:'Sing the paired shape; leave its gaps open and settle on the next root.',grace:'Brush into the chord third softly; let the following chord tones speak.',fifth:'Aim the last weak pickup at the fifth of the NEXT chord, then land on its bass.',enclosure:'Keep the chromatic neighbours short and quiet; the destination releases them.',triplet:'Feel three equal notes inside the beat; keep the root steady and soften the answer.',guide:'Connect chord colours as a melody. The actual chord quality decides the third and seventh.',octave:'Let the upper register answer the low root; return without rushing the destination.'};
  const entries=[];
+ // Preserve the original accents and note lengths when catalogue positions change.
+ const originalVariation={fills:325,runs:304};
  for(const [style,sets] of Object.entries(designs))for(const kind of ['fills','runs'])for(const [i,[title,technique,rhythm,tokens]]of sets[kind].entries()){
   const id='expressive365-'+kind+'-'+style+'-'+i,rhythmId=id+'-rhythm';Q.rhythms[rhythmId]=rhythm;
-  entries.push(Q.register({id,kind,title,genre:style==='jazz'?'jazz':style==='soul'||style==='rnb'?'fusion':'contemporary',practiceStyle:style,mode:'major',rhythm:rhythmId,notes:tokens.replaceAll('g','s3'),tokens:tokens.split(' '),technique,tip:tips[technique],source:refs[technique==='fifth'?'approach':technique==='enclosure'?'enclosure':style==='jazz'?'jazz':'pocket'],tier:0,rank:-300+i,expressive:true}));
+  entries.push(Q.register({id,kind,title,variation:originalVariation[kind]++,genre:style==='jazz'?'jazz':style==='soul'||style==='rnb'?'fusion':'contemporary',practiceStyle:style,mode:'major',rhythm:rhythmId,notes:tokens.replaceAll('g','s3'),tokens:tokens.split(' '),technique,tip:tips[technique],source:refs[technique==='fifth'?'approach':technique==='enclosure'?'enclosure':style==='jazz'?'jazz':'pocket'],tier:0,rank:-300+i,expressive:true}));
  }
  for(const [style,label]of [['worship','Worship'],['rnb','R&B'],['soul','Soul']])if(!G.groups.some(([id])=>id===style))G.groups.push([style,label]);
  for(const [style,kind,title,rhythm,notes] of [
@@ -32,13 +34,13 @@ window.BassExpressiveStudies=(()=>{
   ['praise','fills','Lift off','f5','d3 d5 d6 t2 t7'],
   ['praise','runs','Choir walk','r6','d3 d5 d8 d6 t2 t-1']
  ]) Q.register({id:'transition366-'+style+'-'+kind,kind,title,rhythm,notes,practiceStyle:style,genre:style,mode:'major',tier:0,rank:-250,tip:'Keep the pulse steady and land on the next chord.'});
+ const beds={worship:['Prayer bed','Open chorus'],gospel:['Church bed','Sunday pulse'],rnb:['Low pocket','Late answer'],soul:['Warm pocket','Steady home'],jazz:['Two bar walk','Guide loop']};
+ for(const [style,sets]of Object.entries(designs))for(let i=0;i<2;i++)P.lines.push({id:'expressive365-basslines-'+style+'-'+i,name:beds[style][i],displayName:beds[style][i],degrees:i?[1,6,2,5]:[1,4,5,4],feel:style,practiceStyle:style,expressive:true,rank:-300+i,variant:i,tip:'Keep the low motif consistent; add the shaped answer at the end of the phrase.'});
  P.lines.push({id:'afrobeat366-cross',name:'Cross step',degrees:[1,4,6,5],feel:'afrobeat',practiceStyle:'afrobeat',tip:'Keep the repeating pulse through each change.'});
  P.lines.push({id:'praise366-rise',name:'Rising step',degrees:[1,4,5,1],feel:'praise',practiceStyle:'african-praise',tip:'Keep the root clear on each landing.'});
  P.lines.push({id:'sungura366-step',name:'String step',degrees:[1,4,1,5],feel:'sungura',practiceStyle:'sungura',tip:'Keep the returning root steady beneath the upper notes.'});
  P.lines.push({id:'funk366-pocket',name:'Pocket step',degrees:[1,6,4,5],feel:'pocket',practiceStyle:'funk',tip:'Keep the short notes tight against the drums.'});
  P.lines.push({id:'blues366-shuffle',name:'Shuffle walk',degrees:[1,4,5,4],feel:'walk',practiceStyle:'blues',tip:'Let the walking notes lead into the next root.'});
- const beds={worship:['Prayer bed','Open chorus'],gospel:['Church bed','Sunday pulse'],rnb:['Low pocket','Late answer'],soul:['Warm pocket','Steady home'],jazz:['Two bar walk','Guide loop']};
- for(const [style,sets]of Object.entries(designs))for(let i=0;i<2;i++)P.lines.push({id:'expressive365-basslines-'+style+'-'+i,name:beds[style][i],displayName:beds[style][i],degrees:i?[1,6,2,5]:[1,4,5,4],feel:style,practiceStyle:style,expressive:true,rank:-300+i,variant:i,tip:'Keep the low motif consistent; add the shaped answer at the end of the phrase.'});
  function styleOf(kind,idea){
   const row=kind==='basslines'?P.lines[idea]:(kind==='runs'?P.runs:F.styles)[idea],entry=Q.get(kind,idea);
   if(!row||entry?.recordedStudy||entry?.culturalStyle||kind!=='basslines'&&G.isCultural(kind,idea))return null;
@@ -88,11 +90,11 @@ window.BassExpressiveStudies=(()=>{
   if(!style)return originalMake(kind,opts);
   if(kind==='basslines'){
    const plan=originalMake(kind,opts);
-   return P.lines[idea].expressive?bassline(plan,style):plan;
+   return /366-/.test(P.lines[idea].id)?plan:bassline(plan,style);
   }
   const entry=Q.get(kind,idea),plan=entry?Q.make(kind,opts):originalMake(kind,opts),e=shapeEntry(plan);
   if(!entry){const design=designs[style][kind][idea%4];e.tokens=design[3].split(' ');Q.rhythms[e.rhythm]=design[2];e.technique=design[1];}
-  const from=degreeChord(plan.from,plan.key,plan.mode,e.genre==='jazz'),to=degreeChord(plan.to,plan.key,plan.mode,e.genre==='jazz'),built=phrase(e,{from,to,key:plan.key,mode:plan.mode,bpm:plan.bpm,variant:idea});
+  const from=degreeChord(plan.from,plan.key,plan.mode,e.genre==='jazz'),to=degreeChord(plan.to,plan.key,plan.mode,e.genre==='jazz'),built=phrase(e,{from,to,key:plan.key,mode:plan.mode,bpm:plan.bpm,variant:e.variation??idea});
   return {...plan,bass:built.notes,source:built.origin,target:built.target,practiceStyle:style,expressive:true,technique:e.technique||'authored',tip:e.tip||plan.tip};
  }
  const pockets={
@@ -118,12 +120,12 @@ window.BassExpressiveStudies=(()=>{
   return {...plan,bass,practiceStyle:style,expressive:true};
  }
  function basslineShape(line,idea){
-  const style=styleOf('basslines',idea);if(!line.expressive||!style)return null;
+  const style=styleOf('basslines',idea);if(!style||/366-/.test(line.id))return null;
   return pocket(style,{rootPc:0,quality:'maj'},line.variant??idea%2).map(n=>({...n,semitones:n.midi-36,role:n.midi===36?'root':'passing'}));
  }
  function rehearsalBassline(clip,choice){
   if(choice?.kind!=='basslines'||choice.recorded)return null;
-  const idea=P.lines.findIndex(line=>line.id===choice.sourceId),style=styleOf('basslines',idea);if(!P.lines[idea]?.expressive||!style||!clip.grid)return null;
+  const idea=P.lines.findIndex(line=>line.id===choice.sourceId),style=styleOf('basslines',idea);if(!style||/366-/.test(P.lines[idea].id)||!clip.grid)return null;
   const M=window.BassRehearsalHarmony,{points,meter}=clip.grid,variant=P.lines[idea].variant??idea%2,out=[];
   const timeAt=b=>{const i=clamp(Math.floor(b),0,points.length-2);return points[i]+(b-i)*(points[i+1]-points[i]);};
   const segments=M.prepare(clip).segments;
@@ -152,7 +154,7 @@ window.BassExpressiveStudies=(()=>{
  function rehearsalStudy(entry,change,clip){
   if(!handles(entry))return null;
   const p=window.BassRehearsalHarmony.prepare(clip),key=p.key?.tonic??0,mode=p.key?.mode||'major';
-  const built=phrase(entry,{from:change.from,to:change.to,key,mode,keyKnown:!!p.key,bpm:clip.grid.bpm,variant:entry.index});
+  const built=phrase(entry,{from:change.from,to:change.to,key,mode,keyKnown:!!p.key,bpm:clip.grid.bpm,variant:entry.variation??entry.index});
   return {interval:built.target-built.origin,events:built.notes.map(n=>({...n,offset:n.midi-built.origin,slideOffset:n.slideFrom==null?undefined:n.slideFrom-built.origin,confidence:1})),expressive:true,technique:entry.technique||'authored'};
  }
  P.make=make;

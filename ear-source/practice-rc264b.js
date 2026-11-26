@@ -141,7 +141,7 @@ window.BassPracticeCore=(()=>{
     else if(line.feel==='lift')shape=[[0,root,1.2],[1.5,fifth,.35],[2,root+12,.8],[3.5,next,.35]];
     else shape=[[0,root,1.7],[2,fifth,.7],[3,third,.4],[3.5,next,.35]];
     const genre=window.BassAccompaniment?.category(line);
-    const cultural=['reggae','makossa','highlife','afrobeat','african','soukous','seben','congolese','praise','soca','zouk'].includes(genre);
+    const cultural=['reggae','makossa','highlife','afrobeat','african','mbalax','mbaqanga','sungura','soukous','seben','congolese','praise','soca','zouk'].includes(genre);
     if(!cultural&&d!==degrees[(bar+1)%degrees.length]){
      const pitches=passingFigure(genre==='gospel'&&line.feel==='walk'?'jazz':genre,root,next,third,fifth,idea+bar);
      const grids=pitches.length===7?[[.75,1.25,1.5,2.25,3,3.5,3.75],[.5,1,1.75,2.5,3,3+1/3,3+2/3]]:[[.75,1.5,2,2.75,3.25,3.75],[1,1+2/3,2,2.5,3,3+2/3]];
