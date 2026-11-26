@@ -5,6 +5,7 @@ window.BassFillTrainer=(()=>{
  let sounding=[],clearStreamBand=null,streamMedia=null,streamBassGain=null,streamPlan=null,streamRoute=null,streamKeyGain=null,tempoTimer=0,harmonyPage=-1;
  let notePage=0;const notePageSize=25;
  const E=window.BassEarAudio,recordingKeys=new Map();
+ let isolateVoice=false;
  const drumKey='bass-practice-accompaniment-v5';
  // Adopt the requested four-part mix once; retain sound choices and later edits.
  try{
@@ -40,7 +41,6 @@ window.BassFillTrainer=(()=>{
   const changes=degrees.filter((d,i,all)=>!i||d!==all[i-1]);
   return changes.slice(0,cycleLength(changes)).join('–');
  }
- const phraseProgressions=new Map();
  function highlightChord(beat){
   const cycle=plan?.recording?.pack?cycleLength(harmony.map(s=>s.label)):harmony.length;
   const active=N.active(harmony,beat)%Math.max(1,cycle),list=$('fillHarmony');
@@ -71,9 +71,19 @@ window.BassFillTrainer=(()=>{
 
  const remembered={fills:C?null:'0',runs:C?null:'0',basslines:'0'},rememberedClips={};
  const groupKey='bass-study-groups-v1',selectedGroups={fills:'gospel',runs:'gospel'};
- try{const saved=JSON.parse(localStorage.getItem(groupKey)||'null'),old=JSON.parse(localStorage.getItem('bass-curated-filters-v1')||'{}');for(const k of ['fills','runs'])selectedGroups[k]=G?.migrate(saved?.[k]||old[k]?.style)||'gospel';}catch{}
+ try{const saved=JSON.parse(localStorage.getItem(groupKey)||'null'),old=JSON.parse(localStorage.getItem('bass-curated-filters-v1')||'{}');for(const k of ['fills','runs'])selectedGroups[k]=(['bass-lady','bassmatics'].includes(saved?.[k])?saved[k]:(saved?.[k]==='african-praise'?'praise':G?.migrate(saved?.[k]||old[k]?.style)))||'gospel';}catch{}
  const imported=()=>kind==='basslines'&&$('fillIdea').value.startsWith('clip:');
- const matchesGenre=(c,genre)=>H.category(c,true)===genre||H.practiceGenre(c)===genre;
+ const combinedGenre=id=>id==='african-praise'?'praise':id;
+ const artistGroup=family=>({'Bass Lady':'bass-lady',Bassmatics:'bassmatics'})[family];
+ function matchesGenre(clip,genre){
+  const family=artistGroup(clip.sourceFamily)||(['bass-lady','bassmatics'].includes(clip.group)?clip.group:null);
+  return family?family===genre:[H.category(clip,true),H.practiceGenre(clip)].some(id=>combinedGenre(id)===genre);
+ }
+ function studyGroup(kind,i){
+  const entry=C.get(kind,i);
+  return artistGroup(entry?.recordedStudy?.family)||combinedGenre(G.groupOf(kind,i));
+ }
+ const menuIndices=(kind,id)=>collections().map((_,i)=>i).filter(i=>G.visible(kind,i)&&studyGroup(kind,i)===id);
  function clipOptions(){
   const group=$('fillCollection').value;$('fillClip').replaceChildren();
   for(const c of U.items.filter(c=>matchesGenre(c,group)&&D.visible('uploaded',c.id))){const o=document.createElement('option');o.value=c.id;o.textContent=N.clip(c);o.title=N.clip(c);$('fillClip').append(o);}
@@ -108,7 +118,8 @@ window.BassFillTrainer=(()=>{
  function loadGroup(){if(!G||kind==='basslines')return;$('fillGroup').value=selectedGroups[kind];}
  function groupOptions(){
   if(!G||kind==='basslines')return;
-  const groups=G.available(kind),select=$('fillGroup');select.replaceChildren();
+  const present=new Set(collections().flatMap((_,i)=>G.visible(kind,i)?[studyGroup(kind,i)]:[]));
+  const groups=[...G.groups,['bass-lady','Bass Lady'],['bassmatics','Bassmatics']].filter(([id])=>present.has(id)),select=$('fillGroup');select.replaceChildren();
   for(const [id,label] of groups){const option=new Option(N.menu(label),id);option.title=label;select.add(option);}
   N.sortMenu(select);
   if(!groups.some(([id])=>id===selectedGroups[kind]))selectedGroups[kind]=groups[0]?.[0]||'gospel';
@@ -116,7 +127,7 @@ window.BassFillTrainer=(()=>{
  }
  function transitionOptions(){
   if(!G||kind==='basslines')return;
-  const indices=G.matching(kind,selectedGroups[kind]),supported=(from,to)=>indices.some(i=>G.supports(kind,i,from,to));
+  const indices=menuIndices(kind,selectedGroups[kind]),supported=(from,to)=>indices.some(i=>G.supports(kind,i,from,to));
   for(const option of $('fillFrom').options)option.disabled=![1,2,3,4,5,6,7].some(to=>to!==Number(option.value)&&supported(option.value,to));
   if($('fillFrom').selectedOptions[0]?.disabled)$('fillFrom').value=[...$('fillFrom').options].find(o=>!o.disabled)?.value||'1';
   const from=Number($('fillFrom').value);
@@ -124,7 +135,7 @@ window.BassFillTrainer=(()=>{
   if($('fillTo').selectedOptions[0]?.disabled)$('fillTo').value=[4,5,1,2,6,3,7].map(n=>[...$('fillTo').options].find(o=>Number(o.value)===n&&!o.disabled)).find(Boolean)?.value||'4';
  }
  function ideaOptions(wanted=remembered[kind]){
-  const select=$('fillIdea');select.replaceChildren();const rows=collections().map((s,i)=>({s,i,line:kind==='basslines'?P.lines[i]:null})).filter(({i,line})=>kind==='basslines'?D.visible(kind,patternId(i))&&H.category(line)===$('fillCollection').value:G?G.visible(kind,i)&&G.groupOf(kind,i)===selectedGroups[kind]&&G.supports(kind,i,$('fillFrom').value,$('fillTo').value):D.visible(kind,patternId(i)));
+  const select=$('fillIdea');select.replaceChildren();const rows=collections().map((s,i)=>({s,i,line:kind==='basslines'?P.lines[i]:null})).filter(({i,line})=>kind==='basslines'?D.visible(kind,patternId(i))&&combinedGenre(H.category(line))===$('fillCollection').value:G?G.visible(kind,i)&&studyGroup(kind,i)===selectedGroups[kind]&&G.supports(kind,i,$('fillFrom').value,$('fillTo').value):D.visible(kind,patternId(i)));
   const sourcePriority=i=>{const entry=C?.get(kind,i);return entry?.recordedStudy?(window.BassCulturalStudies.nativeMatch(entry,$('fillFrom').value,$('fillTo').value)?0:1):2;};
   rows.sort((a,b)=>kind==='basslines'?(a.line.rank??0)-(b.line.rank??0):C?sourcePriority(a.i)-sourcePriority(b.i)||C.compare(kind,a.i,b.i):0);let studies;if(kind==='basslines'&&rows.length){studies=document.createElement('optgroup');studies.label='Practice patterns';select.append(studies);}
   for(const {s,i,line} of rows){
@@ -133,7 +144,10 @@ window.BassFillTrainer=(()=>{
     if(line&&!D.visible(kind,patternId(i)+'/'+part))continue;
     const o=document.createElement('option');
     o.value=part?i+'/'+part:String(i);
-    o.textContent=window.BassPracticeSeries.label(kind,i,part)||N.label(kind,line||s);
+    const series=window.BassPracticeSeries;
+    const originalGroup=line?H.category(line):G.groupOf(kind,i);
+    const family=!line&&artistGroup(C.get(kind,i)?.recordedStudy?.family);
+    o.textContent=family?N.label(kind,s):series.menuLabel(kind,i,part,originalGroup)||N.label(kind,line||s);
     o.title=(line?.name||s[0])+(degrees?' · '+degrees.join('–'):'');(studies||select).append(o);
    }
   }
@@ -156,12 +170,7 @@ window.BassFillTrainer=(()=>{
      option.value='clip:'+clip.id+(i?'/'+i:'');
      option.dataset.name=N.phrase(clip,i,phrases.length);
      option.title=clip.originalTitle||clip.title;
-     if(!phraseProgressions.has(phraseId)){
-      const phrase=U.practicePlan(clip.id,'phrase-'+i);
-      phraseProgressions.set(phraseId,progressionText(phrase.degrees)||'Original');
-     }
-     if(!phraseProgressions.get(phraseId))continue;
-     option.textContent=option.dataset.name;option.title+=' · '+phraseProgressions.get(phraseId);
+     option.textContent=option.dataset.name;
      group.append(option);
     }
    }
@@ -179,7 +188,7 @@ window.BassFillTrainer=(()=>{
   return imported()?$('fillClip').value&&['uploaded',window.BassRecordedPhrases[$('fillClip').value].length>1?$('fillClip').value+'/'+$('fillExcerpt').value.slice(7):$('fillClip').value]:$('fillIdea').value!==''?[kind,patternId(Number($('fillIdea').value))]:null;}
  function collectionOptions(){
   const select=$('fillCollection'),current=select.value;select.replaceChildren();
-  for(const [id,label] of H.availableGroups()){const option=new Option(N.menu(label),id);option.title=label;select.add(option);}
+  for(const [id,label] of H.availableGroups().filter(([id])=>id!=='african-praise')){const option=new Option(N.menu(label),id);option.title=label;select.add(option);}
   N.sortMenu(select);
   if([...select.options].some(o=>o.value===current))select.value=current;
  }
@@ -249,6 +258,13 @@ window.BassFillTrainer=(()=>{
  }
  function level(part,value){for(const session of sessions)session.transport.level(part,value);if(part==='bass'&&streamBassGain)streamBassGain.gain.setTargetAtTime(value,ctx.currentTime,.015);if(part==='chords'&&streamKeyGain)streamKeyGain.gain.setTargetAtTime(value,ctx.currentTime,.015);}
 
+ function applyVoiceLevel(){
+  if(plan?.recording?.originalMix&&voiceReady===null){
+   isolateVoice=true;rendered=null;
+   if(!voice)level('chords',0);
+   if(playing)void updatePlayback();
+  }else level('voice',voice?voiceVolume:0);
+ }
  function settings(){
   const [idea,part='0']=$('fillIdea').value.split('/');
   return {key:$('fillKey').value,mode:kind==='basslines'?(P.lines[Number(idea)]?.mode||'major'):'major',
@@ -278,10 +294,23 @@ window.BassFillTrainer=(()=>{
   clipControls();if($('fillIdea').value===''){showPlan(null);return;}if($('fillFrom').value===$('fillTo').value)$('fillTo').value=String(Number($('fillFrom').value)%7+1);
   for(const o of $('fillTo').options)o.disabled=o.value===$('fillFrom').value;
   keyOptions(settings().mode);$('fillKey').title='Practice key · Transpose notes and backing';
-  remembered[kind]=$('fillIdea').value;const draft=P.make(kind,settings()),choice=H.resolve(draft,{kit:drumKit,groove:drumGroove}),identity=kind+':'+$('fillIdea').value+':'+choice.loop.id;if(identity!==tempoIdentity){nativeTempo=!['gs-','owner-','fl-'].some(prefix=>choice.loop.id.startsWith(prefix))&&drumKit==='auto'&&drumGroove==='auto'?(choice.id==='reggae'?77:B.choose(choice.id).bpm):choice.loop.bpm;$('fillTempo').value=Number(nativeTempo.toFixed(2));tempoIdentity=identity;}$('fillTempo').value=Math.max(40,Math.min(220,Number($('fillTempo').value)||choice.loop.bpm));showPlan(P.make(kind,settings()));
+  remembered[kind]=$('fillIdea').value;
+  const draft=P.make(kind,settings()),choice=H.resolve(draft,{kit:drumKit,groove:drumGroove});
+  const identity=kind+':'+remembered[kind]+':'+choice.loop.id;
+  if(identity!==tempoIdentity){
+   const automatic=drumKit==='auto'&&drumGroove==='auto';
+   nativeTempo=choice.loop.bpm;
+   if(automatic&&draft.recordedStudy)nativeTempo=draft.recordedStudy.nativeBpm;
+   else if(automatic&&!draft.seriesDrum&&!['gs-','owner-','fl-'].some(prefix=>choice.loop.id.startsWith(prefix))){
+    nativeTempo=choice.id==='reggae'?77:B.choose(choice.id).bpm;
+   }
+   $('fillTempo').value=Number(nativeTempo.toFixed(2));tempoIdentity=identity;
+  }
+  $('fillTempo').value=Math.max(40,Math.min(220,Number($('fillTempo').value)||choice.loop.bpm));
+  showPlan(P.make(kind,settings()));
  }
  function showPlan(value){
-  if(plan?.audio!==value?.audio)voiceReady=null;rendered=null;plan=value&&value.kind!=='uploaded'?R.plan(value):value;$('fillPlayer').hidden=!plan;$('fillEmpty').hidden=!!plan;state();soundSettings();if(!plan){stop();return;}
+  if(plan?.audio!==value?.audio){voiceReady=null;isolateVoice=false;}rendered=null;plan=value&&value.kind!=='uploaded'?R.plan(value):value;$('fillPlayer').hidden=!plan;$('fillEmpty').hidden=!!plan;state();soundSettings();if(!plan){stop();return;}
   const row=kind==='basslines'?(plan.kind==='uploaded'?U.items.find(c=>c.id===plan.clipId):P.lines[plan.idea]):collections()[plan.idea];$('fillHeading').textContent=plan.kind==='uploaded'?$('fillIdea').selectedOptions[0].dataset.name:$('fillIdea').selectedOptions[0].textContent;harmonyChips();
   const source=plan.recordedStudy;
   $('fillDifference').textContent=source?'Adapted':row?.difference?N.fitName(row.difference):'';$('fillDifference').title=source?source.family+' · '+source.sourceTitle+' · '+plan.from+'→'+plan.to+' · Estimated':row?.difference||'';$('fillDifference').hidden=!source&&!row?.difference;
@@ -317,7 +346,7 @@ window.BassFillTrainer=(()=>{
    ctx??=new AudioContext();await ctx.resume();await E.prepare(ctx);
    if(request!==revision||mine!==token)return;
    let audio;
-   try{audio=rendered||await L.render(ctx,current,{...choices,recorded:!!current.recording,cancelled:()=>mine!==token||request!==revision,sourceCancelled:()=>mine!==token||!playing||plan?.audio!==current.audio,progress:p=>{if(mine===token&&request===revision)$('fillStatus').textContent='Preparing voices '+p+'%';}});}
+   try{audio=rendered||await L.render(ctx,current,{...choices,isolateVoice,recorded:!!current.recording,cancelled:()=>mine!==token||request!==revision,sourceCancelled:()=>mine!==token||!playing||plan?.audio!==current.audio,progress:p=>{if(mine===token&&request===revision)$('fillStatus').textContent='Preparing voices '+p+'%';}});}
    catch(error){if(!current.recording||current.recording.pack||current.recording.originalMix)throw error;if(mine===token&&request===revision)await playRecording(mine,request,current,choices);return;}
    if(mine!==token||request!==revision||!audio||!$('earTrainerDialog').open)return;
    const previous=transport,oldPlan=sessions.at(-1)?.plan;
@@ -326,15 +355,21 @@ window.BassFillTrainer=(()=>{
    const priorOffset=previous?.offsetBeats||0;
    const nextBeat=previous?Math.ceil((priorOffset+Math.max(0,ctx.currentTime+.12-previous.when)/previous.beatSeconds)/quantum)*quantum:0;
    const when=previous&&previous.when>ctx.currentTime?previous.when:previous?previous.when+(nextBeat-priorOffset)*previous.beatSeconds:ctx.currentTime+.08;
-   rendered=audio;voiceReady=!!audio.stems.voice;state();
+   rendered=audio;voiceReady=audio.voicePending?null:!!audio.stems.voice;state();
    const offsetBeats=previous&&same?nextBeat:0;
-   const next=L.start(ctx,audio,{when,offsetBeats,drumPhase:audio.drumPhase??(current.recording?current.phase:0),repeat:true,fadeIn:previous?.006:0,bass:bassVolume,drums:drums?drumVolume:0,chords:backing?keyVolume:0,voice:voice?voiceVolume:0});
+   const next=L.start(ctx,audio,{when,offsetBeats,drumPhase:audio.drumPhase??(current.recording?current.phase:0),repeat:true,fadeIn:previous?.006:0,bass:bassVolume,drums:drums?drumVolume:0,chords:backing&&(voice||!current.recording?.originalMix||audio.stems.voice)?keyVolume:0,voice:voice?voiceVolume:0});
    // A prepared loop may still be waiting for its first beat.
    // Drop that silent replacement before the new one begins.
    if(previous && previous.when>ctx.currentTime){
     previous.cancelPending();
     sessions=sessions.filter(session=>session.transport!==previous);
    }else previous?.stopAt(when,.006);
+   // Start the prepared bass and drums even when a saved vocal mute needs a new stem.
+   // Keep the combined backing muted until the voice can be controlled separately.
+   if(!voice&&backing&&audio.voicePending&&!isolateVoice){
+    isolateVoice=true;
+    setTimeout(()=>{if(playing&&request===revision&&mine===token){rendered=null;void updatePlayback();}},0);
+   }
    transport=next;
    sessions.push({transport:next,plan:current,rendered:audio});
    clearStreamBand?.();const previousRecording=recordedAudio;if(previousRecording){previousRecording.pause();recordedAudio=null;}
@@ -488,8 +523,8 @@ window.BassFillTrainer=(()=>{
   $('fillBassVolume').oninput=()=>{bassVolume=Number($('fillBassVolume').value)/100;$('fillBassLevel').textContent=Math.round(bassVolume*100)+'%';level('bass',bassVolume);saveDrums();};
   $('fillDrumVolume').oninput=()=>{drumVolume=Number($('fillDrumVolume').value)/100;$('fillDrumLevel').textContent=Math.round(drumVolume*100)+'%';level('drums',drums?drumVolume:0);saveDrums();};
   $('fillVoiceVolume').value=Math.round(voiceVolume*100);$('fillVoiceLevel').textContent=Math.round(voiceVolume*100)+'%';
-  $('fillVoiceVolume').oninput=()=>{voiceVolume=Number($('fillVoiceVolume').value)/100;$('fillVoiceLevel').textContent=Math.round(voiceVolume*100)+'%';level('voice',voice?voiceVolume:0);saveDrums();};
-  $('fillVoice').onclick=()=>{voice=!voice;saveDrums();level('voice',voice?voiceVolume:0);state();};
+  $('fillVoiceVolume').oninput=()=>{voiceVolume=Number($('fillVoiceVolume').value)/100;$('fillVoiceLevel').textContent=Math.round(voiceVolume*100)+'%';applyVoiceLevel();saveDrums();};
+  $('fillVoice').onclick=()=>{voice=!voice;saveDrums();applyVoiceLevel();state();};
   $('fillDrums').onclick=()=>{drums=!drums;saveDrums();level('drums',drums?drumVolume:0);state();};
   if(G){for(const [id,label] of G.groups)option('fillGroup',id,label);loadGroup();$('fillGroup').onchange=()=>{selectedGroups[kind]=$('fillGroup').value;try{localStorage.setItem(groupKey,JSON.stringify(selectedGroups));}catch{}transitionOptions();ideaOptions();draw();};}
   collectionOptions();

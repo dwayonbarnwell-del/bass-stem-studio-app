@@ -78,17 +78,39 @@ window.BassPracticeSeries=(()=>{
  }
  const get=(kind,i,part=0)=>settings.get([kind,i,part].join('/'));
  const label=(kind,i,part)=>{const s=get(kind,i,part);return s?'Practice '+String(s.number).padStart(2,'0'):null;};
+ // Keep the two praise repertoires in one menu without renumbering their music.
+ const praiseMax={};
+ for(const [key,s] of settings)if(s.genre==='praise'){
+  const kind=key.split('/')[0];praiseMax[kind]=Math.max(praiseMax[kind]||0,s.number);
+ }
+ function menuLabel(kind,idea,part,genre){
+  const s=get(kind,idea,part);
+  return s&&genre==='african-praise'?'Practice '+String(s.number+(praiseMax[kind]||0)).padStart(2,'0'):label(kind,idea,part);
+ }
  const aliases={'african-praise':'praise',seben:'soukous',funk:'fusion'};
  const beds=new Map();
- function band(s){
+ function band(s,kind){
   const style=aliases[s.genre]||s.genre;
   if(!beds.has(style)){
    const family={fusion:'funk',rnb:'soul'}[style]||style;
    const loops=window.BassSuppliedDrums.available.filter(l=>l.styles?.includes(style)||!l.styles?.length&&l.genre===family);
-   beds.set(style,loops);
+   if(['worship','gospel'].includes(style)){
+    const takes=window.BassSuppliedDrums.available.filter(l=>style==='worship'?/^owner-(purepop|theworld|crispy)/.test(l.id):/^owner-(bigbass|clyde|crispy)/.test(l.id));
+    loops.push(...takes);
+   }
+   // Alternate performances before returning to another bar of the same take.
+   const families=new Map();
+   for(const loop of loops){
+    const name=loop.base||loop.title.replace(/(?:Verse|Chorus)\d+| · .*| \d+$/gi,'').trim();
+    if(!families.has(name))families.set(name,[]);
+    families.get(name).push(loop);
+   }
+   const ordered=[];
+   for(let i=0;ordered.length<loops.length;i++)for(const family of families.values())if(family[i])ordered.push(family[i]);
+   beds.set(style,ordered);
   }
   const choices=beds.get(style);
-  return {practiceStyle:style,seriesDrum:choices[(s.number-1)%Math.max(1,choices.length)]?.id};
+  return {practiceStyle:style,seriesDrum:choices[(s.number-1+({basslines:0,fills:3,runs:7}[kind]))%Math.max(1,choices.length)]?.id};
  }
  const score=Object.fromEntries(Object.entries(profiles).map(([genre,parts])=>[genre,parts.map((p,i)=>p.split(' ').map(x=>i%2?x:Number(x)/12))]));
  function register(n){while(n<23)n+=12;while(n>59)n-=12;return n;}
@@ -121,7 +143,16 @@ window.BassPracticeSeries=(()=>{
    const accent=i===0||i===Math.floor(times.length/2);
    const delay=at%1&&['rnb','soul','worship'].includes(s.genre)?Math.min(.012*plan.bpm/60,gap*.07):0;
    const gate=accent?(s.genre==='funk'?.58:.88):[.62,.76,.54][(i+variation)%3];
-   add(at+delay,midi,(gap-delay)*gate,accent?(i===0?93:87):[72,79,68,77][(i+variation)%4],!section&&!i?'landing':'bass');
+   // Give repeated roots a clean release and let neighbouring passing notes connect.
+   const near=i>0&&Math.abs(register(midi)-notes.at(-1).midi)<=2;
+   const linked=section&&near&&i<times.length-1&&(i+variation)%3===1;
+   const length=linked?(gap-delay)*.94:(!section&&i===1&&s.genre==='worship'?Math.min(.29,gap*.72):(gap-delay)*gate);
+   add(at+delay,midi,length,accent?(i===0?93:87):[72,79,68,77][(i+variation)%4],!section&&!i?'landing':'bass');
+   const note=notes.at(-1);
+   note.articulation=linked?'legato':'detached';
+   if(linked&&['soul','rnb'].includes(s.genre)&&Math.abs(note.midi-notes.at(-2).midi)===2){
+    note.slideFrom=notes.at(-2).midi;note.slideSeconds=.04;
+   }
   }
   return notes;
  }
@@ -130,15 +161,20 @@ window.BassPracticeSeries=(()=>{
   if(!s||s.keep||s.recorded)return plan;
   const scale=F.scales[plan.mode]||F.scales.major;
   const degrees=kind==='basslines'?plan.degrees:[plan.from,plan.to];
-  const roots=degrees.map(d=>{let n=36+plan.key+scale[d-1];while(n>43)n-=12;return n;});
+  const roots=[];
+  for(const d of degrees){
+   const pitch=(plan.key+scale[d-1])%12,previous=roots.at(-1)??34;
+   const candidates=[24+pitch,36+pitch,48+pitch].filter(n=>n<=47);
+   roots.push(candidates.reduce((best,n)=>Math.abs(n-previous)<Math.abs(best-previous)?n:best));
+  }
   const bass=degrees.flatMap((d,i)=>{
    const next=(i+1)%degrees.length;
    if(kind!=='basslines'&&i===1)return [{midi:roots[i],beat:4,length:2.8,velocity:97,role:'landing'}];
-   const section=kind==='runs'?2:kind==='fills'?1:i%2===0&&i!==degrees.length-1?0:1+(s.number+i)%2;
+   const section=kind==='runs'?2:kind==='fills'?1:i%2===0&&i!==degrees.length-1?0:1+(s.number+Math.floor(i/2))%2;
    return bar(plan,s,i,section,roots[i],roots[next],d,degrees[next]);
   });
-  return {...plan,...band(s),bass,source:kind==='basslines'?plan.source:roots[0],target:kind==='basslines'?plan.target:roots[1]};
+  return {...plan,...band(s,kind),bass,source:kind==='basslines'?plan.source:roots[0],target:kind==='basslines'?plan.target:roots[1]};
  }
  P.make=make;
- return {get,label};
+ return {get,label,menuLabel};
 })();

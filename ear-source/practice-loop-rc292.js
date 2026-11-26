@@ -67,27 +67,33 @@ window.BassPracticeLoop=(()=>{
   return channels.map(data=>{const out=context.createBuffer(1,frames,context.sampleRate);out.copyToChannel(data,0);return out;});
  }
  const originalBuffers=new Map(),separatedBuffers=new Map();
- async function originalMix(context,plan,frames,cancelled,progress){
+ async function originalMix(context,plan,frames,cancelled,progress,isolateVoice){
   const asset=window.BassPracticeMixAssets?.[plan.audio]||window.BassWorldMethodMixes?.[plan.audio]||window.BassCulturalMixes?.[plan.audio],url=asset?.url||plan.audio;
   const key=url+':'+context.sampleRate;
   if(!originalBuffers.has(key))originalBuffers.set(key,(async()=>{
-   const response=await fetch(url);
-   if(!response.ok)throw Error('Original phrase unavailable');
-   return context.decodeAudioData(await response.arrayBuffer());
+   for(const path of new Set([url,plan.audio])){
+    try{
+     const response=await fetch(path);
+     if(!response.ok)throw Error('Recording unavailable');
+     const decoded=await context.decodeAudioData(await response.arrayBuffer());
+     if(asset&&path===url&&url!==plan.audio&&decoded.numberOfChannels<6)throw Error('Recorded stems were downmixed');
+     return decoded;
+    }catch(error){if(path===plan.audio)throw error;}
+   }
   })().catch(error=>{originalBuffers.delete(key);throw error;}));
   let audio=await originalBuffers.get(key);
   while(originalBuffers.size>3)originalBuffers.delete(originalBuffers.keys().next().value);
   if(cancelled())return null;
-  if(window.BassEarAudio){
+  if(isolateVoice&&window.BassEarAudio){
    const original=audio;
    try{
    if(!separatedBuffers.has(key)){
     const task=window.BassEarAudio.recording(context,audio,{key:url,progress,cancelled});separatedBuffers.set(key,task);
     task.then(value=>{if(!value)separatedBuffers.delete(key);},()=>separatedBuffers.delete(key));
    }
-   audio=await separatedBuffers.get(key);if(cancelled())return null;if(!audio){separatedBuffers.delete(key);return originalMix(context,plan,frames,cancelled,progress);}
+   audio=await separatedBuffers.get(key);if(cancelled())return null;if(!audio){separatedBuffers.delete(key);audio=original;}
    while(separatedBuffers.size>2)separatedBuffers.delete(separatedBuffers.keys().next().value);
-   }catch(error){if(cancelled())return null;separatedBuffers.delete(key);if(original.numberOfChannels!==6)throw error;audio=original;}
+   }catch(error){if(cancelled())return null;separatedBuffers.delete(key);audio=original;}
   }
   if(audio.sampleRate!==context.sampleRate){const off=new OfflineAudioContext(audio.numberOfChannels,Math.round(audio.duration*context.sampleRate),context.sampleRate),node=off.createBufferSource();node.buffer=audio;node.connect(off.destination);node.start();audio=await off.startRendering();if(cancelled())return null;}
   if(Math.abs(audio.length-frames)<context.sampleRate*.001)return audio;
@@ -103,11 +109,11 @@ window.BassPracticeLoop=(()=>{
   const output=context.createBuffer(data.length,frames,context.sampleRate);
   data.forEach((d,i)=>output.copyToChannel(d,i));return output;
  }
- async function render(context,plan,{drums=true,loop=null,style='worship',sound='piano',chords=true,recorded=false,originalDrums=true,originalKeys=true,assignedPhase,cancelled=()=>false,sourceCancelled=cancelled,progress=()=>{}}={}){
+ async function render(context,plan,{drums=true,loop=null,style='worship',sound='piano',chords=true,recorded=false,originalDrums=true,originalKeys=true,isolateVoice=false,assignedPhase,cancelled=()=>false,sourceCancelled=cancelled,progress=()=>{}}={}){
   const A=window.BassPracticeAudio,D=window.BassSuppliedDrums,rate=context.sampleRate,beatFrames=Math.round(60/plan.bpm*rate),frames=Math.round(plan.beats*beatFrames),seconds=frames/rate;
   if(!Number.isFinite(seconds)||seconds<=0||seconds>240)throw Error('Practice loop is too long');
   if(recorded&&plan.recording?.originalMix){
-   const buffer=await originalMix(context,plan,frames,sourceCancelled,progress);
+   const buffer=await originalMix(context,plan,frames,sourceCancelled,progress,isolateVoice);
    if(!buffer)return null;
    const stems={};
    if([6,8].includes(buffer.numberOfChannels)){
@@ -117,9 +123,9 @@ window.BassPracticeLoop=(()=>{
      stems[part]=stem;
     }
     const asset=window.BassWorldMethodMixes?.[plan.audio];
-    if(asset?.addDrums&&drums&&loop){const replacement=await D.render(context,loop,beatFrames,cancelled);if(cancelled())return null;if(replacement)stems.drums=replacement;}
+    if((asset?.addDrums||!originalDrums)&&drums&&loop){const replacement=await D.render(context,loop,beatFrames,cancelled);if(cancelled())return null;if(replacement)stems.drums=replacement;}
    }else stems.bass=buffer;
-   return {stems,frames:buffer.length,seconds:buffer.duration,beatSeconds:buffer.duration/plan.beats,beatFrames:buffer.length/plan.beats,rate,gain:1,levels:levels(stems),semitones:plan.semitones||0,drumPhase:0,estimatedMix:true,voiceUnavailable:!stems.voice};
+   return {stems,frames:buffer.length,seconds:buffer.duration,beatSeconds:buffer.duration/plan.beats,beatFrames:buffer.length/plan.beats,rate,gain:1,levels:levels(stems),semitones:plan.semitones||0,drumPhase:0,estimatedMix:true,voiceUnavailable:isolateVoice&&!stems.voice,voicePending:!isolateVoice&&!stems.voice};
   }
   const beat=beatFrames/rate,stems={},K=window.BassPracticeKeys,keys=window.BassAccompaniment?window.BassAccompaniment.arrange(plan,style):plan.chords;
   const phrase=recorded&&plan.recording?.pack;
