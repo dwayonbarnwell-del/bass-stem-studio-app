@@ -134,3 +134,22 @@ function catalogueSignature(w){
  return [count,hash.digest('hex')];
 }
 assert.deepEqual(catalogueSignature(W),[355,'fdf5153f5f7abde2e058a9d4fea441f2cb946362f20f5af19547fa859b7ecddd']);
+
+// The later studies have fixed beats that should survive menu reordering.
+const laterBeats=new Map([
+ ['afrobeat366-cross','correct-afrobeat-5f92f3a49d'],['praise366-rise','correct-praise-7f442f1ff9'],
+ ['sungura366-step','supplied-soukous-15362bf2d2'],['funk366-pocket','correct-funk-2d1f3c8df3'],
+ ['blues366-shuffle','gmd-blues-2'],['transition366-afrobeat-runs','supplied-afrobeat-ba183319b5'],
+ ['transition366-african-praise-runs','correct-praise-7364b66ca7'],['transition366-reggae-runs','gmd-reggae-2'],
+ ['transition366-reggae-fills','correct-reggae-67c8e09761'],['transition366-praise-fills','correct-praise-a62d2f9461'],
+ ['transition366-praise-runs','correct-praise-5b0dbf04c3']
+]);
+for(const [kind,rows] of [['basslines',P.lines],['runs',P.runs],['fills',F.styles]]){
+ for(const [idea,row] of rows.entries()){
+  if(!laterBeats.has(row.id))continue;
+  const plan=P.make(kind,{idea,key:0,from:1,to:4});
+  assert.equal(W.BassAccompaniment.resolve(plan).loop.id,laterBeats.get(row.id));
+  laterBeats.delete(row.id);
+ }
+}
+assert.equal(laterBeats.size,0);

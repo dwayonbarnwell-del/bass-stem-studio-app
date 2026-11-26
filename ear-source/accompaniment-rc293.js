@@ -99,16 +99,31 @@ window.BassAccompaniment=(()=>{
   if(!recording&&item.feel==='walk'&&!/soul|gospel/i.test(item.name||''))return'jazz';
   return {worship:'worship',gospel:'gospel',rnb:'rnb',soul:'soul',jazz:'jazz',blues:'blues',fusion:'soul',praise:'praise',reggae:'reggae',highlife:'highlife',afrobeat:'afrobeat',makossa:'makossa',soukous:'soukous',mbalax:'mbalax',mbaqanga:'mbaqanga',sungura:'sungura',soca:'soca',zouk:'zouk'}[id];
  }
+ // Stable drum assignments for the studies added after the original catalogue.
+ const laterGrooves={
+  'afrobeat366-cross':['afrobeat','correct-afrobeat-5f92f3a49d'],
+  'praise366-rise':['praise','correct-praise-7f442f1ff9'],
+  'sungura366-step':['sungura','supplied-soukous-15362bf2d2'],
+  'funk366-pocket':['fusion','correct-funk-2d1f3c8df3'],
+  'blues366-shuffle':['blues','gmd-blues-2'],
+  'transition366-afrobeat-runs':['afrobeat','supplied-afrobeat-ba183319b5'],
+  'transition366-african-praise-runs':['praise','correct-praise-7364b66ca7'],
+  'transition366-reggae-runs':['reggae','gmd-reggae-2'],
+  'transition366-reggae-fills':['reggae','correct-reggae-67c8e09761'],
+  'transition366-praise-fills':['praise','correct-praise-a62d2f9461'],
+  'transition366-praise-runs':['praise','correct-praise-5b0dbf04c3']
+ };
  function profile(plan){
   const item=plan.kind==='basslines'?window.BassPracticeCore.lines[plan.idea]:plan.kind==='runs'?window.BassPracticeCore.runs[plan.idea]:plan.kind==='fills'?window.BassFillCore.styles[plan.idea]:plan;
   const dance=plan.culturalStyle||namedGenre(item);
-  const id=profiles[plan.practiceStyle]?plan.practiceStyle:plan.kind==='uploaded'?recordedStyle(plan)||identify(plan):identify(item);
-  return {id,dance,style:id,...profiles[id]};
+  const written=laterGrooves[item?.id];
+  const id=written?.[0]||(profiles[plan.practiceStyle]?plan.practiceStyle:plan.kind==='uploaded'?recordedStyle(plan)||identify(plan):identify(item));
+  return {id,dance,style:id,...profiles[id],writtenGroove:written?.[1]};
  }
  function resolve(plan,options={}){
   const p=profile(plan),valid=(value,values,fallback)=>values.includes(value)?value:fallback;
   const key=plan.recordedStudy?'culture/'+plan.curated.id:plan.kind==='uploaded'?plan.clipId+'/'+String(plan.part).replace('phrase-',''):[plan.kind,plan.idea,plan.part||0].join('/');
-  const assignment=window.BassFlDrums?.assignments[key]||window.BassGrooveLibrary?.assignments[key];
+  const assignment=p.writtenGroove?[p.writtenGroove,0]:window.BassFlDrums?.assignments[key]||window.BassGrooveLibrary?.assignments[key];
   const source=plan.recordedStudy&&window.BassUploadedCore.find(plan.recordedStudy.sourceId),sourceDrums=source?.sourceDrumLoopId;
   if(sourceDrums&&(!options.kit||options.kit==='auto')&&(!options.groove||options.groove==='auto'))options={...options,groove:sourceDrums};
   if(window.BassSuppliedDrums&&(!options.kit||options.kit==='auto')&&(!options.groove||options.groove==='auto')){
