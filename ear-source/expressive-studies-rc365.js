@@ -26,21 +26,41 @@ window.BassExpressiveStudies=(()=>{
   entries.push(Q.register({id,kind,title,variation:originalVariation[kind]++,genre:style==='jazz'?'jazz':style==='soul'||style==='rnb'?'fusion':'contemporary',practiceStyle:style,mode:'major',rhythm:rhythmId,notes:tokens.replaceAll('g','s3'),tokens:tokens.split(' '),technique,tip:tips[technique],source:refs[technique==='fifth'?'approach':technique==='enclosure'?'enclosure':style==='jazz'?'jazz':'pocket'],tier:0,rank:-300+i,expressive:true}));
  }
  for(const [style,label]of [['worship','Worship'],['rnb','R&B'],['soul','Soul']])if(!G.groups.some(([id])=>id===style))G.groups.push([style,label]);
- for(const [style,kind,title,rhythm,notes] of [
-  ['afrobeat','runs','Cross pulse','r7','d1 d5 d6 d5 d3 t2 t7'],
-  ['african-praise','runs','Praise climb','r6','d1 d3 d5 d6 t7 t2'],
-  ['reggae','fills','Dub reply','f5','d1 d5 d3 t7 t2'],
-  ['reggae','runs','Island turn','r7','d1 d3 d5 d8 d5 t2 t-1'],
-  ['praise','fills','Lift off','f5','d3 d5 d6 t2 t7'],
-  ['praise','runs','Choir walk','r6','d3 d5 d8 d6 t2 t-1']
- ]) Q.register({id:'transition366-'+style+'-'+kind,kind,title,rhythm,notes,practiceStyle:style,genre:style,mode:'major',tier:0,rank:-250,tip:'Keep the pulse steady and land on the next chord.'});
+ // Each transition has its own pickup, breath, accents and release into beat one.
+ for(const [style,kind,title,notes,beats,accents,gates] of [
+  ['afrobeat','runs','Cross pulse','d1 d5 d6 d5 d3 t2 t-1',[.75,1.5,1.75,2.5,3,3.5,3.75],[80,90,66,86,81,74,70],[.58,.73,.52,.78,.68,.76,.84]],
+  ['african-praise','runs','Praise climb','d1 d3 d5 d6 t2 t-1',[1,1.75,2.5,3,3+1/3,3+2/3],[88,73,86,91,77,70],[.82,.65,.72,.82,.74,.9]],
+  ['reggae','fills','Dub reply','d1 d5 d3 t7 t2',[.5,1.25,2.5,3.25,3.75],[90,72,84,73,68],[.9,.46,.83,.5,.78]],
+  ['reggae','runs','Island turn','d1 d3 d5 d8 d5 t2 t-1',[.75,1.5,2,2.75,3.25,3.5,3.75],[83,72,91,69,81,75,68],[.85,.52,.88,.55,.69,.72,.82]],
+  ['praise','fills','Lift off','d3 d5 d6 t2 t7',[1.5,2.25,2.75,3.5,3.75],[85,74,90,76,69],[.78,.55,.8,.7,.87]],
+  ['praise','runs','Choir walk','d3 d5 d8 d6 t2 t-1',[.75,1.5,2,2+2/3,3,3+2/3],[78,86,94,72,84,74],[.76,.61,.84,.54,.8,.85]]
+ ]){
+  const id='transition366-'+style+'-'+kind;
+  Q.rhythms[id]=beats;
+  Q.register({id,kind,title,rhythm:id,notes,accents,gates,practiceStyle:style,genre:style,mode:'major',tier:0,rank:-250,tip:'Keep the pulse steady and land on the next chord.'});
+ }
  const beds={worship:['Prayer bed','Open chorus'],gospel:['Church bed','Sunday pulse'],rnb:['Low pocket','Late answer'],soul:['Warm pocket','Steady home'],jazz:['Two bar walk','Guide loop']};
  for(const [style,sets]of Object.entries(designs))for(let i=0;i<2;i++)P.lines.push({id:'expressive365-basslines-'+style+'-'+i,name:beds[style][i],displayName:beds[style][i],degrees:i?[1,6,2,5]:[1,4,5,4],feel:style,practiceStyle:style,expressive:true,rank:-300+i,variant:i,tip:'Keep the low motif consistent; add the shaped answer at the end of the phrase.'});
- P.lines.push({id:'afrobeat366-cross',name:'Cross step',degrees:[1,4,6,5],feel:'afrobeat',practiceStyle:'afrobeat',tip:'Keep the repeating pulse through each change.'});
- P.lines.push({id:'praise366-rise',name:'Rising step',degrees:[1,4,5,1],feel:'praise',practiceStyle:'african-praise',tip:'Keep the root clear on each landing.'});
- P.lines.push({id:'sungura366-step',name:'String step',degrees:[1,4,1,5],feel:'sungura',practiceStyle:'sungura',tip:'Keep the returning root steady beneath the upper notes.'});
- P.lines.push({id:'funk366-pocket',name:'Pocket step',degrees:[1,6,4,5],feel:'pocket',practiceStyle:'funk',tip:'Keep the short notes tight against the drums.'});
- P.lines.push({id:'blues366-shuffle',name:'Shuffle walk',degrees:[1,4,5,4],feel:'walk',practiceStyle:'blues',tip:'Let the walking notes lead into the next root.'});
+ P.lines.push({id:'afrobeat366-cross',name:'Cross step',degrees:[1,4,6,5],feel:'afrobeat',practiceStyle:'afrobeat',tip:'Keep the repeating pulse through each change.',
+  shape:[[0,0,0.52,95],[0.75,4,0.21,75],[1.5,0,0.38,86],[2.25,7,0.3,79],[3,4,0.4,88]],
+  answerShape:[[0,0,0.65,95],[1,4,0.27,75],[1.75,7,0.32,83],[2.5,4,0.4,87],[3.25,"t2",0.24,76],[3.75,"t-1",0.19,70]]
+ });
+ P.lines.push({id:'praise366-rise',name:'Rising step',degrees:[1,4,5,1],feel:'praise',practiceStyle:'african-praise',tip:'Keep the root clear on each landing.',
+  shape:[[0,0,0.46,96],[0.75,4,0.28,76],[1.5,7,0.34,85],[2,0,0.72,92],[3.5,4,0.29,75]],
+  answerShape:[[0,0,0.7,96],[1,2,0.35,80],[1.75,4,0.38,86],[2.5,7,0.35,91],[3,"t4",0.22,82],[3.3333333333333335,"t2",0.24,76],[3.6666666666666665,"t-1",0.27,72]]
+ });
+ P.lines.push({id:'sungura366-step',name:'String step',degrees:[1,4,1,5],feel:'sungura',practiceStyle:'sungura',tip:'Keep the returning root steady beneath the upper notes.',
+  shape:[[0,0,0.31,94],[0.5,4,0.27,76],[1.25,7,0.27,85],[1.75,4,0.18,72],[2.5,2,0.37,89],[3.25,4,0.27,78]],
+  answerShape:[[0,0,0.39,94],[0.75,2,0.25,76],[1.25,4,0.31,85],[2,7,0.41,91],[2.75,4,0.22,77],[3.25,2,0.22,74],[3.75,"t2",0.19,70]]
+ });
+ P.lines.push({id:'funk366-pocket',name:'Pocket step',degrees:[1,6,4,5],feel:'pocket',practiceStyle:'funk',tip:'Keep the short notes tight against the drums.',
+  shape:[[0,0,0.21,97],[0.75,7,0.12,70],[1.5,4,0.19,82],[2,0,0.38,93],[2.75,0,0.1,66],[3.5,4,0.17,78]],
+  answerShape:[[0,0,0.23,97],[0.75,7,0.14,73],[1.5,4,0.18,84],[2.25,0,0.3,88],[3,2,0.17,81],[3.5,"t2",0.14,74],[3.75,"t-1",0.16,68]]
+ });
+ P.lines.push({id:'blues366-shuffle',name:'Shuffle walk',degrees:[1,4,5,4],feel:'walk',practiceStyle:'blues',tip:'Let the walking notes lead into the next root.',
+  shape:[[0,0,0.75,94],[1,2,0.46,81],[1.6666666666666665,4,0.23,72],[2,5,0.68,89],[3,4,0.48,79],[3.6666666666666665,2,0.23,72]],
+  answerShape:[[0,0,0.66,94],[1,2,0.49,79],[1.6666666666666665,4,0.21,74],[2,5,0.72,89],[3,"t-2",0.48,81],[3.6666666666666665,"t-1",0.23,73]]
+ });
  function styleOf(kind,idea){
   const row=kind==='basslines'?P.lines[idea]:(kind==='runs'?P.runs:F.styles)[idea],entry=Q.get(kind,idea);
   if(!row||entry?.recordedStudy||entry?.culturalStyle||kind!=='basslines'&&G.isCultural(kind,idea))return null;

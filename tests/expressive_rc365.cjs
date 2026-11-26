@@ -115,3 +115,22 @@ for(const [id,part,name,signature] of approvedWorship){
  const values=[plan.bass,plan.chords,band.loop.id,band.loop.bpm,band.style,band.sound];
  assert.equal(require('node:crypto').createHash('sha256').update(JSON.stringify(values)).digest('hex'),signature,name);
 }
+function catalogueSignature(w){
+ const hash=require('node:crypto').createHash('sha256');
+ let count=0;
+ for(const kind of ['basslines','fills','runs']){
+  const rows=kind==='basslines'?w.BassPracticeCore.lines:kind==='fills'?w.BassFillCore.styles:w.BassPracticeCore.runs;
+  for(const [idea,row] of rows.entries()){
+   if(row.curated?.recordedStudy||/366-/.test(row.id))continue;
+   const parts=kind==='basslines'?w.BassPracticeCore.phrases(row.degrees).map((_,i)=>i):[null];
+   for(const part of parts){
+    const plan=w.BassPracticeCore.make(kind,{idea,part,from:1,to:4,key:0});
+    const band=w.BassAccompaniment.resolve(plan);
+    hash.update(JSON.stringify([kind,row.id,part,plan.bass,plan.chords,band.loop.id,band.loop.bpm,band.style,band.sound,w.BassAccompaniment.arrange(plan,band.style)]));
+    count++;
+   }
+  }
+ }
+ return [count,hash.digest('hex')];
+}
+assert.deepEqual(catalogueSignature(W),[355,'fdf5153f5f7abde2e058a9d4fea441f2cb946362f20f5af19547fa859b7ecddd']);

@@ -124,7 +124,8 @@ window.BassPracticeCore=(()=>{
    degrees.forEach((d,bar)=>{
     const root=roots[bar],third=near(degree(d+1),root+4),fifth=near(degree(d+3),root+7),next=roots[(bar+1)%roots.length],offset=bar*4;
     let shape;
-    if(line.shape)shape=line.shape.map(([b,n,l])=>[b,typeof n==='number'?degree(d-1+n)+root-degree(d-1):next+Number(n.slice(1)),l]);
+    const written=bar%2===1&&line.answerShape?line.answerShape:line.shape;
+    if(written)shape=written.map(([b,n,l,v])=>[b,typeof n==='number'?degree(d-1+n)+root-degree(d-1):next+Number(n.slice(1)),l,v]);
     else if(line.feel==='church')shape=[[0,root,.8],[1,third,.6],[2,fifth,.6],[3,next-3,.25],[3+1/3,next-2,.25],[3+2/3,next-1,.25]];
     else if(line.feel==='sixths')shape=[[0,root,.45],[.75,third+12,.3],[1.25,fifth,.3],[2,root+12,.45],[3,fifth,.2],[3.25,third,.2],[3.5,next-1,.3]];
     else if(line.feel==='funk')shape=[[0,root,.2],[.75,root+12,.2],[1.5,fifth,.2],[2,root,.2],[2.75,root+12,.2],[3.25,next+2,.18],[3.5,next+1,.18],[3.75,next-1,.18]];
@@ -142,13 +143,14 @@ window.BassPracticeCore=(()=>{
     else shape=[[0,root,1.7],[2,fifth,.7],[3,third,.4],[3.5,next,.35]];
     const genre=window.BassAccompaniment?.category(line);
     const cultural=['reggae','makossa','highlife','afrobeat','african','mbalax','mbaqanga','sungura','soukous','seben','congolese','praise','soca','zouk'].includes(genre);
-    if(!cultural&&d!==degrees[(bar+1)%degrees.length]){
+    if(!line.answerShape&&!cultural&&d!==degrees[(bar+1)%degrees.length]){
      const pitches=passingFigure(genre==='gospel'&&line.feel==='walk'?'jazz':genre,root,next,third,fifth,idea+bar);
      const grids=pitches.length===7?[[.75,1.25,1.5,2.25,3,3.5,3.75],[.5,1,1.75,2.5,3,3+1/3,3+2/3]]:[[.75,1.5,2,2.75,3.25,3.75],[1,1+2/3,2,2.5,3,3+2/3]];
      const times=grids[(idea+bar)%2];
      shape=[[0,root,times[0]*.8],...pitches.map((midi,i)=>[times[i],midi,((times[i+1]??4)-times[i])*(i%3===0?.9:.68)])];
     }
-    if(cultural)shape.forEach(([b,n,l],i)=>add(offset+b,n,l,i===0?'landing':'bass'));
+    if(line.answerShape)shape.forEach(([b,n,l,v],i)=>{add(offset+b,n,l,i===0?'landing':'bass');bass.at(-1).velocity=v;});
+    else if(cultural)shape.forEach(([b,n,l],i)=>add(offset+b,n,l,i===0?'landing':'bass'));
     else shape.forEach(([b,n,l],i)=>{
      const touch=Math.sin((idea+1)*7+(bar%2)*5+i*2.3);
      const delay=b%1===0?0:(.009+.006*touch);
