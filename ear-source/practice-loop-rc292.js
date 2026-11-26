@@ -67,20 +67,50 @@ window.BassPracticeLoop=(()=>{
   return channels.map(data=>{const out=context.createBuffer(1,frames,context.sampleRate);out.copyToChannel(data,0);return out;});
  }
  const originalBuffers=new Map(),separatedBuffers=new Map();
+ let selected=null,warmTimer;
+ function recordingURL(path){
+  return (window.BassPracticeMixAssets?.[path]||window.BassWorldMethodMixes?.[path]||window.BassCulturalMixes?.[path])?.url||path;
+ }
+ async function bytes(path,signal){
+  const immutable=/[0-9a-f]{12,}(?:-mix)?\.(?:flac|ogg)$/i.test(path);
+  const response=await fetch(path,{signal,cache:immutable?'force-cache':'default'});
+  if(!response.ok)throw Error('Recording unavailable');
+  return response.arrayBuffer();
+ }
+ function selectRecording(path){
+  if(selected?.path===path)return;
+  clearTimeout(warmTimer);selected?.controller.abort();selected=null;
+  if(!path)return;
+  const url=recordingURL(path),entry={path,url,controller:new AbortController(),request:null};
+  selected=entry;
+  if([...originalBuffers.keys()].some(key=>key.startsWith(url+':')))return;
+  warmTimer=setTimeout(()=>{
+   if(selected!==entry||entry.request)return;
+   entry.request=bytes(url,entry.controller.signal);
+   entry.request.catch(()=>{if(selected===entry)entry.request=null;});
+  },100);
+ }
  async function originalMix(context,plan,frames,cancelled,progress,isolateVoice){
-  const asset=window.BassPracticeMixAssets?.[plan.audio]||window.BassWorldMethodMixes?.[plan.audio]||window.BassCulturalMixes?.[plan.audio],url=asset?.url||plan.audio;
-  const key=url+':'+context.sampleRate;
-  if(!originalBuffers.has(key))originalBuffers.set(key,(async()=>{
-   for(const path of new Set([url,plan.audio])){
-    try{
-     const response=await fetch(path);
-     if(!response.ok)throw Error('Recording unavailable');
-     const decoded=await context.decodeAudioData(await response.arrayBuffer());
-     if(asset&&path===url&&url!==plan.audio&&decoded.numberOfChannels<6)throw Error('Recorded stems were downmixed');
-     return decoded;
-    }catch(error){if(path===plan.audio)throw error;}
-   }
-  })().catch(error=>{originalBuffers.delete(key);throw error;}));
+  const url=recordingURL(plan.audio),key=url+':'+context.sampleRate;
+  if(!originalBuffers.has(key)){
+   const entry=selected?.path===plan.audio?selected:null,signal=entry?.controller.signal;
+   clearTimeout(warmTimer);
+   const task=(async()=>{
+    for(const path of new Set([url,plan.audio])){
+     try{
+      const pending=path===url&&entry?.request;
+      if(pending)entry.request=null;
+      const data=await (pending||bytes(path,signal));
+      if(signal?.aborted)throw new DOMException('Selection changed','AbortError');
+      const decoded=await context.decodeAudioData(data);
+      if(path===url&&url!==plan.audio&&decoded.numberOfChannels<6)throw Error('Recorded stems were downmixed');
+      return decoded;
+     }catch(error){if(signal?.aborted||path===plan.audio)throw error;}
+    }
+   })();
+   originalBuffers.set(key,task);
+   task.catch(()=>{if(originalBuffers.get(key)===task)originalBuffers.delete(key);});
+  }
   let audio=await originalBuffers.get(key);
   while(originalBuffers.size>3)originalBuffers.delete(originalBuffers.keys().next().value);
   if(cancelled())return null;
@@ -180,5 +210,5 @@ window.BassPracticeLoop=(()=>{
    for(const {source} of sources)try{source.stop(context.currentTime);}catch{}
   },position(){return context.currentTime-when+offset;},stopAt,stop(){stopAt(context.currentTime);}};
  }
- return {render,start,defaults:Object.freeze({bass:1,drums:.21,chords:.07,voice:.21,other:.07})};
+ return {selectRecording,render,start,defaults:Object.freeze({bass:1,drums:.21,chords:.07,voice:.21,other:.07})};
 })();

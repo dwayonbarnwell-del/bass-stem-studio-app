@@ -57,6 +57,10 @@ window.BassPracticeSeries=(()=>{
    else Q.register({id,kind,title,practiceStyle:genre,culturalStyle:genre,genre:'african',mode:'major',rhythm:'f5',notes:'d3 d5 d8 t2 t-1',tier:0,rank:0,tip:'Sing the pickup and land with the kick.'});
   }
  }
+ // Keep catalogue indices stable for saved choices and uploaded drum assignments.
+ for(const [kind,list] of Object.entries(rows)){
+  window.BassPracticeCatalogue.exclude(list.filter((r,i)=>group(kind,i)==='reggae'&&!r.curated?.recordedStudy).map(row=>({kind,id:row.id})));
+ }
  const settings=new Map();
  for(const [kind,list] of Object.entries(rows)){
   const groups=new Map();

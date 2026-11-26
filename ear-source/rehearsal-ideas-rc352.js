@@ -8,7 +8,7 @@ window.BassRehearsalIdeas=(()=>{
  function family(row){return row.sourceFamily||families[row.group]||(row.group==='reggae'?'Reggae recordings':'Recorded bass');}
  function genre(row){return X.styleOf(row)||H.recordedStyle(row);}
  function sourceOptions(){return Object.entries(families).filter(([,name])=>U.items.some(row=>D.visible('uploaded',row.id)&&family(row)===name)).map(([id,label])=>['source:'+id,label]);}
- function matches(style,rowStyle,rowFamily){return style.startsWith('source:')?families[style.slice(7)]===rowFamily:!['Bass Lady','Bassmatics'].includes(rowFamily)&&style===rowStyle;}
+ function matches(style,rowStyle,rowFamily){return style.startsWith('source:')?families[style.slice(7)]===rowFamily:!Object.values(families).includes(rowFamily)&&style===rowStyle;}
  function availableStyles(){
   const styles=[...C.styles],known=new Set(styles.map(([id])=>id));
   for(const row of U.items)if(D.visible('uploaded',row.id)){const id=genre(row);if(id&&H.profiles[id]&&!known.has(id)){styles.push([id,H.profiles[id].label]);known.add(id);}}

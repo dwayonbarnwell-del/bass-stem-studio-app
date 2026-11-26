@@ -71,12 +71,12 @@ window.BassFillTrainer=(()=>{
 
  const remembered={fills:C?null:'0',runs:C?null:'0',basslines:'0'},rememberedClips={};
  const groupKey='bass-study-groups-v1',selectedGroups={fills:'gospel',runs:'gospel'};
- try{const saved=JSON.parse(localStorage.getItem(groupKey)||'null'),old=JSON.parse(localStorage.getItem('bass-curated-filters-v1')||'{}');for(const k of ['fills','runs'])selectedGroups[k]=(['bass-lady','bassmatics'].includes(saved?.[k])?saved[k]:(saved?.[k]==='african-praise'?'praise':G?.migrate(saved?.[k]||old[k]?.style)))||'gospel';}catch{}
+ try{const saved=JSON.parse(localStorage.getItem(groupKey)||'null'),old=JSON.parse(localStorage.getItem('bass-curated-filters-v1')||'{}');for(const k of ['fills','runs'])selectedGroups[k]=(['bass-lady','bassmatics','world-method'].includes(saved?.[k])?saved[k]:(saved?.[k]==='african-praise'?'praise':G?.migrate(saved?.[k]||old[k]?.style)))||'gospel';}catch{}
  const imported=()=>kind==='basslines'&&$('fillIdea').value.startsWith('clip:');
  const combinedGenre=id=>id==='african-praise'?'praise':id;
- const artistGroup=family=>({'Bass Lady':'bass-lady',Bassmatics:'bassmatics'})[family];
+ const artistGroup=family=>({'Bass Lady':'bass-lady',Bassmatics:'bassmatics','World Methods':'world-method'})[family];
  function matchesGenre(clip,genre){
-  const family=artistGroup(clip.sourceFamily)||(['bass-lady','bassmatics'].includes(clip.group)?clip.group:null);
+  const family=artistGroup(clip.sourceFamily)||(['bass-lady','bassmatics','world-method'].includes(clip.group)?clip.group:null);
   return family?family===genre:[H.category(clip,true),H.practiceGenre(clip)].some(id=>combinedGenre(id)===genre);
  }
  function studyGroup(kind,i){
@@ -119,7 +119,7 @@ window.BassFillTrainer=(()=>{
  function groupOptions(){
   if(!G||kind==='basslines')return;
   const present=new Set(collections().flatMap((_,i)=>G.visible(kind,i)?[studyGroup(kind,i)]:[]));
-  const groups=[...G.groups,['bass-lady','Bass Lady'],['bassmatics','Bassmatics']].filter(([id])=>present.has(id)),select=$('fillGroup');select.replaceChildren();
+  const groups=[...G.groups,['bass-lady','Bass Lady'],['bassmatics','Bassmatics'],['world-method','World Methods']].filter(([id])=>present.has(id)),select=$('fillGroup');select.replaceChildren();
   for(const [id,label] of groups){const option=new Option(N.menu(label),id);option.title=label;select.add(option);}
   N.sortMenu(select);
   if(!groups.some(([id])=>id===selectedGroups[kind]))selectedGroups[kind]=groups[0]?.[0]||'gospel';
@@ -310,7 +310,10 @@ window.BassFillTrainer=(()=>{
   showPlan(P.make(kind,settings()));
  }
  function showPlan(value){
-  if(plan?.audio!==value?.audio){voiceReady=null;isolateVoice=false;}rendered=null;plan=value&&value.kind!=='uploaded'?R.plan(value):value;$('fillPlayer').hidden=!plan;$('fillEmpty').hidden=!!plan;state();soundSettings();if(!plan){stop();return;}
+  if(plan?.audio!==value?.audio){
+   voiceReady=null;isolateVoice=false;
+   L.selectRecording(value?.recording?.originalMix?value.audio:null);
+  }rendered=null;plan=value&&value.kind!=='uploaded'?R.plan(value):value;$('fillPlayer').hidden=!plan;$('fillEmpty').hidden=!!plan;state();soundSettings();if(!plan){stop();return;}
   const row=kind==='basslines'?(plan.kind==='uploaded'?U.items.find(c=>c.id===plan.clipId):P.lines[plan.idea]):collections()[plan.idea];$('fillHeading').textContent=plan.kind==='uploaded'?$('fillIdea').selectedOptions[0].dataset.name:$('fillIdea').selectedOptions[0].textContent;harmonyChips();
   const source=plan.recordedStudy;
   $('fillDifference').textContent=source?'Adapted':row?.difference?N.fitName(row.difference):'';$('fillDifference').title=source?source.family+' · '+source.sourceTitle+' · '+plan.from+'→'+plan.to+' · Estimated':row?.difference||'';$('fillDifference').hidden=!source&&!row?.difference;
@@ -364,12 +367,6 @@ window.BassFillTrainer=(()=>{
     previous.cancelPending();
     sessions=sessions.filter(session=>session.transport!==previous);
    }else previous?.stopAt(when,.006);
-   // Start the prepared bass and drums even when a saved vocal mute needs a new stem.
-   // Keep the combined backing muted until the voice can be controlled separately.
-   if(!voice&&backing&&audio.voicePending&&!isolateVoice){
-    isolateVoice=true;
-    setTimeout(()=>{if(playing&&request===revision&&mine===token){rendered=null;void updatePlayback();}},0);
-   }
    transport=next;
    sessions.push({transport:next,plan:current,rendered:audio});
    clearStreamBand?.();const previousRecording=recordedAudio;if(previousRecording){previousRecording.pause();recordedAudio=null;}
@@ -566,7 +563,12 @@ window.BassFillTrainer=(()=>{
    draw();if(!active)void play();
   };
 
-  $('fillBacking').onclick=()=>{backing=!backing;saveDrums();level('chords',backing?keyVolume:0);state();};
+  $('fillBacking').onclick=()=>{
+   backing=!backing;saveDrums();
+   if(backing&&!voice&&rendered?.voicePending)applyVoiceLevel();
+   else level('chords',backing?keyVolume:0);
+   state();
+  };
   $('fillDelete').onclick=()=>{const id=deletionKey();if(!id)return;try{D.remove(...id);refreshDeleted();$('fillManageStatus').textContent='Pattern deleted';}catch{$('fillManageStatus').textContent='Could not save deletion.';}};
   $('fillRestore').onclick=()=>{const open=$('fillDeletedPanel').hidden;$('fillDeletedPanel').hidden=!open;$('fillRestore').setAttribute('aria-expanded',String(open));if(open)deletedItems();};
   $('fillEmptyDeleted').onclick=async()=>{
