@@ -133,10 +133,7 @@ window.BassFillTrainer=(()=>{
     if(line&&!D.visible(kind,patternId(i)+'/'+part))continue;
     const o=document.createElement('option');
     o.value=part?i+'/'+part:String(i);
-    const label=N.label(kind,line||s);
-    if(line){
-     o.textContent=parts.length>1?N.suffix(label,'.'+(part+1)):label;
-    }else o.textContent=label;
+    o.textContent=window.BassPracticeSeries.label(kind,i,part)||N.label(kind,line||s);
     o.title=(line?.name||s[0])+(degrees?' · '+degrees.join('–'):'');(studies||select).append(o);
    }
   }

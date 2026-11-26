@@ -153,3 +153,32 @@ for(const [kind,rows] of [['basslines',P.lines],['runs',P.runs],['fills',F.style
  }
 }
 assert.equal(laterBeats.size,0);
+
+// Compare the numbered practice series with the approved catalogue above.
+{
+const W=load(),P=W.BassPracticeCore,F=W.BassFillCore;
+const legacy=P.make;
+const archived=new Map();
+for(const [kind,rows] of [['basslines',P.lines],['runs',P.runs],['fills',F.styles]])for(const [idea,row] of rows.entries()){
+ const parts=kind==='basslines'?P.phrases(row.degrees).length:1;
+ for(let part=0;part<parts;part++){
+ if(!/^(Practice|Prac)\s/.test(W.BassStudyDisplay.label(kind,row)))continue;
+ archived.set([kind,idea,part].join('/'),JSON.stringify(legacy(kind,{idea,part,from:1,to:4,key:0})));
+ }}
+vm.runInNewContext(fs.readFileSync('ear-source/practice-series-rc373.js','utf8'),{window:W});
+const S=W.BassPracticeSeries, stats={},labels=new Map();
+for(const [kind,rows] of [['basslines',P.lines],['runs',P.runs],['fills',F.styles]])for(const [idea,row] of rows.entries()){
+ const parts=kind==='basslines'?P.phrases(row.degrees).length:1;
+ for(let part=0;part<parts;part++){
+ const s=S.get(kind,idea,part);if(!s)continue;
+ const k=kind+'/'+s.genre;const ns=labels.get(k)||new Set();labels.set(k,ns);assert(!ns.has(s.number));ns.add(s.number);
+ const type=s.recorded?'source':s.keep?'kept':'new';stats[type]=(stats[type]||0)+1;
+ for(const [key,from,to] of [[0,1,4],[5,1,5],[11,2,6]]){
+ if(s.recorded&&!W.BassStudyGroups.supports(kind,idea,from,to))continue;
+ const p=P.make(kind,{idea,part,key,from,to});
+ if(s.keep&&key===0&&archived.has([kind,idea,part].join('/')))assert.equal(JSON.stringify(p),archived.get([kind,idea,part].join('/')));
+ if(!s.recorded&&!s.keep){assert(p.bass.length>=5);for(const [i,n] of p.bass.entries())assert(Number.isFinite(n.midi+n.beat+n.velocity+n.length)&&n.midi>=23&&n.midi<=59&&n.length>0&&n.beat+n.length<=p.beats+.001&&(!i||p.bass[i-1].beat+p.bass[i-1].length<=n.beat+.001),row.id);}
+ }}
+}assert.equal(labels.size,63);assert(stats.new>350);
+console.log(JSON.stringify({numberedPractice:stats,genreMenus:labels.size}));
+}

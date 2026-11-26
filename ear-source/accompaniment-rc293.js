@@ -123,7 +123,8 @@ window.BassAccompaniment=(()=>{
  function resolve(plan,options={}){
   const p=profile(plan),valid=(value,values,fallback)=>values.includes(value)?value:fallback;
   const key=plan.recordedStudy?'culture/'+plan.curated.id:plan.kind==='uploaded'?plan.clipId+'/'+String(plan.part).replace('phrase-',''):[plan.kind,plan.idea,plan.part||0].join('/');
-  const assignment=p.writtenGroove?[p.writtenGroove,0]:window.BassFlDrums?.assignments[key]||window.BassGrooveLibrary?.assignments[key];
+  const written=p.writtenGroove||plan.seriesDrum;
+  const assignment=written?[written,0]:window.BassFlDrums?.assignments[key]||window.BassGrooveLibrary?.assignments[key];
   const source=plan.recordedStudy&&window.BassUploadedCore.find(plan.recordedStudy.sourceId),sourceDrums=source?.sourceDrumLoopId;
   if(sourceDrums&&(!options.kit||options.kit==='auto')&&(!options.groove||options.groove==='auto'))options={...options,groove:sourceDrums};
   if(window.BassSuppliedDrums&&(!options.kit||options.kit==='auto')&&(!options.groove||options.groove==='auto')){
