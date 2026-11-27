@@ -21,10 +21,13 @@ window.BassCustomFlow=(()=>{
   return degrees.length>=2&&degrees.length<=16?degrees:null;
  }
  function save(){try{localStorage.setItem(storage,JSON.stringify(state));}catch{}}
+ function validSavedDegrees(degrees){
+  return Array.isArray(degrees)&&degrees.length>=2&&degrees.length<=16&&degrees.every(d=>Number.isInteger(d)&&d>=1&&d<=7);
+ }
  function restore(){
   try{
-   const s=JSON.parse(localStorage.getItem(storage)),degrees=parse(s.degrees.join(','));
-   if(degrees&&Number.isInteger(s.key)&&s.key>=0&&s.key<12&&['major','minor'].includes(s.mode)&&s.bpm>=40&&s.bpm<=220&&Array.isArray(s.choices))
+   const s=JSON.parse(localStorage.getItem(storage)),degrees=s.degrees;
+   if(validSavedDegrees(degrees)&&Number.isInteger(s.key)&&s.key>=0&&s.key<12&&['major','minor'].includes(s.mode)&&s.bpm>=40&&s.bpm<=220&&Array.isArray(s.choices))
     {fresh=false;Object.assign(state,{degrees,key:s.key,mode:s.mode,bpm:Number(s.bpm),genre:s.genre,beat:s.beat,choices:s.choices.slice(0,15)});}
   }catch{}
  }
@@ -184,7 +187,7 @@ window.BassCustomFlow=(()=>{
   const name=el('Saved').value;
   try{
    const s=JSON.parse(localStorage.getItem(namedPrefix+name));
-   if(!s||!Array.isArray(s.degrees)||!parse(s.degrees.join(','))||!Array.isArray(s.choices)||!catalogue.has(s.genre)||!Number.isInteger(s.key)||s.key<0||s.key>11||!['major','minor'].includes(s.mode)||!Number.isFinite(s.bpm)||s.bpm<40||s.bpm>220)throw Error();
+   if(!s||!validSavedDegrees(s.degrees)||!Array.isArray(s.choices)||!catalogue.has(s.genre)||!Number.isInteger(s.key)||s.key<0||s.key>11||!['major','minor'].includes(s.mode)||!Number.isFinite(s.bpm)||s.bpm<40||s.bpm>220)throw Error();
    stop();Object.assign(state,{genre:s.genre,key:s.key,mode:s.mode,bpm:s.bpm,beat:s.beat,degrees:s.degrees,choices:s.choices});fresh=false;selected=0;
    open();el('Name').value=name;savedMenu(name);save();
    el('Status').textContent=s.choices.join()===state.choices.join()&&s.beat===state.beat?'Opened '+name+'.':'Opened '+name+'. An unavailable beat or pattern was replaced.';
