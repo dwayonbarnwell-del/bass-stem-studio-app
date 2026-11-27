@@ -64,6 +64,34 @@ window.BassCustomFlow=(()=>{
  function source(r,from=1,to=4){
   return r.clip?U.plan(r.clip,'phrase-'+r.part):P.make(r.kind,{idea:r.idea,part:r.part,key:0,from,to,bpm:state.bpm});
  }
+ // Only MIDI drum renders and sampled kit performances can enter Custom flow.
+ // A drum stem estimated from a song or lesson may still contain speech.
+ let flowBeats=new Map();
+ function beatPool(ids){
+  const midi=new Set(window.BassFlDrums?.loops||[]);
+  const safe=window.BassSuppliedDrums.available.filter(loop=>loop.events?.length||midi.has(loop)&&loop.sourceMidi);
+  const matches=loop=>ids.has(loop.id)||loop.genre===state.genre||loop.styles?.includes(state.genre);
+  const pool=safe.filter(matches);
+  if(pool.length)return pool;
+  const originals=window.BassSuppliedDrums.available.filter(loop=>ids.has(loop.id));
+  const genres=new Set(originals.map(loop=>loop.genre));
+  if(H.profiles[state.genre])genres.add(state.genre);
+  if(state.genre==='ariaria')return safe.filter(loop=>loop.genre==='nigerian68'||loop.styles?.includes('nigerian68'));
+  if(state.genre==='woro')genres.add('highlife');
+  const drums=window.BassPracticeDrums;
+  for(const genre of genres){
+   const profile=H.profiles[genre];
+   if(!profile||!drums.grooves.some(([id])=>id===profile.groove))continue;
+   const events=drums.events(8,profile.groove).map(({beat,hit,velocity})=>[beat,hit,velocity]);
+   pool.push({id:'flow-kit-'+genre,title:profile.label+' kit',events,genre,kit:profile.kit,beats:8,bpm:originals.find(loop=>loop.genre===genre)?.bpm||96});
+  }
+  return [...pool,...safe.filter(loop=>genres.has(loop.genre))];
+ }
+ function selectedBeat(){
+  const beat=flowBeats.get(state.beat);
+  if(!beat)throw Error('Choose an instrumental beat.');
+  return beat;
+ }
  function hydrate(){
   rows=(catalogue.get(state.genre)||[]).filter(r=>{
    if(!r.clip)return true;
@@ -74,9 +102,9 @@ window.BassCustomFlow=(()=>{
    const p=source(r);
    const loop=H.resolve(p).loop;if(loop){ids.add(loop.id);if(r.kind==='fills'&&r.label==='Practice 09')preferred=loop;}
   }
-  const all=window.BassSuppliedDrums.available;
-  const beats=all.filter(l=>ids.has(l.id)||l.genre===state.genre||l.styles?.includes(state.genre)).map(l=>({id:l.id,label:l.title||l.id})).sort(compare);
-  if(!beats.some(b=>b.id===state.beat))state.beat=preferred?.id||all.find(l=>ids.has(l.id))?.id||beats[0]?.id||'';
+  const all=beatPool(ids);flowBeats=new Map(all.map(loop=>[loop.id,loop]));
+  const beats=all.map(l=>({id:l.id,label:l.title||l.id})).sort(compare);
+  if(!beats.some(b=>b.id===state.beat))state.beat=(flowBeats.has(preferred?.id)?preferred.id:null)||all.find(l=>ids.has(l.id))?.id||beats[0]?.id||'';
   if(fresh){state.bpm=Math.max(40,Math.min(220,Math.round(all.find(l=>l.id===state.beat)?.bpm||96)));fresh=false;el('Bpm').value=state.bpm;}
   options(el('Beat'),beats,state.beat);
   state.choices=state.degrees.slice(1).map((_,i)=>{
@@ -225,7 +253,8 @@ window.BassCustomFlow=(()=>{
  }
  let beatPlayer=null,beatRequest='',beatRevision=0;
  function beatButton(active){
-  el('Audition').textContent=active?'Stop beat':'Play beat';
+  const button=el('Audition');button.textContent=active?'■':'▶';
+  button.title=active?'Stop beat':'Play beat';button.setAttribute('aria-label',button.title);
   el('Audition').setAttribute('aria-pressed',String(active));
  }
  function stopBeat(){
@@ -239,7 +268,7 @@ window.BassCustomFlow=(()=>{
   try{
    ctx??=new AudioContext();await ctx.resume();await window.BassEarAudio.prepare(ctx);
    if(ticket!==beatRevision)return;
-   const loop=window.BassSuppliedDrums.available.find(row=>row.id===id);
+   const loop=selectedBeat();
    const frames=Math.round(ctx.sampleRate*60/bpm),beatSeconds=frames/ctx.sampleRate;
    const task=renderQueue.then(()=>ticket===beatRevision?window.BassSuppliedDrums.render(ctx,loop,frames,()=>ticket!==beatRevision):null);
    renderQueue=task.catch(()=>null);const buffer=await task;
@@ -266,7 +295,7 @@ window.BassCustomFlow=(()=>{
   try{
    ctx??=new AudioContext();await ctx.resume();await window.BassEarAudio.prepare(ctx);
    if(ticket!==revision)return;
-   const p=plan(mode==='change'),band=H.resolve(p,{groove:state.beat});
+   const p=plan(mode==='change'),band={...H.resolve(p,{groove:state.beat}),loop:selectedBeat(),recorded:false};
    const chart=mode==='all'?chartFor(p,false):null;
    const task=renderQueue.then(()=>ticket===revision?window.BassPracticeLoop.render(ctx,p,{...band,cancelled:()=>revision!==ticket}):null);
    renderQueue=task.catch(()=>null);
@@ -298,10 +327,14 @@ window.BassCustomFlow=(()=>{
  function draw(){
   for(const name of ['Genre','Beat']){
    const caption=el(name).selectedOptions[0]?.text||'';
-   let short=caption;
-   if(name==='Genre'&&state.genre==='nigerian68')short='Nigerian\n6/8';
-   if(name==='Beat')short=caption.replace(/^FL\s+/i,'').replace(/^6[-/]8\s+/,'').replace(/\s*(\d+)$/,'\n$1').trim();
-   el(name+'Name').textContent=short;el(name).title=caption;
+   let short=caption.replace(/^FL\s+|^6[-/]8\s+/gi,'').replace(/^6[-/]8\s+/,'')
+    .replace(/shufflegroove/i,'Shuffle').replace(/rockgroove/i,'Rock').replace(/oldschool/i,'Old skool');
+   if(name==='Genre'&&state.genre==='nigerian68')short='Nigerian 6/8';
+   const lines=short.match(/^(.*?)\s+(\S+)$/)?.slice(1)||[short];
+   if(lines.some(line=>line.length>10)&&name==='Beat')lines.splice(0,lines.length,'Beat',String(el('Beat').selectedIndex+1).padStart(2,'0'));
+   el(name+'Name').replaceChildren(...lines.map(line=>{
+    const part=document.createElement('b');part.textContent=line;return part;
+   }));el(name).title=caption;
   }
   el('BeatNext').disabled=el('Beat').length<2;el('Audition').disabled=!state.beat;
   const moves=el('Changes');moves.replaceChildren();
@@ -369,7 +402,7 @@ window.BassCustomFlow=(()=>{
   host.innerHTML=`<div class="flow-grid" id="flowSetup"><div class="wide flow-beats">
    <label><select aria-label="Genre" id="flowGenre"></select><span aria-hidden="true" id="flowGenreName"></span></label>
    <label><select aria-label="Beat" id="flowBeat"></select><span aria-hidden="true" id="flowBeatName"></span></label>
-   <button type="button" id="flowBeatNext" aria-label="Next beat">Next beat</button><button type="button" id="flowAudition" aria-pressed="false">Play beat</button></div>
+   <button type="button" id="flowBeatNext" aria-label="Next beat" title="Next beat">⏭&#xfe0e;</button><button type="button" id="flowAudition" aria-label="Play beat" title="Play beat" aria-pressed="false">▶</button></div>
    <div class="flow-settings wide"><label class="flow-value"><span>Key</span><select id="flowKey"></select></label>
    <label class="flow-value"><span>BPM</span><input type="number" id="flowBpm" min="40" max="220" step="any"></label><button type="button" id="flowShowSave" aria-controls="flowSavePanel" aria-expanded="false">Save</button><button type="button" id="flowShowOpen" aria-controls="flowOpenPanel" aria-expanded="false">Open</button></div>
    <div class="flow-inline wide" id="flowSavePanel" hidden><label><input aria-label="Progression name" placeholder="Progression name" id="flowName" maxlength="80"></label><button type="button" id="flowSave">Save flow</button></div>

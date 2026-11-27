@@ -569,3 +569,7 @@
  #earTrainerDialog #earCustomFlow[data-focus=true] #flowChange {display:none!important}
  #earTrainerDialog #earCustomFlow[data-focus=true] #flowPlay {grid-column:1/-1}
 }
+
+#earTrainerDialog #earCustomFlow .flow-beats label span {min-width:0;max-width:100%;overflow:hidden}
+#earTrainerDialog #earCustomFlow .flow-beats label span b {display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#earTrainerDialog #earCustomFlow .flow-beats button {font-size:1.2rem}
