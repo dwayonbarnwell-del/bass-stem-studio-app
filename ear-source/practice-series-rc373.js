@@ -136,6 +136,7 @@ window.BassPracticeSeries=(()=>{
  const get=(kind,i,part=0)=>settings.get([kind,i,part].join('/'));
  function label(kind,i,part){
   const s=get(kind,i,part);if(!s)return null;
+  if(s.lessonTitle)return s.lessonTitle;
   let number=s.number;
   if(kind==='basslines'&&s.genre==='afrobeat'){
    if(P.lines[i].id==='afrobeat366-cross')number=1;
@@ -353,6 +354,35 @@ window.BassPracticeSeries=(()=>{
     notes:notes.map(n=>n.pitch),writtenNotes:notes,accents:notes.map(n=>n.velocity),tier:0,rank:0}).index;
   }
   addStudy(kind,genre,index,score);
+ }
+ // Great Moses Music Academy, Holy Forever lesson 1, user-supplied clip-48.
+ // Adaptations of estimated bass events. Their chord changes are practice choices.
+ const holyStudies=[
+  {kind:'basslines',id:'holy-pocket',title:'Holy Forever · Bass',degrees:[1,6,2,5],
+   pocket:'d1@0 d5@15 d1@32',answer:'d1@0 d3@26 d5@31 t0@39'},
+  {kind:'runs',id:'holy-rise',title:'Holy Forever · Rise',phrase:'s0@24 s4@28 s7@33 t12@39',
+   tip:'Adapted from 0:08–0:10. Try 1 to 6. Climb through C, E and G, touch the upper A and land on low A.'},
+  {kind:'fills',id:'holy-pickup',title:'Holy Forever · Fill',phrase:'t-11@32 t-7@35 t-6@37 t-5@39 t0@44',
+   tip:'Adapted from 0:25–0:26. Try 1 to 4. Play the last few notes close together, then settle on the new root.'}
+ ];
+ for(const study of holyStudies){
+  const {kind,id,title}=study;
+  let index;
+  if(kind==='basslines'){
+   const score={notes:touch(readNotes(study.pocket),'worship'),answer:touch(readNotes(study.answer),'worship')};
+   index=P.lines.length;
+   P.lines.push({id,name:title,practiceStyle:'worship',feel:'worship',degrees:study.degrees,writtenPractice:score});
+   addStudy(kind,'worship',index,score);
+  }else{
+   const notes=touch(readNotes(study.phrase),'worship');
+   Q.rhythms[id]=notes.map(n=>n.beat);
+   index=Q.register({id,title,kind,practiceStyle:'worship',culturalStyle:'worship',genre:'worship',
+    mode:'major',rhythm:id,notes:notes.map(n=>n.pitch),writtenNotes:notes,
+    accents:notes.map(n=>n.velocity),tip:study.tip,tier:0,rank:0}).index;
+   addStudy(kind,'worship',index,{notes});
+  }
+  get(kind,index,0).lessonTitle=title;
+  additions.get(kind+'/'+index).seriesDrum='owner-crispy-verse07';
  }
  P.make=make;
  return {get,label,menuLabel};
