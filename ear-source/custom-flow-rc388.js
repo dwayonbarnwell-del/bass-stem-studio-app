@@ -152,15 +152,13 @@ window.BassCustomFlow=(()=>{
   }catch{el('Status').textContent='This saved progression could not be opened.';}
  }
  let score=null,pendingScore=null,fret=null,viewBeat=0,layoutKey='',activeKey='';
- const pitch=m=>F.names[pc(m)]+(Math.floor(m/12)-1);
- function stamp(seconds){const t=Math.floor(Math.max(0,seconds));return Math.floor(t/60)+':'+String(t%60).padStart(2,'0');}
  function chartFor(p,single){
   const degrees=single?state.degrees.slice(selected,selected+2):state.degrees;
   const scale=F.scales[state.mode];
   const bars=degrees.map((d,i)=>{
    const idx=(single?selected:0)+i,row=i<degrees.length-1&&rows.find(r=>r.id===state.choices[idx]);
    const third=degree(scale,d+2)-degree(scale,d),fifth=degree(scale,d+4)-degree(scale,d);
-   return {idx,degree:d,chord:F.names[pc(state.key+degree(scale,d))]+(fifth===6?'dim':third===3?'m':''),pattern:row?({fills:'Fill',runs:'Run',basslines:'Bassline'}[row.kind]+' · '+row.label):'Landing',kind:row?.kind};
+   return {idx,degree:d,rootPc:pc(state.key+degree(scale,d)),chord:F.names[pc(state.key+degree(scale,d))]+(fifth===6?'dim':third===3?'m':''),pattern:row?({fills:'Fill',runs:'Run',basslines:'Bassline'}[row.kind]+' · '+row.label):'Landing',kind:row?.kind};
   });
   return {bars,p};
  }
@@ -175,36 +173,34 @@ window.BassCustomFlow=(()=>{
  function paint(beat){
   if(!score||el('Visual').hidden)return;
   viewBeat=beat;
-  const bar=Math.min(score.bars.length-1,Math.floor(beat/4)),current=score.bars[bar],next=score.bars[bar+1],view=el('View').value,seconds=beat*score.step;
-  const time=stamp(seconds)+' / '+stamp(score.p.beats*score.step);
-  if(el('Time').textContent!==time)el('Time').textContent=time;
-  const caption=current.degree+' · '+current.chord+(next?' → '+next.degree+' · '+next.chord:'')+'  |  '+current.pattern;
-  if(el('Now').textContent!==caption)el('Now').textContent=caption;
+  const bar=Math.min(score.bars.length-1,Math.floor(beat/4)),view=el('View').value,seconds=beat*score.step;
+  const idx=score.bars[Math.min(bar,score.bars.length-2)].idx;
+  if(idx!==selected){selected=idx;draw();}
+  const harmony=el('Harmony');
+  if(!layoutKey){
+   harmony.replaceChildren(...score.bars.map(b=>{
+    const chip=document.createElement('span');chip.className='fill-chord';chip.textContent=b.degree+' · '+b.chord;return chip;
+   }));
+  }
+  for(let i=0;i<harmony.children.length;i++)if(harmony.children[i].getAttribute('aria-current')!==String(i===bar))harmony.children[i].setAttribute('aria-current',String(i===bar));
   const board=el('Fret'),list=el('Timeline'),onFret=view.startsWith('fret');
   board.hidden=!onFret;list.hidden=onFret;board.classList.toggle('ff-single-board',view==='fret2');
   if(onFret){
    if(!fret){fret=window.BassFretFlow.create();fret.init({get:()=>({notes:score?.notes||[],strings:5,time:viewBeat*(score?.step||0),loaded:!!score,highlight:true})},board);}
-   fret.draw(seconds);return;
+   layoutKey=view;fret.draw(seconds);return;
   }
-  const key=view+'/'+bar;
-  if(key!==layoutKey){
+  const index=score.p.bass.findLastIndex(n=>n.beat<=beat);
+  const page=Math.floor(Math.max(0,index)/25),key=view+'/'+page;
+  if(layoutKey!==key){
    layoutKey=key;activeKey='';list.replaceChildren();
-   const first=view==='phrase'?Math.floor(bar/4)*4:bar;
-   for(let i=first;i<Math.min(score.bars.length,first+(view==='phrase'?4:1));i++){
-    const b=score.bars[i],box=document.createElement('div'),title=document.createElement('strong');
-    title.textContent=stamp(i*4*score.step)+' · '+b.degree+' '+b.chord+' · '+b.pattern;box.append(title);
-    const chips=document.createElement('div');chips.className='flow-chips';
-    score.p.bass.forEach((n,index)=>{
-     if(Math.floor(n.beat/4)!==i)return;
-     const chip=document.createElement('span');chip.dataset.note=index;
-     if(view==='notes'){const time=document.createElement('small');time.textContent=(n.beat*score.step).toFixed(2)+' s';chip.append(time);}
-     chip.append(document.createTextNode(pitch(n.midi)));chips.append(chip);
-    });
-    box.append(chips);list.append(box);
-   }
+   score.p.bass.slice(page*25,page*25+25).forEach((n,i)=>{
+    const root=score.bars[Math.floor(n.beat/4)].rootPc;
+    list.append(window.BassFillTrainer.noteCard(n,page*25+i,root,window.BassFillTrainer.preview));
+   });
   }
-  const index=score.p.bass.findLastIndex(n=>n.beat<=beat&&beat<n.beat+n.length);
-  if(activeKey!==String(index)){activeKey=String(index);for(const chip of list.querySelectorAll('[data-note]'))chip.classList.toggle('sounding',Number(chip.dataset.note)===index);}
+  const n=score.p.bass[index],active=n&&beat<n.beat+n.length?String(index):'-1';
+  if(activeKey!==active){activeKey=active;for(const chip of list.children)chip.classList.toggle('sounding',chip.dataset.index===active);}
+
  }
  function actions(){
   el('Change').textContent=playing==='change'?'Pause change':paused==='change'?'Resume change':'Play change';
@@ -289,16 +285,16 @@ window.BassCustomFlow=(()=>{
  function init(section){
   host=section;restore();
   host.innerHTML=`<div class="flow-grid" id="flowSetup"><label>Genre<select id="flowGenre"></select></label><label>Beat<select id="flowBeat"></select></label>
-   <div class="flow-settings wide"><label>Key<select id="flowKey"></select></label>
-   <label>BPM<input type="number" id="flowBpm" min="40" max="220" step="any"></label><button type="button" id="flowShowSave" aria-controls="flowSavePanel" aria-expanded="false">Save</button><button type="button" id="flowShowOpen" aria-controls="flowOpenPanel" aria-expanded="false">Open</button></div>
+   <div class="flow-settings wide"><label class="flow-value"><span>Key</span><select id="flowKey"></select></label>
+   <label class="flow-value"><span>BPM</span><input type="number" id="flowBpm" min="40" max="220" step="any"></label><button type="button" id="flowShowSave" aria-controls="flowSavePanel" aria-expanded="false">Save</button><button type="button" id="flowShowOpen" aria-controls="flowOpenPanel" aria-expanded="false">Open</button></div>
    <div class="flow-inline wide" id="flowSavePanel" hidden><label>Progression name<input id="flowName" maxlength="80"></label><button type="button" id="flowSave">Save flow</button></div>
    <div class="flow-inline wide" id="flowOpenPanel" hidden><label>Saved on this device<select id="flowSaved"></select></label><button type="button" id="flowOpen">Open flow</button></div>
    <div class="flow-inline wide"><label>Chord progression<input id="flowDegrees" maxlength="180" placeholder="1 → 5 → 6 → 5 → 1"></label><button type="button" id="flowApply">Apply chords</button></div>
-   <div class="wide" id="flowChanges" role="group" aria-label="Choose a chord change"></div><label class="wide">Pattern for this change<select id="flowPattern"></select></label>
-</div>
-   <section id="flowVisual" aria-label="Timed rehearsal" hidden><div class="flow-top"><select aria-label="Rehearsal view" id="flowView"><option value="notes">Note View</option><option value="phrase">Phrase View</option><option value="fret">Fret View</option><option value="fret2">Fret View 2</option></select><button type="button" id="flowEdit">Edit flow</button></div>
-   <p><output id="flowTime"></output> · <span id="flowNow"></span></p><div id="flowTimeline"></div><div id="flowFret" hidden></div></section>
-   <div class="flow-transport"><button type="button" id="flowPrev" aria-label="Previous pattern" title="Previous pattern">◀</button><button type="button" id="flowNext" aria-label="Next pattern" title="Next pattern">▶</button><button type="button" id="flowChange">Play change</button><button type="button" id="flowPlay">Play flow</button></div>
+   <div class="wide" id="flowChanges" role="group" aria-label="Choose a chord change"></div></div>
+   <div class="flow-picker"><button type="button" id="flowPrev" aria-label="Previous pattern">◀</button><label>Pattern for this change<select id="flowPattern"></select></label><button type="button" id="flowNext" aria-label="Next pattern">▶</button></div>
+   <section id="flowVisual" aria-label="Timed rehearsal" hidden><div class="flow-top"><select aria-label="Rehearsal view" id="flowView"><option value="notes">Band</option><option value="fret">Fret View</option><option value="fret2">Fret View 2</option></select><button type="button" id="flowEdit">Edit flow</button></div>
+   <div id="flowHarmony" aria-label="Chords"></div><div id="flowTimeline" aria-label="Bass notes"></div><div id="flowFret" hidden></div></section>
+   <div class="flow-transport"><button type="button" id="flowChange">Play change</button><button type="button" id="flowPlay">Play flow</button></div>
    <p id="flowNotes"></p><p role="status" id="flowStatus"></p>`;
   el('Saved').onchange=()=>{el('Open').disabled=!el('Saved').value;};
   el('Save').onclick=saveNamed;el('Open').onclick=openNamed;el('Edit').onclick=()=>{stop();draw();};

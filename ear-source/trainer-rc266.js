@@ -48,7 +48,10 @@ window.BassEarTrainer=(()=>{
   $('earMode').value=section==='notes'?noteMode:'';$('earMode').disabled=active;
   $('earMode').dataset.active=String(section==='notes');
   $('earSectionFills').setAttribute('aria-pressed',String(fills));
-  $('earBassSections').hidden=!bassWorkspace||active;
+  $('earBassSections').hidden=!(fills||rehearsal)||active;
+  $('earSectionFlow').hidden=bassWorkspace;
+  $('earMode').hidden=bassWorkspace;$('earSectionFills').hidden=bassWorkspace;
+  $('earSectionBack').hidden=!bassWorkspace;
   for(const b of $('earBassSections').querySelectorAll('[data-section]'))b.setAttribute('aria-pressed',String(b.dataset.section===section));
   $('earSectionFlow').setAttribute('aria-pressed',String(flow));
   $('earProgress').hidden=bassWorkspace;
@@ -186,7 +189,7 @@ window.BassEarTrainer=(()=>{
   const wrap=document.createElement('div');wrap.innerHTML=`<dialog id="earTrainerDialog" aria-labelledby="earTitle">
 <header class="ear-header"><h2 id="earTitle">Ear training</h2><button id="earClose" type="button">Close</button></header>
 <div id="earContent">
-<div id="earSections" role="group" aria-label="Ear training sections"><select id="earMode" aria-label="Notes lesson" title="Notes lesson"><option value="" disabled hidden>Notes</option><option value="notes" selected>Notes</option><option value="intervals">Intervals</option><option value="chords">Chords</option><option value="progressions">Progressions</option></select><button id="earSectionFills" type="button" data-section="fills" aria-pressed="false">Bass</button><button id="earSectionFlow" type="button" data-section="flow">Custom flow</button></div>
+<div id="earSections" role="group" aria-label="Ear training sections"><button type="button" id="earSectionBack" data-section="notes" hidden>‹ Ear training</button><select id="earMode" aria-label="Notes lesson" title="Notes lesson"><option value="" disabled hidden>Notes</option><option value="notes" selected>Notes</option><option value="intervals">Intervals</option><option value="chords">Chords</option><option value="progressions">Progressions</option></select><button id="earSectionFills" type="button" data-section="fills" aria-pressed="false">Bass</button><button id="earSectionFlow" type="button" data-section="flow">Custom flow</button></div>
 <div id="earBassSections" role="group" aria-label="Bass studies" hidden><button id="earSectionBasslines" type="button" data-section="basslines" aria-pressed="false">Basslines</button><button id="earSectionRuns" type="button" data-section="runs" aria-pressed="false">Runs</button><button id="earSectionMyFills" type="button" data-section="fills" aria-pressed="false">My fills</button><button id="earSectionRehearsal" type="button" data-section="rehearsal" aria-pressed="false">Rehearse</button></div>
 <div id="earSetup" class="ear-settings">
 <label><select id="earLevel" aria-label="Select level" title="Select level"><option value="1">Level 1</option><option value="2">Level 2</option><option value="3">Level 3</option><option value="4">Level 4</option><option value="5">Level 5</option></select></label>

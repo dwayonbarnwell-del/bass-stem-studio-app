@@ -384,7 +384,14 @@ window.BassFillTrainer=(()=>{
   const source=plan.recordedStudy;
   $('fillDifference').textContent=source?'Adapted':row?.difference?N.fitName(row.difference):'';$('fillDifference').title=source?source.family+' · '+source.sourceTitle+' · '+plan.from+'→'+plan.to+' · Estimated':row?.difference||'';$('fillDifference').hidden=!source&&!row?.difference;
   $('fillStatus').textContent='';$('fillNotes').title=plan.kind==='uploaded'?'Automatic bass transcription; check uncertain notes.':'';$('fillNotes').replaceChildren();notePage=0;
-  plan.bass.forEach((n,i)=>{const b=document.createElement('button');b.type='button';b.textContent=F.note(n.midi);b.title=F.note(n.midi)+(plan.kind==='uploaded'?' · '+U.time(n.sourceTime):' · beat '+(Math.round((n.beat%4+1)*100)/100));if(n.review){b.classList.add('needs-review');b.title+=' · Check note';}b.setAttribute('aria-label','Hear '+F.note(n.midi));b.dataset.index=i;const chord=harmony[N.active(harmony,n.beat)];if(n.role==='landing'||(chord&&(n.midi%12+12)%12===chord.rootPc))b.classList.add('landing');b.onclick=()=>void preview(n);$('fillNotes').append(b);});notePages();state();if(playing)void updatePlayback();
+  plan.bass.forEach((n,i)=>{const chord=harmony[N.active(harmony,n.beat)];$('fillNotes').append(noteCard(n,i,chord?.rootPc,preview,plan.kind==='uploaded'?U.time(n.sourceTime):''));});notePages();state();if(playing)void updatePlayback();
+ }
+ function noteCard(n,i,rootPc,hear,detail=''){
+  const b=document.createElement('button');b.type='button';b.textContent=F.note(n.midi);b.dataset.index=i;
+  b.title=b.textContent+(detail?' · '+detail:' · beat '+(Math.round((n.beat%4+1)*100)/100));
+  if(n.review){b.classList.add('needs-review');b.title+=' · Check note';}
+  b.classList.toggle('landing',n.role==='landing'||(n.midi%12+12)%12===rootPc);
+  b.setAttribute('aria-label','Hear '+b.textContent);b.onclick=()=>void hear(n);return b;
  }
  async function preview(n){
   const mine=token;try{ctx??=new AudioContext();await ctx.resume();await window.BassPracticeAudio.prepare('bass',ctx,{notes:[n]});if(mine!==token)return;voices.push(window.BassPracticeAudio.tone(ctx,n.midi,ctx.currentTime,.65,'bass',0,85,.8));}catch{$('fillStatus').textContent='Sound unavailable';}
@@ -650,5 +657,5 @@ window.BassFillTrainer=(()=>{
  function setKind(next){
   kind=['fills','runs','basslines'].includes(next)?next:'fills';if(kind==='basslines')clipOptions();$('fillSettings').hidden=false;$('fillNext').hidden=false;groupOptions();transitionOptions();loadGroup();ideaOptions();draw();
  }
- return {init,stop,setKind};
+ return {init,stop,setKind,noteCard,preview};
 })();
