@@ -51,8 +51,11 @@ window.BassAutoLevel=(()=>{
   process(input,output){const count=output[0].length,channels=input.length;let energy=0;
    for(let i=0;i<count;i++){let sum=0;for(let c=0;c<channels;c++){const x=input[c]?.[i];if(Number.isFinite(x))sum+=x*x;}energy+=sum/Math.max(1,channels);}
    const rms=Math.sqrt(energy/count);this.energy+=(energy/count-this.energy)*(1-Math.exp(-count/(this.rate*.4)));
-   const target=this.normalise&&rms>.00316?Math.max(1,Math.min(4,.15849/Math.sqrt(Math.max(1e-12,this.energy)))):1;
-   const alpha=1-Math.exp(-1/(this.rate*(target<this.gain?.03:2)));
+   const desired=.15849/Math.sqrt(Math.max(1e-12,this.energy));
+   const ear=this.normalise==='ear';
+   const target=this.normalise&&rms>.00316?Math.max(ear ? .125 : 1,Math.min(4,desired)):(ear?this.gain:1);
+   const seconds=target<this.gain ? .03 : (ear ? .8 : 2);
+   const alpha=1-Math.exp(-1/(this.rate*seconds));
    const cap=this.peaks.length;
    for(let i=0;i<count;i++){
     this.gain+=(target-this.gain)*alpha;let peak=0;const n=this.index++,pos=n%this.size;
@@ -15768,8 +15771,8 @@ window.BassBatch = (() => {
 <script src="./ear-source/practice-keys-rc293.js?v=rc293"></script>
 <script src="./ear-source/accompaniment-rc293.js?v=rc381"></script>
 <script src="./ear-source/audio-dsp-rc361.js?v=rc365"></script>
-<script src="./ear-source/ear-audio-rc361.js?v=rc368"></script>
-<script src="./ear-source/practice-loop-rc292.js?v=rc383"></script>
+<script src="./ear-source/ear-audio-rc361.js?v=rc384"></script>
+<script src="./ear-source/practice-loop-rc292.js?v=rc384"></script>
 <script src="./ear-source/core-rc261.js?v=rc292"></script>
 <script src="./ear-source/fills-rc264.js?v=rc336"></script>
 <script src="./ear-source/practice-rc264b.js?v=rc371"></script>
@@ -15790,7 +15793,7 @@ window.BassBatch = (() => {
 <script src="./ear-source/uploaded-core-rc267.js?v=rc381"></script>
 <script src="./ear-source/catalogue-review-rc347.js?v=rc351"></script>
 <script src="./ear-source/cultural-studies-rc351.js?v=rc380"></script>
-<script src="./ear-source/study-ui-rc267.js?v=rc383"></script>
+<script src="./ear-source/study-ui-rc267.js?v=rc384"></script>
 <script src="./ear-source/rehearsal-core.js?v=rc365"></script>
 <script src="./ear-source/expressive-studies-rc365.js?v=rc382"></script>
 <script src="./ear-source/genre-scores-rc382.js?v=rc382"></script>
@@ -15811,7 +15814,7 @@ window.BassBatch = (() => {
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC383';
+  const APP_VERSION='RC384';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;

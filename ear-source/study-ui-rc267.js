@@ -14,16 +14,17 @@ window.BassFillTrainer=(()=>{
   if(B.genres.some(([id])=>id===s.kit))drumKit=s.kit;if(B.available.some(x=>x.id===s.groove))drumGroove=s.groove;if(H.profiles[s.style])keyStyle=s.style;if(['piano','electric','organ'].includes(s.sound))keySound=s.sound;
   if(Number.isFinite(saved.volume))drumVolume=Math.max(0,Math.min(1,saved.volume));if(Number.isFinite(saved.keyVolume))keyVolume=Math.max(0,Math.min(1,saved.keyVolume));if(Number.isFinite(saved.bassVolume))bassVolume=Math.max(0,Math.min(1,saved.bassVolume));if(Number.isFinite(saved.voiceVolume))voiceVolume=Math.max(0,Math.min(1,saved.voiceVolume));
  }catch{}
- const recordingMixKey='bass-practice-recording-mix-v1';
+ const recordingMixKey='bass-practice-recording-mix-v2';
  const mixValues=()=>({bassVolume,drumVolume,keyVolume,voiceVolume,voice,drums,backing});
  let bandMix=mixValues(),usingRecordingMix=false;
- const naturalMix={bassVolume:1,drumVolume:1,keyVolume:1,voiceVolume:1,voice:true,drums:true,backing:true};
+ const naturalMix={bassVolume:1,drumVolume:.21,keyVolume:.07,voiceVolume:.21,voice:true,drums:true,backing:true};
  let recordingMix={...naturalMix};
  try{
-  const saved=JSON.parse(localStorage.getItem(recordingMixKey));
+  const current=localStorage.getItem(recordingMixKey);
+  const saved=JSON.parse(current??localStorage.getItem('bass-practice-recording-mix-v1'));
   for(const [part,value] of Object.entries(saved||{})){
    if(typeof naturalMix[part]==='boolean'&&typeof value==='boolean')recordingMix[part]=value;
-   if(typeof naturalMix[part]==='number'&&Number.isFinite(value))recordingMix[part]=Math.max(0,Math.min(1,value));
+   if(typeof naturalMix[part]==='number'&&Number.isFinite(value)&&(current!==null||value!==1))recordingMix[part]=Math.max(0,Math.min(1,value));
   }
  }catch{}
  function displayMix(){
@@ -479,7 +480,7 @@ window.BassFillTrainer=(()=>{
    audio.defaultPlaybackRate=current.speed/100;audio.playbackRate=current.speed/100;
    if(!continuing){
     audio.currentTime=current.sourceStart+(pausedBeat??0)*current.step;audio.muted=true;
-    route=E.mixer(ctx,{semitones:current.semitones||0});media=ctx.createMediaElementSource(audio);bassGain=ctx.createGain();bassGain.gain.value=bassVolume;window.BassAutoLevel.attach(ctx,media,bassGain);bassGain.connect(route.pitched);
+    route=E.mixer(ctx,{semitones:current.semitones||0});media=ctx.createMediaElementSource(audio);bassGain=ctx.createGain();bassGain.gain.value=bassVolume;media.connect(bassGain);bassGain.connect(route.pitched);
     await audio.play();
    }
   }catch(error){if(!continuing){audio.pause();media?.disconnect();bassGain?.disconnect();route?.disconnect();}throw error;}
@@ -568,7 +569,7 @@ window.BassFillTrainer=(()=>{
   const changeSound=event=>{drumKit=$('fillDrumKit').value;if(event?.target.id==='fillDrumKit'){drumGroove='auto';drumOptions();}else drumGroove=$('fillDrumGroove').value;keyStyle=$('fillKeyStyle').value;keySound=$('fillKeySound').value;saveDrums();draw();};
   for(const id of ['fillDrumKit','fillDrumGroove','fillKeyStyle','fillKeySound'])$(id).onchange=changeSound;
   $('fillGenreReset').onclick=()=>{
-   bassVolume=1;drumVolume=voiceVolume=usingRecordingMix?1:.21;keyVolume=usingRecordingMix?1:.07;drums=backing=voice=true;
+   bassVolume=1;drumVolume=voiceVolume=.21;keyVolume=.07;drums=backing=voice=true;
    displayMix();level('bass',1);level('drums',drumVolume);level('chords',keyVolume);applyVoiceLevel();saveDrums();state();
    if(usingRecordingMix)return;
    drumKit=drumGroove=keyStyle=keySound='auto';for(const id of ['fillDrumKit','fillKeyStyle','fillKeySound'])$(id).value='auto';drumOptions();tempoIdentity='';changeSound();

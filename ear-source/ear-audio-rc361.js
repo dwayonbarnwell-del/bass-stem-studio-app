@@ -6,7 +6,7 @@ window.BassEarAudio=(()=>{
  function configure(options){model=options.model;}
  async function prepare(ctx){
   let state=graphs.get(ctx);if(state?.ready)return state.ready;
-  if(!state){const input=ctx.createGain();state={input,worklet:false,ready:null};graphs.set(ctx,state);state.limiter=window.BassAutoLevel.attach(ctx,input,ctx.destination,{normalise:false});}
+  if(!state){const input=ctx.createGain();state={input,worklet:false,ready:null};graphs.set(ctx,state);state.limiter=window.BassAutoLevel.attach(ctx,input,ctx.destination,{normalise:'ear'});}
   const limiter=state.limiter;
   state.ready=(async()=>{
    await limiter.ready;

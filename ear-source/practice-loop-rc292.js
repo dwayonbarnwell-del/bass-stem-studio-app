@@ -178,7 +178,7 @@ window.BassPracticeLoop=(()=>{
     const asset=window.BassWorldMethodMixes?.[plan.audio];
     if((asset?.addDrums||!originalDrums)&&drums&&loop){const replacement=await D.render(context,loop,beatFrames,cancelled);if(cancelled())return null;if(replacement)stems.drums=replacement;}
    }else stems.bass=buffer;
-   return {stems,frames:buffer.length,seconds:buffer.duration,beatSeconds:buffer.duration/plan.beats,beatFrames:buffer.length/plan.beats,rate,gain:1,levels:naturalBalance?{}:levels(stems),semitones:plan.semitones||0,drumPhase:0,estimatedMix:true,voiceUnavailable:isolateVoice&&!stems.voice,voicePending:!isolateVoice&&!stems.voice};
+   return {stems,frames:buffer.length,seconds:buffer.duration,beatSeconds:buffer.duration/plan.beats,beatFrames:buffer.length/plan.beats,rate,gain:naturalBalance?recordingGain(context,stems):1,levels:naturalBalance?{}:levels(stems),semitones:plan.semitones||0,drumPhase:0,estimatedMix:true,voiceUnavailable:isolateVoice&&!stems.voice,voicePending:!isolateVoice&&!stems.voice};
   }
   const beat=beatFrames/rate,stems={},K=window.BassPracticeKeys,keys=window.BassAccompaniment?window.BassAccompaniment.arrange(plan,style):plan.chords;
   const phrase=recorded&&plan.recording?.pack;
@@ -208,6 +208,19 @@ window.BassPracticeLoop=(()=>{
   }
   if(drumBuffer)stems.drums=drumBuffer;
   return {pickup:plan.pickup,drumPhase:phrase?(useDrums?0:originalDrums?(assignedPhase??plan.recording.drumPhase):0):null,stems,frames,seconds,beatSeconds:beat,beatFrames,rate,gain:1,levels:levels(stems),semitones:recorded?plan.semitones||0:0,unpitched:recorded&&!useKeys?['chords']:[]};
+ }
+ // Measure the default practice mix once so quiet phrases start at a useful level.
+ // Keep this gain independent of subsequent slider and mute changes.
+ function recordingGain(context,stems){
+  const reference=context.createBuffer(2,stems.bass.length,context.sampleRate);
+  for(const [part,level] of Object.entries({bass:1,drums:.21,chords:.07,voice:.21})){
+   const stem=stems[part];if(!stem)continue;
+   for(let c=0;c<2;c++){
+    const input=stem.getChannelData(Math.min(c,stem.numberOfChannels-1)),mix=reference.getChannelData(c);
+    for(let i=0;i<mix.length;i++)mix[i]+=level*input[i%input.length];
+   }
+  }
+  return window.BassEarAudio.normalisation(reference,.15849);
  }
  function levels(stems){return Object.fromEntries(Object.entries(stems).map(([part,buffer])=>[part,window.BassEarAudio?.normalisation(buffer,part==='drums'?.18:.16)??1]));}
  function start(context,rendered,{repeat=true,bass=1,drums=.21,chords=.07,voice=.21,other=.07,onEnded=()=>{},when=context.currentTime+.08,offsetBeats=0,drumPhase=0,fadeIn=0}={}){

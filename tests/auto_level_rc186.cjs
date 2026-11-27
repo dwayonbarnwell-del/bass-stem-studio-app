@@ -8,3 +8,21 @@ for(const rate of [44100,48000,96000]){
  const pulse=new Engine(rate);for(let b=0;b<100;b++){const l=Float32Array.from({length:128},(_,i)=>i%23===0?100:i%7===0?NaN:0),out=[new Float32Array(128),new Float32Array(128)];pulse.process([l],out);ok(out.every(ch=>ch.every(v=>Number.isFinite(v)&&Math.abs(v)<=.891252)),'impulse bounded');}
 }
 console.log('PASS automatic levels: three sample rates, quiet audio, overload transitions, stereo balance, silence and impulses.');
+
+// Ear Training must lower sustained loud passages as well as lift quiet ones.
+const practice=new Engine(48000,'ear');
+for(const amplitude of [.08,.9,.08]){
+ let square=0,count=0,peak=0;
+ for(let b=0;b<1875;b++){
+  const signal=Float32Array.from({length:128},(_,i)=>amplitude*Math.sin(2*Math.PI*110*(b*128+i)/48000));
+  const out=[new Float32Array(128)];practice.process([signal],out);
+  for(const sample of out[0]){
+   peak=Math.max(peak,Math.abs(sample));
+   if(b>1500){square+=sample*sample;count++;}
+  }
+ }
+ const db=20*Math.log10(Math.sqrt(square/count));
+ assert(Math.abs(db+16)<.5,'Ear Training settled level '+db);
+ assert(peak<=practice.ceiling+1e-6,'Ear Training transition exceeded ceiling');
+}
+console.log('PASS Ear Training holds quiet, loud and returning quiet passages within 0.5 dB of target.');
