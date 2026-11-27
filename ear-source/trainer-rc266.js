@@ -209,7 +209,7 @@ window.BassEarTrainer=(()=>{
   window.addEventListener('resize',fitViewport);window.visualViewport?.addEventListener('resize',fitViewport);window.visualViewport?.addEventListener('scroll',fitViewport);screen.orientation?.addEventListener('change',fitViewport);fitViewport();
   $('openEarTraining').onclick=()=>{if(api?.busy?.())return;api?.pause?.();close();drawKeyboard();$('earSummary').hidden=true;dialog.showModal();$('earContent').scrollTop=0;fitViewport();status('No song needed');controls();};
   if(hooks.rehearsal)window.BassRehearsal.init($('earRehearsal'),hooks.rehearsal);
-  window.BassFillTrainer.init($('earFillStudy'),hooks);$('earAnswerSound').onclick=()=>void listen(true);
+  window.BassFillTrainer.init($('earFillStudy'),{...hooks,openHome(){selectSection('notes');$('earMode').focus();}});$('earAnswerSound').onclick=()=>void listen(true);
   for(const b of dialog.querySelectorAll('[data-section]'))b.onclick=()=>selectSection(b.dataset.section);
   $('earClose').onclick=()=>{close();dialog.close();};dialog.addEventListener('close',()=>{if(!dialog.open)close();});dialog.addEventListener('cancel',close);
   try{const sound=localStorage.getItem('bass-ear-sound-v1');if(['bass','piano'].includes(sound))$('earSound').value=sound;}catch{}

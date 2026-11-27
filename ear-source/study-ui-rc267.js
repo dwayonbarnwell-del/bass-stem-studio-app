@@ -224,7 +224,11 @@ window.BassFillTrainer=(()=>{
   button.title=available?(on?'Mute ':'Unmute ')+label.toLowerCase():plan?.recording?.originalMix?'Voice separation unavailable. Play again to retry.':'No vocals in this pattern';button.setAttribute('aria-label',button.title);
  }
  function state(){
-  const deleted=window.BassCatalogueReview.removed().length;playbackLayout();$('fillPlay').textContent=playing?'Pause':pausedBeat!==null?'Resume':'Play';$('fillPlay').disabled=!plan;$('fillRepeat').disabled=!plan;$('fillNext').disabled=!plan;$('fillDelete').disabled=!deletionKey();$('fillRestore').disabled=!deleted;$('fillRestore').textContent='Deleted'+(deleted?' ('+deleted+')':'');$('fillRepeat').setAttribute('aria-pressed',String(repeating));
+  const deleted=window.BassCatalogueReview.removed().length;playbackLayout();$('fillPlay').textContent=playing?'Pause':pausedBeat!==null?'Resume':'Play';$('fillPlay').disabled=!plan;$('fillRepeat').disabled=!plan;$('fillNext').disabled=!plan;$('fillDelete').disabled=!deletionKey();$('fillRestore').disabled=!deleted;$('fillRestore').textContent='Deleted'+(deleted?' ('+deleted+')':'');const home=!playing&&pausedBeat!==null,button=$('fillRepeat');
+  button.textContent=home?'Home':'Repeat';
+  button.setAttribute('aria-label',home?'Ear training home':'Repeat');
+  if(home)button.removeAttribute('aria-pressed');
+  else button.setAttribute('aria-pressed',String(repeating));
   muteLabel('fillBacking','Others',backing);muteLabel('fillDrums','Drums 🥁',drums);muteLabel('fillVoice','Voice 🎙',voice,!!plan?.recording?.originalMix&&voiceReady!==false);
   $('fillVoiceVolume').disabled=!plan?.recording?.originalMix||voiceReady===false;
   $('fillVoiceVolume').parentElement.hidden=$('fillVoiceVolume').disabled;
@@ -581,7 +585,7 @@ window.BassFillTrainer=(()=>{
   $('fillTempo').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();editedIdea=tempoIdentity;applyTempo();}};
 
   $('fillNotePrev').onclick=()=>notePages(notePage-1);$('fillNoteNext').onclick=()=>notePages(notePage+1);
-  $('fillPlay').onclick=()=>void play();$('fillRepeat').onclick=()=>{if(playing){stop();$('fillStatus').textContent='Stopped';}else void play();};
+  $('fillPlay').onclick=()=>void play();$('fillRepeat').onclick=()=>{if(!playing&&pausedBeat!==null){api.openHome();return;}if(playing){stop();$('fillStatus').textContent='Stopped';}else void play();};
   $('fillNext').onclick=()=>{
    const active=playing,clip=imported()?U.items.find(c=>c.id===$('fillClip').value):null;
    const excerpt=$('fillExcerpt'),following=excerpt.options[excerpt.selectedIndex+1];
