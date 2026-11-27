@@ -283,17 +283,19 @@ window.BassCustomFlow=(()=>{
   const labels=new Map([...H.availableGroups(),...G.groups]);
   const genres=[...catalogue.keys()].map(id=>({id,label:labels.get(id)||id})).sort(compare);
   if(!catalogue.has(state.genre))state.genre=genres[0]?.id;
-  options(el('Genre'),genres,state.genre);el('Key').value=state.key;el('Mode').value=state.mode;el('Bpm').value=state.bpm;
+  options(el('Genre'),genres,state.genre);el('Key').value=state.key+'/'+state.mode;el('Bpm').value=state.bpm;
   el('Degrees').value=state.degrees.join(' → ');hydrate();draw();
  }
  function init(section){
   host=section;restore();
   host.innerHTML=`<div class="flow-grid" id="flowSetup"><label>Genre<select id="flowGenre"></select></label><label>Beat<select id="flowBeat"></select></label>
-   <div class="flow-settings wide"><label>Key<select id="flowKey"></select></label><label>Scale<select id="flowMode"><option value="major">Major</option><option value="minor">Minor</option></select></label>
-   <label>BPM<input type="number" id="flowBpm" min="40" max="220" step="any"></label></div>
-   <label class="wide">Chord progression<input id="flowDegrees" maxlength="180" placeholder="1 → 5 → 6 → 5 → 1"></label><button type="button" id="flowApply">Apply chords</button>
+   <div class="flow-settings wide"><label>Key<select id="flowKey"></select></label>
+   <label>BPM<input type="number" id="flowBpm" min="40" max="220" step="any"></label><button type="button" id="flowShowSave" aria-controls="flowSavePanel" aria-expanded="false">Save</button><button type="button" id="flowShowOpen" aria-controls="flowOpenPanel" aria-expanded="false">Open</button></div>
+   <div class="flow-inline wide" id="flowSavePanel" hidden><label>Progression name<input id="flowName" maxlength="80"></label><button type="button" id="flowSave">Save flow</button></div>
+   <div class="flow-inline wide" id="flowOpenPanel" hidden><label>Saved on this device<select id="flowSaved"></select></label><button type="button" id="flowOpen">Open flow</button></div>
+   <div class="flow-inline wide"><label>Chord progression<input id="flowDegrees" maxlength="180" placeholder="1 → 5 → 6 → 5 → 1"></label><button type="button" id="flowApply">Apply chords</button></div>
    <div class="wide" id="flowChanges" role="group" aria-label="Choose a chord change"></div><label class="wide">Pattern for this change<select id="flowPattern"></select></label>
-   <details class="wide" id="flowLibrary"><summary>Save or open a progression</summary><div class="flow-grid"><label>Progression name<input id="flowName" maxlength="80"></label><button type="button" id="flowSave">Save flow</button><label>Saved on this device<select id="flowSaved"></select></label><button type="button" id="flowOpen">Open flow</button></div></details></div>
+</div>
    <section id="flowVisual" aria-label="Timed rehearsal" hidden><div class="flow-top"><select aria-label="Rehearsal view" id="flowView"><option value="notes">Note View</option><option value="phrase">Phrase View</option><option value="fret">Fret View</option><option value="fret2">Fret View 2</option></select><button type="button" id="flowEdit">Edit flow</button></div>
    <p><output id="flowTime"></output> · <span id="flowNow"></span></p><div id="flowTimeline"></div><div id="flowFret" hidden></div></section>
    <div class="flow-transport"><button type="button" id="flowPrev" aria-label="Previous pattern" title="Previous pattern">◀</button><button type="button" id="flowNext" aria-label="Next pattern" title="Next pattern">▶</button><button type="button" id="flowChange">Play change</button><button type="button" id="flowPlay">Play flow</button></div>
@@ -301,11 +303,18 @@ window.BassCustomFlow=(()=>{
   el('Saved').onchange=()=>{el('Open').disabled=!el('Saved').value;};
   el('Save').onclick=saveNamed;el('Open').onclick=openNamed;el('Edit').onclick=()=>{stop();draw();};
   el('View').onchange=()=>{layoutKey='';paint(viewBeat);};
-  options(el('Key'),F.names.map((label,id)=>({label,id})),state.key);
+  options(el('Key'),F.names.flatMap((name,key)=>['major','minor'].map(mode=>({label:name+(mode==='minor'?'m':''),id:key+'/'+mode}))),state.key+'/'+state.mode);
+  for(const action of ['Save','Open'])el('Show'+action).onclick=()=>{
+   const expand=el(action+'Panel').hidden;
+   for(const item of ['Save','Open']){
+    const visible=expand&&item===action;
+    el(item+'Panel').hidden=!visible;el('Show'+item).setAttribute('aria-expanded',String(visible));
+   }
+   if(expand){if(action==='Open')savedMenu(el('Saved').value);el(action==='Save'?'Name':'Saved').focus();}
+  };
   el('Genre').onchange=e=>{state.genre=e.target.value;hydrate();update();};
   el('Beat').onchange=e=>{state.beat=e.target.value;update();};
-  el('Mode').onchange=e=>{state.mode=e.target.value;update();};
-  el('Key').onchange=e=>{state.key=Number(e.target.value);update();};
+  el('Key').onchange=e=>{const [key,mode]=e.target.value.split('/');state.key=Number(key);state.mode=mode;update();};
   el('Bpm').onchange=e=>{if(!e.target.value||!e.target.reportValidity()){e.target.value=state.bpm;return;}state.bpm=Number(e.target.value);update();};
   el('Apply').onclick=()=>{
    const next=parse(el('Degrees').value);
