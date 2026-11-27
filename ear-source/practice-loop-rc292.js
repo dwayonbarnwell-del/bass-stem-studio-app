@@ -90,7 +90,29 @@ window.BassPracticeLoop=(()=>{
    entry.request.catch(()=>{if(selected===entry)entry.request=null;});
   },100);
  }
- async function originalMix(context,plan,frames,cancelled,progress,isolateVoice){
+ async function recordingVoice(context,audio,cancelled){
+  if(audio.numberOfChannels===8)return audio;
+  const packed=audio.numberOfChannels===6,first=packed?4:0;
+  const left=audio.getChannelData(first).slice(),right=audio.getChannelData(Math.min(first+1,audio.numberOfChannels-1)).slice();
+  const vocal=await new Promise((resolve,reject)=>{
+   const worker=new Worker('./ear-source/recording-voice-worker.js?v=rc383');
+   const finish=()=>{clearInterval(watch);worker.terminate();};
+   const watch=setInterval(()=>{if(cancelled()){finish();resolve(null);}},100);
+   worker.onmessage=({data})=>{finish();data.error?reject(Error(data.error)):resolve(data.vocal);};
+   worker.onerror=()=>{finish();reject(Error('Voice adjustment unavailable'));};
+   worker.postMessage({left,right,rate:audio.sampleRate},[left.buffer,right.buffer]);
+  });
+  if(!vocal||cancelled())return null;
+  const out=context.createBuffer(8,audio.length,audio.sampleRate);
+  if(packed)for(let c=0;c<4;c++)out.copyToChannel(audio.getChannelData(c),c);
+  for(let c=0;c<2;c++){
+   const input=audio.getChannelData(Math.min(first+c,audio.numberOfChannels-1)),backing=out.getChannelData(first+c);
+   for(let i=0;i<input.length;i++)backing[i]=input[i]-vocal[i];
+   out.copyToChannel(vocal,6+c);
+  }
+  return out;
+ }
+ async function originalMix(context,plan,frames,cancelled,progress,isolateVoice,naturalBalance){
   const url=recordingURL(plan.audio),key=url+':'+context.sampleRate;
   if(!originalBuffers.has(key)){
    const entry=selected?.path===plan.audio?selected:null,signal=entry?.controller.signal;
@@ -116,14 +138,15 @@ window.BassPracticeLoop=(()=>{
   if(cancelled())return null;
   if(isolateVoice&&window.BassEarAudio){
    const original=audio;
+   const voiceKey=key+(naturalBalance?':natural':':model');
    try{
-   if(!separatedBuffers.has(key)){
-    const task=window.BassEarAudio.recording(context,audio,{key:url,progress,cancelled});separatedBuffers.set(key,task);
-    task.then(value=>{if(!value)separatedBuffers.delete(key);},()=>separatedBuffers.delete(key));
+   if(!separatedBuffers.has(voiceKey)){
+    const task=naturalBalance?recordingVoice(context,audio,cancelled):window.BassEarAudio.recording(context,audio,{key:url,progress,cancelled});separatedBuffers.set(voiceKey,task);
+    task.then(value=>{if(!value)separatedBuffers.delete(voiceKey);},()=>separatedBuffers.delete(voiceKey));
    }
-   audio=await separatedBuffers.get(key);if(cancelled())return null;if(!audio){separatedBuffers.delete(key);audio=original;}
+   audio=await separatedBuffers.get(voiceKey);if(cancelled())return null;if(!audio){separatedBuffers.delete(voiceKey);audio=original;}
    while(separatedBuffers.size>2)separatedBuffers.delete(separatedBuffers.keys().next().value);
-   }catch(error){if(cancelled())return null;separatedBuffers.delete(key);audio=original;}
+   }catch(error){if(cancelled())return null;separatedBuffers.delete(voiceKey);audio=original;}
   }
   if(audio.sampleRate!==context.sampleRate){const off=new OfflineAudioContext(audio.numberOfChannels,Math.round(audio.duration*context.sampleRate),context.sampleRate),node=off.createBufferSource();node.buffer=audio;node.connect(off.destination);node.start();audio=await off.startRendering();if(cancelled())return null;}
   if(Math.abs(audio.length-frames)<context.sampleRate*.001)return audio;
@@ -139,11 +162,11 @@ window.BassPracticeLoop=(()=>{
   const output=context.createBuffer(data.length,frames,context.sampleRate);
   data.forEach((d,i)=>output.copyToChannel(d,i));return output;
  }
- async function render(context,plan,{drums=true,loop=null,style='worship',sound='piano',chords=true,recorded=false,originalDrums=true,originalKeys=true,isolateVoice=false,assignedPhase,cancelled=()=>false,sourceCancelled=cancelled,progress=()=>{}}={}){
+ async function render(context,plan,{drums=true,loop=null,style='worship',sound='piano',chords=true,recorded=false,originalDrums=true,originalKeys=true,naturalBalance=false,isolateVoice=false,assignedPhase,cancelled=()=>false,sourceCancelled=cancelled,progress=()=>{}}={}){
   const A=window.BassPracticeAudio,D=window.BassSuppliedDrums,rate=context.sampleRate,beatFrames=Math.round(60/plan.bpm*rate),frames=Math.round(plan.beats*beatFrames),seconds=frames/rate;
   if(!Number.isFinite(seconds)||seconds<=0||seconds>240)throw Error('Practice loop is too long');
   if(recorded&&plan.recording?.originalMix){
-   const buffer=await originalMix(context,plan,frames,sourceCancelled,progress,isolateVoice);
+   const buffer=await originalMix(context,plan,frames,sourceCancelled,progress,isolateVoice,naturalBalance);
    if(!buffer)return null;
    const stems={};
    if([6,8].includes(buffer.numberOfChannels)){
@@ -155,7 +178,7 @@ window.BassPracticeLoop=(()=>{
     const asset=window.BassWorldMethodMixes?.[plan.audio];
     if((asset?.addDrums||!originalDrums)&&drums&&loop){const replacement=await D.render(context,loop,beatFrames,cancelled);if(cancelled())return null;if(replacement)stems.drums=replacement;}
    }else stems.bass=buffer;
-   return {stems,frames:buffer.length,seconds:buffer.duration,beatSeconds:buffer.duration/plan.beats,beatFrames:buffer.length/plan.beats,rate,gain:1,levels:levels(stems),semitones:plan.semitones||0,drumPhase:0,estimatedMix:true,voiceUnavailable:isolateVoice&&!stems.voice,voicePending:!isolateVoice&&!stems.voice};
+   return {stems,frames:buffer.length,seconds:buffer.duration,beatSeconds:buffer.duration/plan.beats,beatFrames:buffer.length/plan.beats,rate,gain:1,levels:naturalBalance?{}:levels(stems),semitones:plan.semitones||0,drumPhase:0,estimatedMix:true,voiceUnavailable:isolateVoice&&!stems.voice,voicePending:!isolateVoice&&!stems.voice};
   }
   const beat=beatFrames/rate,stems={},K=window.BassPracticeKeys,keys=window.BassAccompaniment?window.BassAccompaniment.arrange(plan,style):plan.chords;
   const phrase=recorded&&plan.recording?.pack;
