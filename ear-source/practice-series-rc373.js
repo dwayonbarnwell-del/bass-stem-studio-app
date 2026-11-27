@@ -244,6 +244,8 @@ window.BassPracticeSeries=(()=>{
   });
   return {...plan,...band(s,kind),bass,source:kind==='basslines'?plan.source:roots[0],target:kind==='basslines'?plan.target:roots[1]};
  }
+ window.BassUploadedCore.restoreLegacy('clip-33');
+ window.BassCulturalStudies.completeArtistStudies();
  P.make=make;
  return {get,label,menuLabel};
 })();

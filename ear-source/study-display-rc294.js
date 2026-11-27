@@ -13,6 +13,11 @@ window.BassStudyDisplay=(()=>{
  }
  function suffix(text,ending,limit=12){return fitName(text,Math.max(1,limit-ending.length))+ending;}
  function sourceName(family,code){
+  if(family==='Bass Lady'||family==='Bassmatics'){
+   const full=family+' '+code;
+   if(full.length<=12)return full;
+   return (family==='Bass Lady'?'Lady':'Matics')+' '+code;
+  }
   const name=({'Bass Lady':'B Lady',Bassmatics:'Bmatics','World Methods':'World','Practice bassline':'Practice','Practice studies':'Practice','Recorded bass':'Take','Reggae recordings':'Take'})[family]||(/^Practice/.test(family)?'Practice':'Take');
   const compact=code.length+name.length+1<=12?name:({'B Lady':'Lady',Bmatics:'Bmat',Practice:'Prac'})[name]||name;
   return suffix(compact,' '+code);
@@ -23,7 +28,7 @@ window.BassStudyDisplay=(()=>{
   const rows=window.BassUploadedCore?.items||[];
   if(sourceCount!==rows.length){
    const counts=new Map();sourceNumbers.clear();
-   for(const item of rows){const family=item.sourceFamily||sourceFamilies[item.group]||(item.group==='reggae'?'Reggae recordings':'Recorded bass'),number=Number(item.id.match(/^(?:lady|matics)-(\d+)$/)?.[1])||(counts.get(family)||0)+1;counts.set(family,Math.max(number,counts.get(family)||0));sourceNumbers.set(item.id,number);}
+   for(const item of rows){const family=item.sourceFamily||sourceFamilies[item.group]||(item.group==='reggae'?'Reggae recordings':'Recorded bass'),number=item.id==='clip-33'?11:Number(item.id.match(/^(?:lady|matics)-(\d+)$/)?.[1])||(counts.get(family)||0)+1;counts.set(family,Math.max(number,counts.get(family)||0));sourceNumbers.set(item.id,number);}
    sourceCount=rows.length;
   }
   return sourceNumbers.get(row.id)||1;
@@ -46,7 +51,11 @@ window.BassStudyDisplay=(()=>{
     let name=kind==='basslines'?item.artist==='marley'?'Barrett':short(item.name):short(item[0]);
     if(source){
      const peers=Q.entries.filter(e=>e.kind===kind&&e.recordedStudy?.sourceKind===recording.sourceKind&&e.recordedStudy?.sourceId===recording.sourceId&&e.recordedStudy?.sourcePart===recording.sourcePart);
-     name=suffix(phrase(source,recording.sourcePart||0,window.BassRecordedPhrases?.[source.id]?.length||1),'.'+(peers.indexOf(entry)+1));
+     if(['Bass Lady','Bassmatics'].includes(recording.family)){
+      const code=String(recordingNumber(source)).padStart(2,'0');
+      const part=(window.BassRecordedPhrases?.[source.id]?.length||0)>1?'.'+(recording.sourcePart+1):'';
+      name=sourceName(recording.family,code+part+'.'+(peers.indexOf(entry)+1));
+     }else name=suffix(phrase(source,recording.sourcePart||0,window.BassRecordedPhrases?.[source.id]?.length||1),'.'+(peers.indexOf(entry)+1));
     }else if(recording?.sourceKind==='basslines'){
      const peers=Q.entries.filter(e=>e.kind===kind&&e.recordedStudy?.sourceKind==='basslines'&&e.recordedStudy?.sourceId===recording.sourceId&&e.recordedStudy?.sourcePart===recording.sourcePart);
      const number=P.lines.findIndex(x=>x.id===recording.sourceId)+1;
@@ -91,6 +100,7 @@ window.BassStudyDisplay=(()=>{
  function phrase(row,index,count){
   const base=clip(row);
   if(count===1)return base;
+  if(sourceFamilies[row.group]&&['Bass Lady','Bassmatics'].includes(sourceFamilies[row.group]))return sourceName(sourceFamilies[row.group],String(recordingNumber(row)).padStart(2,'0')+'.'+(index+1));
   const ending=base.match(/ (\d+)$/);
   const suffix=(ending?' '+ending[1]:'')+'.'+(index+1);
   const stem=ending?base.slice(0,-ending[0].length):base;

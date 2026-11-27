@@ -138,7 +138,8 @@ window.BassRehearsalIdeas=(()=>{
   }
   if(M&&context)for(const row of [...basslines,...runs,...fills])row.score+=M.matchScore(row,context,selection);
   if(M&&context&&selection!=='all')for(const rows of [runs,fills])for(let i=rows.length-1;i>=0;i--)if(!M.canPlace(rows[i].entry,context,selection))rows.splice(i,1);
-  return [...diverse(basslines,12),...diverse(runs,8),...diverse(fills,8)].map(row=>({...row,label:describe(row).label}));
+  const artistSource=style==='source:bass-lady'||style==='source:bassmatics';
+  return [...diverse(basslines,artistSource?Infinity:12),...diverse(runs,artistSource?Infinity:8),...diverse(fills,artistSource?Infinity:8)].map(row=>({...row,label:describe(row).label}));
  }
  function strongestStyle(chords,grid,rhythm,title=''){
   const hinted=H.namedGenre?.({title})||X.styleOf({title}),fallback=C.suggest(chords,grid);

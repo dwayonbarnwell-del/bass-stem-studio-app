@@ -100,17 +100,67 @@ window.BassCulturalStudies=(()=>{
    const shapeKey=kind+'/'+style+'/'+row.shape,previous=registeredShapes.get(shapeKey);
    if(previous){const list=kind==='runs'?P.runs:F.styles;list[previous.index].aliasIds.push(row.id,...(duplicateIds.get(row.id)||[]));continue;}
    const number=(numbers.get(row.source.id)||0)+1;numbers.set(row.source.id,number);
+   registerCapture(row,number);registered++;
+
+  }
+  summary[kind][style]=(summary[kind][style]||0)+registered;
+ }
+ function registerCapture(row,number){
+   const {kind,source:{style}}=row;
    const sourceNumber=String(sourceNumbers.get(style+'/'+row.source.family+'/'+row.source.kind+'/'+row.source.id+'/'+row.source.part)).padStart(2,'0');
    const uploadedName=({Bassmatics:'Mat','Bass Lady':'Ldy','World Methods':'Wld'}[row.source.family]||{highlife:'Hlife',ariaria:'Aria',woro:'Woro',makossa:'Mk'}[style]||'Take')+' '+sourceNumber;
    const base=row.source.cohort==='uploads-352'?uploadedName:row.source.family==='World Methods'?'World '+sourceNumber:row.source.kind==='basslines'?'Line '+sourceNumber:['Bass Lady','Bassmatics'].includes(row.source.family)?row.source.title.replace(/^Bass Lady\s*/i,'Lady ').replace(/^Bassmatics?\s*/i,'Matics '):uploadedName;
    const title=(base.slice(0,9)+'.'+number).slice(0,12);
    const recordedStudy={sourceKind:row.source.kind,sourceId:row.source.id,sourcePart:row.source.part,family:row.source.family,sourceTitle:row.source.title,style,start:row.start,end:row.end,nativeBpm:row.nativeBpm,interval:row.interval,changes:allChanges,nativeChanges:row.changes,events:row.events,confidence:row.confidence,estimated:true};
    const entry=C.register({id:row.id,kind,title,tip:'',genre:style,mode:'major',rhythm:'recorded',notes:[],tier:0,rank:-1000-row.score*100,culturalStyle:style,recordedStudy,source:{label:'Adapted from '+row.source.family+' · '+row.source.title,url:row.source.audio}});
-   entry.original=false;const list=kind==='runs'?P.runs:F.styles;list[entry.index].aliasIds=duplicateIds.get(row.id);entries.push(entry);registeredShapes.set(shapeKey,entry);registered++;
+   entry.original=false;const list=kind==='runs'?P.runs:F.styles;list[entry.index].aliasIds=duplicateIds.get(row.id)||[];entries.push(entry);registeredShapes.set(kind+'/'+style+'/'+row.shape,entry);
    D.describe([{kind,id:entry.id,title:names[style]+' · '+row.source.family+' · '+row.source.title+' · '+(kind==='runs'?'run':'fill')}]);
    summary.families[row.source.family]=(summary.families[row.source.family]||0)+1;
+ }
+ // After the existing catalogue has its stable indices, cover artist takes
+ // that lost out to another source in the original genre-wide selection.
+ function completeArtistStudies(){
+  const used=new Set(entries.map(e=>e.recordedStudy.sourceId+'/'+e.kind));
+  for(const [,pool] of batches){
+   for(const row of pool){
+    const {source,kind}=row,key=source.id+'/'+kind;
+    if(!['Bass Lady','Bassmatics'].includes(source.family)||used.has(key))continue;
+    if(registeredShapes.has(kind+'/'+source.style+'/'+row.shape))continue;
+    try{for(let delta=0;delta<12;delta++)retarget({events:row.events,interval:row.interval},delta);}catch{continue;}
+    registerCapture(row,1);used.add(key);
+   }
   }
-  summary[kind][style]=(summary[kind][style]||0)+registered;
+
+  // Additional passages from the longer archived performances, outside the
+  // original short loop. Keep the public recording ID for deletion and naming.
+  batches.length=0;byGroup.clear();
+  const archivePassages=[
+   ["lady-02","runs","clip-24",38,11],
+   ["lady-04","fills","clip-26",20,5],
+   ["lady-05","runs","clip-27",37,12],
+   ["lady-05","fills","clip-27",44,5],
+   ["lady-10","fills","clip-32",6,5],
+   ["clip-33","runs","clip-33",25,8],
+   ["clip-33","fills","clip-33",121,4],
+   ["matics-02","fills","clip-43",31,4],
+   ["matics-03","runs","clip-42",8,10],
+   ["matics-03","fills","clip-42",8,4],
+   ["matics-05","fills","clip-40",53,4],
+   ["matics-07","runs","clip-38",45,14],
+   ["matics-09","fills","clip-36",44,6],
+   ["matics-10","fills","clip-35",56,5],
+  ];
+  for(const [id,kind,archiveId,first,count] of archivePassages){
+   if(used.has(id+'/'+kind))continue;
+   const archive=window.BassUploadedStudies.find(r=>r.id===archiveId);
+   const timing=window.BassRecordedPhrases[id]?.[0];
+   if(!archive||!timing)continue;
+   const row=window.BassUploadedCore.find(id),family=row.group==='bass-lady'?'Bass Lady':'Bassmatics';
+   const source={kind:'uploaded',id,part:0,style:styleOf(archive),family,title:archive.title,audio:row.audio,offset:0,step:(timing[1]-timing[0])/timing[2],notes:archive.notes.slice(first,first+count)};
+   const passage=candidates(source,kind,{maxSeconds:8,allowTempoAdaptation:true}).find(r=>r.events.length===count);
+   if(passage&&!registeredShapes.has(kind+'/'+source.style+'/'+passage.shape))registerCapture(passage,1);
+  }
+  registeredShapes.clear();duplicateIds.clear();
  }
  function supports(entry,from,to){return !entry?.recordedStudy||entry.recordedStudy.changes.some(pair=>pair[0]===Number(from)&&pair[1]===Number(to));}
  function nativeMatch(entry,from,to){return !!entry?.recordedStudy?.nativeChanges.some(pair=>pair[0]===Number(from)&&pair[1]===Number(to));}
@@ -141,5 +191,5 @@ window.BassCulturalStudies=(()=>{
   const chordName=d=>{const root=degree(d-1),third=degree(d+1)-root,fifth=degree(d+3)-root;return F.names[pc(root)]+(fifth===6?'dim':third===3?'m':'');};
   return {kind,key,mode:'major',from,to,idea:entry.index,bpm:Math.max(40,Math.min(220,Number(opts.bpm)||r.nativeBpm)),beats:8,bass,chords:[...chord(from,0),...chord(to,4)],source,target,title:entry.title,tip:'',curated:entry,recordedStudy:r,culturalStyle:r.style,practiceStyle:r.style==='seben'?'soukous':r.style,requestedChangeSupported,sourceAdaptation:{pivot:adaptation.pivot,shift:adaptation.shift},heading:from+' → '+to+' · '+chordName(from)+' → '+chordName(to),fromChord:chordName(from),toChord:chordName(to)};
  }
- return {entries,summary,styleOf,supports,nativeMatch,available,make,retarget,candidates};
+ return {entries,summary,completeArtistStudies,styleOf,supports,nativeMatch,available,make,retarget,candidates};
 })();
