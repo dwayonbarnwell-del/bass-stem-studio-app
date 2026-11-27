@@ -174,8 +174,6 @@ window.BassCustomFlow=(()=>{
   if(on&&host.dataset.focus!=='true'){
    editorScroll=document.getElementById('earContent').scrollTop;editorSelection=selected;editorTrigger=playing==='change'?'Change':'Play';
   }
-  const slot=on?el('ViewActions'):el('Progression');
-  if(el('Change').parentElement!==slot)slot.append(el('Change'));
   host.dataset.focus=String(on);el('Visual').hidden=!on;el('Setup').hidden=on;el('Notes').hidden=on;
   if(on)document.getElementById('earContent').scrollTop=0;
  }
@@ -216,7 +214,7 @@ window.BassCustomFlow=(()=>{
 
  }
  function actions(){
-  el('Change').textContent=playing==='change'?'Pause change':paused==='change'?'Resume change':'Play change';
+  el('Change').textContent=playing==='change'?'Stop change':'Play change';
   el('Play').textContent=playing==='all'?'Pause flow':paused==='all'?'Resume flow':'Play flow';
  }
  function follow(){
@@ -269,7 +267,7 @@ window.BassCustomFlow=(()=>{
    ctx??=new AudioContext();await ctx.resume();await window.BassEarAudio.prepare(ctx);
    if(ticket!==revision)return;
    const p=plan(mode==='change'),band=H.resolve(p,{groove:state.beat});
-   const chart=chartFor(p,mode==='change');
+   const chart=mode==='all'?chartFor(p,false):null;
    const task=renderQueue.then(()=>ticket===revision?window.BassPracticeLoop.render(ctx,p,{...band,cancelled:()=>revision!==ticket}):null);
    renderQueue=task.catch(()=>null);
    const rendered=await task;
@@ -278,12 +276,15 @@ window.BassCustomFlow=(()=>{
    const when=ctx.currentTime+.035,continuing=player&&sounding===mode&&mode==='all';
    const at=continuing?Math.max(0,(player.position()+.035)/player.beatSeconds)%p.beats:resume%p.beats;
    const next=window.BassPracticeLoop.start(ctx,rendered,{when,offsetBeats:at,fadeIn:.008});
-   player?.stopAt(when,.008);player=next;sounding=mode;pendingScore={...chart,step:next.beatSeconds,transport:next,start:when+next.latency};
+   player?.stopAt(when,.008);player=next;sounding=mode;
+   if(mode==='change'){score=null;pendingScore=null;clearInterval(clock);el('Status').textContent='';return;}
+   pendingScore={...chart,step:next.beatSeconds,transport:next,start:when+next.latency};
    if(!score?.transport||paused){installScore(pendingScore);pendingScore=null;}
    compact(true);follow();clearInterval(clock);clock=setInterval(follow,24);el('Status').textContent='';
   }catch(e){if(ticket===revision){if(player){playing=sounding;actions();}else stop();el('Status').textContent=e.message;}}
  }
  function toggle(mode){
+  if(mode==='change'&&playing==='change'){stop();return;}
   if(host.dataset.focus!=='true'&&!acceptChords(true))return;
   if(beatRequest)stopBeat();
   if(playing===mode){
@@ -297,9 +298,12 @@ window.BassCustomFlow=(()=>{
  function draw(){
   for(const name of ['Genre','Beat']){
    const caption=el(name).selectedOptions[0]?.text||'';
-   el(name+'Name').textContent=caption;el(name).title=caption;
+   let short=caption;
+   if(name==='Genre'&&state.genre==='nigerian68')short='Nigerian\n6/8';
+   if(name==='Beat')short=caption.replace(/^FL\s+/i,'').replace(/^6[-/]8\s+/,'').replace(/\s*(\d+)$/,'\n$1').trim();
+   el(name+'Name').textContent=short;el(name).title=caption;
   }
-  el('Audition').disabled=!state.beat;
+  el('BeatNext').disabled=el('Beat').length<2;el('Audition').disabled=!state.beat;
   const moves=el('Changes');moves.replaceChildren();
   state.degrees.slice(1).forEach((to,i)=>{
    const b=document.createElement('button');b.type='button';b.textContent=state.degrees[i]+' → '+to;
@@ -365,7 +369,7 @@ window.BassCustomFlow=(()=>{
   host.innerHTML=`<div class="flow-grid" id="flowSetup"><div class="wide flow-beats">
    <label><select aria-label="Genre" id="flowGenre"></select><span aria-hidden="true" id="flowGenreName"></span></label>
    <label><select aria-label="Beat" id="flowBeat"></select><span aria-hidden="true" id="flowBeatName"></span></label>
-   <button type="button" id="flowAudition" aria-pressed="false">Play beat</button></div>
+   <button type="button" id="flowBeatNext" aria-label="Next beat">Next beat</button><button type="button" id="flowAudition" aria-pressed="false">Play beat</button></div>
    <div class="flow-settings wide"><label class="flow-value"><span>Key</span><select id="flowKey"></select></label>
    <label class="flow-value"><span>BPM</span><input type="number" id="flowBpm" min="40" max="220" step="any"></label><button type="button" id="flowShowSave" aria-controls="flowSavePanel" aria-expanded="false">Save</button><button type="button" id="flowShowOpen" aria-controls="flowOpenPanel" aria-expanded="false">Open</button></div>
    <div class="flow-inline wide" id="flowSavePanel" hidden><label><input aria-label="Progression name" placeholder="Progression name" id="flowName" maxlength="80"></label><button type="button" id="flowSave">Save flow</button></div>
@@ -378,6 +382,10 @@ window.BassCustomFlow=(()=>{
    <div id="flowHarmony" aria-label="Chords"></div><div id="flowTimeline" aria-label="Bass notes"></div><div id="flowFret" hidden></div></section>
 
    <div id="flowNotes" role="group" aria-label="Notes leading to the next chord"></div><p role="status" id="flowStatus"></p>`;
+  el('BeatNext').onclick=()=>{
+   const beats=el('Beat');beats.selectedIndex=(beats.selectedIndex+1)%beats.length;
+   beats.dispatchEvent(new Event('change'));
+  };
   el('Audition').onclick=()=>{
    if(beatRequest){stopBeat();el('Status').textContent='';}
    else{if(playing)stop();void previewBeat();}
