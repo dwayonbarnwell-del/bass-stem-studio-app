@@ -47,7 +47,7 @@ window.BassFillTrainer=(()=>{
  function bandFor(value){
   const band=H.resolve(value,{kit:drumKit,groove:drumGroove,style:keyStyle,sound:keySound});
   const pool=B.byStyle(selectedBeatStyle());
-  if(pool.length&&!pool.some(loop=>loop.id===band.loop.id))band.loop=pool[0];
+  if(drumKit!=='auto'&&drumGroove==='auto'&&pool.length&&!pool.some(loop=>loop.id===band.loop.id))band.loop=pool[0];
   return band;
  }
  const accompaniment=()=>({...bandFor(plan),originalDrums:drumKit==='auto'&&drumGroove==='auto',originalKeys:keyStyle==='auto'&&keySound==='auto'});

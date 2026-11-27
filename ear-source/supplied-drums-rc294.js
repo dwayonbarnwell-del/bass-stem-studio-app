@@ -23,7 +23,11 @@ window.BassSuppliedDrums=(()=>{
  });
  const available=[...loops,...praise68,...(window.BassGrooveLibrary?.loops||[]).filter(l=>!brightLoops.has(l.base)),...(window.BassFlDrums?.loops||[])];
  const midi=new Set(window.BassFlDrums?.loops||[]);
- const instrumental=available.filter(row=>row.recreated||row.instrumentalRecording||row.events?.length||(midi.has(row)&&row.sourceMidi));
+ // Dedicated drum uploads are separate from the extracted song and lesson stems.
+ const uploads=new Set(window.BassDrumLoops||[]);
+ const uploadIds=new Set([...uploads].map(row=>row.id));
+ const dedicated=loop=>uploads.has(loop)||uploadIds.has(loop.base)||/^(owner|gs)-/.test(loop.id);
+ const instrumental=available.filter(row=>dedicated(row)||row.recreated||row.instrumentalRecording||row.events?.length||(midi.has(row)&&row.sourceMidi));
  const buffers=new Map(),renders=new Map(),loads=new Map();
  const kitsByStyle=new Map();
  function byStyle(style){
@@ -31,6 +35,9 @@ window.BassSuppliedDrums=(()=>{
   const matches=instrumental.filter(loop=>{
    // Older catalogues used the accompaniment family as the genre, even
    // for rock or hip hop MIDI files assigned to a soul study.
+   if(style==='worship'&&/^owner-(purepop|theworld|crispy)-/.test(loop.id))return true;
+   if(style==='gospel'&&/^owner-(bigbass|clyde|crispy)-/.test(loop.id))return true;
+   if(style==='rnb'&&loop.genre==='soul'&&dedicated(loop))return true;
    const sourceGenre=loop.sourceMidi&&loop.sourceName?.match(/^([a-z]+) Loops\//i)?.[1].toLowerCase();
    const tags=sourceGenre?[sourceGenre]:loop.styles?.length?loop.styles:[loop.genre];
    return tags.includes(style)||tags.includes(genre)||(genre==='fusion'&&tags.includes('funk'));
@@ -114,13 +121,16 @@ window.BassSuppliedDrums=(()=>{
   if(!loads.has(key))loads.set(key,(async()=>{
    let cache,response;try{cache=await caches.open('bass-supplied-drums-rc294');response=await cache.match(loop.url);}catch{}
    if(!response){response=await fetch(loop.url);if(!response.ok)throw Error('Drum loop unavailable');if(cache)try{await cache.put(loop.url,response.clone());}catch{}}
-   const decoded=alignSource(context,loop,await context.decodeAudioData(await response.arrayBuffer()));// Tame sustained cymbal brightness in mixed drum recordings. Wrap the
-   // filter history around the loop so the join stays continuous.
-   const weight=1-Math.exp(-2*Math.PI*3200/decoded.sampleRate);
-   for(let channel=0;channel<decoded.numberOfChannels;channel++){
-    const pcm=decoded.getChannelData(channel);let low=0;
-    for(let i=Math.max(0,pcm.length-256);i<pcm.length;i++)low+=weight*(pcm[i]-low);
-    for(let i=0;i<pcm.length;i++){const input=pcm[i];low+=weight*(input-low);pcm[i]=low+.46*(input-low);}
+   const decoded=alignSource(context,loop,await context.decodeAudioData(await response.arrayBuffer()));
+   if(loop.recreated){
+    // Tame sustained cymbal brightness in reconstructed drum recordings. Wrap the
+    // filter history around the loop so the join stays continuous.
+    const weight=1-Math.exp(-2*Math.PI*3200/decoded.sampleRate);
+    for(let channel=0;channel<decoded.numberOfChannels;channel++){
+     const pcm=decoded.getChannelData(channel);let low=0;
+     for(let i=Math.max(0,pcm.length-256);i<pcm.length;i++)low+=weight*(pcm[i]-low);
+     for(let i=0;i<pcm.length;i++){const input=pcm[i];low+=weight*(input-low);pcm[i]=low+.46*(input-low);}
+    }
    }
    buffers.set(key,decoded);
    while(buffers.size>3)buffers.delete(buffers.keys().next().value);return decoded;
