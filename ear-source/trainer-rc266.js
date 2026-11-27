@@ -41,18 +41,20 @@ window.BassEarTrainer=(()=>{
  function options(playback){return {mode:selectedMode(),level:Number($('earLevel').value),sound:$('earSound').value,count:Number($('earCount').value),playback};}
  function controls(){
   const busy=phase==='loading'||phase==='playing',active=!!round&&phase!=='summary',mode=selectedMode(),fills=['fills','basslines','runs'].includes(mode);
-  const rehearsal=mode==='rehearsal';
+  const rehearsal=mode==='rehearsal',flow=mode==='flow',bassWorkspace=fills||rehearsal||flow;
+  $('earCustomFlow').hidden=!flow;
   dialog.dataset.lesson=mode;
   $('earSections').hidden=active;
   $('earMode').value=section==='notes'?noteMode:'';$('earMode').disabled=active;
   $('earMode').dataset.active=String(section==='notes');
   $('earSectionFills').setAttribute('aria-pressed',String(fills));
-  $('earBassSections').hidden=!(fills||rehearsal)||active;
+  $('earBassSections').hidden=!bassWorkspace||active;
   for(const b of $('earBassSections').querySelectorAll('[data-section]'))b.setAttribute('aria-pressed',String(b.dataset.section===section));
-  $('earProgress').hidden=fills||rehearsal;
+  $('earSectionFlow').setAttribute('aria-pressed',String(flow));
+  $('earProgress').hidden=bassWorkspace;
   $('earFillStudy').hidden=!fills; $('earLevel').parentElement.hidden=fills; $('earSound').parentElement.hidden=fills;
-  $('earStartRow').hidden=!active;$('earStatus').hidden=fills||rehearsal;$('earSummary').hidden=fills||rehearsal||phase!=='summary';
-  $('earSetup').hidden=active||fills||rehearsal;$('earPlaybackChoices').hidden=active||fills||rehearsal;$('earHint').hidden=active||fills||rehearsal;$('earSession').hidden=!active;
+  $('earStartRow').hidden=!active;$('earStatus').hidden=bassWorkspace;$('earSummary').hidden=bassWorkspace||phase!=='summary';
+  $('earSetup').hidden=active||bassWorkspace;$('earPlaybackChoices').hidden=active||bassWorkspace;$('earHint').hidden=active||bassWorkspace;$('earSession').hidden=!active;
   $('earRehearsal').hidden=!rehearsal;
   $('earSectionRehearsal').setAttribute('aria-pressed',String(rehearsal));
   if(rehearsal&&dialog.open)window.BassRehearsal?.refresh();
@@ -176,15 +178,15 @@ window.BassEarTrainer=(()=>{
   $('earAdvance').hidden=!nextLevel;updateProgress();controls();
  }
  function resetQuestion(){if(answered)return;entered=[];text('earEntered','Choose '+question.answer.length+' notes.');controls();}
- function close(){window.BassFillTrainer?.stop();window.BassRehearsal?.close();repeatQuestion=false;stopSound();phase='idle';answered=false;question=null;round=null;if(context?.state==='running')void context.suspend();}
- function modeChanged(){if(!['fills','runs','basslines'].includes(selectedMode()))window.BassFillTrainer?.stop();stopSound();if(question||round){question=null;round=null;answered=false;phase='idle';}drawKeyboard();const mode=selectedMode();text('earHint',hints[mode]||'');$('earLevel').value=String(progress.modes[mode]?.level||1);controls();if(['fills','basslines','runs'].includes(mode))window.BassFillTrainer?.setKind(mode);}
+ function close(){window.BassCustomFlow?.stop();window.BassFillTrainer?.stop();window.BassRehearsal?.close();repeatQuestion=false;stopSound();phase='idle';answered=false;question=null;round=null;if(context?.state==='running')void context.suspend();}
+ function modeChanged(){if(!['fills','runs','basslines'].includes(selectedMode()))window.BassFillTrainer?.stop();stopSound();if(question||round){question=null;round=null;answered=false;phase='idle';}drawKeyboard();const mode=selectedMode();if(mode==='flow')window.BassCustomFlow.open();text('earHint',hints[mode]||'');$('earLevel').value=String(progress.modes[mode]?.level||1);controls();if(['fills','basslines','runs'].includes(mode))window.BassFillTrainer?.setKind(mode);}
  function selectSection(nextSection){if(section===nextSection)return;const practice=['fills','runs','basslines'];if(!practice.includes(section)||!practice.includes(nextSection))close();section=nextSection;modeChanged();status('No song needed');$('earContent').scrollTop=0;}
  function init(hooks){
   api=hooks;if(dialog)return;
   const wrap=document.createElement('div');wrap.innerHTML=`<dialog id="earTrainerDialog" aria-labelledby="earTitle">
 <header class="ear-header"><h2 id="earTitle">Ear training</h2><button id="earClose" type="button">Close</button></header>
 <div id="earContent">
-<div id="earSections" role="group" aria-label="Ear training sections"><select id="earMode" aria-label="Notes lesson" title="Notes lesson"><option value="" disabled hidden>Notes</option><option value="notes" selected>Notes</option><option value="intervals">Intervals</option><option value="chords">Chords</option><option value="progressions">Progressions</option></select><button id="earSectionFills" type="button" data-section="fills" aria-pressed="false">Bass</button></div>
+<div id="earSections" role="group" aria-label="Ear training sections"><select id="earMode" aria-label="Notes lesson" title="Notes lesson"><option value="" disabled hidden>Notes</option><option value="notes" selected>Notes</option><option value="intervals">Intervals</option><option value="chords">Chords</option><option value="progressions">Progressions</option></select><button id="earSectionFills" type="button" data-section="fills" aria-pressed="false">Bass</button><button id="earSectionFlow" type="button" data-section="flow">Custom flow</button></div>
 <div id="earBassSections" role="group" aria-label="Bass studies" hidden><button id="earSectionBasslines" type="button" data-section="basslines" aria-pressed="false">Basslines</button><button id="earSectionRuns" type="button" data-section="runs" aria-pressed="false">Runs</button><button id="earSectionMyFills" type="button" data-section="fills" aria-pressed="false">My fills</button><button id="earSectionRehearsal" type="button" data-section="rehearsal" aria-pressed="false">Rehearse</button></div>
 <div id="earSetup" class="ear-settings">
 <label><select id="earLevel" aria-label="Select level" title="Select level"><option value="1">Level 1</option><option value="2">Level 2</option><option value="3">Level 3</option><option value="4">Level 4</option><option value="5">Level 5</option></select></label>
@@ -201,6 +203,7 @@ window.BassEarTrainer=(()=>{
 </section>
 <section id="earNotes"><div id="earKeyboardScroll" tabindex="0" aria-label="Piano keyboard. Scroll sideways for more keys."><div id="earKeyboard" aria-label="Piano keys"></div></div><div id="earNoteEntry" hidden><p id="earEntered" aria-live="polite"></p><div class="ear-note-actions"><button id="earUndoNote" type="button">Undo</button><button id="earClearNotes" type="button">Clear</button><button id="earCheckNotes" type="button">Check</button></div></div></section>
 <section id="earFeedbackPanel" hidden><p id="earFeedback" class="ear-feedback" aria-live="polite"></p><div id="earAnswerSoundRow" class="ear-answer-sound" hidden><button id="earAnswerSound" type="button">Hear answer</button></div></section>
+<section id="earCustomFlow" aria-label="Custom flow" hidden></section>
 <section id="earFillStudy" hidden></section>
 <section id="earRehearsal" aria-label="Song rehearsal" hidden></section>
 <section id="earSummary" hidden><h3 id="earSummaryTitle"></h3><p id="earSummaryText"></p><button id="earAdvance" type="button" hidden>Next level</button></section>
@@ -209,6 +212,7 @@ window.BassEarTrainer=(()=>{
   window.addEventListener('resize',fitViewport);window.visualViewport?.addEventListener('resize',fitViewport);window.visualViewport?.addEventListener('scroll',fitViewport);screen.orientation?.addEventListener('change',fitViewport);fitViewport();
   $('openEarTraining').onclick=()=>{if(api?.busy?.())return;api?.pause?.();close();drawKeyboard();$('earSummary').hidden=true;dialog.showModal();$('earContent').scrollTop=0;fitViewport();status('No song needed');controls();};
   if(hooks.rehearsal)window.BassRehearsal.init($('earRehearsal'),hooks.rehearsal);
+  window.BassCustomFlow.init($('earCustomFlow'));
   window.BassFillTrainer.init($('earFillStudy'),{...hooks,openHome(){selectSection('notes');$('earMode').focus();}});$('earAnswerSound').onclick=()=>void listen(true);
   for(const b of dialog.querySelectorAll('[data-section]'))b.onclick=()=>selectSection(b.dataset.section);
   $('earClose').onclick=()=>{close();dialog.close();};dialog.addEventListener('close',()=>{if(!dialog.open)close();});dialog.addEventListener('cancel',close);

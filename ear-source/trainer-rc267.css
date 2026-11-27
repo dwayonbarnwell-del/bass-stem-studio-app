@@ -457,3 +457,17 @@
  #earTrainerDialog #earContent:has(#earFillStudy:not([hidden])) {box-sizing:border-box!important;padding-inline:8px!important;scrollbar-gutter:stable}
  #earTrainerDialog #earFillStudy :is(button,select):focus-visible {outline-offset:-3px!important}
 }
+@layer bass-ear-267 {
+ #earTrainerDialog #earSectionFlow {grid-column:1/-1}
+ #earTrainerDialog #earCustomFlow .flow-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;align-items:end}
+ #earTrainerDialog #earCustomFlow :is(label,button,select,input) {min-width:0;max-width:100%;box-sizing:border-box}
+ #earTrainerDialog #earCustomFlow label {display:grid;gap:3px;font-size:13px}
+ #earTrainerDialog #earCustomFlow :is(select,input,button) {width:100%;min-height:44px}
+ #earTrainerDialog #earCustomFlow input {background:#142d40;color:white;border:1px solid #7493a3;border-radius:8px;padding:6px}
+ #earTrainerDialog #earCustomFlow .wide {grid-column:1/-1}
+ #earTrainerDialog #flowChanges {display:flex;gap:6px;flex-wrap:wrap}
+ #earTrainerDialog #flowChanges button {width:auto;flex:1 0 64px}
+ #earTrainerDialog #flowChanges button[aria-pressed=true] {background:#155981!important;border-color:#8ad7ff!important}
+ #earTrainerDialog #flowChanges button[aria-current=step] {box-shadow:inset 0 -4px 0 #ffca6e!important}
+ #earTrainerDialog #flowNotes {margin:0;color:#aaddf4;overflow-wrap:anywhere}
+}
