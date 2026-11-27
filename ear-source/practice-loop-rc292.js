@@ -176,7 +176,7 @@ window.BassPracticeLoop=(()=>{
      stems[part]=stem;
     }
     const asset=window.BassWorldMethodMixes?.[plan.audio];
-    if((asset?.addDrums||!originalDrums)&&drums&&loop){const replacement=await D.render(context,loop,beatFrames,cancelled);if(cancelled())return null;if(replacement)stems.drums=replacement;}
+    if((asset?.addDrums||loop?.instrumentalRecording||!originalDrums)&&drums&&loop){const replacement=await D.render(context,loop,beatFrames,cancelled);if(cancelled())return null;if(replacement)stems.drums=replacement;}
    }else stems.bass=buffer;
    return {stems,frames:buffer.length,seconds:buffer.duration,beatSeconds:buffer.duration/plan.beats,beatFrames:buffer.length/plan.beats,rate,gain:naturalBalance?recordingGain(context,stems):1,levels:naturalBalance?{}:levels(stems),semitones:plan.semitones||0,drumPhase:0,estimatedMix:true,voiceUnavailable:isolateVoice&&!stems.voice,voicePending:!isolateVoice&&!stems.voice};
   }

@@ -94,7 +94,7 @@ window.BassRehearsal=(()=>{
     updateBpm();patterns();
    };
   }
-  $('rehearsalStyle').onchange=()=>{patterns(true);changePattern();};
+  $('rehearsalStyle').onchange=()=>{patterns(true);changePattern();void refreshRehearsalDrums();};
   $('rehearsalPattern').onchange=changePattern;
   $('rehearsalFill').onchange=changePattern;
   $('rehearsalMix').onclick=()=>void toggleMix();
@@ -600,26 +600,66 @@ window.BassRehearsal=(()=>{
   return {source:audio,offset:0,end:Math.min(audio.duration,current.end-current.start),stems:audio.numberOfChannels===8};
  }
 
+ // Keep the original song and its saved stems intact. The replacement follows
+ // the same beat grid and selected ranges as the bass guide during rehearsal.
+ function wantsPraiseDrums(){return $('rehearsalStyle').value==='ariaria';}
+ async function preparePraiseDrums(tracks,current){
+  const grid=current.grid;
+  if(!tracks.stems||!grid?.points?.length||!wantsPraiseDrums())return;
+  if(tracks.praiseDrums)return;
+  const choices=window.BassSuppliedDrums.loops.filter(row=>row.genre==='ariaria'&&row.instrumentalRecording);
+  const groove=choices.sort((a,b)=>Math.abs(a.bpm-grid.bpm)-Math.abs(b.bpm-grid.bpm))[0];
+  if(!groove)return;
+  const frames=Math.round(ctx.sampleRate*60/grid.bpm);
+  const buffer=await window.BassSuppliedDrums.render(ctx,groove,frames);
+  if(clip!==current||!wantsPraiseDrums())return;
+  const lane=ctx.createBuffer(buffer.numberOfChannels,Math.ceil(tracks.end*ctx.sampleRate),ctx.sampleRate);
+  const points=grid.points,step=60/grid.bpm,rate=ctx.sampleRate;
+  for(let c=0;c<lane.numberOfChannels;c++){
+   const src=buffer.getChannelData(c),out=lane.getChannelData(c);let beat=-1;
+   for(let i=0;i<out.length;i++){
+    const t=current.start+i/rate;
+    while(beat+1<points.length&&t>=points[beat+1])beat++;
+    const at=beat<0?(t-points[0])/step:beat+(t-points[beat])/((points[beat+1]??(points[beat]+step))-points[beat]);
+    const sample=((at*frames%src.length)+src.length)%src.length,first=Math.floor(sample);
+    out[i]=src[first]+(sample-first)*(src[(first+1)%src.length]-src[first]);
+   }
+  }
+  tracks.praiseDrums=lane;
+ }
+ async function refreshRehearsalDrums(){
+  if(!playing||!band?.tracks.stems)return;
+  const tracks=band.tracks,current=clip;
+  try{await preparePraiseDrums(tracks,current);
+   if(playing&&band?.tracks===tracks&&clip===current)restartRepeat();
+  }catch{state('Could not load the Ariaria drums.');}
+ }
  function repeatLoop(tracks){return R.pack(ctx,tracks,clip,R.ranges(clip,selectedSeconds,phraseRepeat));}
 
  function startBand(tracks,when,phase=0,replace=false,loop=repeatLoop(tracks)){
   const node=ctx.createBufferSource(),previous=band,route=E?.mixer(ctx,{semitones:transposition()}),gain=route?.master||ctx.createGain(),gains={},nodes=[];
   node.buffer=loop.source;node.loop=true;node.loopStart=loop.start;node.loopEnd=loop.end;
-  const levels=tracks.levels||{};
+  const levels={...tracks.levels};
   if(tracks.stems&&route){
+   const praise=wantsPraiseDrums()&&tracks.praiseDrums;
    const splitter=ctx.createChannelSplitter(8);node.connect(splitter);nodes.push(splitter);
    for(const [i,part] of ['bass','drums','chords','voice'].entries()){
-    const stereo=ctx.createChannelMerger(2),level=ctx.createGain();splitter.connect(stereo,i*2,0);splitter.connect(stereo,i*2+1,1);stereo.connect(level).connect(part==='drums'?route.drums:route.pitched);nodes.push(stereo,level);gains[part]=level;
+    const stereo=ctx.createChannelMerger(2),level=ctx.createGain();if(part==='drums'&&praise){
+     const packed=R.pack(ctx,{...tracks,source:praise},clip,loop.map);
+     const drum=ctx.createBufferSource();drum.buffer=packed.source;drum.loop=true;drum.loopStart=packed.start;drum.loopEnd=packed.end;
+     drum.connect(level);drum.start(when,packed.start+phase%packed.seconds);nodes.push(drum);
+    }else{splitter.connect(stereo,i*2,0);splitter.connect(stereo,i*2+1,1);}stereo.connect(level).connect(part==='drums'?route.drums:route.pitched);nodes.push(stereo,level);gains[part]=level;
     if(levels[part]===undefined){const source=tracks.source,view={sampleRate:source.sampleRate,length:source.length,numberOfChannels:2,getChannelData:c=>source.getChannelData(i*2+c)};levels[part]=E.normalisation(view,part==='drums'?.18:.16);}
    }
-   tracks.levels=levels;
+   tracks.levels={...levels};
+   if(praise)levels.drums=E.normalisation(praise,.18);
   }else node.connect(route?.pitched||gain);
   if(!route)gain.connect(ctx.destination);
   const guideGain=route?ctx.createGain():null;
   if(guideGain){guideGain.gain.value=$('rehearsalGuide').getAttribute('aria-pressed')==='true'?Number($('rehearsalGain').value)/100:0;guideGain.connect(route.guide);nodes.push(guideGain);}
   const voiceContext=route?Object.assign(Object.create(route.context),{destination:guideGain}):ctx;
   const masterLevel=tracks.stems?1:Number($('rehearsalMusic').value)/100;gain.gain.value=replace?0:masterLevel;
-  const dispose=()=>{node.disconnect();for(const n of nodes)n.disconnect();route?.disconnect();gain.disconnect();};
+  const dispose=()=>{node.disconnect();for(const n of nodes){if(n.buffer&&n.stop)try{n.stop();}catch{}n.disconnect();}route?.disconnect();gain.disconnect();};
   band={node,gain,gains,levels,guideGain,voiceContext,route,tracks,loop,dispose};
   for(const part of Object.keys(gains))bandLevel(part);
   node.start(when,loop.start+phase%loop.seconds);
@@ -707,6 +747,8 @@ window.BassRehearsal=(()=>{
    if(id!==work||!tracks||currentId!==api.session())return;
    // Warm all notes before starting so style changes can take effect on the next loop.
    await window.BassPracticeAudio.prepare('bass',ctx,{notes:Array.from({length:37},(_,i)=>({midi:23+i,velocity:85}))});
+   if(id!==work||currentId!==api.session())return;
+   await preparePraiseDrums(tracks,clip);
    if(id!==work||currentId!==api.session())return;
    const notes=plan(),loop=repeatLoop(tracks),when=ctx.currentTime+.06,resuming=pausedPosition!==null,phase=resuming?R.phase(loop,pausedPosition):0;
    startBand(tracks,when,phase,false,loop);

@@ -120,6 +120,14 @@ window.BassAccompaniment=(()=>{
   const key=plan.recordedStudy?'culture/'+plan.curated.id:plan.kind==='uploaded'?plan.clipId+'/'+String(plan.part).replace('phrase-',''):[plan.kind,plan.idea,plan.part||0].join('/');
   const written=p.writtenGroove||plan.seriesDrum;
   const assignment=written?[written,0]:window.BassFlDrums?.assignments[key]||window.BassGrooveLibrary?.assignments[key];
+  const autoDrums=(!options.kit||options.kit==='auto')&&(!options.groove||options.groove==='auto');
+  const isAriaria=[p.id,p.dance,plan.recordedStudy?.style].includes('ariaria');
+  if(isAriaria&&autoDrums&&window.BassSuppliedDrums){
+   const choices=window.BassSuppliedDrums.loops.filter(loop=>loop.genre==='ariaria'&&loop.instrumentalRecording);
+   const recorded=window.BassUploadedCore?.find(plan.clipId||plan.recordedStudy?.sourceId);
+   const assigned=choices.find(loop=>loop.id===recorded?.sourceDrumLoopId)||choices.slice().sort((a,b)=>Math.abs(a.bpm-plan.bpm)-Math.abs(b.bpm-plan.bpm))[0];
+   if(assigned)options={...options,groove:assigned.id};
+  }
   const source=plan.recordedStudy&&window.BassUploadedCore.find(plan.recordedStudy.sourceId),sourceDrums=source?.sourceDrumLoopId;
   if(sourceDrums&&(!options.kit||options.kit==='auto')&&(!options.groove||options.groove==='auto'))options={...options,groove:sourceDrums};
   if(window.BassSuppliedDrums&&(!options.kit||options.kit==='auto')&&(!options.groove||options.groove==='auto')){
@@ -128,7 +136,7 @@ window.BassAccompaniment=(()=>{
    const groove=assignment?.[0]||measured||danceLoop?.id;
    if(groove)options={...options,groove};
   }
-  if(window.BassSuppliedDrums)return {...p,assignedPhase:assignment?.[1],loop:window.BassSuppliedDrums.choose(p.id,options.kit,options.groove),style:valid(options.style,Object.keys(profiles),p.style),sound:valid(options.sound,['piano','electric','organ'],'piano')};
+  if(window.BassSuppliedDrums)return {...p,assignedPhase:isAriaria?0:assignment?.[1],loop:window.BassSuppliedDrums.choose(p.id,options.kit,options.groove),style:valid(options.style,Object.keys(profiles),p.style),sound:valid(options.sound,['piano','electric','organ'],'piano')};
   return {...p,kit:valid(options.kit,window.BassPracticeDrums.kits.map(x=>x[0]),p.kit),groove:valid(options.groove,window.BassPracticeDrums.grooves.map(x=>x[0]),p.groove),style:valid(options.style,Object.keys(profiles),p.style),sound:valid(options.sound,['piano','electric','organ'],p.sound)};
  }
  const pc=n=>(n%12+12)%12;

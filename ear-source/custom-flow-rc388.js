@@ -68,6 +68,7 @@ window.BassCustomFlow=(()=>{
  // A drum stem estimated from a song or lesson may still contain speech.
  let flowBeats=new Map();
  function beatPool(ids){
+  if(state.genre==='ariaria')return window.BassSuppliedDrums.available.filter(loop=>loop.genre==='ariaria'&&loop.instrumentalRecording);
   const midi=new Set(window.BassFlDrums?.loops||[]);
   const safe=window.BassSuppliedDrums.available.filter(loop=>loop.events?.length||midi.has(loop)&&loop.sourceMidi);
   const matches=loop=>ids.has(loop.id)||loop.genre===state.genre||loop.styles?.includes(state.genre);
@@ -76,7 +77,6 @@ window.BassCustomFlow=(()=>{
   const originals=window.BassSuppliedDrums.available.filter(loop=>ids.has(loop.id));
   const genres=new Set(originals.map(loop=>loop.genre));
   if(H.profiles[state.genre])genres.add(state.genre);
-  if(state.genre==='ariaria')return safe.filter(loop=>loop.genre==='nigerian68'||loop.styles?.includes('nigerian68'));
   if(state.genre==='woro')genres.add('highlife');
   const drums=window.BassPracticeDrums;
   for(const genre of genres){
