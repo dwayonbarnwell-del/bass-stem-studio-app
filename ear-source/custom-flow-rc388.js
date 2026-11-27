@@ -121,17 +121,104 @@ window.BassCustomFlow=(()=>{
   });
   return window.BassRegister.plan({kind:'custom',practiceStyle:state.genre,bpm:state.bpm,beats:degrees.length*4,bass,chords});
  }
+ const namedPrefix='bass-ear-flow-arrangement/';
+ function savedMenu(value=''){
+  const select=el('Saved');select.replaceChildren(new Option('Choose a saved flow',''));
+  try{
+   const names=Object.keys(localStorage).filter(k=>k.startsWith(namedPrefix)).map(k=>k.slice(namedPrefix.length)).sort((a,b)=>a.localeCompare(b,'en',{numeric:true}));
+   for(const name of names)select.add(new Option(name,name));
+  }catch{}
+  select.value=value;el('Open').disabled=!select.value;
+ }
+ function saveNamed(){
+  const name=el('Name').value.trim();
+  if(!name){el('Name').focus();el('Status').textContent='Give your progression a name.';return;}
+  if(parse(el('Degrees').value)?.join()!==state.degrees.join()){el('Status').textContent='Apply your chord changes before saving.';return;}
+  try{
+   const key=namedPrefix+name;
+   if(localStorage.getItem(key)&&!window.confirm('Replace the saved progression “'+name+'”?'))return;
+   localStorage.setItem(key,JSON.stringify(state));savedMenu(name);
+   el('Status').textContent='Saved '+name+' on this device.';
+  }catch{el('Status').textContent='This browser could not save the progression.';}
+ }
+ function openNamed(){
+  const name=el('Saved').value;
+  try{
+   const s=JSON.parse(localStorage.getItem(namedPrefix+name));
+   if(!s||!Array.isArray(s.degrees)||!parse(s.degrees.join(','))||!Array.isArray(s.choices)||!catalogue.has(s.genre)||!Number.isInteger(s.key)||s.key<0||s.key>11||!['major','minor'].includes(s.mode)||!Number.isFinite(s.bpm)||s.bpm<40||s.bpm>220)throw Error();
+   stop();Object.assign(state,{genre:s.genre,key:s.key,mode:s.mode,bpm:s.bpm,beat:s.beat,degrees:s.degrees,choices:s.choices});fresh=false;selected=0;
+   open();el('Name').value=name;savedMenu(name);save();
+   el('Status').textContent=s.choices.join()===state.choices.join()&&s.beat===state.beat?'Opened '+name+'.':'Opened '+name+'. An unavailable beat or pattern was replaced.';
+  }catch{el('Status').textContent='This saved progression could not be opened.';}
+ }
+ let score=null,pendingScore=null,fret=null,viewBeat=0,layoutKey='',activeKey='';
+ const pitch=m=>F.names[pc(m)]+(Math.floor(m/12)-1);
+ function stamp(seconds){const t=Math.floor(Math.max(0,seconds));return Math.floor(t/60)+':'+String(t%60).padStart(2,'0');}
+ function chartFor(p,single){
+  const degrees=single?state.degrees.slice(selected,selected+2):state.degrees;
+  const scale=F.scales[state.mode];
+  const bars=degrees.map((d,i)=>{
+   const idx=(single?selected:0)+i,row=i<degrees.length-1&&rows.find(r=>r.id===state.choices[idx]);
+   const third=degree(scale,d+2)-degree(scale,d),fifth=degree(scale,d+4)-degree(scale,d);
+   return {idx,degree:d,chord:F.names[pc(state.key+degree(scale,d))]+(fifth===6?'dim':third===3?'m':''),pattern:row?({fills:'Fill',runs:'Run',basslines:'Bassline'}[row.kind]+' · '+row.label):'Landing',kind:row?.kind};
+  });
+  return {bars,p};
+ }
+ function compact(on){
+  host.dataset.focus=String(on);el('Visual').hidden=!on;el('Setup').hidden=on;el('Notes').hidden=on;
+  if(on)document.getElementById('earContent').scrollTop=0;
+ }
+ function installScore(value){
+  score=value;layoutKey='';activeKey='';
+  score.notes=score.p.bass.map(n=>({midi:n.midi,start:n.beat*score.step,end:(n.beat+n.length)*score.step,isFill:['fills','runs'].includes(score.bars[Math.floor(n.beat/4)]?.kind)}));
+ }
+ function paint(beat){
+  if(!score||el('Visual').hidden)return;
+  viewBeat=beat;
+  const bar=Math.min(score.bars.length-1,Math.floor(beat/4)),current=score.bars[bar],next=score.bars[bar+1],view=el('View').value,seconds=beat*score.step;
+  const time=stamp(seconds)+' / '+stamp(score.p.beats*score.step);
+  if(el('Time').textContent!==time)el('Time').textContent=time;
+  const caption=current.degree+' · '+current.chord+(next?' → '+next.degree+' · '+next.chord:'')+'  |  '+current.pattern;
+  if(el('Now').textContent!==caption)el('Now').textContent=caption;
+  const board=el('Fret'),list=el('Timeline'),onFret=view.startsWith('fret');
+  board.hidden=!onFret;list.hidden=onFret;board.classList.toggle('ff-single-board',view==='fret2');
+  if(onFret){
+   if(!fret){fret=window.BassFretFlow.create();fret.init({get:()=>({notes:score?.notes||[],strings:5,time:viewBeat*(score?.step||0),loaded:!!score,highlight:true})},board);}
+   fret.draw(seconds);return;
+  }
+  const key=view+'/'+bar;
+  if(key!==layoutKey){
+   layoutKey=key;activeKey='';list.replaceChildren();
+   const first=view==='phrase'?Math.floor(bar/4)*4:bar;
+   for(let i=first;i<Math.min(score.bars.length,first+(view==='phrase'?4:1));i++){
+    const b=score.bars[i],box=document.createElement('div'),title=document.createElement('strong');
+    title.textContent=stamp(i*4*score.step)+' · '+b.degree+' '+b.chord+' · '+b.pattern;box.append(title);
+    const chips=document.createElement('div');chips.className='flow-chips';
+    score.p.bass.forEach((n,index)=>{
+     if(Math.floor(n.beat/4)!==i)return;
+     const chip=document.createElement('span');chip.dataset.note=index;
+     if(view==='notes'){const time=document.createElement('small');time.textContent=(n.beat*score.step).toFixed(2)+' s';chip.append(time);}
+     chip.append(document.createTextNode(pitch(n.midi)));chips.append(chip);
+    });
+    box.append(chips);list.append(box);
+   }
+  }
+  const index=score.p.bass.findLastIndex(n=>n.beat<=beat&&beat<n.beat+n.length);
+  if(activeKey!==String(index)){activeKey=String(index);for(const chip of list.querySelectorAll('[data-note]'))chip.classList.toggle('sounding',Number(chip.dataset.note)===index);}
+ }
  function actions(){
   el('Change').textContent=playing==='change'?'Pause change':paused==='change'?'Resume change':'Play change';
   el('Play').textContent=playing==='all'?'Pause flow':paused==='all'?'Resume flow':'Play flow';
  }
  function follow(){
-  const i=player&&sounding==='all'?Math.floor(Math.max(0,player.position()-player.latency)%player.seconds/player.beatSeconds/4):-1;
+  if(pendingScore&&ctx.currentTime>=pendingScore.start){installScore(pendingScore);pendingScore=null;}
+  if(score?.transport&&player){const pos=Math.max(0,score.transport.position()-score.transport.latency)%score.transport.seconds;paint(pos/score.step);}
+  const i=score&&player&&sounding==='all'?Math.floor(viewBeat/4):-1;
   Array.from(el('Changes').children).forEach((b,k)=>{if(k===i)b.setAttribute('aria-current','step');else b.removeAttribute('aria-current');});
  }
  function stop(){
   revision++;clearInterval(clock);sounding='';player?.stop();player=null;playing='';paused='';offset=0;
-  if(host){follow();actions();el('Status').textContent='';}
+  pendingScore=null;score=null;layoutKey='';if(host){compact(false);follow();actions();el('Status').textContent='';}
  }
  async function play(mode,resume=0){
   const ticket=++revision;playing=mode;paused='';actions();el('Status').textContent='Preparing audio…';
@@ -139,6 +226,7 @@ window.BassCustomFlow=(()=>{
    ctx??=new AudioContext();await ctx.resume();await window.BassEarAudio.prepare(ctx);
    if(ticket!==revision)return;
    const p=plan(mode==='change'),band=H.resolve(p,{groove:state.beat});
+   const chart=chartFor(p,mode==='change');
    const task=renderQueue.then(()=>ticket===revision?window.BassPracticeLoop.render(ctx,p,{...band,cancelled:()=>revision!==ticket}):null);
    renderQueue=task.catch(()=>null);
    const rendered=await task;
@@ -147,14 +235,18 @@ window.BassCustomFlow=(()=>{
    const when=ctx.currentTime+.035,continuing=player&&sounding===mode&&mode==='all';
    const at=continuing?Math.max(0,(player.position()+.035)/player.beatSeconds)%p.beats:resume%p.beats;
    const next=window.BassPracticeLoop.start(ctx,rendered,{when,offsetBeats:at,fadeIn:.008});
-   player?.stopAt(when,.008);player=next;sounding=mode;clearInterval(clock);clock=setInterval(follow,100);el('Status').textContent='';
+   player?.stopAt(when,.008);player=next;sounding=mode;pendingScore={...chart,step:next.beatSeconds,transport:next,start:when+next.latency};
+   if(!score?.transport||paused){installScore(pendingScore);pendingScore=null;}
+   compact(true);follow();clearInterval(clock);clock=setInterval(follow,24);el('Status').textContent='';
   }catch(e){if(ticket===revision){if(player){playing=sounding;actions();}else stop();el('Status').textContent=e.message;}}
  }
  function toggle(mode){
   if(playing===mode){
-   const beat=player?Math.max(0,player.position()/player.beatSeconds):0;
-   stop();paused=mode;offset=beat;actions();return;
+   if(!player){stop();return;}
+   follow();revision++;clearInterval(clock);pendingScore=null;player.stop();player=null;
+   playing='';sounding='';paused=mode;offset=viewBeat;actions();el('Status').textContent='';return;
   }
+  if(mode==='change'&&score&&sounding==='all'){selected=score.bars[Math.min(Math.floor(viewBeat/4),score.bars.length-2)].idx;draw();}
   void play(mode,paused===mode?offset:0);
  }
  function draw(){
@@ -178,9 +270,16 @@ window.BassCustomFlow=(()=>{
   el('Notes').textContent=can?notes(selected).map(n=>F.names[pc(n.midi)]).join(' · ')+' → '+F.names[pc(state.key+degree(scale,to))]:'No existing pattern fits this change.';
   actions();
  }
- function update(){save();draw();if(playing)void play(playing);}
+ function update(){
+  save();draw();
+  if(playing)void play(playing);
+  else if(paused&&score){
+   const chart=chartFor(plan(paused==='change'),paused==='change');installScore({...chart,step:60/state.bpm});
+   offset%=chart.p.beats;paint(offset);
+  }
+ }
  function open(){
-  catalogue=library();
+  catalogue=library();savedMenu(el('Saved').value);
   const labels=new Map([...H.availableGroups(),...G.groups]);
   const genres=[...catalogue.keys()].map(id=>({id,label:labels.get(id)||id})).sort(compare);
   if(!catalogue.has(state.genre))state.genre=genres[0]?.id;
@@ -189,13 +288,19 @@ window.BassCustomFlow=(()=>{
  }
  function init(section){
   host=section;restore();
-  host.innerHTML=`<div class="flow-grid"><label>Genre<select id="flowGenre"></select></label><label>Beat<select id="flowBeat"></select></label>
-   <label>Key<select id="flowKey"></select></label><label>Scale<select id="flowMode"><option value="major">Major</option><option value="minor">Minor</option></select></label>
-   <label>Tempo (BPM)<input type="number" id="flowBpm" min="40" max="220" step="any"></label>
+  host.innerHTML=`<div class="flow-grid" id="flowSetup"><label>Genre<select id="flowGenre"></select></label><label>Beat<select id="flowBeat"></select></label>
+   <div class="flow-settings wide"><label>Key<select id="flowKey"></select></label><label>Scale<select id="flowMode"><option value="major">Major</option><option value="minor">Minor</option></select></label>
+   <label>BPM<input type="number" id="flowBpm" min="40" max="220" step="any"></label></div>
    <label class="wide">Chord progression<input id="flowDegrees" maxlength="180" placeholder="1 → 5 → 6 → 5 → 1"></label><button type="button" id="flowApply">Apply chords</button>
    <div class="wide" id="flowChanges" role="group" aria-label="Choose a chord change"></div><label class="wide">Pattern for this change<select id="flowPattern"></select></label>
-   <button type="button" id="flowPrev">Previous</button><button type="button" id="flowNext">Next</button><p class="wide" id="flowNotes"></p>
-   <button type="button" id="flowChange">Play change</button><button type="button" id="flowPlay">Play flow</button></div><p role="status" id="flowStatus"></p>`;
+   <details class="wide" id="flowLibrary"><summary>Save or open a progression</summary><div class="flow-grid"><label>Progression name<input id="flowName" maxlength="80"></label><button type="button" id="flowSave">Save flow</button><label>Saved on this device<select id="flowSaved"></select></label><button type="button" id="flowOpen">Open flow</button></div></details></div>
+   <section id="flowVisual" aria-label="Timed rehearsal" hidden><div class="flow-top"><select aria-label="Rehearsal view" id="flowView"><option value="notes">Note View</option><option value="phrase">Phrase View</option><option value="fret">Fret View</option><option value="fret2">Fret View 2</option></select><button type="button" id="flowEdit">Edit flow</button></div>
+   <p><output id="flowTime"></output> · <span id="flowNow"></span></p><div id="flowTimeline"></div><div id="flowFret" hidden></div></section>
+   <div class="flow-transport"><button type="button" id="flowPrev" aria-label="Previous pattern" title="Previous pattern">◀</button><button type="button" id="flowNext" aria-label="Next pattern" title="Next pattern">▶</button><button type="button" id="flowChange">Play change</button><button type="button" id="flowPlay">Play flow</button></div>
+   <p id="flowNotes"></p><p role="status" id="flowStatus"></p>`;
+  el('Saved').onchange=()=>{el('Open').disabled=!el('Saved').value;};
+  el('Save').onclick=saveNamed;el('Open').onclick=openNamed;el('Edit').onclick=()=>{stop();draw();};
+  el('View').onchange=()=>{layoutKey='';paint(viewBeat);};
   options(el('Key'),F.names.map((label,id)=>({label,id})),state.key);
   el('Genre').onchange=e=>{state.genre=e.target.value;hydrate();update();};
   el('Beat').onchange=e=>{state.beat=e.target.value;update();};
@@ -213,6 +318,7 @@ window.BassCustomFlow=(()=>{
   el('Degrees').onkeydown=e=>{if(e.key==='Enter')el('Apply').click();};
   el('Pattern').onchange=e=>{state.choices[selected]=e.target.value;update();};
   for(const [id,dir] of [['Prev',-1],['Next',1]])el(id).onclick=()=>{
+   if(host.dataset.focus==='true'&&score){selected=score.bars[Math.min(Math.floor(viewBeat/4),score.bars.length-2)].idx;draw();}
    const s=el('Pattern');s.selectedIndex=(s.selectedIndex+dir+s.length)%s.length;s.dispatchEvent(new Event('change'));
   };
   el('Change').onclick=()=>toggle('change');el('Play').onclick=()=>toggle('all');

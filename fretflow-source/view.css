@@ -1,30 +1,30 @@
-:is(#fretFlowPanel,#rehearsalFret){flex:1 1 0;min-height:0;min-width:0;display:flex;flex-direction:column;gap:6px;overflow:hidden;color:#f4f1e8;background:radial-gradient(ellipse at 0 50%,#2b1c17 0,transparent 45%),#0b1018;border-radius:13px;padding:8px;box-sizing:border-box}
-:is(#fretFlowPanel,#rehearsalFret) [hidden],:is(#fretFlowPanel,#rehearsalFret)[hidden]{display:none!important}
-:is(#fretFlowPanel,#rehearsalFret) *{box-sizing:border-box}
-:is(#fretFlowPanel,#rehearsalFret) .ff-song{font:600 12px/1.25 system-ui;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;max-width:100%;color:#bbc5d4;flex:none}
-:is(#fretFlowPanel,#rehearsalFret) .ff-stage{position:relative;flex:1 1 0;min-height:140px;display:grid;grid-template-columns:minmax(72px,28%) minmax(0,1fr);gap:12px;padding:0 3px 3px}
-:is(#fretFlowPanel,#rehearsalFret) .ff-connector{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:2}
-:is(#fretFlowPanel,#rehearsalFret) .ff-neck-wrap{min-height:0;position:relative}
-:is(#fretFlowPanel,#rehearsalFret) .ff-neck{width:100%;height:100%;display:block;overflow:visible}
-:is(#fretFlowPanel,#rehearsalFret) .ff-main{min-width:0;min-height:0;display:flex;flex-direction:column;gap:5px}
-:is(#fretFlowPanel,#rehearsalFret) .ff-readout{display:flex;align-items:center;gap:8px;min-height:30px;flex:none}
-:is(#fretFlowPanel,#rehearsalFret) .ff-map{flex:1 1 0;width:100%;min-height:120px;display:block;border:1px solid #3e4149;border-radius:13px;background:linear-gradient(125deg,#242831,#151c26);overflow:visible}
-:is(#fretFlowPanel,#rehearsalFret) .ff-message{font:12px/1.35 system-ui;color:#ecd290;margin:0;flex:none}
-:is(#fretFlowPanel,#rehearsalFret) .ff-message:empty{display:none}
-:is(#fretFlowPanel,#rehearsalFret) svg text{font-family:system-ui,sans-serif;user-select:none}
+:is(#fretFlowPanel,#rehearsalFret,#flowFret){flex:1 1 0;min-height:0;min-width:0;display:flex;flex-direction:column;gap:6px;overflow:hidden;color:#f4f1e8;background:radial-gradient(ellipse at 0 50%,#2b1c17 0,transparent 45%),#0b1018;border-radius:13px;padding:8px;box-sizing:border-box}
+:is(#fretFlowPanel,#rehearsalFret,#flowFret) [hidden],:is(#fretFlowPanel,#rehearsalFret,#flowFret)[hidden]{display:none!important}
+:is(#fretFlowPanel,#rehearsalFret,#flowFret) *{box-sizing:border-box}
+:is(#fretFlowPanel,#rehearsalFret,#flowFret) .ff-song{font:600 12px/1.25 system-ui;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;max-width:100%;color:#bbc5d4;flex:none}
+:is(#fretFlowPanel,#rehearsalFret,#flowFret) .ff-stage{position:relative;flex:1 1 0;min-height:140px;display:grid;grid-template-columns:minmax(72px,28%) minmax(0,1fr);gap:12px;padding:0 3px 3px}
+:is(#fretFlowPanel,#rehearsalFret,#flowFret) .ff-connector{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:2}
+:is(#fretFlowPanel,#rehearsalFret,#flowFret) .ff-neck-wrap{min-height:0;position:relative}
+:is(#fretFlowPanel,#rehearsalFret,#flowFret) .ff-neck{width:100%;height:100%;display:block;overflow:visible}
+:is(#fretFlowPanel,#rehearsalFret,#flowFret) .ff-main{min-width:0;min-height:0;display:flex;flex-direction:column;gap:5px}
+:is(#fretFlowPanel,#rehearsalFret,#flowFret) .ff-readout{display:flex;align-items:center;gap:8px;min-height:30px;flex:none}
+:is(#fretFlowPanel,#rehearsalFret,#flowFret) .ff-map{flex:1 1 0;width:100%;min-height:120px;display:block;border:1px solid #3e4149;border-radius:13px;background:linear-gradient(125deg,#242831,#151c26);overflow:visible}
+:is(#fretFlowPanel,#rehearsalFret,#flowFret) .ff-message{font:12px/1.35 system-ui;color:#ecd290;margin:0;flex:none}
+:is(#fretFlowPanel,#rehearsalFret,#flowFret) .ff-message:empty{display:none}
+:is(#fretFlowPanel,#rehearsalFret,#flowFret) svg text{font-family:system-ui,sans-serif;user-select:none}
 @layer fretflow278 {
- :is(#fretFlowPanel,#rehearsalFret) .ff-note{font:800 25px/1 system-ui!important}
- :is(#fretFlowPanel,#rehearsalFret) .ff-position{font:500 12px/1.2 system-ui!important;color:#b9c2d0!important}
- :is(#fretFlowPanel,#rehearsalFret) .ff-song{font:600 12px/1.25 system-ui!important}
- :is(#fretFlowPanel,#rehearsalFret) #bassTimeScroll{flex:none!important;width:100%!important;height:40px!important;min-height:40px!important;max-height:40px!important;padding:2px 0!important;margin:0!important;overflow-y:hidden!important;scrollbar-width:none!important}
- :is(#fretFlowPanel,#rehearsalFret) .bass-time-cell{min-height:30px!important;height:30px!important;padding:4px!important;font:600 11px/1.2 system-ui!important}
+ :is(#fretFlowPanel,#rehearsalFret,#flowFret) .ff-note{font:800 25px/1 system-ui!important}
+ :is(#fretFlowPanel,#rehearsalFret,#flowFret) .ff-position{font:500 12px/1.2 system-ui!important;color:#b9c2d0!important}
+ :is(#fretFlowPanel,#rehearsalFret,#flowFret) .ff-song{font:600 12px/1.25 system-ui!important}
+ :is(#fretFlowPanel,#rehearsalFret,#flowFret) #bassTimeScroll{flex:none!important;width:100%!important;height:40px!important;min-height:40px!important;max-height:40px!important;padding:2px 0!important;margin:0!important;overflow-y:hidden!important;scrollbar-width:none!important}
+ :is(#fretFlowPanel,#rehearsalFret,#flowFret) .bass-time-cell{min-height:30px!important;height:30px!important;padding:4px!important;font:600 11px/1.2 system-ui!important}
 }
-:is(#fretFlowPanel,#rehearsalFret) #bassTimeScroll::-webkit-scrollbar{display:none}
+:is(#fretFlowPanel,#rehearsalFret,#flowFret) #bassTimeScroll::-webkit-scrollbar{display:none}
 
 /* Fret View 2 expands the same coloured map to the full available width. */
-:is(#fretFlowPanel,#rehearsalFret).ff-single-board .ff-stage{grid-template-columns:minmax(0,1fr);gap:0}
-:is(#fretFlowPanel,#rehearsalFret).ff-single-board .ff-neck-wrap,
-:is(#fretFlowPanel,#rehearsalFret).ff-single-board .ff-connector{display:none}
-:is(#fretFlowPanel,#rehearsalFret) .ff-map{min-height:290px}
-:is(#fretFlowPanel,#rehearsalFret) .ff-stage{min-height:325px}
-:is(#fretFlowPanel,#rehearsalFret){overflow-y:auto}
+:is(#fretFlowPanel,#rehearsalFret,#flowFret).ff-single-board .ff-stage{grid-template-columns:minmax(0,1fr);gap:0}
+:is(#fretFlowPanel,#rehearsalFret,#flowFret).ff-single-board .ff-neck-wrap,
+:is(#fretFlowPanel,#rehearsalFret,#flowFret).ff-single-board .ff-connector{display:none}
+:is(#fretFlowPanel,#rehearsalFret,#flowFret) .ff-map{min-height:290px}
+:is(#fretFlowPanel,#rehearsalFret,#flowFret) .ff-stage{min-height:325px}
+:is(#fretFlowPanel,#rehearsalFret,#flowFret){overflow-y:auto}
