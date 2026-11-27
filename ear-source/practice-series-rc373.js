@@ -102,6 +102,17 @@ window.BassPracticeSeries=(()=>{
   if(removedWorld.has(entry.recordedStudy?.sourceId))removed.push({kind:entry.kind,id:entry.id});
  }
  window.BassPracticeCatalogue.exclude(removed);
+ // emmyB, "How to play Worship Licks and Fill like a Pro Bassist", 4:30–4:34.
+ // Onsets estimated from the supplied take. Relative to its low F# landing,
+ // the upper C#–C–B turn descends through A and F# before the octave drop.
+ const turnId='worship379-emmyb-turn';
+ Q.rhythms[turnId]=[.49,.79,1.21,1.54,1.67,1.85,2.08,2.40,2.81,3.25];
+ const worshipTurn=Q.register({
+  id:turnId,kind:'fills',title:'emmyB turn',practiceStyle:'worship',genre:'contemporary',
+  mode:'major',rhythm:turnId,notes:'t14 t15 t8 t12 t17 t19 t18 t17 t15 t12',
+  accents:[70,74,63,83,94,87,76,89,85,90],gates:[.94,.40,.38,.94,.90,.96,.96,.96,.97,.96],
+  tier:0,rank:0,tip:'Let the upper notes fall together, then drop an octave onto the next root.'
+ });
  const settings=new Map();
  for(const [kind,list] of Object.entries(rows)){
   const groups=new Map();
@@ -210,7 +221,12 @@ window.BassPracticeSeries=(()=>{
   return notes;
  }
  function make(kind,opts={}){
-  const plan=legacy(kind,opts),s=get(kind,Number(opts.idea)||0,Number(opts.part)||0);
+  const s=get(kind,Number(opts.idea)||0,Number(opts.part)||0);
+  if(kind==='fills'&&Number(opts.idea)===worshipTurn.index){
+   const turn=Q.make(kind,opts);
+   return {...window.BassRegister.plan(turn),...band(s,kind)};
+  }
+  const plan=legacy(kind,opts);
   if(!s||s.keep||s.recorded)return plan;
   const scale=F.scales[plan.mode]||F.scales.major;
   const degrees=kind==='basslines'?plan.degrees:[plan.from,plan.to];
