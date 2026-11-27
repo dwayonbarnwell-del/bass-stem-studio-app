@@ -76,8 +76,7 @@ window.BassFillTrainer=(()=>{
  const combinedGenre=id=>id==='african-praise'?'praise':id;
  const artistGroup=family=>({'Bass Lady':'bass-lady',Bassmatics:'bassmatics','World Methods':'world-method'})[family];
  function matchesGenre(clip,genre){
-  const family=artistGroup(clip.sourceFamily)||(['bass-lady','bassmatics','world-method'].includes(clip.group)?clip.group:null);
-  return family?family===genre:[H.category(clip,true),H.practiceGenre(clip)].some(id=>combinedGenre(id)===genre);
+  return H.recordingGroup(clip)===genre;
  }
  function studyGroup(kind,i){
   const entry=C.get(kind,i);

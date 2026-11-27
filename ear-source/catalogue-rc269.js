@@ -75,7 +75,7 @@ window.BassPracticeCatalogue=(()=>{
  try{const saved=JSON.parse(localStorage.getItem(restoredKey)||'[]');if(Array.isArray(saved))restored=new Set(saved.filter(v=>typeof v==='string'));}catch{}
  try{const saved=JSON.parse(localStorage.getItem(stateKey)||'null');if(Array.isArray(saved?.deleted)&&Array.isArray(saved?.restored)){deleted=new Set(saved.deleted.filter(v=>typeof v==='string'));restored=new Set(saved.restored.filter(v=>typeof v==='string'));purged=new Set((Array.isArray(saved.purged)?saved.purged:[]).filter(v=>typeof v==='string'));}}catch{}
  function persist(next,allowed,permanent=purged){localStorage.setItem(stateKey,JSON.stringify({deleted:[...next],restored:[...allowed],purged:[...permanent]}));deleted=next;restored=allowed;purged=permanent;}
- const permanentlyRemoved=(kind,id)=>excluded.has(key(kind,String(id).split('/')[0]))||purged.has(key(kind,id))||purged.has(key(kind,String(id).split('/')[0]));
+ const permanentlyRemoved=(kind,id)=>excluded.has(key(kind,id))||excluded.has(key(kind,String(id).split('/')[0]))||purged.has(key(kind,id))||purged.has(key(kind,String(id).split('/')[0]));
  const visible=(kind,id)=>!permanentlyRemoved(kind,id)&&!deleted.has(key(kind,id))&&(!retired.has(key(kind,id))||restored.has(key(kind,id)));
  function remove(kind,id){const next=new Set(deleted);next.add(key(kind,id));persist(next,new Set(restored));}
  function restoreItems(items,hide=[]){

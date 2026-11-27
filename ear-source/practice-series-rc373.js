@@ -102,6 +102,7 @@ window.BassPracticeSeries=(()=>{
   if(removedWorld.has(entry.recordedStudy?.sourceId))removed.push({kind:entry.kind,id:entry.id});
  }
  window.BassPracticeCatalogue.exclude(removed);
+ window.BassUploadedCore.excludeWorldAliases();
  // emmyB, "How to play Worship Licks and Fill like a Pro Bassist", 4:30–4:34.
  // Onsets estimated from the supplied take. Relative to its low F# landing,
  // the upper C#–C–B turn descends through A and F# before the octave drop.

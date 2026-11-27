@@ -2,9 +2,19 @@
 window.BassUploadedCore=(()=>{
  'use strict';
  const legacy=[...(window.BassUploadedStudies||[]),...(window.BassLessonStudies||[]),...(window.BassAfricanStudies||[]),...(window.BassReggaeStudies||[])];
+ // Historical lesson uploads used the same source filenames with a download date.
+ // Match those names exactly so differently titled copies keep their source family.
+ const worldFiles=new Map();
+ for(const take of window.BassWorldMethods||[]){
+  if(!worldFiles.has(take.sourceFilename))worldFiles.set(take.sourceFilename,[]);
+  worldFiles.get(take.sourceFilename).push(take);
+ }
+ function worldTakes(clip){return worldFiles.get(clip.sourceFilename?.replace(/_\d{8}(?=\.[^.]+$)/,''));}
+ function assignFamily(clip){if(worldTakes(clip)){clip.sourceFamily='World Methods';clip.group='world-method';}}
  Object.assign(window.BassRecordedPhrases,window.BassCulturalPhrases||{});
  const items=[...(window.BassOriginalStudies||[]),...(window.BassReggaeRecordings||[]),...(window.BassWorldMethods||[]),...(window.BassCulturalUploads||[]),...legacy.filter(c=>window.BassPracticeCatalogue.isRestored('uploaded',c.id))].map(c=>({...c})),groups=[['recorded-makossa','Makossa'],['recorded-seben','Seben'],['recorded-reggae','Reggae']];
  for(const c of items){
+  assignFamily(c);
   if(window.BassLegacyRecordedPhrases?.[c.id])window.BassRecordedPhrases[c.id]=window.BassLegacyRecordedPhrases[c.id];
   c.originalTitle=c.originalTitle||(c.originalMix&&c.collection!=='recorded-reggae'?(c.collection==='recorded-seben'?'Seben ':'Makossa ')+c.title:c.title);
   if(c.collection)continue;
@@ -178,10 +188,24 @@ window.BassUploadedCore=(()=>{
   if(window.BassPracticeCatalogue.permanentlyRemoved('uploaded',id))return;
   if(items.some(c=>c.id===id))return;
   const row=legacy.find(c=>c.id===id);if(!row)return;
-  const item={...row,originalTitle:row.title};
+  const item={...row,originalTitle:row.title};assignFamily(item);
   if(window.BassLegacyRecordedPhrases?.[id])window.BassRecordedPhrases[id]=window.BassLegacyRecordedPhrases[id];
   item.collection||='recorded-'+(window.BassAccompaniment.recordedStyle(item)||'review');
   items.push(item);
  }
- return {items,groups,plan,practicePlan,time,loop,rehearsalShape,restoreLegacy,find:id=>items.find(c=>c.id===id)||legacy.find(c=>c.id===id)};
+ function excludeWorldAliases(){
+  const D=window.BassPracticeCatalogue;
+  for(const clip of legacy){
+   const takes=worldTakes(clip);if(!takes)continue;
+   const phrases=window.BassLegacyRecordedPhrases?.[clip.id]||[];
+   for(const [i,[start,end]] of phrases.entries()){
+    const duplicate=takes.some(take=>{
+     const overlap=Math.min(end,take.sourceStart+take.duration)-Math.max(start,take.sourceStart);
+     return overlap>0&&(D.permanentlyRemoved('uploaded',take.id)||overlap>=end-start-.03);
+    });
+    if(duplicate)D.exclude([{kind:'uploaded',id:clip.id+'/'+i}]);
+   }
+  }
+ }
+ return {excludeWorldAliases,items,groups,plan,practicePlan,time,loop,rehearsalShape,restoreLegacy,find:id=>items.find(c=>c.id===id)||legacy.find(c=>c.id===id)};
 })();

@@ -6,7 +6,10 @@ window.BassRehearsalIdeas=(()=>{
  const M=window.BassRehearsalHarmony;
  const pc=n=>(n%12+12)%12,cache=new Map(),derivatives=new Map(),families={'bass-lady':'Bass Lady',bassmatics:'Bassmatics','world-method':'World Methods'};
  function family(row){return row.sourceFamily||families[row.group]||(row.group==='reggae'?'Reggae recordings':'Recorded bass');}
- function genre(row){return X.styleOf(row)||H.recordedStyle(row);}
+ function genre(row){
+  const group=H.recordingGroup(row);
+  return families[group]?X.styleOf(row)||H.recordedStyle(row):group;
+ }
  function sourceOptions(){return Object.entries(families).filter(([,name])=>U.items.some(row=>D.visible('uploaded',row.id)&&family(row)===name)).map(([id,label])=>['source:'+id,label]);}
  function matches(style,rowStyle,rowFamily){return style.startsWith('source:')?families[style.slice(7)]===rowFamily:!Object.values(families).includes(rowFamily)&&style===rowStyle;}
  function availableStyles(){
@@ -109,7 +112,8 @@ window.BassRehearsalIdeas=(()=>{
    const list=kind==='runs'?P.runs:F.styles;
    for(const [idea,row]of list.entries()){
     const entry=Q.get(kind,idea);if(!entry||!G.visible(kind,idea))continue;
-    const source=entry.recordedStudy,rowStyle=entry.culturalStyle||H.profile(P.make(kind,{idea,from:1,to:4,key:0})).id,rowFamily=source?.family||'Practice studies';
+    const source=entry.recordedStudy,clip=source?.sourceKind==='uploaded'&&U.find(source.sourceId);
+    const rowStyle=(clip&&genre(clip))||entry.culturalStyle||H.profile(P.make(kind,{idea,from:1,to:4,key:0})).id,rowFamily=source?.family||'Practice studies';
     if(!matches(style,rowStyle,rowFamily))continue;
     const native=source?.events||P.make(kind,{idea,from:1,to:4,key:0}).bass.map(n=>({...n,offset:n.midi-36}));
     if(!playable(native,grid))continue;
