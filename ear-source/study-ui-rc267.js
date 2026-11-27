@@ -136,7 +136,7 @@ window.BassFillTrainer=(()=>{
   $('fillClip').hidden=true;$('fillExcerpt').hidden=!sections;
   $('fillKey').hidden=false;
   $('fillFrom').hidden=kind==='basslines';$('fillTo').hidden=kind==='basslines';
-  $('fillGroupRow').hidden=!G||kind==='basslines';$('fillCount').hidden=!G||kind==='basslines';
+  $('fillGroup').hidden=!G||kind==='basslines';$('fillCount').hidden=!G||kind==='basslines';
  }
  const collections=()=>kind==='runs'?P.runs:kind==='basslines'?P.lines.map(x=>[D.lineLabel(x),x.tip]):F.styles;
  function patternId(i){return kind==='basslines'?P.lines[i]?.id:collections()[i]?.id||String(i);}
@@ -560,10 +560,8 @@ window.BassFillTrainer=(()=>{
   recordedFrame=requestAnimationFrame(tick);
  }
  function init(panel,hooks){
-  api=hooks;panel.innerHTML=`<div id="fillGroupRow" class="fill-settings"><select id="fillGroup" aria-label="Run or fill group"></select></div><p id="fillCount" role="status"></p><div id="fillSettings" class="fill-settings">
-  <select id="fillCollection" aria-label="Bassline genre" hidden></select>
-  <select id="fillClip" aria-label="Uploaded bassline" hidden></select>
-  <select id="fillIdea" aria-label="Run or fill pattern"></select><select id="fillExcerpt" aria-label="Song section" hidden></select>
+  api=hooks;panel.innerHTML=`<div id="fillPatternRow" class="fill-settings"><select id="fillGroup" aria-label="Run or fill group"></select><select id="fillCollection" aria-label="Bassline genre" hidden></select><select id="fillIdea" aria-label="Run or fill pattern"></select></div>
+  <p id="fillCount" role="status"></p><div id="fillSettings" class="fill-settings"><select id="fillClip" aria-label="Uploaded bassline" hidden></select><select id="fillExcerpt" aria-label="Song section" hidden></select>
   <select id="fillFrom" aria-label="From degree"></select><select id="fillTo" aria-label="To degree"></select>
   <div class="fill-pitch-row"><select id="fillKey" aria-label="Practice key"></select><label id="fillTempoWrap" class="fill-tempo"><span>BPM</span><input id="fillTempo" aria-label="Practice tempo BPM" type="number" min="40" max="220" step="0.01"></label><button id="fillTempoReset" type="button" title="Use the original drum loop tempo">Reset</button></div>
   </div>

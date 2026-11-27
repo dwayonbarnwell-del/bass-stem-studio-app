@@ -37,6 +37,7 @@ window.BassRehearsal=(()=>{
      <label><span>Start</span><input id="rehearsalStart" type="text" inputmode="decimal"></label>
      <label><span>End</span><input id="rehearsalEnd" type="text" inputmode="decimal"></label>
      <label><span>BPM</span><input id="rehearsalBpm" type="number" inputmode="numeric" min="40" max="220" placeholder="—"></label>
+     <label><span>Key</span><select id="rehearsalCue" aria-label="Rehearsal key" title="Change rehearsal key"></select></label>
     </div>
     <div class="rehearsal-row">
      <select id="rehearsalStyle" aria-label="Style"></select>
@@ -54,7 +55,7 @@ window.BassRehearsal=(()=>{
      <button id="rehearsalPlay" type="button" aria-label="Play loop" title="Play loop">▶</button>
      <button id="rehearsalGuide" type="button" aria-pressed="true" aria-label="Guide bass on. Mute guide bass" title="Guide bass on. Mute guide bass" data-icon="🔊">Guide</button>
     </div>
-    <div class="rehearsal-readout"><output id="rehearsalTime"></output><select id="rehearsalCue" aria-label="Rehearsal key" title="Change rehearsal key"></select></div>
+    <div class="rehearsal-readout"><output id="rehearsalTime"></output></div>
     <div class="rehearsal-view-row">
      <select id="rehearsalView" aria-label="Rehearsal view"><option value="notes">Note View</option><option value="phrase">Phrase View</option><option value="fret">Fret View</option><option value="fret2">Fret View 2</option></select>
      <button id="rehearsalControls" type="button" aria-label="Hide controls" title="Hide controls" aria-expanded="true">⚙</button>
@@ -364,7 +365,7 @@ window.BassRehearsal=(()=>{
   if(picker.dataset.key!==signature){
    picker.dataset.key=signature;
    const names=globalThis.BassEarDSP?.names||window.BassFillCore.names;
-   picker.replaceChildren(...(key?names.map((_,i)=>new Option(E?E.keyLabel(i,key.mode):'Key: '+names[i]+' '+(key.mode==='minor'?'Min':'Maj'),i)):[new Option('Key: ?','unknown')]));
+   picker.replaceChildren(...(key?names.map((_,i)=>new Option(names[i]+(key.mode==='minor'?'m':key.mode==='major'?'':' '+key.mode),i)):[new Option('?', 'unknown')]));
   }
   picker.disabled=!key;picker.value=key?String(targetKey??key.tonic):'unknown';picker.title=key?'Transpose rehearsal audio and notes. Original song analysis is retained.':'Song key is unavailable';
  }

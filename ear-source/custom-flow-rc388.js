@@ -11,14 +11,14 @@ window.BassCustomFlow=(()=>{
  const state={genre:'worship',key:0,mode:'major',bpm:96,beat:'',degrees:[1,5,6,5,1],choices:[]};
  const el=id=>host.querySelector('#flow'+id);
  function parse(value){
-  const parts=value.trim().split(/[,;]/),degrees=[];
+  const parts=value.normalize('NFKC').trim().split(/[,;]/),degrees=[];
   for(const part of parts){
-   if(!/^\s*[1-7](?:(?:\s*(?:->|→|[-–>]|\bto\b)\s*|\s+)[1-7])*\s*$/i.test(part))return null;
+   if(!/^[1-7]+$/.test(part.trim())&&!/^\s*[1-7](?:(?:\s*(?:->|→|[-–—>/|]|\bto\b)\s*|\s+)[1-7])*\s*$/i.test(part))return null;
    const group=part.match(/[1-7]/g).map(Number);
    if(group.length>1&&degrees.at(-1)===group[0])group.shift();
    degrees.push(...group);
   }
-  return degrees.length>=2&&degrees.length<=16&&degrees.every((d,i)=>!i||d!==degrees[i-1])?degrees:null;
+  return degrees.length>=2&&degrees.length<=16?degrees:null;
  }
  function save(){try{localStorage.setItem(storage,JSON.stringify(state));}catch{}}
  function restore(){
@@ -58,6 +58,7 @@ window.BassCustomFlow=(()=>{
   return genres;
  }
  function allowed(i){
+  if(state.degrees[i]===state.degrees[i+1])return [{id:'hold',kind:'basslines',label:'Hold chord'},...rows.filter(r=>r.kind==='basslines')];
   return rows.filter(r=>r.kind==='basslines'||G.supports(r.kind,r.idea,state.degrees[i],state.degrees[i+1]));
  }
  function source(r,from=1,to=4){
@@ -107,6 +108,7 @@ window.BassCustomFlow=(()=>{
   });
  }
  function notes(i){
+  if(state.choices[i]==='hold')return [{beat:0,length:3.7,midi:36+pc(state.key+degree(F.scales[state.mode],state.degrees[i])),velocity:92}];
   const r=rows.find(r=>r.id===state.choices[i]);if(!r)throw Error('Choose an available pattern for each change.');
   return phrase(r,state.degrees[i],state.degrees[i+1]);
  }
@@ -158,7 +160,7 @@ window.BassCustomFlow=(()=>{
   const bars=degrees.map((d,i)=>{
    const idx=(single?selected:0)+i,row=i<degrees.length-1&&rows.find(r=>r.id===state.choices[idx]);
    const third=degree(scale,d+2)-degree(scale,d),fifth=degree(scale,d+4)-degree(scale,d);
-   return {idx,degree:d,rootPc:pc(state.key+degree(scale,d)),chord:F.names[pc(state.key+degree(scale,d))]+(fifth===6?'dim':third===3?'m':''),pattern:row?({fills:'Fill',runs:'Run',basslines:'Bassline'}[row.kind]+' · '+row.label):'Landing',kind:row?.kind};
+   return {idx,degree:d,rootPc:pc(state.key+degree(scale,d)),chord:F.names[pc(state.key+degree(scale,d))]+(fifth===6?'dim':third===3?'m':''),pattern:row?({fills:'Fill',runs:'Run',basslines:'Bassline'}[row.kind]+' · '+row.label):i<degrees.length-1?'Hold chord':'Landing',kind:row?.kind};
   });
   return {bars,p};
  }
@@ -298,7 +300,7 @@ window.BassCustomFlow=(()=>{
  function acceptChords(report){
   const field=el('Degrees'),next=parse(field.value);
   if(!next){
-   if(report){el('Status').textContent='Enter 2 to 16 chords using degrees 1 to 7. Adjacent chords must differ.';field.setAttribute('aria-invalid','true');}
+   if(report){el('Status').textContent='Enter 2 to 16 chord degrees, for example 1 4 4 5 1.';field.setAttribute('aria-invalid','true');field.focus();}
    return false;
   }
   if(field.hasAttribute('aria-invalid'))el('Status').textContent='';
@@ -351,7 +353,7 @@ window.BassCustomFlow=(()=>{
   const degrees=el('Degrees');
   degrees.onfocus=()=>{typingStart={degrees:[...state.degrees],choices:[...state.choices]};};
   degrees.oninput=()=>acceptChords(false);
-  degrees.onblur=()=>{if(acceptChords(true))degrees.value=state.degrees.join(' → ');typingStart=null;};
+  degrees.onblur=()=>{if(acceptChords(false))degrees.value=state.degrees.join(' → ');typingStart=null;};
   degrees.onkeydown=e=>{if(e.key==='Enter'&&acceptChords(true))degrees.blur();};
   el('Pattern').onchange=e=>{state.choices[selected]=e.target.value;update();};
   for(const [id,dir] of [['Prev',-1],['Next',1]])el(id).onclick=()=>{
