@@ -22,6 +22,8 @@ window.BassSuppliedDrums=(()=>{
   return {id:'praise68-kit-'+(i+1),title,genre:'nigerian68',kit:'studio',beats:4,bpm,events};
  });
  const available=[...loops,...praise68,...(window.BassGrooveLibrary?.loops||[]).filter(l=>!brightLoops.has(l.base)),...(window.BassFlDrums?.loops||[])];
+ const midi=new Set(window.BassFlDrums?.loops||[]);
+ const instrumental=available.filter(row=>row.recreated||row.instrumentalRecording||row.events?.length||(midi.has(row)&&row.sourceMidi));
  const buffers=new Map(),renders=new Map(),loads=new Map();
  function choose(style,genre='auto',id='auto'){
   const exact=available.find(x=>x.id===id);if(exact)return exact;
@@ -168,5 +170,5 @@ window.BassSuppliedDrums=(()=>{
   const output=context.createBuffer(data.length,frames,context.sampleRate);data.forEach((d,c)=>output.copyToChannel(d,c));
   return remember(key,output);
  }
- return {loops,available,genres,choose,render};
+ return {loops,available,instrumental,genres,choose,render};
 })();

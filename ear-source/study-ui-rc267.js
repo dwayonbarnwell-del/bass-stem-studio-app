@@ -51,13 +51,15 @@ window.BassFillTrainer=(()=>{
    $('fillKeySound').options[0].title='Auto · recorded backing';
   }
   const mixed=!!plan.recording?.originalMix;
+  $('fillSourceAudio').hidden=!U.find(plan.clipId)?.culturalUpload;
+  $('fillSourceAudio').setAttribute('aria-pressed',String(mixed));
   for(const id of ['fillBacking','fillDrums','fillDrumOptions'])$(id).hidden=false;
   $('earFillStudy').dataset.mixed=String(mixed);
   for(const field of $('fillDrumOptions').querySelectorAll('.fill-band-choice'))field.hidden=mixed;
   $('fillGenreReset').hidden=false;$('fillGenreReset').textContent=mixed?'Reset mix':'Reset band';$('fillDrumOptions').querySelector('summary').textContent=mixed?'Mix':'Band';
   $('fillKeyLabel').textContent='Others';$('fillMixNotice').hidden=!mixed;
   $('fillDrumOptions').title=mixed?'Estimated instrument separation. Some sound may remain in another part.':'';
-  $('fillAccompaniment').textContent='';
+  $('fillAccompaniment').textContent=plan.recreated?'Recreated drums · sampled bass':'';
  }
  function cycleLength(values){
   for(let n=1;n<=values.length/2;n++)if(values.length%n===0&&values.every((v,i)=>v===values[i%n]))return n;
@@ -336,6 +338,7 @@ window.BassFillTrainer=(()=>{
  function keyOptions(mode='major',tonic=Number($('fillKey').value)||0){
   $('fillKey').replaceChildren(...globalThis.BassEarDSP.names.map((_,i)=>new Option(E.keyLabel(i,mode),i)));$('fillKey').value=String(tonic);
  }
+ let originalClip=null;
  function draw(){
   const group=[kind,kind==='basslines'?$('fillCollection').value:$('fillGroup').value,drumKit,drumGroove].join('/');
   if(group!==tempoGroup){tempoGroup=group;practiceTempo=null;}
@@ -347,6 +350,9 @@ window.BassFillTrainer=(()=>{
    remembered[kind]=$('fillIdea').value;rememberedClips[$('fillCollection').value]=id;
    const identity='recording:'+id+':'+$('fillExcerpt').value;
    const value=U.practicePlan(id,$('fillExcerpt').value,practiceTempo);
+   if(U.find(id)?.culturalUpload&&originalClip!==id){
+    value.recreated=true;value.recording=null;value.audio=null;
+   }
    tempoIdentity=identity;practiceTempo=value.bpm;$('fillTempo').value=Number(value.bpm.toFixed(2));
    const target=recordingKeys.get(id)??value.tonic,key=E.shift(value.tonic,target);keyOptions(value.minor?'minor':'major',target);$('fillKey').title='Recording key'+(value.keyUncertain?' · Estimated':'')+' · Change to transpose the audio and notes';
    const selected=$('fillIdea').selectedOptions[0];
@@ -416,7 +422,7 @@ window.BassFillTrainer=(()=>{
   const mine=token,current=plan,choices=accompaniment();
   $('fillStatus').textContent=transport||recordedAudio?'':'Loading…';
   try{
-   if(current.kind==='uploaded'&&!current.recording){
+   if(current.kind==='uploaded'&&!current.recording&&!current.recreated){
     await playRecording(mine,request,current,choices);return;
    }
    ctx??=new AudioContext();await ctx.resume();await E.prepare(ctx);
@@ -565,7 +571,7 @@ window.BassFillTrainer=(()=>{
   <select id="fillFrom" aria-label="From degree"></select><select id="fillTo" aria-label="To degree"></select>
   <div class="fill-pitch-row"><select id="fillKey" aria-label="Practice key"></select><label id="fillTempoWrap" class="fill-tempo"><span>BPM</span><input id="fillTempo" aria-label="Practice tempo BPM" type="number" min="40" max="220" step="0.01"></label><button id="fillTempoReset" type="button" title="Use the original drum loop tempo">Reset</button></div>
   </div>
-  <p id="fillEmpty" hidden>No patterns in this group. Choose another group or restore deleted patterns.</p><div id="fillPlayer"><div class="fill-actions"><button id="fillPlay" type="button">Play</button><button id="fillRepeat" type="button" aria-pressed="false">Repeat</button><button id="fillNext" type="button">Next</button></div><div class="ear-stem-row"><button id="fillBacking" type="button" aria-pressed="true" data-icon="🔊">Others</button><button id="fillDrums" type="button" aria-pressed="true" data-icon="🔊">Drums 🥁</button><button id="fillVoice" type="button" aria-pressed="true" data-icon="🔊">Voice 🎙</button></div><p id="fillAccompaniment"></p><details id="fillDrumOptions"><summary>Band</summary><div class="fill-settings"><label class="fill-band-choice">Drum genre<select id="fillDrumKit" aria-label="Drum genre"></select></label><label class="fill-band-choice">Drum loop<select id="fillDrumGroove" aria-label="Drum loop"></select></label><label class="fill-band-choice">Keys style<select id="fillKeyStyle" aria-label="Keyboard style"></select></label><label class="fill-band-choice">Keys sound<select id="fillKeySound" aria-label="Keyboard sound"></select></label><label class="fill-drum-volume">Drums <input id="fillDrumVolume" type="range" min="0" max="100" step="1" value="21"><output id="fillDrumLevel">21%</output></label><label class="fill-drum-volume"><span id="fillKeyLabel">Keys</span> <input id="fillKeyVolume" type="range" min="0" max="100" step="1" value="7"><output id="fillKeyLevel">7%</output></label><label class="fill-drum-volume">Bass <input id="fillBassVolume" type="range" min="0" max="100" step="1" value="100"><output id="fillBassLevel">100%</output></label><label class="fill-drum-volume">Voice <input id="fillVoiceVolume" type="range" min="0" max="100" step="1" value="21"><output id="fillVoiceLevel">21%</output></label><button id="fillGenreReset" type="button">Reset band</button></div><p id="fillMixNotice" hidden>At 100% Voice, you hear the original vocal. Lower levels use an estimate and may soften nearby instruments.</p></details><h3 id="fillHeading"></h3><p id="fillHarmony" hidden></p><p id="fillDifference" hidden></p>
+  <p id="fillEmpty" hidden>No patterns in this group. Choose another group or restore deleted patterns.</p><div id="fillPlayer"><div class="fill-actions"><button id="fillPlay" type="button">Play</button><button id="fillRepeat" type="button" aria-pressed="false">Repeat</button><button id="fillNext" type="button">Next</button></div><div class="ear-stem-row"><button id="fillBacking" type="button" aria-pressed="true" data-icon="🔊">Others</button><button id="fillDrums" type="button" aria-pressed="true" data-icon="🔊">Drums 🥁</button><button id="fillVoice" type="button" aria-pressed="true" data-icon="🔊">Voice 🎙</button></div><p id="fillAccompaniment"></p><details id="fillDrumOptions"><summary>Band</summary><div class="fill-settings"><label class="fill-band-choice">Drum genre<select id="fillDrumKit" aria-label="Drum genre"></select></label><label class="fill-band-choice">Drum loop<select id="fillDrumGroove" aria-label="Drum loop"></select></label><label class="fill-band-choice">Keys style<select id="fillKeyStyle" aria-label="Keyboard style"></select></label><label class="fill-band-choice">Keys sound<select id="fillKeySound" aria-label="Keyboard sound"></select></label><label class="fill-drum-volume">Drums <input id="fillDrumVolume" type="range" min="0" max="100" step="1" value="21"><output id="fillDrumLevel">21%</output></label><label class="fill-drum-volume"><span id="fillKeyLabel">Keys</span> <input id="fillKeyVolume" type="range" min="0" max="100" step="1" value="7"><output id="fillKeyLevel">7%</output></label><label class="fill-drum-volume">Bass <input id="fillBassVolume" type="range" min="0" max="100" step="1" value="100"><output id="fillBassLevel">100%</output></label><label class="fill-drum-volume">Voice <input id="fillVoiceVolume" type="range" min="0" max="100" step="1" value="21"><output id="fillVoiceLevel">21%</output></label><button id="fillSourceAudio" type="button" hidden aria-pressed="false">Original audio</button><button id="fillGenreReset" type="button">Reset band</button></div><p id="fillMixNotice" hidden>At 100% Voice, you hear the original vocal. Lower levels use an estimate and may soften nearby instruments.</p></details><h3 id="fillHeading"></h3><p id="fillHarmony" hidden></p><p id="fillDifference" hidden></p>
 
   <div id="fillNotes" aria-label="Bass fill notes"></div><div id="fillNotePager" hidden aria-label="Note pages"><button id="fillNotePrev" type="button" aria-label="Previous notes">‹</button><output id="fillNotePage"></output><button id="fillNoteNext" type="button" aria-label="Next notes">›</button></div><p id="fillStatus" role="status"></p></div><div class="my-fill-actions"><button id="fillDelete" type="button" aria-label="Delete pattern" title="Delete pattern">Delete</button><button id="fillRestore" type="button" aria-expanded="false" aria-controls="fillDeletedPanel">Deleted</button></div><section id="fillDeletedPanel" hidden aria-label="Deleted items"><div class="fill-deleted-heading"><h3>Deleted</h3><button id="fillDeletedClose" type="button" aria-label="Close deleted items">×</button></div><p id="fillDeletedEmpty" hidden>No deleted items.</p><ul id="fillDeletedList"></ul><button id="fillEmptyDeleted" type="button" aria-label="Permanently empty deleted items" title="Permanently empty deleted items">Empty bin</button></section><p id="fillManageStatus" role="status"></p>`;
   function option(id,value,label){const o=document.createElement('option');o.value=value;o.textContent=label;$(id).append(o);}
@@ -575,6 +581,10 @@ window.BassFillTrainer=(()=>{
   $('fillDrumKit').value=drumKit;$('fillDrumGroove').value=drumGroove;$('fillKeyStyle').value=keyStyle;$('fillKeySound').value=keySound;$('fillDrumVolume').value=Math.round(drumVolume*100);$('fillDrumLevel').textContent=Math.round(drumVolume*100)+'%';$('fillKeyVolume').value=Math.round(keyVolume*100);$('fillKeyLevel').textContent=Math.round(keyVolume*100)+'%';
   const changeSound=event=>{drumKit=$('fillDrumKit').value;if(event?.target.id==='fillDrumKit'){drumGroove='auto';drumOptions();}else drumGroove=$('fillDrumGroove').value;keyStyle=$('fillKeyStyle').value;keySound=$('fillKeySound').value;saveDrums();draw();};
   for(const id of ['fillDrumKit','fillDrumGroove','fillKeyStyle','fillKeySound'])$(id).onchange=changeSound;
+  $('fillSourceAudio').onclick=()=>{
+   originalClip=originalClip===plan.clipId?null:plan.clipId;
+   draw();
+  };
   $('fillGenreReset').onclick=()=>{
    bassVolume=1;drumVolume=voiceVolume=.21;keyVolume=.07;drums=backing=voice=true;
    displayMix();level('bass',1);level('drums',drumVolume);level('chords',keyVolume);applyVoiceLevel();saveDrums();state();

@@ -43,7 +43,8 @@ window.BassRehearsal=(()=>{
      <select id="rehearsalStyle" aria-label="Style"></select>
      <select id="rehearsalPattern" aria-label="Pattern"></select>
     </div>
-    <p id="rehearsalSource" aria-live="polite"></p>
+    <label class="rehearsal-setup">Drum loop <select id="rehearsalDrumLoop"><option value="">Auto</option></select></label>
+    <p id="rehearsalSource"  aria-live="polite"></p>
     <div class="ear-stem-row rehearsal-setup" role="group" aria-label="Band mutes"><button id="rehearsalOthers" type="button" data-icon="🔊" aria-pressed="true">Others</button><button id="rehearsalDrums" type="button" data-icon="🔊" aria-pressed="true">Drums 🥁</button><button id="rehearsalVoice" type="button" data-icon="🔊" aria-pressed="true">Voice 🎙</button></div>
     <label class="rehearsal-level rehearsal-setup">Drums <input id="rehearsalDrumGain" type="range" min="0" max="100" value="21"><output id="rehearsalDrumValue">21%</output></label>
     <label class="rehearsal-level rehearsal-setup">Others <input id="rehearsalMusic" type="range" min="0" max="100" value="7"><output id="rehearsalMusicValue">7%</output></label>
@@ -72,6 +73,12 @@ window.BassRehearsal=(()=>{
     </div>
    </div>
    <p id="rehearsalStatus" role="status"></p>`;
+  const drumMenu=$('rehearsalDrumLoop'),groups=new Map();
+  for(const loop of window.BassSuppliedDrums.instrumental){
+   if(!groups.has(loop.genre)){const group=document.createElement('optgroup');group.label=loop.genre;groups.set(loop.genre,group);drumMenu.append(group);}
+   groups.get(loop.genre).append(new Option(loop.title+(loop.recreated?' · Recreated':''),loop.id));
+  }
+  drumMenu.onchange=()=>void refreshRehearsalDrums();
   timelineResize?.disconnect();
   if(typeof ResizeObserver!=='undefined'){timelineResize=new ResizeObserver(fitTimeline);timelineResize.observe($('rehearsalTimeline'));}
   (window.BassRehearsalIdeas?.availableStyles()||C.styles).forEach(([id,caption])=>{const option=new Option(window.BassStudyDisplay?.menu(caption)||caption,id);option.title=caption;$('rehearsalStyle').add(option);});
@@ -95,7 +102,7 @@ window.BassRehearsal=(()=>{
    };
   }
   $('rehearsalStyle').onchange=()=>{patterns(true);changePattern();void refreshRehearsalDrums();};
-  $('rehearsalPattern').onchange=changePattern;
+  $('rehearsalPattern').onchange=()=>{changePattern();void refreshRehearsalDrums();};
   $('rehearsalFill').onchange=changePattern;
   $('rehearsalMix').onclick=()=>void toggleMix();
   $('rehearsalView').onchange=()=>{notePage=-1;drawView();};
@@ -602,17 +609,24 @@ window.BassRehearsal=(()=>{
 
  // Keep the original song and its saved stems intact. The replacement follows
  // the same beat grid and selected ranges as the bass guide during rehearsal.
- function wantsPraiseDrums(){return $('rehearsalStyle').value==='ariaria';}
+ function rehearsalDrumLoop(current){
+  const style=$('rehearsalStyle').value,rows=window.BassSuppliedDrums.loops;
+  const manual=$('rehearsalDrumLoop').value;
+  if(manual)return window.BassSuppliedDrums.available.find(row=>row.id===manual);
+  const choice=featured.find(row=>row.id===$('rehearsalPattern').value);
+  const source=window.BassUploadedCore.find(choice?.sourceId||choice?.entry?.recordedStudy?.sourceId);
+  if(source?.culturalUpload)return rows.find(row=>row.id===source.sourceDrumLoopId);
+  if(style==='ariaria')return rows.filter(row=>row.genre===style&&row.instrumentalRecording)
+   .sort((a,b)=>Math.abs(a.bpm-current.grid.bpm)-Math.abs(b.bpm-current.grid.bpm))[0];
+  return null;
+ }
  async function preparePraiseDrums(tracks,current){
   const grid=current.grid;
-  if(!tracks.stems||!grid?.points?.length||!wantsPraiseDrums())return;
-  if(tracks.praiseDrums)return;
-  const choices=window.BassSuppliedDrums.loops.filter(row=>row.genre==='ariaria'&&row.instrumentalRecording);
-  const groove=choices.sort((a,b)=>Math.abs(a.bpm-grid.bpm)-Math.abs(b.bpm-grid.bpm))[0];
-  if(!groove)return;
+  const groove=tracks.stems&&grid?.points?.length&&rehearsalDrumLoop(current);
+  if(!groove||tracks.drumLoopId===groove.id)return;
   const frames=Math.round(ctx.sampleRate*60/grid.bpm);
   const buffer=await window.BassSuppliedDrums.render(ctx,groove,frames);
-  if(clip!==current||!wantsPraiseDrums())return;
+  if(clip!==current||rehearsalDrumLoop(current)?.id!==groove.id)return;
   const lane=ctx.createBuffer(buffer.numberOfChannels,Math.ceil(tracks.end*ctx.sampleRate),ctx.sampleRate);
   const points=grid.points,step=60/grid.bpm,rate=ctx.sampleRate;
   for(let c=0;c<lane.numberOfChannels;c++){
@@ -625,11 +639,14 @@ window.BassRehearsal=(()=>{
     out[i]=src[first]+(sample-first)*(src[(first+1)%src.length]-src[first]);
    }
   }
-  tracks.praiseDrums=lane;
+  tracks.praiseDrums=lane;tracks.drumLoopId=groove.id;
  }
  async function refreshRehearsalDrums(){
-  if(!playing||!band?.tracks.stems)return;
+  if(!playing)return;
+  if(!band?.tracks.stems){if($('rehearsalDrumLoop').value)state('A separate drum track is needed to replace the song drums.');return;}
   const tracks=band.tracks,current=clip;
+  const target=rehearsalDrumLoop(current)?.id;
+  if(target===band.activeDrumLoop)return;
   try{await preparePraiseDrums(tracks,current);
    if(playing&&band?.tracks===tracks&&clip===current)restartRepeat();
   }catch{state('Could not load the Ariaria drums.');}
@@ -641,7 +658,7 @@ window.BassRehearsal=(()=>{
   node.buffer=loop.source;node.loop=true;node.loopStart=loop.start;node.loopEnd=loop.end;
   const levels={...tracks.levels};
   if(tracks.stems&&route){
-   const praise=wantsPraiseDrums()&&tracks.praiseDrums;
+   const praise=tracks.drumLoopId&&rehearsalDrumLoop(clip)?.id===tracks.drumLoopId&&tracks.praiseDrums;
    const splitter=ctx.createChannelSplitter(8);node.connect(splitter);nodes.push(splitter);
    for(const [i,part] of ['bass','drums','chords','voice'].entries()){
     const stereo=ctx.createChannelMerger(2),level=ctx.createGain();if(part==='drums'&&praise){
@@ -660,7 +677,7 @@ window.BassRehearsal=(()=>{
   const voiceContext=route?Object.assign(Object.create(route.context),{destination:guideGain}):ctx;
   const masterLevel=tracks.stems?1:Number($('rehearsalMusic').value)/100;gain.gain.value=replace?0:masterLevel;
   const dispose=()=>{node.disconnect();for(const n of nodes){if(n.buffer&&n.stop)try{n.stop();}catch{}n.disconnect();}route?.disconnect();gain.disconnect();};
-  band={node,gain,gains,levels,guideGain,voiceContext,route,tracks,loop,dispose};
+  band={node,gain,gains,levels,guideGain,voiceContext,route,tracks,loop,dispose,activeDrumLoop:tracks.stems&&tracks.drumLoopId===rehearsalDrumLoop(clip)?.id?tracks.drumLoopId:undefined};
   for(const part of Object.keys(gains))bandLevel(part);
   node.start(when,loop.start+phase%loop.seconds);
   if(!replace||!previous)return;

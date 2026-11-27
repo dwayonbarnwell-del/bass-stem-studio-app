@@ -64,13 +64,12 @@ window.BassCustomFlow=(()=>{
  function source(r,from=1,to=4){
   return r.clip?U.plan(r.clip,'phrase-'+r.part):P.make(r.kind,{idea:r.idea,part:r.part,key:0,from,to,bpm:state.bpm});
  }
- // Only MIDI drum renders and sampled kit performances can enter Custom flow.
+ // Keep untreated recording extracts out of the beat picker.
  // A drum stem estimated from a song or lesson may still contain speech.
  let flowBeats=new Map();
  function beatPool(ids){
-  if(state.genre==='ariaria')return window.BassSuppliedDrums.available.filter(loop=>loop.genre==='ariaria'&&loop.instrumentalRecording);
-  const midi=new Set(window.BassFlDrums?.loops||[]);
-  const safe=window.BassSuppliedDrums.available.filter(loop=>loop.events?.length||midi.has(loop)&&loop.sourceMidi);
+
+  const safe=window.BassSuppliedDrums.instrumental;
   const matches=loop=>ids.has(loop.id)||loop.genre===state.genre||loop.styles?.includes(state.genre);
   const pool=safe.filter(matches);
   if(pool.length)return pool;
@@ -103,10 +102,18 @@ window.BassCustomFlow=(()=>{
    const loop=H.resolve(p).loop;if(loop){ids.add(loop.id);if(r.kind==='fills'&&r.label==='Practice 09')preferred=loop;}
   }
   const all=beatPool(ids);flowBeats=new Map(all.map(loop=>[loop.id,loop]));
-  const beats=all.map(l=>({id:l.id,label:l.title||l.id})).sort(compare);
-  if(!beats.some(b=>b.id===state.beat))state.beat=(flowBeats.has(preferred?.id)?preferred.id:null)||all.find(l=>ids.has(l.id))?.id||beats[0]?.id||'';
-  if(fresh){state.bpm=Math.max(40,Math.min(220,Math.round(all.find(l=>l.id===state.beat)?.bpm||96)));fresh=false;el('Bpm').value=state.bpm;}
+  const beats=all.map(l=>({id:l.id,label:l.recreated?l.title+' · Recreated':l.title||l.id})).sort(compare);
+  const other=window.BassSuppliedDrums.instrumental.filter(row=>!flowBeats.has(row.id));
+  for(const row of other)flowBeats.set(row.id,row);
+  if(!flowBeats.has(state.beat))state.beat=all.find(row=>row.id===preferred?.id)?.id||all.find(row=>ids.has(row.id))?.id||beats[0]?.id||'';
+  if(fresh){state.bpm=Math.max(40,Math.min(220,Math.round(flowBeats.get(state.beat)?.bpm||96)));fresh=false;el('Bpm').value=state.bpm;}
   options(el('Beat'),beats,state.beat);
+  const groups=new Map();
+  for(const loop of other){
+   if(!groups.has(loop.genre)){const group=document.createElement('optgroup');group.label=H.profiles[loop.genre]?.label||loop.genre;groups.set(loop.genre,group);el('Beat').append(group);}
+   groups.get(loop.genre).append(new Option(loop.title+(loop.recreated?' · Recreated':''),loop.id));
+  }
+  el('Beat').value=state.beat;
   state.choices=state.degrees.slice(1).map((_,i)=>{
    const pool=allowed(i);return pool.find(r=>r.id===state.choices[i])?.id||pool.find(r=>r.kind==='fills')?.id||pool[0]?.id||'';
   });
@@ -327,7 +334,7 @@ window.BassCustomFlow=(()=>{
  function draw(){
   for(const name of ['Genre','Beat']){
    const caption=el(name).selectedOptions[0]?.text||'';
-   let short=caption.replace(/^FL\s+|^6[-/]8\s+/gi,'').replace(/^6[-/]8\s+/,'')
+   let short=caption.replace(/ · Recreated$/,'').replace(/^FL\s+|^6[-/]8\s+/gi,'').replace(/^6[-/]8\s+/,'')
     .replace(/shufflegroove/i,'Shuffle').replace(/rockgroove/i,'Rock').replace(/oldschool/i,'Old skool');
    if(name==='Genre'&&state.genre==='nigerian68')short='Nigerian 6/8';
    const lines=short.match(/^(.*?)\s+(\S+)$/)?.slice(1)||[short];
@@ -435,7 +442,7 @@ window.BassCustomFlow=(()=>{
    }
    if(expand){if(action==='Open')savedMenu(el('Saved').value);el(action==='Save'?'Name':'Saved').focus();}
   };
-  el('Genre').onchange=e=>{state.genre=e.target.value;hydrate();update();};
+  el('Genre').onchange=e=>{state.genre=e.target.value;state.beat='';hydrate();update();};
   el('Beat').onchange=e=>{state.beat=e.target.value;update();};
   el('Key').onchange=e=>{const [key,mode]=e.target.value.split('/');state.key=Number(key);state.mode=mode;update();};
   el('Bpm').onchange=e=>{if(!e.target.value||!e.target.reportValidity()){e.target.value=state.bpm;return;}state.bpm=Number(e.target.value);update();};

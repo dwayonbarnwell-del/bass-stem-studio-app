@@ -122,7 +122,9 @@ window.BassAccompaniment=(()=>{
   const assignment=written?[written,0]:window.BassFlDrums?.assignments[key]||window.BassGrooveLibrary?.assignments[key];
   const autoDrums=(!options.kit||options.kit==='auto')&&(!options.groove||options.groove==='auto');
   const isAriaria=[p.id,p.dance,plan.recordedStudy?.style].includes('ariaria');
-  if(isAriaria&&autoDrums&&window.BassSuppliedDrums){
+  const recording=window.BassUploadedCore?.find(plan.clipId||plan.recordedStudy?.sourceId);
+  if(recording?.culturalUpload&&autoDrums)options={...options,groove:recording.sourceDrumLoopId};
+  else if(isAriaria&&autoDrums&&window.BassSuppliedDrums){
    const choices=window.BassSuppliedDrums.loops.filter(loop=>loop.genre==='ariaria'&&loop.instrumentalRecording);
    const recorded=window.BassUploadedCore?.find(plan.clipId||plan.recordedStudy?.sourceId);
    const assigned=choices.find(loop=>loop.id===recorded?.sourceDrumLoopId)||choices.slice().sort((a,b)=>Math.abs(a.bpm-plan.bpm)-Math.abs(b.bpm-plan.bpm))[0];
