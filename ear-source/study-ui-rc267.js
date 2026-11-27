@@ -212,8 +212,9 @@ window.BassFillTrainer=(()=>{
  }
  function refreshDeleted(){collectionOptions();groupOptions();transitionOptions();ideaOptions($('fillIdea').value);clipOptions();draw();deletedItems();}
  function later(fn,ms){timers.push(setTimeout(fn,ms));}
+ let pausedBeat=null;
  function playbackLayout(){
-  const study=$('earFillStudy'),value=String(playing);
+  const study=$('earFillStudy'),value=String(playing||pausedBeat!==null);
   if(study.dataset.playing===value)return;
   study.dataset.playing=value;
   if(playing)($('earContent')||$('earTrainerDialog')).scrollTop=0;
@@ -223,13 +224,45 @@ window.BassFillTrainer=(()=>{
   button.title=available?(on?'Mute ':'Unmute ')+label.toLowerCase():plan?.recording?.originalMix?'Voice separation unavailable. Play again to retry.':'No vocals in this pattern';button.setAttribute('aria-label',button.title);
  }
  function state(){
-  const deleted=window.BassCatalogueReview.removed().length;playbackLayout();$('fillPlay').textContent=playing?'Stop':'Play';$('fillPlay').disabled=!plan;$('fillRepeat').disabled=!plan;$('fillNext').disabled=!plan;$('fillDelete').disabled=!deletionKey();$('fillRestore').disabled=!deleted;$('fillRestore').textContent='Deleted'+(deleted?' ('+deleted+')':'');$('fillRepeat').setAttribute('aria-pressed',String(repeating));
+  const deleted=window.BassCatalogueReview.removed().length;playbackLayout();$('fillPlay').textContent=playing?'Pause':pausedBeat!==null?'Resume':'Play';$('fillPlay').disabled=!plan;$('fillRepeat').disabled=!plan;$('fillNext').disabled=!plan;$('fillDelete').disabled=!deletionKey();$('fillRestore').disabled=!deleted;$('fillRestore').textContent='Deleted'+(deleted?' ('+deleted+')':'');$('fillRepeat').setAttribute('aria-pressed',String(repeating));
   muteLabel('fillBacking','Others',backing);muteLabel('fillDrums','Drums 🥁',drums);muteLabel('fillVoice','Voice 🎙',voice,!!plan?.recording?.originalMix&&voiceReady!==false);
   $('fillVoiceVolume').disabled=!plan?.recording?.originalMix||voiceReady===false;
   $('fillVoiceVolume').parentElement.hidden=$('fillVoiceVolume').disabled;
  }
 
- function stop(){if(rendered?.voiceUnavailable)rendered=null;clearStreamBand?.();token++;revision++;for(const session of sessions)session.transport.stop();sessions=[];transport?.stop();transport=null;cancelAnimationFrame(recordedFrame);recordedAudio?.pause();recordedAudio=null;playing=false;repeating=false;timers.forEach(clearTimeout);timers=[];voices.forEach(v=>{try{v.stop();}catch{}});voices=[];if($('fillPlay')){state();highlightNotes([],0,false);}}
+ function pause(){
+  const active=sessions.filter(s=>s.plan===plan&&s.transport.when<=ctx.currentTime).at(-1);
+  let beat=pausedBeat??0,visibleBeat=beat;
+  if(recordedAudio&&streamPlan===plan){
+   beat=Math.max(0,(recordedAudio.currentTime-plan.sourceStart)/plan.step)%plan.beats;
+   visibleBeat=beat;
+  }else if(active){
+   const elapsed=active.transport.position()-(window.BassPlaybackTiming?.outputDelay(ctx)||0)-(active.transport.latency||0);
+   beat=Math.max(0,elapsed)/active.rendered.beatSeconds;
+   visibleBeat=(Math.max(0,elapsed)%active.rendered.seconds)/active.rendered.beatSeconds;
+  }
+  endPlayback(beat);
+  highlightChord(visibleBeat);highlightNotes(plan.bass,visibleBeat,true);
+  $('fillStatus').textContent='Paused';
+ }
+ function stop(){endPlayback(null);}
+ function endPlayback(beat){
+  pausedBeat=beat;
+  if(rendered?.voiceUnavailable)rendered=null;
+  clearStreamBand?.();
+  token++;revision++;
+  for(const session of sessions){
+   if(session.transport.when>ctx.currentTime)session.transport.cancelPending();
+   else session.transport.stop();
+  }
+  sessions=[];transport=null;
+  cancelAnimationFrame(recordedFrame);recordedAudio?.pause();recordedAudio=null;
+  playing=false;repeating=false;
+  timers.forEach(clearTimeout);timers=[];
+  for(const voice of voices)try{voice.stop();}catch{}
+  voices=[];
+  if($('fillPlay')){state();if(beat===null)highlightNotes([],0,false);}
+ }
  function highlightNotes(notes,beat,audible){
   const list=$('fillNotes');
   if(audible&&plan?.kind==='uploaded'&&notes.length>35){const next=notes.findIndex(n=>n.beat+n.length>beat),page=Math.floor((next<0?notes.length-1:next)/notePageSize);if(page!==notePage)notePages(page);}
@@ -310,6 +343,7 @@ window.BassFillTrainer=(()=>{
   showPlan(P.make(kind,settings()));
  }
  function showPlan(value){
+  pausedBeat=null;
   if(plan?.audio!==value?.audio){
    voiceReady=null;isolateVoice=false;
    L.selectRecording(value?.recording?.originalMix?value.audio:null);
@@ -324,7 +358,7 @@ window.BassFillTrainer=(()=>{
   const mine=token;try{ctx??=new AudioContext();await ctx.resume();await window.BassPracticeAudio.prepare('bass',ctx,{notes:[n]});if(mine!==token)return;voices.push(window.BassPracticeAudio.tone(ctx,n.midi,ctx.currentTime,.65,'bass',0,85,.8));}catch{$('fillStatus').textContent='Sound unavailable';}
  }
  async function play(){
-  if(!plan)return;if(playing){stop();$('fillStatus').textContent='Stopped';return;}
+  if(!plan)return;if(playing){pause();return;}
   if(api?.busy?.()){$('fillStatus').textContent='Finish recording first';return;}
   playing=true;repeating=true;state();api?.pause?.();await updatePlayback();
  }
@@ -359,7 +393,7 @@ window.BassFillTrainer=(()=>{
    const nextBeat=previous?Math.ceil((priorOffset+Math.max(0,ctx.currentTime+.12-previous.when)/previous.beatSeconds)/quantum)*quantum:0;
    const when=previous&&previous.when>ctx.currentTime?previous.when:previous?previous.when+(nextBeat-priorOffset)*previous.beatSeconds:ctx.currentTime+.08;
    rendered=audio;voiceReady=audio.voicePending?null:!!audio.stems.voice;state();
-   const offsetBeats=previous&&same?nextBeat:0;
+   const offsetBeats=previous&&same?nextBeat:(pausedBeat??0);
    const next=L.start(ctx,audio,{when,offsetBeats,drumPhase:audio.drumPhase??(current.recording?current.phase:0),repeat:true,fadeIn:previous?.006:0,bass:bassVolume,drums:drums?drumVolume:0,chords:backing&&(voice||!current.recording?.originalMix||audio.stems.voice)?keyVolume:0,voice:voice?voiceVolume:0});
    // A prepared loop may still be waiting for its first beat.
    // Drop that silent replacement before the new one begins.
@@ -367,7 +401,7 @@ window.BassFillTrainer=(()=>{
     previous.cancelPending();
     sessions=sessions.filter(session=>session.transport!==previous);
    }else previous?.stopAt(when,.006);
-   transport=next;
+   transport=next;pausedBeat=null;
    sessions.push({transport:next,plan:current,rendered:audio});
    clearStreamBand?.();const previousRecording=recordedAudio;if(previousRecording){previousRecording.pause();recordedAudio=null;}
    for(const voice of voices)try{voice.stop();}catch{}voices=[];
@@ -415,7 +449,7 @@ window.BassFillTrainer=(()=>{
    // original playhead when changing speed, keyboard or drums during a passage.
    audio.defaultPlaybackRate=current.speed/100;audio.playbackRate=current.speed/100;
    if(!continuing){
-    audio.currentTime=current.sourceStart;audio.muted=true;
+    audio.currentTime=current.sourceStart+(pausedBeat??0)*current.step;audio.muted=true;
     route=E.mixer(ctx,{semitones:current.semitones||0});media=ctx.createMediaElementSource(audio);bassGain=ctx.createGain();bassGain.gain.value=bassVolume;window.BassAutoLevel.attach(ctx,media,bassGain);bassGain.connect(route.pitched);
     await audio.play();
    }
@@ -424,7 +458,7 @@ window.BassFillTrainer=(()=>{
   if(!continuing)recordedAudio?.pause();
   for(const s of sessions)s.transport.stop();sessions=[];transport=null;clearStreamBand?.(!!continuing);
   streamRoute=route;streamMedia=media;streamBassGain=bassGain;streamRoute.setSemitones(current.semitones||0);audio.muted=false;
-  recordedAudio=audio;streamPlan=current;cancelAnimationFrame(recordedFrame);
+  recordedAudio=audio;streamPlan=current;pausedBeat=null;cancelAnimationFrame(recordedFrame);
   const gain=ctx.createGain();gain.connect(streamRoute.drums);streamKeyGain=ctx.createGain();streamKeyGain.gain.value=backing?keyVolume:0;streamKeyGain.connect(streamRoute.guide);const keyContext=Object.assign(Object.create(streamRoute.context),{destination:streamKeyGain});
   let source=null,origin=0,keyIndex=0,liveKeys=[];
   const drumBeat=drumBuffer.duration/choices.loop.beats;
