@@ -127,6 +127,64 @@ Downbeat return|8515WL|1851518WL|18515U`,
     slide:linked&&(genre==='rnb'||genre==='soul')&&(i+index)%4===0};
   });
  }
+ // Each cell spans two bars of 6/8. A tick is an eighth note and a
+ // practice beat is a dotted crotchet: 0, 3, 6 and 9 are the four foot taps.
+ const praiseRows=[
+  ['Bell reply','3968UL','23568965L','15186L','1454'],
+  ['Choir lift','8563VL','86535236U','18356U','1625'],
+  ['Low pickup','5263WL','53236853L','12563L','2645'],
+  ['Cross accent','6835PL','36853682L','15863V','1564'],
+  ['Amen turn','3526VU','63526583U','13652L','4156'],
+  ['Fifth answer','5286UL','85286532L','15286U','6251'],
+  ['Offbeat call','9365WL','59365238L','19365L','2514'],
+  ['Broken thirds','2436VL','32436589L','12436V','5361'],
+  ['Two taps','1136UL','51136582L','11836U','1645'],
+  ['Turn to four','6583WL','86583562L','16583L','4635'],
+  ['High reply','8956PL','68956532U','18956U','1462'],
+  ['Step below','4326VL','54326358L','14326V','2651'],
+  ['Lift and rest','3689UL','53689865L','13689L','6415'],
+  ['Octave call','8153WL','58153562U','18153U','3625'],
+  ['Third answer','6352VU','86352368L','16352V','5164'],
+  ['Short return','5852PL','35852365U','15852L','1425'],
+  ['Rolling sixth','6863VL','56863529L','16863U','6524'],
+  ['Low echo','2325WL','52325689L','12325V','4261'],
+  ['Choir answer','8539UL','68539562U','18539L','2541'],
+  ['Home call','5269VL','35683852L','15638U','6145']
+ ];
+ const praiseTicks={
+  fills:[[3,5,6,8,10,11],[2,4,6,7,9,11],[1,3,5,8,9,11],[4,5,7,8,10,11],[2,3,6,8,9,10]],
+  runs:[[1,2,3,5,6,7,8,10,11],[2,3,4,5,6,8,9,10,11],[1,3,4,5,7,8,9,10,11],[1,2,4,5,6,7,9,10,11],[2,3,4,6,7,8,9,10,11]],
+  basslines:[[0,2,3,6,8,11],[0,3,5,7,9,11],[0,1,4,6,9,10],[0,2,5,6,8,10],[0,3,4,7,9,11]]
+ };
+ const praiseDrums=['03ac420111e9','4a435d28886d','af1e5aec2faf','197f8b14de2a','97ce47eed1bf','52d18f2be7c9','61681489185e','2a2d094a0819','39772272ab49','5a99f464bfb9','bc1fc0646602','733595a3bb4a'];
+ function praiseBar(kind,melody,index){
+  const ticks=praiseTicks[kind][index%5];
+  return [...melody].map((token,i)=>{
+   const at=ticks[i],gap=((ticks[i+1]??12)-at)/3,accent=at%3===0;
+   const late=accent?0:(index%3+1)*.004;
+   return {pitch:token in approach?'t'+approach[token]:'d'+token,beat:at/3+late,
+    length:(gap-late)*(accent?.83:token===melody[i-1]?.48:.74),velocity:accent?96:at%3===2?83:71,
+    articulation:accent?'held':'detached'};
+  });
+ }
+ function praiseStudies(){
+  const studies=[];
+  praiseRows.forEach(([title,fill,run,line,changes],i)=>{
+   for(const [k,[kind,melody]] of Object.entries({fills:fill,runs:run,basslines:line}).entries()){
+    const notes=praiseBar(kind,melody,i+k),score={id:'praise68-'+kind+'-'+(i+1),genre:'nigerian68',kind,title,notes,
+     seriesDrum:i%4===0||i%4===2?'praise68-kit-'+((Math.floor(i/2)+k)%4+1):'fl-'+praiseDrums[(i+k*3)%praiseDrums.length]};
+    if(kind==='basslines'){
+     const reply='1'+line[3]+line[1]+run[4]+fill.slice(-2);
+     const bridge='1'+run[2]+line[4]+line[1]+run.slice(-2);
+     const cadence='1'+fill[1]+line[2]+run[5]+fill.slice(-2);
+     score.bars=[notes,...[reply,bridge,cadence].map((bar,j)=>praiseBar(kind,bar,i+j+3))];
+     score.answer=score.bars[1];score.degrees=[...changes].map(Number);
+    }
+    studies.push(score);
+   }
+  });
+  return studies;
+ }
  function entries(){
   const result=[];
   for(const [genre,text] of Object.entries(repertoire)){
@@ -149,7 +207,7 @@ Downbeat return|8515WL|1851518WL|18515U`,
     }
    });
   }
-  return result;
+  return result.concat(praiseStudies());
  }
  return {entries};
 })();

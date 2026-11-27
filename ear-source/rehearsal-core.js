@@ -3,7 +3,7 @@
  'use strict';
  const styles=[
   ['auto','Suggested'],['roots','Roots'],['worship','Worship'],['gospel','Gospel'],['soul','Soul'],['rnb','R&B'],['jazz','Jazz'],['blues','Blues'],['fusion','Funk & fusion'],
-  ['praise','Praise'],['woro','Woro'],['highlife','Highlife'],['ariaria','Ariaria'],['makossa','Makossa'],
+  ['praise','Praise'],['nigerian68','Nigerian 6/8 Praise'],['woro','Woro'],['highlife','Highlife'],['ariaria','Ariaria'],['makossa','Makossa'],
   ['seben','Seben'],['soukous','Soukous'],['afrobeat','Afrobeat'],['mbalax','Mbalax'],['mbaqanga','Mbaqanga'],['sungura','Sungura'],
   ['reggae','Reggae'],['soca','Soca'],['zouk','Zouk']
  ];

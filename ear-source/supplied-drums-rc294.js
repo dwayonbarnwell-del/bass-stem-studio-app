@@ -2,11 +2,30 @@
 window.BassSuppliedDrums=(()=>{
  'use strict';
  const brightLoops=new Set(["correct-worship-f7950a8d46", "correct-rock-3820baa306", "supplied-soul-6b7dd0fd59"]);
- const loops=[...(window.BassDrumLoops||[]).filter(l=>!brightLoops.has(l.id)),...(window.BassCulturalDrums||[])],genres=[['worship','Worship'],['praise','Praise'],['soul','Soul & R&B'],['funk','Funk'],['reggae','Reggae'],['woro','Woro'],['highlife','Highlife'],['ariaria','Ariaria'],['afrobeat','Afrobeat'],['makossa','Makossa'],['soukous','Soukous & Seben'],['soca','Soca'],['zouk','Zouk'],['rock','Rock']];
- const available=[...loops,...(window.BassGrooveLibrary?.loops||[]).filter(l=>!brightLoops.has(l.base)),...(window.BassFlDrums?.loops||[])];
+ const loops=[...(window.BassDrumLoops||[]).filter(l=>!brightLoops.has(l.id)),...(window.BassCulturalDrums||[])],genres=[['nigerian68','Nigerian 6/8 Praise'],['worship','Worship'],['praise','Praise'],['soul','Soul & R&B'],['funk','Funk'],['reggae','Reggae'],['woro','Woro'],['highlife','Highlife'],['ariaria','Ariaria'],['afrobeat','Afrobeat'],['makossa','Makossa'],['soukous','Soukous & Seben'],['soca','Soca'],['zouk','Zouk'],['rock','Rock']];
+ // Original two-bar praise grooves. One clock beat is a dotted crotchet.
+ // On each six-count, the kick anchors one and the snare answers on four.
+ const praise68=[
+  ['Bell answer',120,[0,5,6,10],[3,9],[2,7,11],[0,2,4,5,7,9,11]],
+  ['Rolling kick',110,[0,2,6,8,11],[3,9],[5,10],[0,2,3,5,6,8,9,11]],
+  ['Choir lift',126,[0,4,6,11],[3,9],[2,8,10],[0,2,4,6,7,9,11]],
+  ['Praise turn',130,[0,5,6,8],[3,9,11],[1,7,10],[0,2,3,5,7,9,10]]
+ ].map(([title,bpm,kicks,snares,taps,accents],i)=>{
+  const events=[];
+  for(let tick=0;tick<12;tick++){
+   const beat=tick/3;
+   events.push([beat,'closedhat',accents.includes(tick)?78:44]);
+   if(kicks.includes(tick))events.push([beat,'kick',tick%6===0?119:91]);
+   if(snares.includes(tick))events.push([beat,'snare',tick%6===3?110:72]);
+   if(taps.includes(tick))events.push([beat+.012,'softsnare',54]);
+  }
+  return {id:'praise68-kit-'+(i+1),title,genre:'nigerian68',kit:'studio',beats:4,bpm,events};
+ });
+ const available=[...loops,...praise68,...(window.BassGrooveLibrary?.loops||[]).filter(l=>!brightLoops.has(l.base)),...(window.BassFlDrums?.loops||[])];
  const buffers=new Map(),renders=new Map(),loads=new Map();
  function choose(style,genre='auto',id='auto'){
   const exact=available.find(x=>x.id===id);if(exact)return exact;
+  if(genre==='nigerian68')return praise68[0];
   if(genre!=='auto'){
    const kitLoop=available.find(x=>x.genre===genre&&x.id.startsWith('gs-'));
    if(kitLoop)return kitLoop;

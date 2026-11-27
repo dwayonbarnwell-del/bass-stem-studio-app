@@ -1,7 +1,7 @@
 /* Original genre-informed practice arrangements, not transcriptions of recordings. */
 window.BassAccompaniment=(()=>{
  'use strict';
- const groups=[['worship','Worship'],['praise','Praise'],['gospel','Gospel'],['soul','Soul'],['rnb','R&B'],['jazz','Jazz'],['blues','Blues'],['reggae','Reggae'],['bass-lady','Bass Lady'],['bassmatics','Bassmatics']];
+ const groups=[['nigerian68','Nigerian 6/8 Praise'],['worship','Worship'],['praise','Praise'],['gospel','Gospel'],['soul','Soul'],['rnb','R&B'],['jazz','Jazz'],['blues','Blues'],['reggae','Reggae'],['bass-lady','Bass Lady'],['bassmatics','Bassmatics']];
  const familyGroups={'World Methods':'world-method','Bass Lady':'bass-lady',Bassmatics:'bassmatics'};
  function recordingGroup(item){
   const id=familyGroups[item.sourceFamily]||category(item,true)||'recordings';
@@ -43,6 +43,7 @@ window.BassAccompaniment=(()=>{
  }
  // The menu combines related genres. Each individual study still gets its own feel.
  const profiles={
+  nigerian68:{label:'Nigerian 6/8 Praise',kit:'studio',groove:'ariaria',sound:'piano'},
   woro:{label:'Woro',kit:'studio',groove:'woro',sound:'piano'},
   ariaria:{label:'Ariaria',kit:'studio',groove:'ariaria',sound:'piano'},
   worship:{label:'Worship',kit:'vintage',groove:'worship',sound:'piano'},
@@ -162,6 +163,7 @@ window.BassAccompaniment=(()=>{
   soca:[[.5,.23,62,'all'],[1,.23,54,'top'],[1.5,.23,64,'all'],[2.5,.23,61,'all'],[3,.23,55,'top'],[3.5,.23,65,'all']],
   zouk:[[0,.55,56,'all'],[.75,.3,49,'top'],[1.5,.38,58,'all'],[2.5,.55,54,'arp'],[3.25,.3,50,'all']]
  };
+ rhythms.nigerian68=[[0,.58,59,'all'],[2/3,.24,48,'top'],[1+2/3,.25,55,'top'],[2,.55,57,'all'],[3+1/3,.26,49,'arp']];
  rhythms.rnb=rhythms.soul;
  function arrange(plan,style='worship'){
   const sections=new Map();for(const n of plan.chords||[]){if(!sections.has(n.beat))sections.set(n.beat,[]);sections.get(n.beat).push(n);}
