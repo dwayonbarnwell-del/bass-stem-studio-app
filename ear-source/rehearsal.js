@@ -73,12 +73,7 @@ window.BassRehearsal=(()=>{
     </div>
    </div>
    <p id="rehearsalStatus" role="status"></p>`;
-  const drumMenu=$('rehearsalDrumLoop'),groups=new Map();
-  for(const loop of window.BassSuppliedDrums.instrumental){
-   if(!groups.has(loop.genre)){const group=document.createElement('optgroup');group.label=loop.genre;groups.set(loop.genre,group);drumMenu.append(group);}
-   groups.get(loop.genre).append(new Option(loop.title+(loop.recreated?' · Recreated':''),loop.id));
-  }
-  drumMenu.onchange=()=>void refreshRehearsalDrums();
+  $('rehearsalDrumLoop').onchange=()=>void refreshRehearsalDrums();
   timelineResize?.disconnect();
   if(typeof ResizeObserver!=='undefined'){timelineResize=new ResizeObserver(fitTimeline);timelineResize.observe($('rehearsalTimeline'));}
   (window.BassRehearsalIdeas?.availableStyles()||C.styles).forEach(([id,caption])=>{const option=new Option(window.BassStudyDisplay?.menu(caption)||caption,id);option.title=caption;$('rehearsalStyle').add(option);});
@@ -305,6 +300,11 @@ window.BassRehearsal=(()=>{
   const context=preview();
   const chosen=$('rehearsalStyle').value;
   const style=chosen==='auto'?clip?.suggested||'roots':chosen;
+  const drums=$('rehearsalDrumLoop'),previousBeat=drums.value;
+  const pool=window.BassSuppliedDrums.byStyle(style);
+  drums.replaceChildren(new Option('Auto',''));
+  for(const loop of pool)drums.add(new Option(loop.title+(loop.recreated?' · Recreated':''),loop.id));
+  if(pool.some(loop=>loop.id===previousBeat))drums.value=previousBeat;
   const picker=$('rehearsalPattern'),previous=!preferBest&&picker.dataset.style===style?picker.value:'';
   const previousKind=featured.find(row=>row.id===picker.value)?.kind;
   picker.dataset.style=style;
@@ -612,7 +612,7 @@ window.BassRehearsal=(()=>{
  function rehearsalDrumLoop(current){
   const style=$('rehearsalStyle').value,rows=window.BassSuppliedDrums.loops;
   const manual=$('rehearsalDrumLoop').value;
-  if(manual)return window.BassSuppliedDrums.available.find(row=>row.id===manual);
+  if(manual)return window.BassSuppliedDrums.byStyle(style==='auto'?current.grid&&current.suggested:style).find(row=>row.id===manual);
   const choice=featured.find(row=>row.id===$('rehearsalPattern').value);
   const source=window.BassUploadedCore.find(choice?.sourceId||choice?.entry?.recordedStudy?.sourceId);
   if(source?.culturalUpload)return rows.find(row=>row.id===source.sourceDrumLoopId);

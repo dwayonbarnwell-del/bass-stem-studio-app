@@ -41,18 +41,33 @@ window.BassFillTrainer=(()=>{
   displayMix();
  }
  const saveDrums=()=>{try{if(usingRecordingMix){recordingMix=mixValues();localStorage.setItem(recordingMixKey,JSON.stringify(recordingMix));return;}localStorage.setItem(drumKey,JSON.stringify({enabled:drums,chords:backing,kit:drumKit,groove:drumGroove,style:keyStyle,sound:keySound,volume:drumVolume,keyVolume,bassVolume,voiceVolume,voice}));}catch{}};
- const accompaniment=()=>({...H.resolve(plan,{kit:drumKit,groove:drumGroove,style:keyStyle,sound:keySound}),originalDrums:drumKit==='auto'&&drumGroove==='auto',originalKeys:keyStyle==='auto'&&keySound==='auto'});
- function drumOptions(){const select=$('fillDrumGroove'),names=N.names(B.available,row=>row.title);select.replaceChildren(new Option('Auto','auto'));for(const row of B.available.filter(x=>drumKit==='auto'||x.genre===drumKit||(drumKit==='worship'&&['soul','funk'].includes(x.genre)))){const option=new Option(names.get(row),row.id);option.title=row.title+' · '+Number(row.bpm.toFixed(2))+' BPM'+(row.tempoSource==='estimated'?' · Estimated':'');select.add(option);}N.sortMenu(select);select.value=drumGroove;if(!select.value){drumGroove='auto';select.value='auto';}}
- function soundSettings(){if(!plan){$('fillAccompaniment').textContent='';return;}const a=accompaniment(),auto=H.resolve(plan),names={piano:'Grand piano',electric:'Wurlitzer electric piano',organ:'Drawbar organ'};
-  for(const [id,text] of [['fillDrumKit',B.genres.find(x=>x[0]===auto.loop.genre)?.[1]||auto.loop.genre],['fillDrumGroove',(drumKit==='auto'?auto.loop:B.choose(auto.id,drumKit)).title],['fillKeyStyle',H.profiles[auto.style].label],['fillKeySound',names[auto.sound]]]){$(id).options[0].textContent='Auto';$(id).options[0].title='Auto · '+text;}
+ function selectedBeatStyle(){
+  return drumKit==='auto'?(kind==='basslines'?$('fillCollection').value:$('fillGroup').value):drumKit;
+ }
+ function bandFor(value){
+  const band=H.resolve(value,{kit:drumKit,groove:drumGroove,style:keyStyle,sound:keySound});
+  const pool=B.byStyle(selectedBeatStyle());
+  if(pool.length&&!pool.some(loop=>loop.id===band.loop.id))band.loop=pool[0];
+  return band;
+ }
+ const accompaniment=()=>({...bandFor(plan),originalDrums:drumKit==='auto'&&drumGroove==='auto',originalKeys:keyStyle==='auto'&&keySound==='auto'});
+ function drumOptions(){
+  const select=$('fillDrumGroove'),pool=B.byStyle(selectedBeatStyle()),names=N.names(pool,row=>row.title);
+  select.replaceChildren(new Option('Auto','auto'));
+  for(const row of pool){
+   const option=new Option(names.get(row),row.id);option.title=row.title+' · '+Number(row.bpm.toFixed(2))+' BPM';select.add(option);
+  }
+  N.sortMenu(select);select.value=drumGroove;
+  if(!select.value){drumGroove='auto';select.value='auto';}
+ }
+ function soundSettings(){if(!plan){$('fillAccompaniment').textContent='';return;}const a=accompaniment(),auto=a,names={piano:'Grand piano',electric:'Wurlitzer electric piano',organ:'Drawbar organ'};
+  for(const [id,text] of [['fillDrumKit',B.genres.find(x=>x[0]===auto.loop.genre)?.[1]||auto.loop.genre],['fillDrumGroove',auto.loop.title],['fillKeyStyle',H.profiles[auto.style].label],['fillKeySound',names[auto.sound]]]){$(id).options[0].textContent='Auto';$(id).options[0].title='Auto · '+text;}
   if(plan.recording?.pack){
    if(plan.recording.hasDrums)$('fillDrumGroove').options[0].title='Auto · recorded beat';
    $('fillKeyStyle').options[0].title='Auto · recorded backing';
    $('fillKeySound').options[0].title='Auto · recorded backing';
   }
   const mixed=!!plan.recording?.originalMix;
-  $('fillSourceAudio').hidden=!U.find(plan.clipId)?.culturalUpload;
-  $('fillSourceAudio').setAttribute('aria-pressed',String(mixed));
   for(const id of ['fillBacking','fillDrums','fillDrumOptions'])$(id).hidden=false;
   $('earFillStudy').dataset.mixed=String(mixed);
   for(const field of $('fillDrumOptions').querySelectorAll('.fill-band-choice'))field.hidden=mixed;
@@ -338,8 +353,8 @@ window.BassFillTrainer=(()=>{
  function keyOptions(mode='major',tonic=Number($('fillKey').value)||0){
   $('fillKey').replaceChildren(...globalThis.BassEarDSP.names.map((_,i)=>new Option(E.keyLabel(i,mode),i)));$('fillKey').value=String(tonic);
  }
- let originalClip=null;
  function draw(){
+  drumOptions();
   const group=[kind,kind==='basslines'?$('fillCollection').value:$('fillGroup').value,drumKit,drumGroove].join('/');
   if(group!==tempoGroup){tempoGroup=group;practiceTempo=null;}
   if(imported()){
@@ -350,7 +365,7 @@ window.BassFillTrainer=(()=>{
    remembered[kind]=$('fillIdea').value;rememberedClips[$('fillCollection').value]=id;
    const identity='recording:'+id+':'+$('fillExcerpt').value;
    const value=U.practicePlan(id,$('fillExcerpt').value,practiceTempo);
-   if(U.find(id)?.culturalUpload&&originalClip!==id){
+   if(U.find(id)?.culturalUpload){
     value.recreated=true;value.recording=null;value.audio=null;
    }
    tempoIdentity=identity;practiceTempo=value.bpm;$('fillTempo').value=Number(value.bpm.toFixed(2));
@@ -365,14 +380,14 @@ window.BassFillTrainer=(()=>{
   for(const o of $('fillTo').options)o.disabled=o.value===$('fillFrom').value;
   keyOptions(settings().mode);$('fillKey').title='Practice key · Transpose notes and backing';
   remembered[kind]=$('fillIdea').value;
-  const draft=P.make(kind,settings()),choice=H.resolve(draft,{kit:drumKit,groove:drumGroove});
+  const draft=P.make(kind,settings()),choice=bandFor(draft);
   const identity=kind+':'+remembered[kind]+':'+choice.loop.id;
   if(practiceTempo===null){
    const automatic=drumKit==='auto'&&drumGroove==='auto';
    practiceTempo=choice.loop.bpm;
    if(automatic&&draft.recordedStudy)practiceTempo=draft.recordedStudy.nativeBpm;
    else if(automatic&&!draft.seriesDrum&&!['gs-','owner-','fl-'].some(prefix=>choice.loop.id.startsWith(prefix))){
-    practiceTempo=choice.id==='reggae'?77:B.choose(choice.id).bpm;
+    practiceTempo=choice.id==='reggae'?77:choice.loop.bpm;
    }
   }
   tempoIdentity=identity;practiceTempo=Math.max(40,Math.min(220,practiceTempo));
@@ -571,7 +586,7 @@ window.BassFillTrainer=(()=>{
   <select id="fillFrom" aria-label="From degree"></select><select id="fillTo" aria-label="To degree"></select>
   <div class="fill-pitch-row"><select id="fillKey" aria-label="Practice key"></select><label id="fillTempoWrap" class="fill-tempo"><span>BPM</span><input id="fillTempo" aria-label="Practice tempo BPM" type="number" min="40" max="220" step="0.01"></label><button id="fillTempoReset" type="button" title="Use the original drum loop tempo">Reset</button></div>
   </div>
-  <p id="fillEmpty" hidden>No patterns in this group. Choose another group or restore deleted patterns.</p><div id="fillPlayer"><div class="fill-actions"><button id="fillPlay" type="button">Play</button><button id="fillRepeat" type="button" aria-pressed="false">Repeat</button><button id="fillNext" type="button">Next</button></div><div class="ear-stem-row"><button id="fillBacking" type="button" aria-pressed="true" data-icon="🔊">Others</button><button id="fillDrums" type="button" aria-pressed="true" data-icon="🔊">Drums 🥁</button><button id="fillVoice" type="button" aria-pressed="true" data-icon="🔊">Voice 🎙</button></div><p id="fillAccompaniment"></p><details id="fillDrumOptions"><summary>Band</summary><div class="fill-settings"><label class="fill-band-choice">Drum genre<select id="fillDrumKit" aria-label="Drum genre"></select></label><label class="fill-band-choice">Drum loop<select id="fillDrumGroove" aria-label="Drum loop"></select></label><label class="fill-band-choice">Keys style<select id="fillKeyStyle" aria-label="Keyboard style"></select></label><label class="fill-band-choice">Keys sound<select id="fillKeySound" aria-label="Keyboard sound"></select></label><label class="fill-drum-volume">Drums <input id="fillDrumVolume" type="range" min="0" max="100" step="1" value="21"><output id="fillDrumLevel">21%</output></label><label class="fill-drum-volume"><span id="fillKeyLabel">Keys</span> <input id="fillKeyVolume" type="range" min="0" max="100" step="1" value="7"><output id="fillKeyLevel">7%</output></label><label class="fill-drum-volume">Bass <input id="fillBassVolume" type="range" min="0" max="100" step="1" value="100"><output id="fillBassLevel">100%</output></label><label class="fill-drum-volume">Voice <input id="fillVoiceVolume" type="range" min="0" max="100" step="1" value="21"><output id="fillVoiceLevel">21%</output></label><button id="fillSourceAudio" type="button" hidden aria-pressed="false">Original audio</button><button id="fillGenreReset" type="button">Reset band</button></div><p id="fillMixNotice" hidden>At 100% Voice, you hear the original vocal. Lower levels use an estimate and may soften nearby instruments.</p></details><h3 id="fillHeading"></h3><p id="fillHarmony" hidden></p><p id="fillDifference" hidden></p>
+  <p id="fillEmpty" hidden>No patterns in this group. Choose another group or restore deleted patterns.</p><div id="fillPlayer"><div class="fill-actions"><button id="fillPlay" type="button">Play</button><button id="fillRepeat" type="button" aria-pressed="false">Repeat</button><button id="fillNext" type="button">Next</button></div><div class="ear-stem-row"><button id="fillBacking" type="button" aria-pressed="true" data-icon="🔊">Others</button><button id="fillDrums" type="button" aria-pressed="true" data-icon="🔊">Drums 🥁</button><button id="fillVoice" type="button" aria-pressed="true" data-icon="🔊">Voice 🎙</button></div><p id="fillAccompaniment"></p><details id="fillDrumOptions"><summary>Band</summary><div class="fill-settings"><label class="fill-band-choice">Drum genre<select id="fillDrumKit" aria-label="Drum genre"></select></label><label class="fill-band-choice">Drum loop<select id="fillDrumGroove" aria-label="Drum loop"></select></label><label class="fill-band-choice">Keys style<select id="fillKeyStyle" aria-label="Keyboard style"></select></label><label class="fill-band-choice">Keys sound<select id="fillKeySound" aria-label="Keyboard sound"></select></label><label class="fill-drum-volume">Drums <input id="fillDrumVolume" type="range" min="0" max="100" step="1" value="21"><output id="fillDrumLevel">21%</output></label><label class="fill-drum-volume"><span id="fillKeyLabel">Keys</span> <input id="fillKeyVolume" type="range" min="0" max="100" step="1" value="7"><output id="fillKeyLevel">7%</output></label><label class="fill-drum-volume">Bass <input id="fillBassVolume" type="range" min="0" max="100" step="1" value="100"><output id="fillBassLevel">100%</output></label><label class="fill-drum-volume">Voice <input id="fillVoiceVolume" type="range" min="0" max="100" step="1" value="21"><output id="fillVoiceLevel">21%</output></label><button id="fillGenreReset" type="button">Reset band</button></div><p id="fillMixNotice" hidden>At 100% Voice, you hear the original vocal. Lower levels use an estimate and may soften nearby instruments.</p></details><h3 id="fillHeading"></h3><p id="fillHarmony" hidden></p><p id="fillDifference" hidden></p>
 
   <div id="fillNotes" aria-label="Bass fill notes"></div><div id="fillNotePager" hidden aria-label="Note pages"><button id="fillNotePrev" type="button" aria-label="Previous notes">‹</button><output id="fillNotePage"></output><button id="fillNoteNext" type="button" aria-label="Next notes">›</button></div><p id="fillStatus" role="status"></p></div><div class="my-fill-actions"><button id="fillDelete" type="button" aria-label="Delete pattern" title="Delete pattern">Delete</button><button id="fillRestore" type="button" aria-expanded="false" aria-controls="fillDeletedPanel">Deleted</button></div><section id="fillDeletedPanel" hidden aria-label="Deleted items"><div class="fill-deleted-heading"><h3>Deleted</h3><button id="fillDeletedClose" type="button" aria-label="Close deleted items">×</button></div><p id="fillDeletedEmpty" hidden>No deleted items.</p><ul id="fillDeletedList"></ul><button id="fillEmptyDeleted" type="button" aria-label="Permanently empty deleted items" title="Permanently empty deleted items">Empty bin</button></section><p id="fillManageStatus" role="status"></p>`;
   function option(id,value,label){const o=document.createElement('option');o.value=value;o.textContent=label;$(id).append(o);}
@@ -581,10 +596,6 @@ window.BassFillTrainer=(()=>{
   $('fillDrumKit').value=drumKit;$('fillDrumGroove').value=drumGroove;$('fillKeyStyle').value=keyStyle;$('fillKeySound').value=keySound;$('fillDrumVolume').value=Math.round(drumVolume*100);$('fillDrumLevel').textContent=Math.round(drumVolume*100)+'%';$('fillKeyVolume').value=Math.round(keyVolume*100);$('fillKeyLevel').textContent=Math.round(keyVolume*100)+'%';
   const changeSound=event=>{drumKit=$('fillDrumKit').value;if(event?.target.id==='fillDrumKit'){drumGroove='auto';drumOptions();}else drumGroove=$('fillDrumGroove').value;keyStyle=$('fillKeyStyle').value;keySound=$('fillKeySound').value;saveDrums();draw();};
   for(const id of ['fillDrumKit','fillDrumGroove','fillKeyStyle','fillKeySound'])$(id).onchange=changeSound;
-  $('fillSourceAudio').onclick=()=>{
-   originalClip=originalClip===plan.clipId?null:plan.clipId;
-   draw();
-  };
   $('fillGenreReset').onclick=()=>{
    bassVolume=1;drumVolume=voiceVolume=.21;keyVolume=.07;drums=backing=voice=true;
    displayMix();level('bass',1);level('drums',drumVolume);level('chords',keyVolume);applyVoiceLevel();saveDrums();state();
@@ -603,11 +614,11 @@ window.BassFillTrainer=(()=>{
   $('fillVoiceVolume').oninput=()=>{voiceVolume=Number($('fillVoiceVolume').value)/100;$('fillVoiceLevel').textContent=Math.round(voiceVolume*100)+'%';applyVoiceLevel();saveDrums();};
   $('fillVoice').onclick=()=>{voice=!voice;saveDrums();applyVoiceLevel();state();};
   $('fillDrums').onclick=()=>{drums=!drums;saveDrums();level('drums',drums?drumVolume:0);state();};
-  if(G){for(const [id,label] of G.groups)option('fillGroup',id,label);loadGroup();$('fillGroup').onchange=()=>{selectedGroups[kind]=$('fillGroup').value;try{localStorage.setItem(groupKey,JSON.stringify(selectedGroups));}catch{}transitionOptions();ideaOptions();draw();};}
+  if(G){for(const [id,label] of G.groups)option('fillGroup',id,label);loadGroup();$('fillGroup').onchange=()=>{drumKit=drumGroove='auto';$('fillDrumKit').value='auto';selectedGroups[kind]=$('fillGroup').value;try{localStorage.setItem(groupKey,JSON.stringify(selectedGroups));}catch{}transitionOptions();ideaOptions();draw();};}
   collectionOptions();
   
   clipOptions();
-  $('fillCollection').onchange=()=>{clipOptions();ideaOptions();draw();};$('fillClip').onchange=()=>{partOptions();draw();};
+  $('fillCollection').onchange=()=>{drumKit=drumGroove='auto';$('fillDrumKit').value='auto';clipOptions();ideaOptions();draw();};$('fillClip').onchange=()=>{partOptions();draw();};
   $('fillExcerpt').onchange=()=>{if(imported()){const id=$('fillClip').value,part=Number($('fillExcerpt').value.slice(7));$('fillIdea').selectedOptions[0].value='clip:'+id+(part?'/'+part:'');}draw();};
   for(let i=1;i<=7;i++){option('fillFrom',i,'From: '+i);option('fillTo',i,'To: '+i);} $('fillTo').value='4';
   keyOptions();F.styles.forEach((s,i)=>option('fillIdea',i,(i+1)+'. '+s[0]));$('fillTempo').value='80';

@@ -25,8 +25,28 @@ window.BassSuppliedDrums=(()=>{
  const midi=new Set(window.BassFlDrums?.loops||[]);
  const instrumental=available.filter(row=>row.recreated||row.instrumentalRecording||row.events?.length||(midi.has(row)&&row.sourceMidi));
  const buffers=new Map(),renders=new Map(),loads=new Map();
+ const kitsByStyle=new Map();
+ function byStyle(style){
+  const genre=({seben:'soukous',congolese:'soukous','african-praise':'praise',funk:'fusion'})[style]||style;
+  const matches=instrumental.filter(loop=>{
+   // Older catalogues used the accompaniment family as the genre, even
+   // for rock or hip hop MIDI files assigned to a soul study.
+   const sourceGenre=loop.sourceMidi&&loop.sourceName?.match(/^([a-z]+) Loops\//i)?.[1].toLowerCase();
+   const tags=sourceGenre?[sourceGenre]:loop.styles?.length?loop.styles:[loop.genre];
+   return tags.includes(style)||tags.includes(genre)||(genre==='fusion'&&tags.includes('funk'));
+  });
+  if(matches.length)return matches;
+  const profile=window.BassAccompaniment?.profiles[genre],drums=window.BassPracticeDrums;
+  if(!profile||!drums?.grooves.some(([id])=>id===profile.groove))return [];
+  const id='flow-kit-'+genre;
+  if(!kitsByStyle.has(id)){
+   const events=drums.events(8,profile.groove).map(({beat,hit,velocity})=>[beat,hit,velocity]);
+   kitsByStyle.set(id,{id,title:profile.label+' kit',events,genre,kit:profile.kit,beats:8,bpm:loops.find(row=>row.genre===genre)?.bpm||96});
+  }
+  return [kitsByStyle.get(id)];
+ }
  function choose(style,genre='auto',id='auto'){
-  const exact=available.find(x=>x.id===id);if(exact)return exact;
+  const exact=kitsByStyle.get(id)||available.find(x=>x.id===id);if(exact)return exact;
   if(genre==='nigerian68')return praise68[0];
   if(genre!=='auto'){
    const kitLoop=available.find(x=>x.genre===genre&&x.id.startsWith('gs-'));
@@ -94,7 +114,15 @@ window.BassSuppliedDrums=(()=>{
   if(!loads.has(key))loads.set(key,(async()=>{
    let cache,response;try{cache=await caches.open('bass-supplied-drums-rc294');response=await cache.match(loop.url);}catch{}
    if(!response){response=await fetch(loop.url);if(!response.ok)throw Error('Drum loop unavailable');if(cache)try{await cache.put(loop.url,response.clone());}catch{}}
-   const decoded=alignSource(context,loop,await context.decodeAudioData(await response.arrayBuffer()));buffers.set(key,decoded);
+   const decoded=alignSource(context,loop,await context.decodeAudioData(await response.arrayBuffer()));// Tame sustained cymbal brightness in mixed drum recordings. Wrap the
+   // filter history around the loop so the join stays continuous.
+   const weight=1-Math.exp(-2*Math.PI*3200/decoded.sampleRate);
+   for(let channel=0;channel<decoded.numberOfChannels;channel++){
+    const pcm=decoded.getChannelData(channel);let low=0;
+    for(let i=Math.max(0,pcm.length-256);i<pcm.length;i++)low+=weight*(pcm[i]-low);
+    for(let i=0;i<pcm.length;i++){const input=pcm[i];low+=weight*(input-low);pcm[i]=low+.46*(input-low);}
+   }
+   buffers.set(key,decoded);
    while(buffers.size>3)buffers.delete(buffers.keys().next().value);return decoded;
   })().finally(()=>loads.delete(key)));
   return loads.get(key);
@@ -170,5 +198,5 @@ window.BassSuppliedDrums=(()=>{
   const output=context.createBuffer(data.length,frames,context.sampleRate);data.forEach((d,c)=>output.copyToChannel(d,c));
   return remember(key,output);
  }
- return {loops,available,instrumental,genres,choose,render};
+ return {loops,available,instrumental,byStyle,genres,choose,render};
 })();

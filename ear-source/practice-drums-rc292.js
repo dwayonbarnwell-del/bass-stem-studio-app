@@ -64,7 +64,7 @@ window.BassPracticeDrums=(()=>{
  function tone(context,event,when,kit,beatSeconds=.75){
   const source=context.createBufferSource(),gain=context.createGain();source.buffer=buffers.get(kit+'-'+event.hit+'-'+event.variant);
   if(!source.buffer)throw Error('Drum sound unavailable');
-  gain.gain.value=(event.velocity/100)**1.25*(event.hit.includes('hat')?.38:event.hit==='ride'?.36:.7);
+  gain.gain.value=(event.velocity/100)**1.25*(event.hit==='ride'?.18:event.hit==='openhat'?.20:event.hit==='closedhat'?.29:.7);
   source.connect(gain).connect(context.destination);source.start(when);if(event.gate){const end=when+Math.max(.04,event.gate*beatSeconds);gain.gain.setValueAtTime(gain.gain.value,end-.015);gain.gain.linearRampToValueAtTime(0,end);source.stop(end+.002);}source.onended=()=>{source.disconnect();gain.disconnect();};
  }
  return {kits,grooves,events,prepare,tone};
