@@ -81,41 +81,41 @@ window.BassCustomFlow=(()=>{
   // each visible bassline, run and fill in this genre.
   const bank=window.BassSuppliedDrums,manual=bank.byStyle(state.genre);
   flowBeats=new Map(manual.map(loop=>[loop.id,loop]));
-  const groups=new Map(),assigned=new Set(),menu=el('Beat');
-  function add(group,id,label){
-   if(!groups.has(group)){
-    const element=document.createElement('optgroup');element.label=group;groups.set(group,element);
-   }
-   groups.get(group).append(new Option(label,id));
-  }
-  let first,firstTempo;
+  const numbered=new Map(),other=[],menu=el('Beat');
+  let firstTempo;
   for(const kind of ['basslines','runs','fills']){
    for(const row of rows.filter(r=>r.kind===kind).sort((a,b)=>Number(!!a.clip)-Number(!!b.clip)||compare(a,b))){
     const study=source(row),band=H.resolve(study),loop=band.loop;
     if(!loop||(!bank.instrumental.includes(loop)&&!manual.includes(loop)))continue;
-    const id='study/'+row.id;
-    flowBeats.set(id,loop);flowBeats.set(loop.id,loop);assigned.add(loop.id);
-    add(row.clip?'Recordings':kinds[kind],id,row.label);
-    if(!first){
-     first=id;
-     firstTempo=row.clip?U.practicePlan(row.clip,'phrase-'+row.part).bpm:study.recordedStudy?.nativeBpm||(!study.seriesDrum&&band.id==='reggae'?77:loop.bpm);
-    }
+    const id='study/'+row.id,choice={id,label:row.label,loop};
+    flowBeats.set(id,loop);flowBeats.set(loop.id,loop);
+    if(/^Practice \d+$/.test(row.label)){
+     // Basslines supplies the default backing when several sections share a number.
+     // An existing flow keeps its own assignment for that number.
+     if(!numbered.has(row.label)||id===state.beat)numbered.set(row.label,choice);
+    }else other.push(choice);
+    firstTempo??=row.clip?U.practicePlan(row.clip,'phrase-'+row.part).bpm:study.recordedStudy?.nativeBpm||(!study.seriesDrum&&band.id==='reggae'?77:loop.bpm);
    }
   }
-  for(const loop of manual.slice().sort((a,b)=>compare({label:a.title},{label:b.title}))){
-   if(!assigned.has(loop.id)||loop.id===state.beat)add('Drum loops',loop.id,loop.title);
+  const beats=[...numbered.values()].sort(compare),listed=new Set(beats.map(b=>b.loop.id));
+  for(const choice of other){
+   if(listed.has(choice.loop.id))continue;
+   // Identify additional drum recordings by the loop itself, including when
+   // multiple excerpts use the same short study name.
+   beats.push({...choice,label:choice.loop.title});listed.add(choice.loop.id);
   }
-  // Saved flows may use the original loop ID instead of a numbered study.
-  if(assigned.has(state.beat)&&!manual.some(loop=>loop.id===state.beat))add('Drum loops',state.beat,flowBeats.get(state.beat).title);
-  menu.replaceChildren(...groups.values());
+  if(!beats.length)for(const loop of manual)beats.push({id:loop.id,label:loop.title,loop});
   const needsBeat=!flowBeats.has(state.beat);
-  if(needsBeat)state.beat=first||menu.options[0]?.value||'';
+  if(needsBeat)state.beat=beats[0]?.id||'';
+  // Old saved flows can reference a recording directly. Keep the saved ID
+  // and its sound without adding a second menu entry.
+  const visible=beats.find(b=>b.id===state.beat)||beats.find(b=>b.loop===flowBeats.get(state.beat));
+  options(menu,beats,visible?.id||'');
   if(fresh||needsBeat){
    const tempo=window.BassFillTrainer.basslineTempo(state.genre)??firstTempo??flowBeats.get(state.beat)?.bpm??96;
    state.bpm=Number(Math.min(220,Math.max(40,tempo)).toFixed(2));
    el('Bpm').value=state.bpm;fresh=false;
   }
-  menu.value=state.beat;
   state.choices=state.degrees.slice(1).map((_,i)=>{
    const pool=allowed(i);return pool.find(r=>r.id===state.choices[i])?.id||pool.find(r=>r.kind==='fills')?.id||pool[0]?.id||'';
   });
@@ -335,12 +335,12 @@ window.BassCustomFlow=(()=>{
  }
  function draw(){
   for(const name of ['Genre','Beat']){
-   const caption=el(name).selectedOptions[0]?.text||'';
+   const caption=el(name).selectedOptions[0]?.text||(name==='Beat'?flowBeats.get(state.beat)?.title:'')||'';
    let short=caption.replace(/ · Recreated$/,'').replace(/^FL\s+|^6[-/]8\s+/gi,'').replace(/^6[-/]8\s+/,'')
     .replace(/shufflegroove/i,'Shuffle').replace(/rockgroove/i,'Rock').replace(/oldschool/i,'Old skool');
    if(name==='Genre'&&state.genre==='nigerian68')short='Nigerian 6/8';
    const lines=short.match(/^(.*?)\s+(\S+)$/)?.slice(1)||[short];
-   if(lines.some(line=>line.length>10)&&name==='Beat')lines.splice(0,lines.length,'Beat',String(el('Beat').selectedIndex+1).padStart(2,'0'));
+   if(lines.some(line=>line.length>10)&&name==='Beat'&&el('Beat').selectedIndex>=0)lines.splice(0,lines.length,'Beat',String(el('Beat').selectedIndex+1).padStart(2,'0'));
    el(name+'Name').replaceChildren(...lines.map(line=>{
     const part=document.createElement('b');part.textContent=line;return part;
    }));el(name).title=caption;
