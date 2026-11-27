@@ -454,7 +454,6 @@
 }
 
 @layer bass-ear-267 {
- #earTrainerDialog #earContent:has(:is(#earFillStudy,#earCustomFlow):not([hidden])) {box-sizing:border-box!important;padding-inline:8px!important;scrollbar-gutter:auto}
  #earTrainerDialog #earFillStudy :is(button,select):focus-visible {outline-offset:-3px!important}
 }
 @layer bass-ear-267 {
@@ -475,9 +474,9 @@
  #earTrainerDialog #earSections #earSectionFlow {background:linear-gradient(135deg,#2c6267,#44366c)!important;border-color:#89ceca!important}
  #earTrainerDialog #earCustomFlow .flow-settings,#earTrainerDialog #earCustomFlow .flow-transport,#earTrainerDialog #earCustomFlow .flow-top {display:grid;gap:6px;align-items:end}
  #earTrainerDialog #earCustomFlow .flow-settings {grid-template-columns:repeat(4,minmax(0,1fr))}
- #earTrainerDialog #earCustomFlow .flow-transport {grid-template-columns:repeat(2,minmax(0,1fr));margin:10px 0}
+ #earTrainerDialog #earCustomFlow .flow-transport {grid-template-columns:repeat(3,minmax(0,1fr));margin:10px 0}
  #earTrainerDialog #earCustomFlow .flow-transport button {padding-inline:2px!important;font-size:13px!important}
- #earTrainerDialog #earCustomFlow .flow-top {grid-template-columns:1.3fr 1fr}
+ #earTrainerDialog #earCustomFlow .flow-top {grid-template-columns:repeat(3,minmax(0,1fr))}
  #earTrainerDialog #earCustomFlow :is(#flowGenre,#flowBeat,#flowOpen,#flowPrev,#flowNext){background:#244966!important;border-color:#80b9dd!important}
  #earTrainerDialog #earCustomFlow :is(#flowKey,#flowBpm,#flowPlay,#flowSave){background:#21524e!important;border-color:#85c9b4!important}
  #earTrainerDialog #earCustomFlow :is(#flowPattern,#flowChange,#flowEdit){background:#493756!important;border-color:#c0a2cd!important}
@@ -509,7 +508,7 @@
  #earTrainerDialog #earCustomFlow .flow-value{position:relative;display:block}
  #earTrainerDialog #earCustomFlow .flow-value span{position:absolute;inset:3px 0 auto;z-index:1;pointer-events:none;font-size:10px;font-weight:700}
  #earTrainerDialog #earCustomFlow .flow-value :is(select,input){padding:13px 3px 0!important}
- #earTrainerDialog .flow-picker{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;gap:8px;align-items:end;margin:8px 0}
+ #earTrainerDialog .flow-picker{margin:8px 0}
  #earTrainerDialog #flowTimeline{max-height:none!important}
  #earTrainerDialog #earSectionBack{grid-column:1/-1}
 }
