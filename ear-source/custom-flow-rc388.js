@@ -225,7 +225,41 @@ window.BassCustomFlow=(()=>{
   const i=score&&player&&sounding==='all'?Math.floor(viewBeat/4):-1;
   Array.from(el('Changes').children).forEach((b,k)=>{if(k===i)b.setAttribute('aria-current','step');else b.removeAttribute('aria-current');});
  }
+ let beatPlayer=null,beatRequest='',beatRevision=0;
+ function beatButton(active){
+  el('Audition').textContent=active?'Stop beat':'Play beat';
+  el('Audition').setAttribute('aria-pressed',String(active));
+ }
+ function stopBeat(){
+  beatRevision++;beatRequest='';beatPlayer?.stop();beatPlayer=null;
+  if(host)beatButton(false);
+ }
+ async function previewBeat(){
+  const bpm=state.bpm,id=state.beat,key=id+'/'+bpm;
+  if(beatRequest===key)return;
+  const ticket=++beatRevision;beatRequest=key;beatButton(true);el('Status').textContent='Preparing beat…';
+  try{
+   ctx??=new AudioContext();await ctx.resume();await window.BassEarAudio.prepare(ctx);
+   if(ticket!==beatRevision)return;
+   const loop=window.BassSuppliedDrums.available.find(row=>row.id===id);
+   const frames=Math.round(ctx.sampleRate*60/bpm),beatSeconds=frames/ctx.sampleRate;
+   const task=renderQueue.then(()=>ticket===beatRevision?window.BassSuppliedDrums.render(ctx,loop,frames,()=>ticket!==beatRevision):null);
+   renderQueue=task.catch(()=>null);const buffer=await task;
+   if(ticket!==beatRevision)return;
+   if(!buffer)throw Error('This beat could not load.');
+   const when=ctx.currentTime+.035;
+   const at=beatPlayer?Math.max(0,(beatPlayer.position()+.035)/beatPlayer.beatSeconds)%loop.beats:0;
+   const rendered={stems:{drums:buffer},levels:{drums:window.BassEarAudio.normalisation(buffer,.18)},seconds:buffer.duration,beatSeconds,gain:1};
+   const next=window.BassPracticeLoop.start(ctx,rendered,{when,offsetBeats:at,drums:1,fadeIn:.008});
+   beatPlayer?.stopAt(when,.008);beatPlayer=next;el('Status').textContent='';
+  }catch(e){
+   if(ticket!==beatRevision)return;
+   if(!beatPlayer)stopBeat();
+   el('Status').textContent=beatPlayer?'This beat could not load. The previous beat is still playing.':e.message;
+  }
+ }
  function stop(){
+  stopBeat();
   revision++;clearInterval(clock);sounding='';player?.stop();player=null;playing='';paused='';offset=0;
   pendingScore=null;score=null;layoutKey='';if(host){compact(false);follow();actions();el('Status').textContent='';}
  }
@@ -251,6 +285,7 @@ window.BassCustomFlow=(()=>{
  }
  function toggle(mode){
   if(host.dataset.focus!=='true'&&!acceptChords(true))return;
+  if(beatRequest)stopBeat();
   if(playing===mode){
    if(!player){stop();return;}
    follow();revision++;clearInterval(clock);pendingScore=null;player.stop();player=null;
@@ -260,6 +295,11 @@ window.BassCustomFlow=(()=>{
   void play(mode,paused===mode?offset:0);
  }
  function draw(){
+  for(const name of ['Genre','Beat']){
+   const caption=el(name).selectedOptions[0]?.text||'';
+   el(name+'Name').textContent=caption;el(name).title=caption;
+  }
+  el('Audition').disabled=!state.beat;
   const moves=el('Changes');moves.replaceChildren();
   state.degrees.slice(1).forEach((to,i)=>{
    const b=document.createElement('button');b.type='button';b.textContent=state.degrees[i]+' → '+to;
@@ -291,6 +331,7 @@ window.BassCustomFlow=(()=>{
  }
  function update(){
   save();draw();
+  if(beatRequest)void previewBeat();
   if(playing)void play(playing);
   else if(paused&&score){
    const chart=chartFor(plan(paused==='change'),paused==='change');installScore({...chart,step:60/state.bpm});
@@ -321,7 +362,10 @@ window.BassCustomFlow=(()=>{
  }
  function init(section){
   host=section;restore();
-  host.innerHTML=`<div class="flow-grid" id="flowSetup"><label><select aria-label="Genre" id="flowGenre"></select></label><label><select aria-label="Beat" id="flowBeat"></select></label>
+  host.innerHTML=`<div class="flow-grid" id="flowSetup"><div class="wide flow-beats">
+   <label><select aria-label="Genre" id="flowGenre"></select><span aria-hidden="true" id="flowGenreName"></span></label>
+   <label><select aria-label="Beat" id="flowBeat"></select><span aria-hidden="true" id="flowBeatName"></span></label>
+   <button type="button" id="flowAudition" aria-pressed="false">Play beat</button></div>
    <div class="flow-settings wide"><label class="flow-value"><span>Key</span><select id="flowKey"></select></label>
    <label class="flow-value"><span>BPM</span><input type="number" id="flowBpm" min="40" max="220" step="any"></label><button type="button" id="flowShowSave" aria-controls="flowSavePanel" aria-expanded="false">Save</button><button type="button" id="flowShowOpen" aria-controls="flowOpenPanel" aria-expanded="false">Open</button></div>
    <div class="flow-inline wide" id="flowSavePanel" hidden><label><input aria-label="Progression name" placeholder="Progression name" id="flowName" maxlength="80"></label><button type="button" id="flowSave">Save flow</button></div>
@@ -334,6 +378,10 @@ window.BassCustomFlow=(()=>{
    <div id="flowHarmony" aria-label="Chords"></div><div id="flowTimeline" aria-label="Bass notes"></div><div id="flowFret" hidden></div></section>
 
    <div id="flowNotes" role="group" aria-label="Notes leading to the next chord"></div><p role="status" id="flowStatus"></p>`;
+  el('Audition').onclick=()=>{
+   if(beatRequest){stopBeat();el('Status').textContent='';}
+   else{if(playing)stop();void previewBeat();}
+  };
   el('Saved').onchange=()=>{el('Open').disabled=!el('Saved').value;};
   el('Save').onclick=saveNamed;el('Open').onclick=openNamed;el('Edit').onclick=backToEditor;
   el('View').onchange=()=>{layoutKey='';paint(viewBeat);};

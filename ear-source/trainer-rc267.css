@@ -549,3 +549,14 @@
  #earTrainerDialog #earRehearsal .rehearsal-level input {box-sizing:border-box;width:100%!important;margin-inline:0!important}
  #earTrainerDialog #earRehearsal .rehearsal-level output {text-align:right;font-variant-numeric:tabular-nums}
 }
+
+@layer bass-ear-267 {
+ #earTrainerDialog #earCustomFlow .flow-beats {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;align-items:stretch}
+ #earTrainerDialog #earCustomFlow .flow-beats label {display:grid;position:relative;align-items:center;min-height:clamp(48px,7dvh,58px);border:1px solid #80b9dd;border-radius:9px;background:#244966;color:white}
+ #earTrainerDialog #earCustomFlow .flow-beats label span {padding:5px 13px 5px 4px;line-height:1.18;font-size:clamp(12px,3.5vw,15px);font-weight:700;overflow-wrap:anywhere}
+ #earTrainerDialog #earCustomFlow .flow-beats label::after {content:'⌄';position:absolute;right:3px;top:50%;transform:translateY(-55%);pointer-events:none}
+ #earTrainerDialog #earCustomFlow .flow-beats label select {position:absolute;inset:0;height:100%!important;width:100%;opacity:0;z-index:1;cursor:pointer}
+ #earTrainerDialog #earCustomFlow .flow-beats label:focus-within {outline:2px solid #9ce3ff;outline-offset:-3px}
+ #earTrainerDialog #earCustomFlow #flowAudition {height:100%!important;background:#21524e!important;border-color:#85c9b4!important;padding-inline:3px!important}
+ #earTrainerDialog #earCustomFlow #flowAudition[aria-pressed=true] {background:#5d3848!important;border-color:#efadbd!important}
+}

@@ -232,10 +232,11 @@ window.BassPracticeLoop=(()=>{
   }
   when=Math.max(context.currentTime,when);const offset=offsetBeats*rendered.beatSeconds;
   master.gain.setValueAtTime(fadeIn?0:rendered.gain,when);if(fadeIn)master.gain.linearRampToValueAtTime(rendered.gain,when+fadeIn);if(!route)master.connect(context.destination);
+  const lead=rendered.stems.bass?'bass':Object.keys(rendered.stems)[0];
   for(const [part,buffer] of Object.entries(rendered.stems)){
    const source=context.createBufferSource(),gain=context.createGain();source.buffer=buffer;source.loop=part==='bass'?repeat:true;source.loopStart=0;source.loopEnd=buffer.duration;
    gain.gain.value=(part==='bass'?bass:part==='drums'?drums:part==='chords'?chords:part==='voice'?voice:other)*(rendered.levels?.[part]||1);source.connect(gain).connect(route?(part==='drums'?route.drums:rendered.unpitched?.includes(part)?route.guide:route.pitched):master);sources.push({source,part});gains[part]=gain;
-   source.onended=()=>{source.disconnect();gain.disconnect();if(part==='bass'&&!stopped){stopped=true;for(const other of sources)if(other.source!==source)try{other.source.stop();}catch{}route?.disconnect();master.disconnect();if(!ending)onEnded();}};
+   source.onended=()=>{source.disconnect();gain.disconnect();if(part===lead&&!stopped){stopped=true;for(const other of sources)if(other.source!==source)try{other.source.stop();}catch{}route?.disconnect();master.disconnect();if(!ending)onEnded();}};
    const partOffset=offset+(part==='drums'?drumPhase*rendered.beatSeconds:0);
    source.start(when,((partOffset%buffer.duration)+buffer.duration)%buffer.duration);
   }
