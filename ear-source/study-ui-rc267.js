@@ -1,7 +1,7 @@
 window.BassFillTrainer=(()=>{
  'use strict';
  const F=window.BassFillCore,P=window.BassPracticeCore,U=window.BassUploadedCore,D=window.BassPracticeCatalogue,C=window.BassCuratedStudies,G=window.BassStudyGroups,R=window.BassRegister,L=window.BassPracticeLoop,B=window.BassSuppliedDrums,N=window.BassStudyDisplay,H=window.BassAccompaniment,$=id=>document.getElementById(id);
- let api,ctx,voices=[],timers=[],token=0,playing=false,repeating=false,backing=true,plan,kind='fills',recordedAudio=null,recordedFrame=0,transport=null,rendered=null,drums=true,drumKit='auto',drumGroove='auto',keyStyle='auto',keySound='auto',drumVolume=.21,keyVolume=.07,bassVolume=1,voiceVolume=.21,voice=true,voiceReady=null,tempoIdentity='',nativeTempo=null,harmony=[],revision=0,sessions=[];
+ let api,ctx,voices=[],timers=[],token=0,playing=false,repeating=false,backing=true,plan,kind='fills',recordedAudio=null,recordedFrame=0,transport=null,rendered=null,drums=true,drumKit='auto',drumGroove='auto',keyStyle='auto',keySound='auto',drumVolume=.21,keyVolume=.07,bassVolume=1,voiceVolume=.21,voice=true,voiceReady=null,tempoIdentity='',tempoGroup='',practiceTempo=null,harmony=[],revision=0,sessions=[];
  let sounding=[],clearStreamBand=null,streamMedia=null,streamBassGain=null,streamPlan=null,streamRoute=null,streamKeyGain=null,tempoTimer=0,harmonyPage=-1;
  let notePage=0;const notePageSize=25;
  const E=window.BassEarAudio,recordingKeys=new Map();
@@ -330,13 +330,15 @@ window.BassFillTrainer=(()=>{
  function settings(){
   const [idea,part='0']=$('fillIdea').value.split('/');
   return {key:$('fillKey').value,mode:kind==='basslines'?(P.lines[Number(idea)]?.mode||'major'):'major',
-   from:$('fillFrom').value,to:$('fillTo').value,idea,part:kind==='basslines'?Number(part):null,bpm:nativeTempo??$('fillTempo').value};
+   from:$('fillFrom').value,to:$('fillTo').value,idea,part:kind==='basslines'?Number(part):null,bpm:practiceTempo??$('fillTempo').value};
  }
 
  function keyOptions(mode='major',tonic=Number($('fillKey').value)||0){
   $('fillKey').replaceChildren(...globalThis.BassEarDSP.names.map((_,i)=>new Option(E.keyLabel(i,mode),i)));$('fillKey').value=String(tonic);
  }
  function draw(){
+  const group=[kind,kind==='basslines'?$('fillCollection').value:$('fillGroup').value,drumKit,drumGroove].join('/');
+  if(group!==tempoGroup){tempoGroup=group;practiceTempo=null;}
   if(imported()){
    const [id,phraseIndex='0']=$('fillIdea').value.slice(5).split('/');
    if($('fillClip').value!==id){$('fillClip').value=id;partOptions();}
@@ -344,8 +346,8 @@ window.BassFillTrainer=(()=>{
    clipControls();
    remembered[kind]=$('fillIdea').value;rememberedClips[$('fillCollection').value]=id;
    const identity='recording:'+id+':'+$('fillExcerpt').value;
-   const value=U.practicePlan(id,$('fillExcerpt').value,identity===tempoIdentity?Number($('fillTempo').value):null);
-   tempoIdentity=identity;nativeTempo=null;$('fillTempo').value=Number(value.bpm.toFixed(2));
+   const value=U.practicePlan(id,$('fillExcerpt').value,practiceTempo);
+   tempoIdentity=identity;practiceTempo=value.bpm;$('fillTempo').value=Number(value.bpm.toFixed(2));
    const target=recordingKeys.get(id)??value.tonic,key=E.shift(value.tonic,target);keyOptions(value.minor?'minor':'major',target);$('fillKey').title='Recording key'+(value.keyUncertain?' · Estimated':'')+' · Change to transpose the audio and notes';
    const selected=$('fillIdea').selectedOptions[0];
    const progression=progressionText(value.degrees);
@@ -359,16 +361,16 @@ window.BassFillTrainer=(()=>{
   remembered[kind]=$('fillIdea').value;
   const draft=P.make(kind,settings()),choice=H.resolve(draft,{kit:drumKit,groove:drumGroove});
   const identity=kind+':'+remembered[kind]+':'+choice.loop.id;
-  if(identity!==tempoIdentity){
+  if(practiceTempo===null){
    const automatic=drumKit==='auto'&&drumGroove==='auto';
-   nativeTempo=choice.loop.bpm;
-   if(automatic&&draft.recordedStudy)nativeTempo=draft.recordedStudy.nativeBpm;
+   practiceTempo=choice.loop.bpm;
+   if(automatic&&draft.recordedStudy)practiceTempo=draft.recordedStudy.nativeBpm;
    else if(automatic&&!draft.seriesDrum&&!['gs-','owner-','fl-'].some(prefix=>choice.loop.id.startsWith(prefix))){
-    nativeTempo=choice.id==='reggae'?77:B.choose(choice.id).bpm;
+    practiceTempo=choice.id==='reggae'?77:B.choose(choice.id).bpm;
    }
-   $('fillTempo').value=Number(nativeTempo.toFixed(2));tempoIdentity=identity;
   }
-  $('fillTempo').value=Math.max(40,Math.min(220,Number($('fillTempo').value)||choice.loop.bpm));
+  tempoIdentity=identity;practiceTempo=Math.max(40,Math.min(220,practiceTempo));
+  $('fillTempo').value=Number(practiceTempo.toFixed(2));
   showPlan(P.make(kind,settings()));
  }
  function showPlan(value){
@@ -572,11 +574,11 @@ window.BassFillTrainer=(()=>{
    bassVolume=1;drumVolume=voiceVolume=.21;keyVolume=.07;drums=backing=voice=true;
    displayMix();level('bass',1);level('drums',drumVolume);level('chords',keyVolume);applyVoiceLevel();saveDrums();state();
    if(usingRecordingMix)return;
-   drumKit=drumGroove=keyStyle=keySound='auto';for(const id of ['fillDrumKit','fillKeyStyle','fillKeySound'])$(id).value='auto';drumOptions();tempoIdentity='';changeSound();
+   drumKit=drumGroove=keyStyle=keySound='auto';for(const id of ['fillDrumKit','fillKeyStyle','fillKeySound'])$(id).value='auto';drumOptions();practiceTempo=null;changeSound();
   };
   $('fillTempoReset').onclick=()=>{
-   if(imported()&&plan){$('fillTempo').value=Number(plan.originalBpm.toFixed(2));nativeTempo=null;draw();}
-   else{tempoIdentity='';draw();}
+   practiceTempo=imported()&&plan?plan.originalBpm:null;
+   draw();
   };
   $('fillKeyVolume').oninput=()=>{keyVolume=Number($('fillKeyVolume').value)/100;$('fillKeyLevel').textContent=Math.round(keyVolume*100)+'%';level('chords',backing?keyVolume:0);saveDrums();};
   $('fillBassVolume').value=Math.round(bassVolume*100);$('fillBassLevel').textContent=Math.round(bassVolume*100)+'%';
@@ -603,7 +605,7 @@ window.BassFillTrainer=(()=>{
    const bpm=$('fillTempo').valueAsNumber;
    if(editedIdea!==tempoIdentity||!Number.isFinite(bpm)||bpm<40||bpm>220)return;
    if(plan&&Math.abs(plan.bpm-bpm)<.005)return;
-   nativeTempo=null;draw();
+   practiceTempo=bpm;draw();
   }
   $('fillTempo').oninput=()=>{editedIdea=tempoIdentity;clearTimeout(tempoTimer);tempoTimer=setTimeout(applyTempo,350);};
   $('fillTempo').onchange=()=>{editedIdea=tempoIdentity;applyTempo();};
