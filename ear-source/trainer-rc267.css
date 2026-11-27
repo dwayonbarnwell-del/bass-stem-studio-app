@@ -508,7 +508,7 @@
  #earTrainerDialog #earCustomFlow .flow-value{position:relative;display:block}
  #earTrainerDialog #earCustomFlow .flow-value span{position:absolute;inset:3px 0 auto;z-index:1;pointer-events:none;font-size:10px;font-weight:700}
  #earTrainerDialog #earCustomFlow .flow-value :is(select,input){padding:13px 3px 0!important}
- #earTrainerDialog .flow-picker{margin:8px 0}
+ #earTrainerDialog .flow-picker{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:8px 0;align-items:stretch}
  #earTrainerDialog #flowTimeline{max-height:none!important}
  #earTrainerDialog #earSectionBack{grid-column:1/-1}
 }
@@ -520,7 +520,7 @@
  #earTrainerDialog #earCustomFlow {--flow-space:clamp(8px,calc(6dvh - 26px),24px)}
  #earTrainerDialog #earCustomFlow:not([data-focus=true]) #flowSetup {row-gap:var(--flow-space);margin-block:calc(var(--flow-space) * .5) var(--flow-space)}
  #earTrainerDialog #earCustomFlow:not([data-focus=true]) .flow-transport {margin-block:var(--flow-space)}
- #earTrainerDialog #earCustomFlow:not([data-focus=true]) :is(#flowGenre,#flowBeat,#flowPattern,#flowDegrees,#flowProgression button,.flow-settings input,.flow-settings select,.flow-settings button,.flow-transport button) {height:clamp(44px,7dvh,56px)!important}
+ #earTrainerDialog #earCustomFlow:not([data-focus=true]) :is(#flowGenre,#flowBeat,#flowPattern,#flowDegrees,.flow-picker button,.flow-settings input,.flow-settings select,.flow-settings button,.flow-transport button) {height:clamp(44px,7dvh,56px)!important}
  #earTrainerDialog #earCustomFlow #flowNotes:not([hidden]) {display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:5px 7px;padding:clamp(8px,2dvh,18px) 8px;border-block:1px solid #355166;background:#112434;text-align:center;border-radius:9px}
  #earTrainerDialog #flowNotes span {display:inline-grid;place-items:center;min-width:1.65em;min-height:1.9em;padding:0 4px;border-radius:6px;background:#1c3548;color:#e2eef7;font-weight:650}
  #earTrainerDialog #flowNotes .flow-landing {background:#22564e;color:#d7fff0;padding-inline:8px;white-space:nowrap}
@@ -530,7 +530,7 @@
 
 @layer bass-ear-267 {
  #earTrainerDialog #earCustomFlow :is(#flowGenre,#flowBeat){padding-inline:5px 16px!important;text-overflow:ellipsis}
- #earTrainerDialog #earCustomFlow .flow-transport :is(#flowPrev,#flowNext){font-size:23px!important;line-height:1!important}
+ #earTrainerDialog #earCustomFlow .flow-picker :is(#flowPrev,#flowNext){font-size:23px!important;line-height:1!important}
  #earTrainerDialog #flowNotes span{font-size:14px}
 }
 
@@ -565,5 +565,7 @@
  #earTrainerDialog #earCustomFlow .flow-beats label span {white-space:pre-line;padding-inline:2px;font-size:clamp(11px,3.3vw,14px)}
  #earTrainerDialog #earCustomFlow .flow-beats label::after {display:none}
  #earTrainerDialog #earCustomFlow #flowBeatNext {height:100%!important;padding-inline:2px!important;background:#244966!important;border-color:#80b9dd!important}
- #earTrainerDialog #earCustomFlow .flow-transport #flowPlay {grid-column:1/-1}
+ #earTrainerDialog #earCustomFlow .flow-picker #flowPattern {padding-inline:2px 14px!important;font-size:clamp(12px,3.3vw,14px)!important}
+ #earTrainerDialog #earCustomFlow[data-focus=true] #flowChange {display:none!important}
+ #earTrainerDialog #earCustomFlow[data-focus=true] #flowPlay {grid-column:1/-1}
 }
