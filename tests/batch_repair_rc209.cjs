@@ -57,7 +57,7 @@ test('19 saved and 13 unfinished: repair only the 13, without touching saved wor
 });
 test('A second Repair click can approve another failed attempt without reloading ZIP',async()=>{
  let tries=0;const h=harness({analyse:async api=>{tries++;if(tries<=2)throw Error('Unconfirmed response');api.cache.add(api.current);return {count:10,partCount:1,bassStemReady:true}}});
- await h.batch.choose(zip(['A.mp3']));await h.batch.run();assert.equal(tries,1);
+ await h.batch.choose(zip(['A.mp3']));await h.batch.run();assert.equal(tries,1);assert.match(h.batch.entries()[0].reason,/Unconfirmed response/);
  await h.batch.run();assert.equal(tries,2);assert.notEqual(h.batch.entries()[0].status,'Saved');
  await h.batch.run();assert.equal(tries,3);assert.equal(h.batch.entries()[0].status,'Saved');assert.equal(calls(h,'restart').length,2);
 });

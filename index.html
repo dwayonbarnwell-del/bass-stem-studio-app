@@ -14152,8 +14152,8 @@ html body :is(#phrasePanel,#rehearsalPhrases)>select[aria-label="Phrase labels"]
           <label id="editChordRootRow">Root<select id="editChordRoot"></select></label>
           <label id="editChordQualityRow">Chord<select id="editChordQuality"></select></label>
           <label id="editChordBassRow">Bass<select id="editChordBass"></select></label>
-          <label>Start (seconds)<input id="editEventStart" type="number" min="0" step="0.001" required></label>
-          <label>End (seconds)<input id="editEventEnd" type="number" min="0" step="0.001" required></label>
+          <label>Start (seconds)<input id="editEventStart" type="number" min="0" step="any" required></label>
+          <label>End (seconds)<input id="editEventEnd" type="number" min="0" step="any" required></label>
           <p id="editEventHint">Use the original pitch, before transposing.</p>
           <div class="tools-grid"><button type="submit">Save</button><button id="deleteAnalysisEvent" type="button">Remove</button><button id="closeAnalysisEdit" class="tools-wide" type="button">Cancel</button></div>
           <p id="editEventError" role="alert"></p>
@@ -15405,7 +15405,10 @@ window.BassBatch = (() => {
     if (!await hooks.load(file)) throw Error('This song could not be imported.');
     item.timing.openMs=Date.now()-openStart;
     const recovered=!!hooks.hasCompletedBass?.();item.bassReady=recovered;
-    if (!recovered && !allowNewAnalysis) throw Error('No saved bass result is available. A fresh analysis needs your approval.');
+    if (!recovered && !allowNewAnalysis) {
+      if (item.submittedThisRun && item.reason) throw Error(item.reason);
+      throw Error('No saved bass result is available. A fresh analysis needs your approval.');
+    }
     if (!recovered) {
       if(paidRestart){
         if(!hooks.preparePaidRestart||!await hooks.preparePaidRestart(item.name))throw Error('The old job could not be safely saved before restarting. Nothing was sent.');
@@ -15816,7 +15819,7 @@ window.BassBatch = (() => {
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC407';
+  const APP_VERSION='RC408';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;

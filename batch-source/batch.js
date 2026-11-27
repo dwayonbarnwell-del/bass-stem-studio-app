@@ -291,7 +291,10 @@ window.BassBatch = (() => {
     if (!await hooks.load(file)) throw Error('This song could not be imported.');
     item.timing.openMs=Date.now()-openStart;
     const recovered=!!hooks.hasCompletedBass?.();item.bassReady=recovered;
-    if (!recovered && !allowNewAnalysis) throw Error('No saved bass result is available. A fresh analysis needs your approval.');
+    if (!recovered && !allowNewAnalysis) {
+      if (item.submittedThisRun && item.reason) throw Error(item.reason);
+      throw Error('No saved bass result is available. A fresh analysis needs your approval.');
+    }
     if (!recovered) {
       if(paidRestart){
         if(!hooks.preparePaidRestart||!await hooks.preparePaidRestart(item.name))throw Error('The old job could not be safely saved before restarting. Nothing was sent.');
