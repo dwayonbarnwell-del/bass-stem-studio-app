@@ -120,8 +120,19 @@ window.BassSuppliedDrums=(()=>{
   const key=loop.id+':'+context.sampleRate;if(buffers.has(key))return buffers.get(key);
   if(!loads.has(key))loads.set(key,(async()=>{
    let cache,response;try{cache=await caches.open('bass-supplied-drums-rc294');response=await cache.match(loop.url);}catch{}
-   if(!response){response=await fetch(loop.url);if(!response.ok)throw Error('Drum loop unavailable');if(cache)try{await cache.put(loop.url,response.clone());}catch{}}
-   const decoded=alignSource(context,loop,await context.decodeAudioData(await response.arrayBuffer()));
+   let audio;
+   if(response){
+    try{audio=await context.decodeAudioData(await response.arrayBuffer());}
+    catch{try{await cache.delete(loop.url);}catch{}}
+   }
+   if(!audio){
+    response=await fetch(loop.url);
+    if(!response.ok)throw Error('Drum loop unavailable');
+    const bytes=await response.arrayBuffer();
+    audio=await context.decodeAudioData(bytes.slice(0));
+    if(cache)try{await cache.put(loop.url,new Response(bytes,{headers:{'Content-Type':response.headers.get('Content-Type')||'application/octet-stream'}}));}catch{}
+   }
+   const decoded=alignSource(context,loop,audio);
    if(loop.recreated){
     // Tame sustained cymbal brightness in reconstructed drum recordings. Wrap the
     // filter history around the loop so the join stays continuous.
