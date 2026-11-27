@@ -39,7 +39,7 @@ try:
  assert abs(pipeline.similar(row(a),row(a))-1)<1e-8
  assert pipeline.similar(row(a),row(b))==0
 finally:pipeline.audio_fingerprint=original
-assert len(rows)==45 and len(drums)==48
-assert {d["sourceClip"] for d in drums if d.get("recreated")}=={r["id"] for r in rows}
+assert len(rows)==45 and len(drums)==12
+assert {d["sourceClip"] for d in drums if d.get("recreated")}=={r["id"] for r in rows if r["practiceStyle"]=="woro"}
 assert sum(d.get("instrumentalRecording", False) for d in drums if d["genre"]=="ariaria")==3
 print(json.dumps(dict(passed=True,sourceMixes=len(rows),sourceDrumLoops=len(drums),allSixChannelsValid=True,continuousJoins=True,largestRelativeReconstructionError=round(max(errors),5),duplicateMathChecked=True)))

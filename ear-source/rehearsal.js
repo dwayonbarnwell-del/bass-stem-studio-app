@@ -610,12 +610,12 @@ window.BassRehearsal=(()=>{
  // Keep the original song and its saved stems intact. The replacement follows
  // the same beat grid and selected ranges as the bass guide during rehearsal.
  function rehearsalDrumLoop(current){
-  const style=$('rehearsalStyle').value,rows=window.BassSuppliedDrums.loops;
+  const style=$('rehearsalStyle').value,bank=window.BassSuppliedDrums,rows=bank.available;
   const manual=$('rehearsalDrumLoop').value;
   if(manual)return window.BassSuppliedDrums.byStyle(style==='auto'?current.grid&&current.suggested:style).find(row=>row.id===manual);
   const choice=featured.find(row=>row.id===$('rehearsalPattern').value);
   const source=window.BassUploadedCore.find(choice?.sourceId||choice?.entry?.recordedStudy?.sourceId);
-  if(source?.culturalUpload)return rows.find(row=>row.id===source.sourceDrumLoopId);
+  if(source?.culturalUpload)return bank.choose(source.practiceStyle,'auto',source.sourceDrumLoopId);
   if(style==='ariaria')return rows.filter(row=>row.genre===style&&row.instrumentalRecording)
    .sort((a,b)=>Math.abs(a.bpm-current.grid.bpm)-Math.abs(b.bpm-current.grid.bpm))[0];
   return null;

@@ -153,9 +153,15 @@ window.BassPracticeSeries=(()=>{
   return s&&genre==='african-praise'?'Practice '+String(s.number+(praiseMax[kind]||0)).padStart(2,'0'):label(kind,idea,part);
  }
  const aliases={'african-praise':'praise',seben:'soukous',funk:'fusion'};
+ // Keep existing study-to-recording assignments stable when removing drum takes.
+ const retainedRotations={"worship":["correct-worship-018d1997f3","correct-worship-018d1997f3","owner-purepop-verse01","owner-crispy-verse03","owner-theworld-chorus03","owner-purepop-verse01","owner-purepop-verse10","owner-crispy-verse07","owner-theworld-chorus04","owner-crispy-verse03","owner-purepop-verse06","owner-crispy-verse06","owner-theworld-verse01","owner-theworld-chorus03","owner-purepop-verse13","owner-crispy-verse04","owner-purepop-verse10","owner-crispy-verse07","owner-theworld-chorus04","owner-purepop-verse06","owner-crispy-verse06"],"highlife":["correct-highlife-77e55d558a","correct-highlife-4fb33faa0d","correct-highlife-ce0b9d6300","correct-highlife-40eb410ab0","correct-highlife-77e55d558a","correct-highlife-4fb33faa0d","correct-highlife-ce0b9d6300","correct-highlife-40eb410ab0","gmd-highlife-1","gs-highlife-palm-bell","gs-highlife-coast-swing","gmd-highlife-2","gmd-highlife-3","gmd-highlife-4","gmd-highlife-5","gmd-highlife-6","correct-highlife-77e55d558a","correct-highlife-4fb33faa0d","correct-highlife-ce0b9d6300","correct-highlife-40eb410ab0","gmd-highlife-1","gs-highlife-palm-bell","gs-highlife-coast-swing","gmd-highlife-2","gmd-highlife-3","gmd-highlife-4","gmd-highlife-5","gmd-highlife-6"],"makossa":["correct-makossa-90e3c1e52e","correct-makossa-1961c22140","correct-makossa-92baa4991e","correct-makossa-90e3c1e52e","correct-makossa-1961c22140","correct-makossa-92baa4991e","correct-makossa-90e3c1e52e-bar1","correct-makossa-1961c22140-bar1","correct-makossa-90e3c1e52e-bar7","correct-makossa-1961c22140-bar3","correct-makossa-1961c22140-bar7"],"ariaria":["ariaria-praise-drive","ariaria-high-praise","ariaria-praise-bell","ariaria-praise-drive","ariaria-high-praise","ariaria-praise-bell","ariaria-praise-drive","ariaria-high-praise","ariaria-praise-bell","ariaria-praise-drive","ariaria-high-praise","ariaria-praise-bell","ariaria-praise-drive","ariaria-high-praise","ariaria-praise-bell","ariaria-praise-drive","ariaria-high-praise","ariaria-praise-bell","ariaria-praise-drive","ariaria-high-praise"]};
  const beds=new Map();
  function band(s,kind){
   const style=aliases[s.genre]||s.genre;
+  if(retainedRotations[style]){
+   const ids=retainedRotations[style];
+   return {practiceStyle:style,seriesDrum:ids[(s.number-1+({basslines:0,fills:3,runs:7}[kind]))%ids.length]};
+  }
   if(!beds.has(style)){
    const family={fusion:'funk',rnb:'soul'}[style]||style;
    const loops=window.BassSuppliedDrums.available.filter(l=>l.styles?.includes(style)||!l.styles?.length&&l.genre===family);

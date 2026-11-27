@@ -67,20 +67,6 @@ window.BassCustomFlow=(()=>{
  // Keep untreated recording extracts out of the beat picker.
  // A drum stem estimated from a song or lesson may still contain speech.
  let flowBeats=new Map();
- function beatPool(){
-  const bank=window.BassSuppliedDrums;
-  const direct=bank.byStyle(state.genre);
-  if(direct.length)return direct;
-  // Performer collections contain several styles. Use only the styles of
-  // the visible studies in that collection.
-  const styles=new Set(rows.map(row=>{
-   const plan=source(row),profile=H.profile(plan);
-   return plan.recordedStudy?.style||profile.dance||profile.id;
-  }));
-  const matches=new Map();
-  for(const style of styles)for(const loop of bank.byStyle(style))matches.set(loop.id,loop);
-  return [...matches.values()];
- }
  function selectedBeat(){
   const beat=flowBeats.get(state.beat);
   if(!beat)throw Error('Choose an instrumental beat.');
@@ -91,14 +77,19 @@ window.BassCustomFlow=(()=>{
    if(!r.clip)return true;
    r.shape??=U.rehearsalShape(r.clip,r.part);return r.shape.length;
   }).sort(compare);
-  const ids=new Set();let preferred;
-  for(const r of rows){
-   const p=source(r);
-   const loop=H.resolve(p).loop;if(loop){ids.add(loop.id);if(r.kind==='fills'&&r.label==='Practice 09')preferred=loop;}
+  // Use the study picker's manual bank and the actual Auto assignment for
+  // each visible bassline, run and fill in this genre.
+  const bank=window.BassSuppliedDrums,manual=bank.byStyle(state.genre);
+  flowBeats=new Map(manual.map(loop=>[loop.id,loop]));
+  let first,preferred;
+  for(const row of rows){
+   const loop=H.resolve(source(row)).loop;
+   if(!loop||(!bank.instrumental.includes(loop)&&!manual.includes(loop)))continue;
+   flowBeats.set(loop.id,loop);first??=loop;
+   if(row.kind==='fills'&&row.label==='Practice 09')preferred=loop;
   }
-  const all=beatPool();flowBeats=new Map(all.map(loop=>[loop.id,loop]));
-  const beats=all.map(l=>({id:l.id,label:l.recreated?l.title+' · Recreated':l.title||l.id})).sort(compare);
-  if(!flowBeats.has(state.beat))state.beat=all.find(row=>row.id===preferred?.id)?.id||all.find(row=>ids.has(row.id))?.id||beats[0]?.id||'';
+  const beats=[...flowBeats.values()].map(loop=>({id:loop.id,label:loop.title+(loop.recreated?' · Recreated':'')})).sort(compare);
+  if(!flowBeats.has(state.beat))state.beat=preferred?.id||first?.id||beats[0]?.id||'';
   if(fresh){state.bpm=Math.max(40,Math.min(220,Math.round(flowBeats.get(state.beat)?.bpm||96)));fresh=false;el('Bpm').value=state.bpm;}
   options(el('Beat'),beats,state.beat);
   state.choices=state.degrees.slice(1).map((_,i)=>{

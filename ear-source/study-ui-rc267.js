@@ -74,7 +74,7 @@ window.BassFillTrainer=(()=>{
   $('fillGenreReset').hidden=false;$('fillGenreReset').textContent=mixed?'Reset mix':'Reset band';$('fillDrumOptions').querySelector('summary').textContent=mixed?'Mix':'Band';
   $('fillKeyLabel').textContent='Others';$('fillMixNotice').hidden=!mixed;
   $('fillDrumOptions').title=mixed?'Estimated instrument separation. Some sound may remain in another part.':'';
-  $('fillAccompaniment').textContent=plan.recreated?'Recreated drums · sampled bass':'';
+  $('fillAccompaniment').textContent=plan.instrumentalStudy?(a.loop.title+' · sampled bass'):'';
  }
  function cycleLength(values){
   for(let n=1;n<=values.length/2;n++)if(values.length%n===0&&values.every((v,i)=>v===values[i%n]))return n;
@@ -366,7 +366,7 @@ window.BassFillTrainer=(()=>{
    const identity='recording:'+id+':'+$('fillExcerpt').value;
    const value=U.practicePlan(id,$('fillExcerpt').value,practiceTempo);
    if(U.find(id)?.culturalUpload){
-    value.recreated=true;value.recording=null;value.audio=null;
+    value.instrumentalStudy=true;value.recording=null;value.audio=null;
    }
    tempoIdentity=identity;practiceTempo=value.bpm;$('fillTempo').value=Number(value.bpm.toFixed(2));
    const target=recordingKeys.get(id)??value.tonic,key=E.shift(value.tonic,target);keyOptions(value.minor?'minor':'major',target);$('fillKey').title='Recording key'+(value.keyUncertain?' · Estimated':'')+' · Change to transpose the audio and notes';
@@ -437,7 +437,7 @@ window.BassFillTrainer=(()=>{
   const mine=token,current=plan,choices=accompaniment();
   $('fillStatus').textContent=transport||recordedAudio?'':'Loading…';
   try{
-   if(current.kind==='uploaded'&&!current.recording&&!current.recreated){
+   if(current.kind==='uploaded'&&!current.recording&&!current.instrumentalStudy){
     await playRecording(mine,request,current,choices);return;
    }
    ctx??=new AudioContext();await ctx.resume();await E.prepare(ctx);
