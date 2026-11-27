@@ -139,13 +139,31 @@ window.BassExpressiveStudies=(()=>{
   }
   return {...plan,bass,practiceStyle:style,expressive:true};
  }
+ function writtenBar(score,answer,chord,next,key){
+  const root=nearest(chord.bassPc??chord.rootPc,35),target=nearest(next?.bassPc??next?.rootPc??chord.rootPc,root);
+  const scale=F.scales[key?.mode],degree=scale?.indexOf(pc(chord.rootPc-key.tonic))??-1;
+  const info=intervals(chord.quality),local=[0,2,info.third,5,info.fifth,info.minor?8:9,info.seventh];
+  return (answer?score.answer:score.notes).map(n=>{
+   const v=Number(n.pitch.slice(1)),i=v-1;
+   let midi=n.pitch[0]==='t'?target+v:root+v;
+   if(n.pitch[0]==='d'){
+    const offset=degree<0?local[i%7]+12*Math.floor(i/7):scale[(degree+i)%7]+12*Math.floor((degree+i)/7)-scale[degree];
+    midi=i===0?root:nearest(chord.rootPc,root)+offset;
+   }
+   return {...n,midi};
+  });
+ }
  function basslineShape(line,idea){
+  if(line.writtenPractice){
+   const notes=writtenBar(line.writtenPractice,false,{rootPc:0,quality:'maj'},null,{tonic:0,mode:'major'});
+   return notes.map(n=>({...n,semitones:n.midi-notes[0].midi,role:n.midi===notes[0].midi?'root':'passing'}));
+  }
   const style=styleOf('basslines',idea);if(!style||/366-/.test(line.id))return null;
   return pocket(style,{rootPc:0,quality:'maj'},line.variant??idea%2).map(n=>({...n,semitones:n.midi-36,role:n.midi===36?'root':'passing'}));
  }
  function rehearsalBassline(clip,choice){
   if(choice?.kind!=='basslines'||choice.recorded)return null;
-  const idea=P.lines.findIndex(line=>line.id===choice.sourceId),style=styleOf('basslines',idea);if(!style||/366-/.test(P.lines[idea].id)||!clip.grid)return null;
+  const idea=P.lines.findIndex(line=>line.id===choice.sourceId),style=styleOf('basslines',idea),written=P.lines[idea]?.writtenPractice;if((!written&&!style)||/366-/.test(P.lines[idea]?.id)||!clip.grid)return null;
   const M=window.BassRehearsalHarmony,{points,meter}=clip.grid,variant=P.lines[idea].variant??idea%2,out=[];
   const timeAt=b=>{const i=clamp(Math.floor(b),0,points.length-2);return points[i]+(b-i)*(points[i+1]-points[i]);};
   const segments=M.prepare(clip).segments;
@@ -154,8 +172,9 @@ window.BassExpressiveStudies=(()=>{
    const start=M.beat(clip,chord.start),end=M.beat(clip,chord.end);
    const next=segments[index+1];
    for(let bar=start;bar<end;bar+=meter){
-    let notes=pocket(style,chord,variant);
-    if(index%2===1 && next && !next.rootOnly && (!next.uncertain || next.manual) && Math.abs(chord.end-next.start)<.025 && Math.abs(bar+meter-end)<.02){
+    const lastBar=Math.abs(bar+meter-end)<.02;
+    let notes=written?writtenBar(written,lastBar&&!!next,chord,next,M.prepare(clip).key):pocket(style,chord,variant);
+    if(!written && index%2===1 && next && !next.rootOnly && (!next.uncertain || next.manual) && Math.abs(chord.end-next.start)<.025 && Math.abs(bar+meter-end)<.02){
      const entry=entries.find(e=>e.kind==='fills' && e.practiceStyle===style && e.technique===(variant?'fifth':style==='jazz'?'guide':style==='gospel'?'grace':'pent'));
      const key=M.prepare(clip).key;
      notes=phrase(entry,{from:chord,to:next,key:key?.tonic,mode:key?.mode,keyKnown:!!key,bpm:clip.grid.bpm,variant:index+variant}).notes.filter(n=>n.beat<4);

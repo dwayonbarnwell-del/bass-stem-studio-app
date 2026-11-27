@@ -104,7 +104,7 @@ window.BassRehearsalIdeas=(()=>{
    basslines.push({id:row.id,kind:'basslines',label:N.short(row.name)+' · Practice (adapted)',family:'Practice bassline',style,sourceId:row.id,shape,recorded:false,score:C.patternScore(grid,rhythm,shape)+(row.expressive?.15:0)});
    // These loops already have their own authored runs and fills above.
    // Do not mint further near-duplicate derivatives with the loop's name.
-   if(row.expressive)continue;
+   if(row.expressive||row.writtenPractice)continue;
    const plan=P.make('basslines',{idea,key:0,bpm:100}),step=60/plan.bpm;
    addDerived({kind:'basslines',id:row.id,part:0,style,family:'Practice bassline',title:N.short(row.name),step,offset:0,notes:plan.bass.map(n=>({midi:n.midi,start:n.beat*step,end:(n.beat+n.length)*step,confidence:1,velocity:n.velocity}))});
   }

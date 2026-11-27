@@ -221,7 +221,94 @@ window.BassPracticeSeries=(()=>{
   }
   return notes;
  }
+ // Scores are fixed at release time so saved deletions never trigger replacements.
+ const additions=new Map(),lastNumbers=new Map();
+ for(const [key,s] of settings){
+  const kind=key.split('/')[0],genre=s.genre==='african-praise'?'praise':s.genre;
+  const number=s.genre==='african-praise'?s.number+(praiseMax[kind]||0):s.number;
+  const group=kind+'/'+genre;lastNumbers.set(group,Math.max(lastNumbers.get(group)||0,number));
+ }
+ function addStudy(kind,genre,index,score){
+  const group=kind+'/'+genre,number=(lastNumbers.get(group)||0)+1;
+  lastNumbers.set(group,number);
+  settings.set([kind,index,0].join('/'),{number,genre});
+  additions.set(kind+'/'+index,{...score,...band({number,genre},kind)});
+ }
+ function readNotes(text){
+  return text.split(' ').map(word=>{
+   const [pitch,at]=word.split('@');
+   return {pitch,beat:Number(at)/12};
+  });
+ }
+ function touch(notes,genre){
+  const sustain=['worship','soul','rnb','zouk'].includes(genre);
+  return notes.map((n,i)=>{
+   const gap=(notes[i+1]?.beat??4)-n.beat;
+   const accent=Number.isInteger(n.beat)||i===0;
+   const linked=sustain&&!accent&&gap<=.5;
+   const highPoint=i>0&&Number(n.pitch.slice(1))>Number(notes[i-1].pitch.slice(1))&&Number(n.pitch.slice(1))>=Number(notes[i+1]?.pitch.slice(1));
+   const pickup=n.pitch[0]==='t'&&gap<=.35;
+   return {...n,length:gap*(linked?.95:accent?(sustain?.88:.69):.74),
+    velocity:pickup?70:highPoint?91:accent?94:linked?76:82,articulation:linked?'legato':accent?'held':'detached'};
+  });
+ }
+ function installScores(){
+  for(const [genre,types] of Object.entries(window.BassGenreScores||{}))for(const [kind,scores] of Object.entries(types)){
+   for(const [i,text] of scores.entries()){
+    const id='study382-'+genre+'-'+kind+'-'+(i+1);
+    const [call,answer,chords]=text.split(' | ');
+    const notes=touch(readNotes(call),genre);
+    const title=genre+' '+kind+' '+(i+1);
+    if(kind==='basslines'){
+     const index=P.lines.length;
+     const writtenPractice={notes,answer:touch(readNotes(answer),genre)};
+     P.lines.push({id,name:title,practiceStyle:genre,feel:genre,degrees:[...chords].map(Number),writtenPractice});
+     addStudy(kind,genre,index,writtenPractice);
+    }else{
+     Q.rhythms[id]=notes.map(n=>n.beat);
+     const entry=Q.register({id,kind,title,practiceStyle:genre,culturalStyle:genre,genre,mode:'major',rhythm:id,
+      notes:notes.map(n=>n.pitch),writtenNotes:notes,accents:notes.map(n=>n.velocity),tier:0,rank:0});
+     addStudy(kind,genre,entry.index,{notes});
+    }
+   }
+  }
+  for(const [kind,sourceId,sourcePart,nativeBpm,interval,raw] of window.BassReggaeTransitions||[]){
+   const source=window.BassUploadedCore.find(sourceId),id='study382-'+kind+'-'+sourceId;
+   const events=raw.map(([beat,offset,length,velocity,sourceTime,confidence])=>({beat,offset,length,velocity,sourceTime,confidence,review:confidence<.76}));
+   const changes=[];
+   for(let from=1;from<=7;from++)for(let to=1;to<=7;to++)if(from!==to)changes.push([from,to]);
+   const recordedStudy={sourceKind:'uploaded',sourceId,sourcePart,family:'Reggae recordings',sourceTitle:source.title,style:'reggae',
+    start:events[0].sourceTime,end:events.at(-1).sourceTime,events,interval,nativeBpm,estimated:true,changes,
+    nativeChanges:changes.filter(([a,b])=>(F.scales.major[b-1]-F.scales.major[a-1]-interval)%12===0)};
+   const entry=Q.register({id,kind,title:source.title,practiceStyle:'reggae',culturalStyle:'reggae',genre:'reggae',
+    mode:'major',rhythm:'recorded',notes:[],recordedStudy,tier:0,rank:0});
+   entry.original=false;
+   window.BassCulturalStudies.entries.push(entry);
+   addStudy(kind,'reggae',entry.index,{recorded:true});
+  }
+ }
+ function playScore(kind,opts,score){
+  const mix={practiceStyle:score.practiceStyle,seriesDrum:score.seriesDrum};
+  if(kind!=='basslines'){
+   const plan=Q.make(kind,opts);
+   return {...window.BassRegister.plan(plan),...mix};
+  }
+  const plan=legacy(kind,opts),scale=F.scales[plan.mode]||F.scales.major;
+  function degree(d){return plan.key+scale[(d-1)%7]+12*Math.floor((d-1)/7);}
+  const roots=plan.degrees.map(d=>24+(degree(d)%12));
+  const bass=plan.degrees.flatMap((d,i)=>{
+   const root=roots[i],target=roots[(i+1)%roots.length];
+   return (i%2?score.answer:score.notes).map(n=>{
+    const value=Number(n.pitch.slice(1));
+    const midi=n.pitch[0]==='d'?root+degree(d+value-1)-degree(d):n.pitch[0]==='t'?target+value:root+value;
+    return {beat:i*4+n.beat,midi,length:n.length,velocity:n.velocity,articulation:n.articulation,role:n.beat===0?'landing':'bass'};
+   });
+  });
+  return {...window.BassRegister.plan({...plan,bass}),...mix};
+ }
  function make(kind,opts={}){
+  const score=additions.get(kind+'/'+Number(opts.idea));
+  if(score)return playScore(kind,opts,score);
   const s=get(kind,Number(opts.idea)||0,Number(opts.part)||0);
   if(kind==='fills'&&Number(opts.idea)===worshipTurn.index){
    const turn=Q.make(kind,opts);
@@ -247,6 +334,7 @@ window.BassPracticeSeries=(()=>{
  }
  window.BassUploadedCore.restoreLegacy('clip-33');
  window.BassCulturalStudies.completeArtistStudies();
+ installScores();
  P.make=make;
  return {get,label,menuLabel};
 })();
