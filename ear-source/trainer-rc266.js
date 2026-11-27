@@ -44,6 +44,7 @@ window.BassEarTrainer=(()=>{
   const rehearsal=mode==='rehearsal',flow=mode==='flow',bassWorkspace=fills||rehearsal||flow;
   $('earCustomFlow').hidden=!flow;
   dialog.dataset.lesson=mode;
+  $('earTitle').textContent=({flow:'Custom flow',fills:'My fills',basslines:'Basslines',runs:'Runs',rehearsal:'Rehearse'})[mode]||'Ear training';
   $('earSections').hidden=active;
   $('earMode').value=section==='notes'?noteMode:'';$('earMode').disabled=active;
   $('earMode').dataset.active=String(section==='notes');

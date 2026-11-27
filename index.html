@@ -13734,13 +13734,13 @@ OTHER DEALINGS IN THE SOFTWARE.
 html body #appRoot #songTempoWrap.on-beat{box-shadow:inset 0 0 0 3px #b9f3da!important}
 html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #pianoViewPanel .piano-chord.current-chord{background:#a7e8d2!important;color:#102b25!important;font-weight:800!important;box-shadow:inset 0 -3px #fff!important}
 </style>
-<link rel="stylesheet" href="./ear-source/trainer-rc267.css?v=rc392">
+<link rel="stylesheet" href="./ear-source/trainer-rc267.css?v=rc393">
 <style id="rc260-key-audition">@layer bass-piano-audition-260{#appRoot #pianoKeyboard .piano-key.auditioning{background:#248bd1!important;color:white!important;box-shadow:inset 0 0 0 1px #b7e4ff!important}}</style>
 <link rel="stylesheet" href="./fretflow-source/controls.css?v=rc325">
 <link rel="stylesheet" href="./fretflow-source/view.css?v=rc389">
 <link rel="stylesheet" href="./song-view/view.css?v=rc325">
 <style>
-#practiceSections:not([hidden]){display:grid;grid-auto-flow:column;grid-auto-columns:calc((100% - 16px)/5);gap:4px;box-sizing:border-box;padding:4px 0;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
+#practiceSections:not([hidden]){margin-inline:8px;display:grid;grid-auto-flow:column;grid-auto-columns:calc((100% - 16px)/5);gap:4px;box-sizing:border-box;padding:4px 0;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
 #practiceSections[hidden],#practiceSections::-webkit-scrollbar{display:none}
 html body #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #practiceSections button{box-sizing:border-box!important;height:calc(var(--ff-control-h,44px)*.4)!important;min-height:0!important;max-height:none!important;padding:0 2px!important;line-height:1!important}
 html body.practice-controls-hidden #appRoot#appRoot#appRoot#appRoot#appRoot#appRoot#appRoot #playerControls>.brand{display:none!important}
@@ -15803,8 +15803,8 @@ window.BassBatch = (() => {
 <script src="./ear-source/rehearsal-ideas-rc352.js?v=rc382"></script>
 <script src="./ear-source/phrase-view.js?v=rc343"></script>
 <script src="./ear-source/rehearsal.js?v=rc367"></script>
-<script src="./ear-source/custom-flow-rc388.js?v=rc392"></script>
-<script src="./ear-source/trainer-rc266.js?v=rc392"></script>
+<script src="./ear-source/custom-flow-rc388.js?v=rc393"></script>
+<script src="./ear-source/trainer-rc266.js?v=rc393"></script>
 <script src="./fretflow-source/core.js?v=rc277"></script>
 <script src="./fretflow-source/practice-stems.js?v=rc361"></script>
 <script src="./fretflow-source/bass-evidence.js?v=rc315"></script>
@@ -15816,7 +15816,7 @@ window.BassBatch = (() => {
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC392';
+  const APP_VERSION='RC393';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;

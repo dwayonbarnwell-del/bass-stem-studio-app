@@ -275,7 +275,16 @@ window.BassCustomFlow=(()=>{
   el('Change').disabled=!can;el('Play').disabled=!state.beat||state.choices.some(id=>!id);
   el('Prev').disabled=el('Next').disabled=select.length<2;
   const scale=F.scales[state.mode],to=state.degrees[selected+1];
-  el('Notes').textContent=can?notes(selected).map(n=>F.names[pc(n.midi)]).join(' · ')+' → '+F.names[pc(state.key+degree(scale,to))]:'No existing pattern fits this change.';
+  const preview=el('Notes');preview.replaceChildren();
+  if(can){
+   const pitches=notes(selected).map(n=>F.names[pc(n.midi)]);
+   pitches.push(F.names[pc(state.key+degree(scale,to))]);
+   for(const [i,name] of pitches.entries()){
+    const chip=document.createElement('span');chip.textContent=name;
+    if(i===pitches.length-1){chip.className='flow-landing';chip.textContent='→ '+name;}
+    preview.append(chip);
+   }
+  }else preview.textContent='No existing pattern fits this change.';
   actions();
  }
  function update(){
@@ -310,19 +319,19 @@ window.BassCustomFlow=(()=>{
  }
  function init(section){
   host=section;restore();
-  host.innerHTML=`<div class="flow-grid" id="flowSetup"><label>Genre<select id="flowGenre"></select></label><label>Beat<select id="flowBeat"></select></label>
+  host.innerHTML=`<div class="flow-grid" id="flowSetup"><label><select aria-label="Genre" id="flowGenre"></select></label><label><select aria-label="Beat" id="flowBeat"></select></label>
    <div class="flow-settings wide"><label class="flow-value"><span>Key</span><select id="flowKey"></select></label>
    <label class="flow-value"><span>BPM</span><input type="number" id="flowBpm" min="40" max="220" step="any"></label><button type="button" id="flowShowSave" aria-controls="flowSavePanel" aria-expanded="false">Save</button><button type="button" id="flowShowOpen" aria-controls="flowOpenPanel" aria-expanded="false">Open</button></div>
-   <div class="flow-inline wide" id="flowSavePanel" hidden><label>Progression name<input id="flowName" maxlength="80"></label><button type="button" id="flowSave">Save flow</button></div>
-   <div class="flow-inline wide" id="flowOpenPanel" hidden><label>Saved on this device<select id="flowSaved"></select></label><button type="button" id="flowOpen">Open flow</button></div>
-   <div class="flow-inline wide" id="flowProgression"><label>Chord progression<input id="flowDegrees" maxlength="180" placeholder="1 → 5 → 6 → 5 → 1"></label><button type="button" id="flowChange">Play change</button></div>
+   <div class="flow-inline wide" id="flowSavePanel" hidden><label><input aria-label="Progression name" placeholder="Progression name" id="flowName" maxlength="80"></label><button type="button" id="flowSave">Save flow</button></div>
+   <div class="flow-inline wide" id="flowOpenPanel" hidden><label><select aria-label="Saved progressions on this device" id="flowSaved"></select></label><button type="button" id="flowOpen">Open flow</button></div>
+   <div class="flow-inline wide" id="flowProgression"><label><input aria-label="Chord progression" id="flowDegrees" maxlength="180" placeholder="1 → 5 → 6 → 5 → 1"></label><button type="button" id="flowChange">Play change</button></div>
    <div class="wide" id="flowChanges" role="group" aria-label="Choose a chord change"></div></div>
-   <div class="flow-picker"><label>Pattern for this change<select id="flowPattern"></select></label></div>
-   <div class="flow-transport"><button type="button" id="flowPrev" aria-label="Previous pattern">◀</button><button type="button" id="flowNext" aria-label="Next pattern">▶</button><button type="button" id="flowPlay">Play flow</button></div>
+   <div class="flow-picker"><label><select aria-label="Pattern for this change" id="flowPattern"></select></label></div>
+   <div class="flow-transport"><button type="button" id="flowPrev" aria-label="Previous pattern">‹</button><button type="button" id="flowNext" aria-label="Next pattern">›</button><button type="button" id="flowPlay">Play flow</button></div>
    <section id="flowVisual" aria-label="Timed rehearsal" hidden><div class="flow-top" id="flowViewActions"><select aria-label="Rehearsal view" id="flowView"><option value="notes">Band</option><option value="fret">Fret View</option><option value="fret2">Fret View 2</option></select><button type="button" id="flowEdit">Edit flow</button></div>
    <div id="flowHarmony" aria-label="Chords"></div><div id="flowTimeline" aria-label="Bass notes"></div><div id="flowFret" hidden></div></section>
 
-   <p id="flowNotes"></p><p role="status" id="flowStatus"></p>`;
+   <div id="flowNotes" role="group" aria-label="Notes leading to the next chord"></div><p role="status" id="flowStatus"></p>`;
   el('Saved').onchange=()=>{el('Open').disabled=!el('Saved').value;};
   el('Save').onclick=saveNamed;el('Open').onclick=openNamed;el('Edit').onclick=backToEditor;
   el('View').onchange=()=>{layoutKey='';paint(viewBeat);};
