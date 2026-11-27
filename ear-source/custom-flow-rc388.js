@@ -52,7 +52,7 @@ window.BassCustomFlow=(()=>{
   for(const item of U.items){
    if(!D.visible('uploaded',item.id))continue;
    (window.BassRecordedPhrases[item.id]||[]).forEach((_,part)=>{
-    if(D.visible('uploaded',item.id+'/'+part))add(H.recordingGroup(item),{kind:'basslines',clip:item.id,part,id:'clip/'+item.id+'/'+part,label:N.clip(item)+(part?' .'+(part+1):'')});
+    if(D.visible('uploaded',item.id+'/'+part))add(H.recordingGroup(item),{kind:'basslines',clip:item.id,part,id:'clip/'+item.id+'/'+part,label:item.sections?N.clip(item):N.phrase(item,part,window.BassRecordedPhrases[item.id].length)});
    });
   }
   return genres;
@@ -81,17 +81,41 @@ window.BassCustomFlow=(()=>{
   // each visible bassline, run and fill in this genre.
   const bank=window.BassSuppliedDrums,manual=bank.byStyle(state.genre);
   flowBeats=new Map(manual.map(loop=>[loop.id,loop]));
-  let first,preferred;
-  for(const row of rows){
-   const loop=H.resolve(source(row)).loop;
-   if(!loop||(!bank.instrumental.includes(loop)&&!manual.includes(loop)))continue;
-   flowBeats.set(loop.id,loop);first??=loop;
-   if(row.kind==='fills'&&row.label==='Practice 09')preferred=loop;
+  const groups=new Map(),assigned=new Set(),menu=el('Beat');
+  function add(group,id,label){
+   if(!groups.has(group)){
+    const element=document.createElement('optgroup');element.label=group;groups.set(group,element);
+   }
+   groups.get(group).append(new Option(label,id));
   }
-  const beats=[...flowBeats.values()].map(loop=>({id:loop.id,label:loop.title+(loop.recreated?' · Recreated':'')})).sort(compare);
-  if(!flowBeats.has(state.beat))state.beat=preferred?.id||first?.id||beats[0]?.id||'';
-  if(fresh){state.bpm=Math.max(40,Math.min(220,Math.round(flowBeats.get(state.beat)?.bpm||96)));fresh=false;el('Bpm').value=state.bpm;}
-  options(el('Beat'),beats,state.beat);
+  let first,firstTempo;
+  for(const kind of ['basslines','runs','fills']){
+   for(const row of rows.filter(r=>r.kind===kind).sort((a,b)=>Number(!!a.clip)-Number(!!b.clip)||compare(a,b))){
+    const study=source(row),band=H.resolve(study),loop=band.loop;
+    if(!loop||(!bank.instrumental.includes(loop)&&!manual.includes(loop)))continue;
+    const id='study/'+row.id;
+    flowBeats.set(id,loop);flowBeats.set(loop.id,loop);assigned.add(loop.id);
+    add(row.clip?'Recordings':kinds[kind],id,row.label);
+    if(!first){
+     first=id;
+     firstTempo=row.clip?U.practicePlan(row.clip,'phrase-'+row.part).bpm:study.recordedStudy?.nativeBpm||(!study.seriesDrum&&band.id==='reggae'?77:loop.bpm);
+    }
+   }
+  }
+  for(const loop of manual.slice().sort((a,b)=>compare({label:a.title},{label:b.title}))){
+   if(!assigned.has(loop.id)||loop.id===state.beat)add('Drum loops',loop.id,loop.title);
+  }
+  // Saved flows may use the original loop ID instead of a numbered study.
+  if(assigned.has(state.beat)&&!manual.some(loop=>loop.id===state.beat))add('Drum loops',state.beat,flowBeats.get(state.beat).title);
+  menu.replaceChildren(...groups.values());
+  const needsBeat=!flowBeats.has(state.beat);
+  if(needsBeat)state.beat=first||menu.options[0]?.value||'';
+  if(fresh||needsBeat){
+   const tempo=window.BassFillTrainer.basslineTempo(state.genre)??firstTempo??flowBeats.get(state.beat)?.bpm??96;
+   state.bpm=Number(Math.min(220,Math.max(40,tempo)).toFixed(2));
+   el('Bpm').value=state.bpm;fresh=false;
+  }
+  menu.value=state.beat;
   state.choices=state.degrees.slice(1).map((_,i)=>{
    const pool=allowed(i);return pool.find(r=>r.id===state.choices[i])?.id||pool.find(r=>r.kind==='fills')?.id||pool[0]?.id||'';
   });
@@ -280,7 +304,7 @@ window.BassCustomFlow=(()=>{
   try{
    ctx??=new AudioContext();await ctx.resume();await window.BassEarAudio.prepare(ctx);
    if(ticket!==revision)return;
-   const p=plan(mode==='change'),band={...H.resolve(p,{groove:state.beat}),loop:selectedBeat(),recorded:false};
+   const p=plan(mode==='change'),band={...H.resolve(p,{groove:selectedBeat().id}),loop:selectedBeat(),recorded:false};
    const chart=mode==='all'?chartFor(p,false):null;
    const task=renderQueue.then(()=>ticket===revision?window.BassPracticeLoop.render(ctx,p,{...band,cancelled:()=>revision!==ticket}):null);
    renderQueue=task.catch(()=>null);

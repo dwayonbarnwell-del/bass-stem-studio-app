@@ -676,5 +676,8 @@ window.BassFillTrainer=(()=>{
  function setKind(next){
   kind=['fills','runs','basslines'].includes(next)?next:'fills';if(kind==='basslines')clipOptions();$('fillSettings').hidden=false;$('fillNext').hidden=false;groupOptions();transitionOptions();loadGroup();ideaOptions();draw();
  }
- return {init,stop,setKind,noteCard,preview};
+ function basslineTempo(genre){
+  return kind==='basslines'&&$('fillCollection').value===genre?practiceTempo:null;
+ }
+ return {init,stop,setKind,noteCard,preview,basslineTempo};
 })();
