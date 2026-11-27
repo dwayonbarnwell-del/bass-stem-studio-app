@@ -232,7 +232,7 @@ window.BassPracticeSeries=(()=>{
   const group=kind+'/'+genre,number=(lastNumbers.get(group)||0)+1;
   lastNumbers.set(group,number);
   settings.set([kind,index,0].join('/'),{number,genre});
-  additions.set(kind+'/'+index,{...score,...band({number,genre},kind)});
+  additions.set(kind+'/'+index,{...band({number,genre},kind),...score});
  }
  function readNotes(text){
   return text.split(' ').map(word=>{
@@ -298,10 +298,10 @@ window.BassPracticeSeries=(()=>{
   const roots=plan.degrees.map(d=>24+(degree(d)%12));
   const bass=plan.degrees.flatMap((d,i)=>{
    const root=roots[i],target=roots[(i+1)%roots.length];
-   return (i%2?score.answer:score.notes).map(n=>{
+   return (score.bars?.[i]||(i%2?score.answer:score.notes)).map(n=>{
     const value=Number(n.pitch.slice(1));
     const midi=n.pitch[0]==='d'?root+degree(d+value-1)-degree(d):n.pitch[0]==='t'?target+value:root+value;
-    return {beat:i*4+n.beat,midi,length:n.length,velocity:n.velocity,articulation:n.articulation,role:n.beat===0?'landing':'bass'};
+    return {beat:i*4+n.beat,midi,...(n.slide?{slideFrom:midi-2,slideSeconds:.045}:{}),length:n.length,velocity:n.velocity,articulation:n.articulation,role:n.beat===0?'landing':'bass'};
    });
   });
   return {...window.BassRegister.plan({...plan,bass}),...mix};
@@ -335,6 +335,19 @@ window.BassPracticeSeries=(()=>{
  window.BassUploadedCore.restoreLegacy('clip-33');
  window.BassCulturalStudies.completeArtistStudies();
  installScores();
+ for(const score of window.BassTransitionScores?.entries()||[]){
+  const {kind,genre,id,title,notes}=score;
+  let index;
+  if(kind==='basslines'){
+   index=P.lines.length;
+   P.lines.push({id,name:title,practiceStyle:genre,feel:genre,degrees:score.degrees,writtenPractice:score});
+  }else{
+   Q.rhythms[id]=notes.map(n=>n.beat);
+   index=Q.register({id,kind,title,practiceStyle:genre,culturalStyle:genre,genre,mode:'major',rhythm:id,
+    notes:notes.map(n=>n.pitch),writtenNotes:notes,accents:notes.map(n=>n.velocity),tier:0,rank:0}).index;
+  }
+  addStudy(kind,genre,index,score);
+ }
  P.make=make;
  return {get,label,menuLabel};
 })();

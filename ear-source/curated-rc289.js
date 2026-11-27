@@ -186,7 +186,7 @@ window.BassCuratedStudies=(()=>{
   entry.notes.forEach((token,i)=>bass.push({midi:pitch(token),beat:beats[i],length:Math.min((beats[i+1]??4)-beats[i],.7)*(entry.gates?.[i]??entry.gate??.8),velocity:entry.accents?.[i]??(entry.genre==='fusion'?82+(i%3===0?9:0):78+(i%3===0?8:0)),role:'bass'}));
   if(entry.writtenNotes){
    bass[0].length=Math.min(1.35,beats[0]*.78);
-   entry.writtenNotes.forEach((n,i)=>Object.assign(bass[i+1],{length:n.length,articulation:n.articulation}));
+   entry.writtenNotes.forEach((n,i)=>Object.assign(bass[i+1],{length:n.length,articulation:n.articulation,...(n.slide?{slideFrom:bass[i+1].midi-2,slideSeconds:.045}:{})}));
   }
   bass.push({midi:target,beat:4,length:2.8,velocity:94,role:'landing'});
   const extended=entry.genre==='jazz',chord=(d,beat)=>[0,2,4,...(extended?[6]:[])].map(i=>({midi:degree(d-1+i)+12,beat,length:3.7,velocity:46,role:'chord'}));

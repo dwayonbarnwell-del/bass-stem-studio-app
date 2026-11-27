@@ -139,18 +139,19 @@ window.BassExpressiveStudies=(()=>{
   }
   return {...plan,bass,practiceStyle:style,expressive:true};
  }
- function writtenBar(score,answer,chord,next,key){
+ function writtenBar(score,answer,chord,next,key,barIndex=0){
   const root=nearest(chord.bassPc??chord.rootPc,35),target=nearest(next?.bassPc??next?.rootPc??chord.rootPc,root);
   const scale=F.scales[key?.mode],degree=scale?.indexOf(pc(chord.rootPc-key.tonic))??-1;
   const info=intervals(chord.quality),local=[0,2,info.third,5,info.fifth,info.minor?8:9,info.seventh];
-  return (answer?score.answer:score.notes).map(n=>{
+  const events=score.bars?.[barIndex%score.bars.length]||(answer?score.answer:score.notes);
+  return events.map(n=>{
    const v=Number(n.pitch.slice(1)),i=v-1;
    let midi=n.pitch[0]==='t'?target+v:root+v;
    if(n.pitch[0]==='d'){
     const offset=degree<0?local[i%7]+12*Math.floor(i/7):scale[(degree+i)%7]+12*Math.floor((degree+i)/7)-scale[degree];
     midi=i===0?root:nearest(chord.rootPc,root)+offset;
    }
-   return {...n,midi};
+   return {...n,midi,...(n.slide?{slideFrom:midi-2,slideSeconds:.045}:{})};
   });
  }
  function basslineShape(line,idea){
@@ -173,7 +174,7 @@ window.BassExpressiveStudies=(()=>{
    const next=segments[index+1];
    for(let bar=start;bar<end;bar+=meter){
     const lastBar=Math.abs(bar+meter-end)<.02;
-    let notes=written?writtenBar(written,lastBar&&!!next,chord,next,M.prepare(clip).key):pocket(style,chord,variant);
+    let notes=written?writtenBar(written,lastBar&&!!next,chord,written.bars&&!lastBar?chord:next,M.prepare(clip).key,index+Math.round((bar-start)/meter)):pocket(style,chord,variant);
     if(!written && index%2===1 && next && !next.rootOnly && (!next.uncertain || next.manual) && Math.abs(chord.end-next.start)<.025 && Math.abs(bar+meter-end)<.02){
      const entry=entries.find(e=>e.kind==='fills' && e.practiceStyle===style && e.technique===(variant?'fifth':style==='jazz'?'guide':style==='gospel'?'grace':'pent'));
      const key=M.prepare(clip).key;
