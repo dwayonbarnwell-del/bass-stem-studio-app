@@ -208,8 +208,25 @@ window.BassCustomFlow=(()=>{
   const phrase=patternNotes(i),factor=length/4;
   return length===4?phrase:phrase.map(n=>({...n,beat:n.beat*factor,length:n.length*factor}));
  }
+ function hasPassing(i){
+  return i>=0&&i+2<state.degrees.length&&state.lengths[i+1]<=1&&state.lengths[i]+state.lengths[i+1]===4;
+ }
+ function editPassing(value,length){
+  if(!acceptChords(true))return;
+  const i=selected,exists=hasPassing(i),at=i+1;
+  if(exists){
+   if(value){state.degrees[at]=value;state.lengths[i]=4-length;state.lengths[at]=length;}
+   else{
+    state.lengths[i]=4;state.degrees.splice(at,1);state.lengths.splice(at,1);state.choices.splice(at,1);
+   }
+  }else{
+   if(!value||state.lengths[i]!==4||state.degrees.length>=16)return;
+   state.lengths[i]-=length;state.degrees.splice(at,0,value);state.lengths.splice(at,0,length);state.choices.splice(at,0,null);
+  }
+  el('Degrees').value=writtenProgression();offset=0;hydrate();update();
+ }
  function plan(single){
-  const first=single?selected:0,degrees=single?state.degrees.slice(selected,selected+2):state.degrees;
+  const first=single?selected:0,degrees=single?state.degrees.slice(selected,selected+(hasPassing(selected)?3:2)):state.degrees;
   const bass=[],chords=[],scale=F.scales[state.mode];
   let beat=0;
   degrees.forEach((d,i)=>{
@@ -253,7 +270,7 @@ window.BassCustomFlow=(()=>{
  }
  let score=null,pendingScore=null,fret=null,viewBeat=0,layoutKey='',activeKey='';
  function chartFor(p,single){
-  const degrees=single?state.degrees.slice(selected,selected+2):state.degrees;
+  const degrees=single?state.degrees.slice(selected,selected+(hasPassing(selected)?3:2)):state.degrees;
   const scale=F.scales[state.mode];
   let start=0;
   const bars=degrees.map((d,i)=>{
@@ -291,7 +308,8 @@ window.BassCustomFlow=(()=>{
   if(!score||el('Visual').hidden)return;
   viewBeat=beat;
   const bar=Math.min(score.bars.length-1,barAt(beat)),view=el('View').value,seconds=beat*score.step;
-  const idx=score.bars[Math.min(bar,score.bars.length-2)].idx;
+  const activeChange=score.bars[Math.min(bar,score.bars.length-2)].idx;
+  const idx=hasPassing(activeChange-1)?activeChange-1:activeChange;
   if(idx!==selected){selected=idx;draw();}
   const harmony=el('Harmony');
   if(!layoutKey){
@@ -332,7 +350,7 @@ window.BassCustomFlow=(()=>{
   if(pendingScore&&ctx.currentTime>=pendingScore.start){installScore(pendingScore);pendingScore=null;}
   if(score?.transport&&player){const pos=Math.max(0,score.transport.position()-score.transport.latency)%score.transport.seconds;paint(pos/score.step);}
   const i=score&&player&&sounding==='all'?barAt(viewBeat):-1;
-  Array.from(el('Changes').children).forEach((b,k)=>{if(k===i)b.setAttribute('aria-current','step');else b.removeAttribute('aria-current');});
+  Array.from(el('Changes').children).forEach(b=>{if(Number(b.dataset.change)===(hasPassing(i-1)?i-1:i))b.setAttribute('aria-current','step');else b.removeAttribute('aria-current');});
  }
  let beatPlayer=null,beatRequest='',beatRevision=0;
  function beatButton(active){
@@ -404,7 +422,7 @@ window.BassCustomFlow=(()=>{
    follow();revision++;clearInterval(clock);pendingScore=null;player.stop();player=null;
    playing='';sounding='';paused=mode;offset=viewBeat;actions();el('Status').textContent='';return;
   }
-  if(mode==='change'&&score&&sounding==='all'){selected=score.bars[Math.min(barAt(viewBeat),score.bars.length-2)].idx;draw();}
+  if(mode==='change'&&score&&sounding==='all'){const i=score.bars[Math.min(barAt(viewBeat),score.bars.length-2)].idx;selected=hasPassing(i-1)?i-1:i;draw();}
   void play(mode,paused===mode?offset:0);
  }
  function draw(){
@@ -422,10 +440,17 @@ window.BassCustomFlow=(()=>{
   el('BeatNext').disabled=el('Beat').length<2;el('Audition').disabled=!state.beat;
   const moves=el('Changes');moves.replaceChildren();
   state.degrees.slice(1).forEach((to,i)=>{
-   const b=document.createElement('button');b.type='button';b.textContent=state.degrees[i]+' → '+to;
+   if(hasPassing(i-1))return;
+   const b=document.createElement('button');b.type='button';b.dataset.change=i;
+   b.textContent=state.degrees[i]+(hasPassing(i)?' → ('+to+') → '+state.degrees[i+2]:' → '+to);
    b.setAttribute('aria-label','Change '+(i+1)+', '+b.textContent);b.setAttribute('aria-pressed',String(i===selected));
    b.onclick=()=>{selected=i;draw();if(playing==='change')void play('change');else if(paused==='change'){offset=0;}};moves.append(b);
   });
+  const passing=hasPassing(selected);
+  el('Pass').value=passing?String(state.degrees[selected+1]):'';
+  el('Pass').disabled=!passing&&(state.lengths[selected]!==4||state.degrees.length>=16);
+  el('PassLength').hidden=!passing;
+  el('PassLength').textContent=state.lengths[selected+1]===.5?'½ beat':'1 beat';
   const select=el('Pattern'),pool=allowed(selected);select.replaceChildren();
   for(const [kind,label] of Object.entries(kinds)){
    const group=document.createElement('optgroup');group.label=label;
@@ -441,6 +466,7 @@ window.BassCustomFlow=(()=>{
   if(can){
    const pitches=notes(selected).map(n=>noteLabel(n.midi));
    pitches.push(noteLabel(state.key+degree(scale,to)));
+   if(passing)pitches.push(noteLabel(state.key+degree(scale,state.degrees[selected+2])));
    for(const [i,name] of pitches.entries()){
     const chip=document.createElement('span');chip.textContent=name;
     if(i===pitches.length-1){chip.className='flow-landing';chip.textContent='→ '+name;}
@@ -471,7 +497,7 @@ window.BassCustomFlow=(()=>{
   const before=typingStart||state,old=new Map();
   before.choices.forEach((id,i)=>{const pair=before.degrees.slice(i,i+2).join('/');if(!old.has(pair))old.set(pair,[]);old.get(pair).push(id);});
   state.lengths=lengths;state.degrees=next;state.choices=next.slice(1).map((_,i)=>old.get(next.slice(i,i+2).join('/'))?.shift());
-  selected=Math.min(selected,next.length-2);offset=0;el('Status').textContent='';hydrate();if(refresh)update();return true;
+  selected=Math.min(selected,next.length-2);if(hasPassing(selected-1))selected--;offset=0;el('Status').textContent='';hydrate();if(refresh)update();return true;
  }
  function open(){
   catalogue=library();savedMenu(el('Saved').value);
@@ -492,8 +518,8 @@ window.BassCustomFlow=(()=>{
    <div class="flow-inline wide" id="flowSavePanel" hidden><label><input aria-label="Progression name" placeholder="Progression name" id="flowName" maxlength="80"></label><button type="button" id="flowSave">Save flow</button></div>
    <div class="flow-inline wide" id="flowOpenPanel" hidden><label><select aria-label="Saved progressions on this device" id="flowSaved"></select></label><button type="button" id="flowOpen">Open flow</button></div>
    <div class="wide" id="flowProgression"><label><input aria-label="Chord progression" id="flowDegrees" maxlength="180" placeholder="1 → 5 → 6 → 5 → 1"></label></div>
-   <details class="wide" id="flowTiming"><summary>Chord timing</summary><p>Each chord lasts 4 beats. Brackets take the last beat of the previous chord. For exact timing, use 5@0.5 for half a beat or 1@2 for two beats.</p><button type="button" id="flowGlory">Use “We give glory” timing</button></details>
-   <div class="wide" id="flowChanges" role="group" aria-label="Choose a chord change"></div></div>
+   <div class="wide" id="flowChanges" role="group" aria-label="Choose a chord change"></div>
+   <div class="wide flow-passing"><label>Passing chord <select id="flowPass"><option value="">None</option></select></label><button type="button" id="flowPassLength" title="Switch between one beat and half a beat" hidden>1 beat</button></div></div>
    <div class="flow-picker"><label><select aria-label="Pattern for this change" id="flowPattern"></select></label><button type="button" id="flowPrev" aria-label="Previous pattern">‹</button><button type="button" id="flowNext" aria-label="Next pattern">›</button></div>
    <div class="flow-transport"><button type="button" id="flowChange">Play change</button><button type="button" id="flowNotation">Notes</button><button type="button" id="flowPlay">Play flow</button></div>
    <section id="flowVisual" aria-label="Timed rehearsal" hidden><div class="flow-top" id="flowViewActions"><select aria-label="Rehearsal view" id="flowView"><option value="notes">Band</option><option value="fret">Fret</option><option value="fret2">Fret 2</option></select><button type="button" id="flowViewNotation">Notes</button><button type="button" id="flowPlaySave" aria-controls="flowSavePanel" aria-expanded="false">Save</button><button type="button" id="flowEdit">Edit flow</button></div>
@@ -527,11 +553,9 @@ window.BassCustomFlow=(()=>{
   el('Beat').onchange=e=>{state.beat=e.target.value;update();};
   el('Key').onchange=e=>{const [key,mode]=e.target.value.split('/');state.key=Number(key);state.mode=mode;update();};
   el('Bpm').onchange=e=>{if(!e.target.value||!e.target.reportValidity()){e.target.value=state.bpm;return;}state.bpm=Number(e.target.value);update();};
-  el('Glory').onclick=()=>{
-   el('Degrees').value='6 (5) 1, 4 5, 6 (3) 4, 5 1';
-   state.key=0;state.mode='major';state.bpm=95;el('Key').value='0/major';el('Bpm').value=95;
-   acceptChords(true,false);el('Name').value='We give glory to the Lord';el('Timing').open=false;update();
-  };
+  for(let degree=1;degree<=7;degree++)el('Pass').add(new Option(String(degree),String(degree)));
+  el('Pass').onchange=e=>editPassing(Number(e.target.value),hasPassing(selected)?state.lengths[selected+1]:1);
+  el('PassLength').onclick=()=>editPassing(state.degrees[selected+1],state.lengths[selected+1]===1?.5:1);
   const degrees=el('Degrees');
   degrees.onfocus=()=>{typingStart={degrees:[...state.degrees],choices:[...state.choices]};};
   degrees.oninput=()=>acceptChords(false);
@@ -539,7 +563,7 @@ window.BassCustomFlow=(()=>{
   degrees.onkeydown=e=>{if(e.key==='Enter'&&acceptChords(true))degrees.blur();};
   el('Pattern').onchange=e=>{state.choices[selected]=e.target.value;update();};
   for(const [id,dir] of [['Prev',-1],['Next',1]])el(id).onclick=()=>{
-   if(host.dataset.focus==='true'&&score){selected=score.bars[Math.min(barAt(viewBeat),score.bars.length-2)].idx;draw();}
+   if(host.dataset.focus==='true'&&score){const i=score.bars[Math.min(barAt(viewBeat),score.bars.length-2)].idx;selected=hasPassing(i-1)?i-1:i;draw();}
    const s=el('Pattern');s.selectedIndex=(s.selectedIndex+dir+s.length)%s.length;s.dispatchEvent(new Event('change'));
   };
   el('Change').onclick=()=>toggle('change');el('Play').onclick=()=>toggle('all');
