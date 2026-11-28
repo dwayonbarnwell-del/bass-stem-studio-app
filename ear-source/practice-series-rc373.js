@@ -384,6 +384,36 @@ window.BassPracticeSeries=(()=>{
   get(kind,index,0).lessonTitle=title;
   additions.get(kind+'/'+index).seriesDrum='owner-crispy-verse07';
  }
+ // Fit each source phrase to a practice bar. Runs and fills land on the selected
+ // destination. The source timing and pitch intervals stay available in the score.
+ const worshipBeds=['owner-crispy-verse07','owner-purepop-verse01','owner-theworld-verse01','owner-purepop-verse06'];
+ for(const [sourceId,title,kind,start,events] of window.BassWorshipLessons){
+  const id='learn410-'+kind+'-'+sourceId, line=kind==='basslines';
+  const last=events.at(-1),first=events[0],end=last[0]+last[1];
+  const scale=line?3.95/end:Math.min(3.5/last[0],.025);
+  const offset=line?0:4-last[0]*scale;
+  const notes=(line?events:events.slice(0,-1)).map(([time,duration,midi],i)=>({
+   pitch:line?'s'+(midi-first[2]):'t'+(midi-last[2]),
+   beat:offset+time*scale,length:Math.min(duration,(events[i+1]?.[0]??end)-time)*scale*.97,
+   velocity:i===0?89:duration>=30?84:75,articulation:duration>=30?'held':'legato'
+  }));
+  const interval=(last[2]-first[2]+48)%12,degree=[0,2,4,5,7,9,11].indexOf(interval)+1;
+  const to=degree>1?degree:4;
+  const clock=t=>Math.floor(t/6000)+':'+String(Math.floor(t/100)%60).padStart(2,'0');
+  const tip='Adapted from '+title+', '+clock(start)+'–'+clock(start+end)+'. Try 1 → '+to+'; listen for the landing on the next root.';
+  let index;
+  const score={notes,answer:notes,seriesDrum:worshipBeds[Number(sourceId.split('-')[0])%worshipBeds.length]};
+  if(line){
+   index=P.lines.length;
+   P.lines.push({id,name:title,tip,practiceStyle:'worship',feel:'worship',degrees:[1,to],writtenPractice:score});
+  }else{
+   Q.rhythms[id]=notes.map(n=>n.beat);
+   index=Q.register({id,title,kind,tip,practiceStyle:'worship',culturalStyle:'worship',genre:'worship',mode:'major',
+    rhythm:id,notes:notes.map(n=>n.pitch),writtenNotes:notes,accents:notes.map(n=>n.velocity),tier:0,rank:0}).index;
+  }
+  addStudy(kind,'worship',index,score);
+  get(kind,index,0).lessonTitle=title;
+ }
  P.make=make;
  return {get,label,menuLabel};
 })();
