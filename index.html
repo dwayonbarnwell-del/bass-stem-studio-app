@@ -15004,7 +15004,7 @@ window.BassLibrary=(()=>{
 
   let maintenance=false,stopMaintenance=false;
   async function checkLibrary(){
-    if(maintenance){stopMaintenance=true;return;}
+    if(maintenance){stopMaintenance=true;stopScan();return;}
     if(busy)return;
     stopScan();busy=true;maintenance=true;stopMaintenance=false;render();
     const button=el('libraryCheck'),report=el('libraryCheckStatus');
@@ -15013,12 +15013,9 @@ window.BassLibrary=(()=>{
     const stopped=()=>stopMaintenance||!dialog.open;
     try{
       await ensureBatchAccess();
-      const list=[];
-      for(const id of await store('songs','readonly',s=>s.getAllKeys()))list.push({id});
-      if(folder)for await(const [filename,handle] of folder.entries()){
-        if(stopped())break;
-        if(handle.kind==='file'&&SUPPORTED.test(filename))list.push({dir:folder,handle,filename});
-      }
+      report.textContent='Finding songs in your Library…';
+      if(!stopped())await refresh();
+      const list=rows.map(({blob,searchNames,...row})=>row);
       for(const [i,row] of list.entries()){
         if(stopped())break;
         try{
@@ -15038,7 +15035,7 @@ window.BassLibrary=(()=>{
         }catch(e){if(stopped())break;failed.push((row.filename||row.id)+' ('+errorText(e)+')');}
       }
       report.textContent=(stopped()?'Stopped. ':'')+updated+' updated · '+skipped+' skipped · '+failed.length+' need review'+(failed.length?' · '+failed.join(', '):'');
-    }catch(e){report.textContent=errorText(e);}
+    }catch(e){report.textContent=stopped()?'Check stopped.':errorText(e);}
     finally{busy=false;maintenance=false;button.textContent='Check and fix files';render();}
   }
 
@@ -15863,7 +15860,7 @@ window.BassBatch = (() => {
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC418';
+  const APP_VERSION='RC419';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;
