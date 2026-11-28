@@ -15805,7 +15805,7 @@ window.BassBatch = (() => {
 <script src="./ear-source/practice-series-rc373.js?v=rc410"></script>
 <script src="./ear-source/rehearsal-harmony-rc354.js?v=rc365"></script>
 <script src="./ear-source/rehearsal-ideas-rc352.js?v=rc382"></script>
-<script src="./ear-source/phrase-view.js?v=rc343"></script>
+<script src="./ear-source/phrase-view.js?v=rc417"></script>
 <script src="./ear-source/rehearsal.js?v=rc403"></script>
 <script src="./ear-source/custom-flow-rc388.js?v=rc414"></script>
 <script src="./ear-source/trainer-rc266.js?v=rc393"></script>
@@ -15820,7 +15820,7 @@ window.BassBatch = (() => {
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC416';
+  const APP_VERSION='RC417';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;
@@ -16144,7 +16144,7 @@ window.BassBatch = (() => {
     outputs.forEach((out,i)=>{const p=pending.parts[i];for(const n of out.notes||[]){
       const ns=Number(n.start)+p.audioStart,ne=Number(n.end)+p.audioStart,midi=mapFreshCloudMidi(n.midi);
       if(Number.isFinite(midi)&&Number.isFinite(ns)&&Number.isFinite(ne)&&ne>ns&&ns>=p.coreStart&&ns<p.coreEnd)
-        replacement.push({midi,start:ns,end:Math.min(buffer.duration,ne),confidence:Number(n.confidence)||0,isFill:!!n.is_fill,onsetSupported:!!n.onset_supported,cloudMidi:midi,source:cloudVersionLabel(out.analysis_version)});
+        replacement.push({midi,start:ns,end:Math.min(buffer.duration,ne),confidence:Number(n.confidence)||0,isFill:!!n.is_fill,onsetSupported:!!n.onset_supported,slideDirection:n.slideDirection,cloudMidi:midi,source:cloudVersionLabel(out.analysis_version)});
     }});
     if(!replacement.length)throw new Error('No bass notes returned. Your previous selection is unchanged.');
     const rawContext=chooseCombinedSongContext(pending.parts,outputs);
@@ -16521,6 +16521,7 @@ window.BassBatch = (() => {
         confidence:Number(n.confidence)||0,
         isFill:!!n.isFill,
         onsetSupported:!!n.onsetSupported,
+        slideDirection:n.manual?undefined:n.slideDirection,
         cloudMidi:mapPracticeMidi(n.cloudMidi),
         manual:!!n.manual,source:n.source||'Analysis'
       }));
@@ -16656,6 +16657,7 @@ window.BassBatch = (() => {
         isFill:typeof n.isFill==='boolean'?n.isFill:false,
         onsetSupported:!!(n.onsetSupported??n.onset_supported),
         scaleNumber:(n.scaleNumber===null||n.scaleNumber===undefined||n.scaleNumber==='')?null:String(n.scaleNumber),
+        slideDirection:!n.manual&&Math.abs(n.slideDirection)===1?Number(n.slideDirection):undefined,
         cloudMidi:n.manual?mapPracticeMidi(n.cloudMidi):savedBassPitch(n),
         manual:!!n.manual,source:n.source||'Saved project'
       })).filter(n=>Number.isFinite(n.midi)&&Number.isFinite(n.start)&&Number.isFinite(n.end)&&n.end>n.start)
@@ -19766,7 +19768,9 @@ window.BassBatch = (() => {
       try{audio=await decodeBase64AudioBuffer(out.bass_audio_base64);}
       catch{assertSongSession(session);continue;}
       assertSongSession(session);
-      out.notes=await recoverPassingNotes(out.notes,audio,()=>session===songSession);
+      const current=()=>session===songSession;
+      const verified=await recoverPassingNotes(out.notes,audio,current);
+      out.notes=await markBassSlides(verified,audio,current);
       assertSongSession(session);
     }
   }
@@ -19809,7 +19813,7 @@ window.BassBatch = (() => {
           confidence:Number(n.confidence)||0,
           isFill:typeof n.is_fill==='boolean'?n.is_fill:undefined,
         onsetSupported:!!(n.onset_supported??n.onsetSupported),
-          cloudMidi:rawMidi,
+          slideDirection:n.slideDirection,cloudMidi:rawMidi,
           source:engineLabel
         });
       });
@@ -21322,6 +21326,53 @@ window.BassBatch = (() => {
     return recovered;
   }
 
+  // A moving pitch can cross a fret without sounding a separate note there.
+  async function markBassSlides(events,audio,current){
+    const stride=Math.max(1,Math.floor(audio.sampleRate/3200)),rate=audio.sampleRate/stride;
+    const channels=Array.from({length:audio.numberOfChannels},(_,i)=>audio.getChannelData(i));
+    const result=[];
+    for(let i=0;i<events.length;i++){
+      if(i%32===0){
+        await new Promise(resolve=>setTimeout(resolve,0));
+        if(!current())return events;
+      }
+      const n=events[i],length=n.end-n.start;
+      result.push(n);
+      if(n.manual||!Number.isFinite(n.midi)||n.midi<23||n.midi>59||length<.035||length>.22)continue;
+      const hz=440*2**((n.midi-69)/12);
+      const frame=new Float32Array(Math.ceil(rate*Math.max(.045,3.4/hz)));
+      let points=[],held=0,longestHold=0,direction=0;
+      for(let t=n.start-.025;t<=n.end+.036;t+=.01){
+        const start=Math.round((t-frame.length/(2*rate))*audio.sampleRate);
+        if(start<0||start+frame.length*stride>audio.length)continue;
+        for(let j=0;j<frame.length;j++){
+          let sum=0;
+          for(const channel of channels)for(let k=0;k<stride;k++)sum+=channel[start+j*stride+k];
+          frame[j]=sum/(channels.length*stride);
+        }
+        const p=window.BassPracticeDSP.pitch(frame,rate,Math.max(25,hz*.65));
+        const pitch=p&&p.confidence>=.91?p.midi+p.cents/100:null;
+        held=pitch!==null&&Math.abs(pitch-n.midi)<.30?held+1:0;
+        longestHold=Math.max(longestHold,held);
+        if(pitch===null||Math.abs(pitch-n.midi)>2.4){points=[];continue;}
+        points.push(pitch);
+        // Follow different slide speeds. Reject sudden jumps and require
+        // intermediate pitches on both sides of the proposed fret.
+        for(const size of [7,10,13]){
+          if(points.length<size)break;
+          const run=points.slice(-size),last=run[size-1],span=last-run[0],sign=Math.sign(span);
+          if(Math.abs(span)<1.05||(n.midi-run[0])*sign<.38||(last-n.midi)*sign<.38)continue;
+          const increments=run.slice(1).map((v,j)=>(v-run[j])*sign);
+          const abrupt=increments.some((d,j)=>j>=2&&d+increments[j-1]+increments[j-2]>.80*Math.abs(span));
+          if(!abrupt&&increments.every(d=>d>=-.10&&d<=.72)&&increments.filter(d=>d>.07).length>=Math.ceil(size/2))
+            direction=direction&&direction!==sign?2:sign;
+        }
+      }
+      if(longestHold<6&&Math.abs(direction)===1)result[i]={...n,slideDirection:direction};
+    }
+    return result;
+  }
+
   async function estimateMissingBass(source,session,eligible=()=>session===songSession&&!aiBusy&&!offlineAnalysisReady,filter=()=>true,recordingSource='estimated-bass-stem'){
     if(localBassSession===session&&recordingSource==='estimated-bass-stem')return;
     localBassSession=session;
@@ -21357,6 +21408,8 @@ window.BassBatch = (() => {
       found=await recoverPassingNotes(found,source,eligible);
       if(!eligible())return;
     }
+    found=await markBassSlides(found,source,eligible);
+    if(!eligible())return;
     if(recordingSource==='estimated-bass'&&localBassSession===session)localBassSession=-1;
     if(found.length||notes.length){
       if(notes.length)rememberAnalysis('Before checking bass tone');

@@ -36,9 +36,19 @@ window.BassPhraseView=(()=>{
      line.title='Repeat phrase';line.onclick=()=>{onRepeat(row);draw(lastTime,lastPlaying);};
      line.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();line.click();}};
     }else chips.textContent='Rest';
+    const chipGroups=[];line.chipGroups=chipGroups;
+    let lastSlide=0,lastEnd=-Infinity;
     for(const note of row.notes){
+     const slide=note.manual?0:note.slideDirection;
+     const continuation=slide&&slide===lastSlide&&note.start-lastEnd<=.06;
+     lastSlide=slide;lastEnd=note.end;
+     if(continuation){chipGroups.at(-1).notes.push(note);continue;}
      const chip=document.createElement('span');
-     chip.textContent=note.midi===null?'×':set.label(note,select.value);chips.append(chip);
+     if(slide===1||slide===-1){
+      chip.textContent=slide===1?'↗':'↘';
+      chip.title=slide===1?'Slide up':'Slide down';chip.setAttribute('aria-label',chip.title);
+     }else chip.textContent=note.midi===null?'×':set.label(note,select.value);
+     chips.append(chip);chipGroups.push({chip,notes:[note]});
     }
     line.append(range,chips);return line;
    });
@@ -70,7 +80,9 @@ window.BassPhraseView=(()=>{
      if(top<list.scrollTop||top+lines[i].offsetHeight>list.scrollTop+list.clientHeight)list.scrollTop=top;
     }
    }
-   if(i>=0)rows[i].notes.forEach((n,k)=>lines[i].lastElementChild.children[k].classList.toggle('sounding',playing&&n.start<=time&&time<n.end));
+   if(i>=0)for(const group of lines[i].chipGroups){
+    group.chip.classList.toggle('sounding',playing&&group.notes.some(n=>n.start<=time&&time<n.end));
+   }
   }
   return {set,draw,invalidate(){data=null;}};
 
