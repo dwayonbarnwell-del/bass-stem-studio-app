@@ -38,6 +38,7 @@ window.BassLibrary=(()=>{
       key:clean(p.analysis.scale),bpm:Number(p.analysis.tempoBpm)||null,duration:Number(p.source.duration)||0,
       filename:file.name,size:file.size,modified:file.lastModified||Date.now(),savedAt:clean(p.savedAt),
       sourceName:clean(p.source?.name),sourceSize:Number(p.source?.size)||0,
+      muteReady:p.analysis.bassBacking?.version===2&&window.BassBacking?.canRestore(p.analysis.bassBacking,p.source.duration),
       hasChordAnalysis:Array.isArray(p.analysis?.chords)&&p.analysis.chords.length>0,
       hasBassAnalysis:Array.isArray(p.analysis?.notes)&&p.analysis.notes.length>0};
   }
@@ -305,7 +306,8 @@ window.BassLibrary=(()=>{
     if(isChordCatalogue(project))return {kind:'chord-catalogue',size:file.size,modified:file.lastModified};
     return indexedMetadata(project,file);
   }
-  const scanInBackground=()=>{void refresh().catch(e=>{if(e.name!=='AbortError')status(errorText(e));});};
+  let backgroundScan;
+  const scanInBackground=()=>{backgroundScan=refresh();void backgroundScan.catch(e=>{if(e.name!=='AbortError')status(errorText(e));});};
   async function chooseFolder(){
     // The picker must run directly from the button gesture, before other awaits.
     const options={id:'bass-studio-library',mode:'readwrite'};
@@ -756,7 +758,8 @@ window.BassLibrary=(()=>{
   async function checkLibrary(){
     if(maintenance){stopMaintenance=true;stopScan();return;}
     if(busy)return;
-    stopScan();busy=true;maintenance=true;stopMaintenance=false;render();
+    const activeScan=scanning?backgroundScan:null;
+    busy=true;maintenance=true;stopMaintenance=false;render();
     const button=el('libraryCheck'),report=el('libraryCheckStatus');
     button.textContent='Stop check';
     let updated=0,skipped=0,failed=[];
@@ -764,7 +767,7 @@ window.BassLibrary=(()=>{
     try{
       await ensureBatchAccess();
       report.textContent='Finding songs in your Library…';
-      if(!stopped())await refresh();
+      if(!stopped())await (activeScan||refresh());
       const list=rows.map(({blob,searchNames,...row})=>row);
       for(const [i,row] of list.entries()){
         if(stopped())break;
@@ -772,16 +775,19 @@ window.BassLibrary=(()=>{
           const file=await rowFile(row),target=openedFiles.get(file);
           row.filename=file.name;
           report.textContent=(i+1)+' / '+list.length+' · '+file.name;
+          const receipt='ready-v2:'+JSON.stringify([row.audioId,row.dir?'folder':'app',file.name]);
+          const stamp=JSON.stringify([file.size,row.dir?file.lastModified:target.savedAt]);
+          if(row.audioId&&((row.muteReady&&target.size===row.size&&(row.dir?row.modified===file.lastModified:row.savedAt===target.savedAt))||await get(receipt)===stamp)){skipped++;continue;}
           const project=await readProject(file);
           if(isChordCatalogue(project)){skipped++;continue;}
           metadata(project,file);
           const backing=project.analysis.bassBacking;
-          if(backing?.version===2&&window.BassBacking.canRestore(backing,project.source.duration)){skipped++;continue;}
+          if(backing?.version===2&&window.BassBacking.canRestore(backing,project.source.duration)){if(row.audioId)await put(receipt,stamp);skipped++;continue;}
           const result=await hooks.prepareLibraryBacking(project,stopped,p=>report.textContent=(i+1)+' / '+list.length+' · '+file.name+' · '+p+'%');
           if(stopped())break;
-          project.analysis.bassBacking=result;project.source.duration=result.duration;
+          project.analysis.bassBacking=result.backing;project.source.duration=result.backing.duration;
           await save(project,null,target,{exact:true,maintenance:true});
-          updated++;
+          updated++;await result.clearParts();
         }catch(e){if(stopped())break;failed.push((row.filename||row.id)+' ('+errorText(e)+')');}
       }
       report.textContent=(stopped()?'Stopped. ':'')+updated+' updated · '+skipped+' skipped · '+failed.length+' need review'+(failed.length?' · '+failed.join(', '):'');

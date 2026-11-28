@@ -91,7 +91,9 @@
     for(let s=0;s<n;s+=step)starts.push(s);
     for(let ci=0;ci<starts.length;ci++){
       self.postMessage({progress:Math.round(ci/starts.length*100)});
-      const s=starts[ci],spec=makeDrumInput(channels[0],channels[1],s),tensor=new ort.Tensor('float32',spec,[1,4,AI_BINS,AI_FRAMES]);let result;
+      const s=starts[ci];
+      if(s>=pad+length)break; // This window contributes only discarded padding.
+      const spec=makeDrumInput(channels[0],channels[1],s),tensor=new ort.Tensor('float32',spec,[1,4,AI_BINS,AI_FRAMES]);let result;
       try{result=await aiSession.run({[aiSession.inputNames[0]]:tensor});
         const data=result[aiSession.outputNames[0]].data;
         for(let c=0;c<channelsOut;c++){
