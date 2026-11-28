@@ -8,7 +8,7 @@ window.BassCustomFlow=(()=>{
  const pc=n=>(n%12+12)%12,compare=(a,b)=>a.label.localeCompare(b.label,'en',{numeric:true});
  let host,catalogue,rows=[],selected=0,ctx,player,revision=0,playing='',paused='',offset=0;
  let renderQueue=Promise.resolve(),clock=0,sounding='',fresh=true;
- const state={genre:'worship',key:0,mode:'major',bpm:96,beat:'',degrees:[1,5,6,5,1],choices:[],lengths:[4,4,4,4,4]};
+ const state={genre:'worship',key:0,mode:'major',bpm:96,beat:'',degrees:[1,5,6,5,1],choices:[],passing:[],lengths:[4,4,4,4,4]};
  const el=id=>host.querySelector('#flow'+id);
  let numbers=false;
  function noteLabel(midi,octave=false){
@@ -41,34 +41,67 @@ window.BassCustomFlow=(()=>{
   return degrees.length>=2&&degrees.length<=16?degrees:null;
  }
  function readProgression(value){
-  if(!/[(@]/.test(value)){
-   const degrees=parse(value);return degrees&&{degrees,lengths:degrees.map(()=>4)};
-  }
-  // Parentheses borrow the last beat of the preceding chord. Explicit
-  // lengths use @ in beats, including half beats.
-  const tokens=value.trim().normalize('NFKC').split(/(?:\s*(?:->|→|[,;|/>–—-])\s*|\s+)/);
-  const degrees=[],lengths=[];
-  for(const token of tokens){
-   const match=/^(?:\(([1-7])\)|([1-7])(?:@(0\.5|[1-8](?:\.5)?))?)$/.exec(token);
-   if(!match)return null;
-   if(match[1]){
-    if(!lengths.length||lengths.at(-1)<=1)return null;
-    lengths[lengths.length-1]-=1;
+  const text=value.normalize('NFKC').trim(),degrees=[],passing=[];
+  const plain=parse(text);
+  if(plain)degrees.push(...plain);
+  else{
+   const tokens=text.split(/\s*(?:->|→|[-–—>/|,;]|\bto\b)\s*|\s+/i);
+   for(const token of tokens){
+    const bracketed=token.startsWith('(')&&token.endsWith(')');
+    const chord=bracketed?token.slice(1,-1):token;
+    let d=Number(chord);
+    if(!/^[1-7]$/.test(chord)){
+     const match=/^([A-G])([#♯b♭]?)(m|dim)?$/i.exec(chord);
+     if(!match)return null;
+     const pitch=({C:0,D:2,E:4,F:5,G:7,A:9,B:11})[match[1].toUpperCase()]+
+      (/[#♯]/.test(match[2])?1:/[b♭]/.test(match[2])?-1:0);
+     const scale=F.scales[state.mode];d=scale.indexOf(pc(pitch-state.key))+1;
+     if(!d)return null;
+     if(match[3]){
+      const third=degree(scale,d+2)-degree(scale,d),fifth=degree(scale,d+4)-degree(scale,d);
+      if(match[3].toLowerCase()!==(fifth===6?'dim':third===3?'m':''))return null;
+     }
+    }
+    if(bracketed){
+     if(!degrees.length||passing.includes(degrees.length-1))return null;
+     passing.push(degrees.length);
+    }
+    degrees.push(d);
    }
-   degrees.push(Number(match[1]||match[2]));lengths.push(match[1]?1:Number(match[3]||4));
   }
-  return validSavedDegrees(degrees)&&validLengths(lengths,degrees)?{degrees,lengths}:null;
+  if(!validSavedDegrees(degrees)||passing.includes(degrees.length-1))return null;
+  // Match repeated chord occurrences in order so a text edit keeps their timings.
+  const old=typingStart||state,used=new Set(),matches=[];
+  for(const pass of [false,true]){
+   let cursor=0;
+   for(let i=0;i<degrees.length;i++){
+    if(passing.includes(i)!==pass)continue;
+    const j=old.degrees.findIndex((d,k)=>k>=cursor&&!used.has(k)&&d===degrees[i]&&old.passing.includes(k)===pass);
+    if(j>=0){matches[i]=j;used.add(j);cursor=j+1;}
+   }
+  }
+  const lengths=degrees.map((_,i)=>{
+   const j=matches[i];
+   if(passing.includes(i))return j==null?1:old.lengths[j];
+   return j==null?4:old.lengths[j]+(old.passing.includes(j+1)?old.lengths[j+1]:0);
+  });
+  for(const i of passing){
+   if(lengths[i-1]<=lengths[i])return null;
+   lengths[i-1]-=lengths[i];
+  }
+  return {degrees,passing,lengths};
  }
  function validLengths(lengths,degrees){
-  return Array.isArray(lengths)&&lengths.length===degrees.length&&lengths.every(n=>Number.isInteger(n*2)&&n>=.5&&n<=8);
+  return Array.isArray(lengths)&&lengths.length===degrees.length&&lengths.every(n=>Number.isInteger(n*4)&&n>=.25&&n<=8);
  }
  function savedLengths(s){return validLengths(s.lengths,s.degrees)?s.lengths:s.degrees.map(()=>4);}
+ function savedPassing(s){
+  const lengths=savedLengths(s);
+  if(Array.isArray(s.passing))return s.passing.filter((i,k,a)=>Number.isInteger(i)&&i>0&&i<s.degrees.length-1&&!a.includes(i-1)&&a.indexOf(i)===k);
+  return s.degrees.map((_,i)=>i).filter(i=>i>0&&i<s.degrees.length-1&&lengths[i]<=1&&lengths[i-1]+lengths[i]===4);
+ }
  function writtenProgression(){
-  return state.degrees.map((d,i)=>{
-   const n=state.lengths[i];
-   if(n===1&&state.lengths[i-1]===3)return '('+d+')';
-   return n===4||n===3&&state.lengths[i+1]===1?String(d):d+'@'+n;
-  }).join(' → ');
+  return state.degrees.map((d,i)=>state.passing.includes(i)?'('+d+')':String(d)).join(' → ');
  }
  function save(){try{localStorage.setItem(storage,JSON.stringify(state));}catch{}}
  function validSavedDegrees(degrees){
@@ -78,7 +111,7 @@ window.BassCustomFlow=(()=>{
   try{
    const s=JSON.parse(localStorage.getItem(storage)),degrees=s.degrees;
    if(validSavedDegrees(degrees)&&Number.isInteger(s.key)&&s.key>=0&&s.key<12&&['major','minor'].includes(s.mode)&&s.bpm>=40&&s.bpm<=220&&Array.isArray(s.choices))
-    {fresh=false;Object.assign(state,{degrees,lengths:savedLengths(s),key:s.key,mode:s.mode,bpm:Number(s.bpm),genre:s.genre,beat:s.beat,choices:s.choices.slice(0,15)});}
+    {fresh=false;Object.assign(state,{degrees,lengths:savedLengths(s),passing:savedPassing(s),key:s.key,mode:s.mode,bpm:Number(s.bpm),genre:s.genre,beat:s.beat,choices:s.choices.slice(0,15)});}
   }catch{}
  }
  function library(){
@@ -209,18 +242,22 @@ window.BassCustomFlow=(()=>{
   return length===4?phrase:phrase.map(n=>({...n,beat:n.beat*factor,length:n.length*factor}));
  }
  function hasPassing(i){
-  return i>=0&&i+2<state.degrees.length&&state.lengths[i+1]<=1&&state.lengths[i]+state.lengths[i+1]===4;
+  return state.passing.includes(i+1);
  }
  function editPassing(value,length){
   if(!acceptChords(true))return;
   const i=selected,exists=hasPassing(i),at=i+1;
   if(exists){
-   if(value){state.degrees[at]=value;state.lengths[i]=4-length;state.lengths[at]=length;}
+   const total=state.lengths[i]+state.lengths[at];
+   if(value&&length>=total)return;
+   if(value){state.degrees[at]=value;state.lengths[i]=total-length;state.lengths[at]=length;}
    else{
-    state.lengths[i]=4;state.degrees.splice(at,1);state.lengths.splice(at,1);state.choices.splice(at,1);
+    state.passing=state.passing.filter(k=>k!==at).map(k=>k>at?k-1:k);
+    state.lengths[i]=total;state.degrees.splice(at,1);state.lengths.splice(at,1);state.choices.splice(at,1);
    }
   }else{
    if(!value||state.lengths[i]!==4||state.degrees.length>=16)return;
+   state.passing=state.passing.map(k=>k>=at?k+1:k);state.passing.push(at);
    state.lengths[i]-=length;state.degrees.splice(at,0,value);state.lengths.splice(at,0,length);state.choices.splice(at,0,null);
   }
   el('Degrees').value=writtenProgression();offset=0;hydrate();update();
@@ -263,7 +300,7 @@ window.BassCustomFlow=(()=>{
   try{
    const s=JSON.parse(localStorage.getItem(namedPrefix+name));
    if(!s||!validSavedDegrees(s.degrees)||!Array.isArray(s.choices)||!catalogue.has(s.genre)||!Number.isInteger(s.key)||s.key<0||s.key>11||!['major','minor'].includes(s.mode)||!Number.isFinite(s.bpm)||s.bpm<40||s.bpm>220)throw Error();
-   stop();Object.assign(state,{genre:s.genre,key:s.key,mode:s.mode,bpm:s.bpm,beat:s.beat,degrees:s.degrees,lengths:savedLengths(s),choices:s.choices});fresh=false;selected=0;
+   stop();Object.assign(state,{genre:s.genre,key:s.key,mode:s.mode,bpm:s.bpm,beat:s.beat,degrees:s.degrees,lengths:savedLengths(s),passing:savedPassing(s),choices:s.choices});fresh=false;selected=0;
    open();el('Name').value=name;savedMenu(name);save();
    el('Status').textContent=s.choices.join()===state.choices.join()&&s.beat===state.beat?'Opened '+name+'.':'Opened '+name+'. An unavailable beat or pattern was replaced.';
   }catch{el('Status').textContent='This saved progression could not be opened.';}
@@ -450,7 +487,8 @@ window.BassCustomFlow=(()=>{
   el('Pass').value=passing?String(state.degrees[selected+1]):'';
   el('Pass').disabled=!passing&&(state.lengths[selected]!==4||state.degrees.length>=16);
   el('PassLength').hidden=!passing;
-  el('PassLength').textContent=state.lengths[selected+1]===.5?'½ beat':'1 beat';
+  el('PassLength').value=String(state.lengths[selected+1]);
+  for(const o of el('PassLength').options)o.disabled=passing&&Number(o.value)>=state.lengths[selected]+state.lengths[selected+1];
   const select=el('Pattern'),pool=allowed(selected);select.replaceChildren();
   for(const [kind,label] of Object.entries(kinds)){
    const group=document.createElement('optgroup');group.label=label;
@@ -487,16 +525,16 @@ window.BassCustomFlow=(()=>{
  function acceptChords(report,refresh=true){
   const field=el('Degrees'),parsed=readProgression(field.value);
   if(!parsed){
-   if(report){el('Status').textContent='Enter 2 to 16 chords. Try 6 (5) 1 or 6@3 5@1 1.';field.setAttribute('aria-invalid','true');field.focus();}
+   if(report){el('Status').textContent='Enter 2 to 16 chords in this key. Put a passing chord between two main chords, for example 6 (5) 1.';field.setAttribute('aria-invalid','true');field.focus();}
    return false;
   }
   if(field.hasAttribute('aria-invalid'))el('Status').textContent='';
   field.removeAttribute('aria-invalid');
-  const {degrees:next,lengths}=parsed;
-  if(next.join()===state.degrees.join()&&lengths.join()===state.lengths.join())return true;
+  const {degrees:next,lengths,passing}=parsed;
+  if(next.join()===state.degrees.join()&&lengths.join()===state.lengths.join()&&passing.join()===state.passing.join())return true;
   const before=typingStart||state,old=new Map();
   before.choices.forEach((id,i)=>{const pair=before.degrees.slice(i,i+2).join('/');if(!old.has(pair))old.set(pair,[]);old.get(pair).push(id);});
-  state.lengths=lengths;state.degrees=next;state.choices=next.slice(1).map((_,i)=>old.get(next.slice(i,i+2).join('/'))?.shift());
+  state.passing=passing;state.lengths=lengths;state.degrees=next;state.choices=next.slice(1).map((_,i)=>old.get(next.slice(i,i+2).join('/'))?.shift());
   selected=Math.min(selected,next.length-2);if(hasPassing(selected-1))selected--;offset=0;el('Status').textContent='';hydrate();if(refresh)update();return true;
  }
  function open(){
@@ -519,7 +557,7 @@ window.BassCustomFlow=(()=>{
    <div class="flow-inline wide" id="flowOpenPanel" hidden><label><select aria-label="Saved progressions on this device" id="flowSaved"></select></label><button type="button" id="flowOpen">Open flow</button></div>
    <div class="wide" id="flowProgression"><label><input aria-label="Chord progression" id="flowDegrees" maxlength="180" placeholder="1 → 5 → 6 → 5 → 1"></label></div>
    <div class="wide" id="flowChanges" role="group" aria-label="Choose a chord change"></div>
-   <div class="wide flow-passing"><label>Passing chord <select id="flowPass"><option value="">None</option></select></label><button type="button" id="flowPassLength" title="Switch between one beat and half a beat" hidden>1 beat</button></div></div>
+   <div class="wide flow-passing"><label>Passing chord <select id="flowPass"><option value="">None</option></select></label><select id="flowPassLength" aria-label="Passing chord duration" hidden></select></div></div>
    <div class="flow-picker"><label><select aria-label="Pattern for this change" id="flowPattern"></select></label><button type="button" id="flowPrev" aria-label="Previous pattern">‹</button><button type="button" id="flowNext" aria-label="Next pattern">›</button></div>
    <div class="flow-transport"><button type="button" id="flowChange">Play change</button><button type="button" id="flowNotation">Notes</button><button type="button" id="flowPlay">Play flow</button></div>
    <section id="flowVisual" aria-label="Timed rehearsal" hidden><div class="flow-top" id="flowViewActions"><select aria-label="Rehearsal view" id="flowView"><option value="notes">Band</option><option value="fret">Fret</option><option value="fret2">Fret 2</option></select><button type="button" id="flowViewNotation">Notes</button><button type="button" id="flowPlaySave" aria-controls="flowSavePanel" aria-expanded="false">Save</button><button type="button" id="flowEdit">Edit flow</button></div>
@@ -555,10 +593,14 @@ window.BassCustomFlow=(()=>{
   el('Bpm').onchange=e=>{if(!e.target.value||!e.target.reportValidity()){e.target.value=state.bpm;return;}state.bpm=Number(e.target.value);update();};
   for(let degree=1;degree<=7;degree++)el('Pass').add(new Option(String(degree),String(degree)));
   el('Pass').onchange=e=>editPassing(Number(e.target.value),hasPassing(selected)?state.lengths[selected+1]:1);
-  el('PassLength').onclick=()=>editPassing(state.degrees[selected+1],state.lengths[selected+1]===1?.5:1);
+  for(const [n,label] of [[.25,'¼ beat'],[.5,'½ beat'],[.75,'¾ beat'],[1,'1 beat'],[1.5,'1½ beats'],[2,'2 beats'],[2.5,'2½ beats'],[3,'3 beats'],[3.5,'3½ beats']])el('PassLength').add(new Option(label,String(n)));
+  el('PassLength').onchange=e=>editPassing(state.degrees[selected+1],Number(e.target.value));
   const degrees=el('Degrees');
-  degrees.onfocus=()=>{typingStart={degrees:[...state.degrees],choices:[...state.choices]};};
-  degrees.oninput=()=>acceptChords(false);
+  degrees.onfocus=()=>{typingStart={degrees:[...state.degrees],passing:[...state.passing],lengths:[...state.lengths],choices:[...state.choices]};};
+  const allowedText=/^[1-7a-gimot#♯♭()→–—>,;|/\s-]*$/i;
+  degrees.onbeforeinput=e=>{if(e.data&&!allowedText.test(e.data.normalize('NFKC'))){e.preventDefault();el('Status').textContent='Use chord numbers or names, with brackets for passing chords.';}};
+  degrees.onpaste=e=>{if(e.clipboardData&&!allowedText.test(e.clipboardData.getData('text').normalize('NFKC')))e.preventDefault();};
+  degrees.oninput=()=>{if(!acceptChords(false))degrees.setAttribute('aria-invalid','true');};
   degrees.onblur=()=>{if(acceptChords(false))degrees.value=writtenProgression();typingStart=null;};
   degrees.onkeydown=e=>{if(e.key==='Enter'&&acceptChords(true))degrees.blur();};
   el('Pattern').onchange=e=>{state.choices[selected]=e.target.value;update();};

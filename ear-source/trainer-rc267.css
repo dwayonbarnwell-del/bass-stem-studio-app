@@ -585,3 +585,5 @@
  #earTrainerDialog #earCustomFlow .flow-passing {display:flex;align-items:center;gap:8px}
  #earTrainerDialog #earCustomFlow .flow-passing label {display:flex;align-items:center;gap:8px}
  #earTrainerDialog #earCustomFlow #flowPass {width:auto!important;min-width:68px!important;padding-inline:6px!important}
+
+ #earTrainerDialog #earCustomFlow #flowPassLength {width:auto!important;min-width:78px!important;padding-inline:5px!important}
