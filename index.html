@@ -15013,6 +15013,10 @@ window.BassLibrary=(()=>{
     busy=true;maintenance=true;stopMaintenance=false;render();
     const button=el('libraryCheck'),report=el('libraryCheckStatus');
     button.textContent='Stop check';
+    const method=el("libraryMethod");
+    const cloud=method.value!=="device",pilot=method.value==="pilot";
+    method.disabled=true;
+    let elapsed="";
     let total=0,updated=0,readyCount=0,other=0;
     const failed=[],pending=[];
     const counts=()=> (total-readyCount-updated-other-failed.length)+' remaining of '+total+
@@ -15057,23 +15061,25 @@ window.BassLibrary=(()=>{
           if(isChordCatalogue(project)){other++;continue;}
           metadata(project,file);
           if(project.analysis.bassBacking?.version===2&&window.BassBacking.canRestore(project.analysis.bassBacking,project.source.duration)){readyCount++;continue;}
-          const result=await hooks.prepareLibraryBacking(project,stopped,p=>show(file.name+' · '+p+'%'));
+          const started=performance.now();
+          const result=await hooks.prepareLibraryBacking(project,stopped,p=>show(file.name+' · '+p+'%'),cloud);
           if(stopped())break;
           project.analysis.bassBacking=result.backing;project.source.duration=result.backing.duration;
           await save(project,null,target,{exact:true,maintenance:true});
           updated++;
           await result.clearParts().catch(()=>{});
-        }catch(e){if(stopped())break;recordFailure(row,e);}
+          if(pilot){elapsed='Cloud trial saved in '+Math.round((performance.now()-started)/1000)+' seconds. ';break;}
+        }catch(e){if(stopped())break;recordFailure(row,e);if(cloud)break;}
       }
-      show((stopped()?'Stopped. ':'')+failed.join(', '));
+      show((stopped()?'Stopped. ':'')+elapsed+failed.join(', '));
     }catch(e){report.textContent=stopped()?'Check stopped.':errorText(e);}
-    finally{busy=false;maintenance=false;button.textContent='Check and fix files';render();}
+    finally{method.disabled=false;busy=false;maintenance=false;button.textContent='Check and fix files';render();}
   }
 
   function build(){
     if(dialog)return;
     dialog=document.createElement('dialog');dialog.id='bassLibraryDialog';dialog.className='bass-library';dialog.setAttribute('aria-labelledby','libraryTitle');
-    dialog.innerHTML='<div class="library-heading"><div><h2 id="libraryTitle">Song library</h2><p id="libraryLocation"></p></div><button id="libraryClose" type="button">Close</button></div><div class="library-toolbar"><button id="libraryChoose" type="button">Choose save folder</button><button id="libraryReconnect" type="button">Reconnect folder</button><button id="libraryDevice" type="button">Save in app</button><button id="libraryOpenFile" type="button">Open saved file</button><button id="libraryAdd" type="button">Import saved file</button><button id="libraryBatch" type="button">Batch ZIP</button><button id="libraryCheck" type="button">Check and fix files</button><button id="libraryRefresh" type="button">Refresh</button><button id="libraryStop" type="button" hidden>Stop checking</button></div><p id="libraryCheckStatus" role="status"></p><p id="libraryHint"></p><div class="library-filters"><div><label for="librarySearch">Search songs</label><input id="librarySearch" type="search" placeholder="Title, artist, key or BPM" autocomplete="off"></div><div><label for="librarySort">Sort by</label><select id="librarySort"><option value="name">Alphabetical (A–Z)</option><option value="recent">Recently saved</option></select></div></div><div class="library-summary"><span id="libraryCount"></span><span id="libraryStatus" role="status" aria-live="polite"></span></div><ul id="librarySongs"></ul><input id="libraryOpenInput" type="file" accept=".bassstudio,.bssproject,.json,application/json" hidden><input id="libraryFiles" type="file" accept=".bassstudio,.bssproject,.json,application/json" multiple hidden>';
+    dialog.innerHTML='<div class="library-heading"><div><h2 id="libraryTitle">Song library</h2><p id="libraryLocation"></p></div><button id="libraryClose" type="button">Close</button></div><div class="library-toolbar"><button id="libraryChoose" type="button">Choose save folder</button><button id="libraryReconnect" type="button">Reconnect folder</button><button id="libraryDevice" type="button">Save in app</button><button id="libraryOpenFile" type="button">Open saved file</button><button id="libraryAdd" type="button">Import saved file</button><button id="libraryBatch" type="button">Batch ZIP</button><button id="libraryCheck" type="button">Check and fix files</button><button id="libraryRefresh" type="button">Refresh</button><button id="libraryStop" type="button" hidden>Stop checking</button></div><label>Mute processing <select id="libraryMethod"><option value="device">On this device</option><option value="pilot">RunPod · 1 song (paid)</option><option value="batch">RunPod · remaining songs (paid)</option></select></label><p id="libraryCheckStatus" role="status"></p><p id="libraryHint"></p><div class="library-filters"><div><label for="librarySearch">Search songs</label><input id="librarySearch" type="search" placeholder="Title, artist, key or BPM" autocomplete="off"></div><div><label for="librarySort">Sort by</label><select id="librarySort"><option value="name">Alphabetical (A–Z)</option><option value="recent">Recently saved</option></select></div></div><div class="library-summary"><span id="libraryCount"></span><span id="libraryStatus" role="status" aria-live="polite"></span></div><ul id="librarySongs"></ul><input id="libraryOpenInput" type="file" accept=".bassstudio,.bssproject,.json,application/json" hidden><input id="libraryFiles" type="file" accept=".bassstudio,.bssproject,.json,application/json" multiple hidden>';
     document.body.append(dialog);
     el('libraryCheck').onclick=checkLibrary;
     el('libraryClose').onclick=()=>dialog.close();
@@ -15891,7 +15897,7 @@ window.BassBatch = (() => {
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC422';
+  const APP_VERSION='RC423';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;
@@ -21159,7 +21165,57 @@ window.BassBatch = (() => {
     practiceWorker?.terminate();practiceWorker=null;
     activeWork?.reject(Error(reason||'Preparation cancelled.'));activeWork=null;
   }
-  async function prepareLibraryBacking(project,cancelled,progress){
+  async function cloudLibraryPart(source,start,end,recordId,apiKey,stop){
+    const rate=44100,frames=Math.ceil((end-start)*rate),api='https://api.runpod.ai/v2/'+encodeURIComponent(RUNPOD_ENDPOINT);
+    const decoder=new OfflineAudioContext(2,frames,rate);
+    let record=await recoveryStore('results',s=>s.get(recordId));
+    if(record&&!record.job){
+      const retry=await BassDialog.confirm('A previous upload has no job number. Check RunPod job history before paying to retry this part.',{title:'Review upload',accept:'Retry part'});
+      if(!retry)throw Error('Upload needs review.');
+      await recoveryStore('results',s=>s.delete(recordId));record=null;
+    }
+    let response;
+    if(!record){
+      const node=decoder.createBufferSource();node.buffer=source;node.connect(decoder.destination);node.start(0,start,end-start);
+      const clip=await decoder.startRendering();
+      const wav=window.BassBacking.wav([window.BassBacking.pcmPart(clip,0)],frames,rate);
+      const audio=await fileToBase64(wav);
+      if(stop())throw Error('Check stopped.');
+      await recoveryStore('results',s=>s.add({id:recordId}));
+      try{
+        response=await runPodFetch(api+'/run',apiKey,{method:'POST',body:JSON.stringify({input:{action:'library_mutes',filename:'clip.wav',audio_base64:audio},policy:{executionTimeout:180000,ttl:600000}})},1);
+      }catch(error){
+        if([400,401,403,404,413,422,429].includes(error.httpStatus))await recoveryStore('results',s=>s.delete(recordId));
+        throw error;
+      }
+      if(!response.id)throw Error('RunPod did not return a job number.');
+      record={id:recordId,job:response.id};
+      await recoveryStore('results',s=>s.put(record));
+    }
+    const deadline=Date.now()+600000;
+    while(response?.status!=='COMPLETED'){
+      if(response&&['FAILED','CANCELLED','TIMED_OUT'].includes(response.status)){
+        await recoveryStore('results',s=>s.delete(recordId));
+        throw Error('Cloud mute preparation failed. Check the RunPod worker version and GPU.');
+      }
+      if(stop())throw Error('Check stopped.');
+      if(Date.now()>deadline)throw Error('RunPod is taking longer than expected. Check again to resume.');
+      if(response)await cloudSleep(750);
+      try{response=await runPodFetch(api+'/status/'+encodeURIComponent(record.job),apiKey,{method:'GET'},2);}
+      catch(error){if(error.httpStatus===404)await recoveryStore('results',s=>s.delete(recordId));throw error;}
+    }
+    const result=response.output;
+    if(result?.version!==1||result.frames!==frames||result.tracks?.length!==3)throw Error('Invalid cloud mute tracks.');
+    const buffer=new AudioBuffer({numberOfChannels:6,sampleRate:rate,length:frames});
+    for(const [index,encoded] of result.tracks.entries()){
+      const track=await decoder.decodeAudioData(base64ToUint8Array(encoded).buffer);
+      if(track.numberOfChannels!==2||track.length!==frames)throw Error('Cloud mute track timing mismatch.');
+      for(let ch=0;ch<2;ch++)buffer.copyToChannel(track.getChannelData(ch),index*2+ch);
+    }
+    return buffer;
+  }
+
+  async function prepareLibraryBacking(project,cancelled,progress,cloud=false){
     if(!masterAudio.paused||aiBusy||songImportBusy||window.BassBatch?.isRunning()||window.BassBacking.state().busy)
       throw Error('Finish playback or preparation first.');
     const stop=()=>cancelled()||!masterAudio.paused;
@@ -21167,6 +21223,10 @@ window.BassBatch = (() => {
     const bytes=base64ToUint8Array(project.source.audioBase64);
     const identity=await structureAudioIdentity(new Blob([bytes])).catch(()=>'');
     const key=identity?'mute-audio-v2:'+identity:'';
+    if(cloud&&!identity)throw Error('Secure storage is required for cloud processing.');
+    const apiKey=cloud?await getRunPodKey():null;
+    if(cloud&&!apiKey)throw Error('Connect RunPod to use cloud processing.');
+    const partSeconds=cloud?10:20;
     const source=await ctx.decodeAudioData(bytes.buffer);
     const pieces=[[],[],[]],rate=44100,total=Math.round(source.duration*rate);
     const pitched=project.analysis.notes.filter(n=>!n.manual&&Number.isFinite(n.start)&&Number.isFinite(n.end)).sort((a,b)=>a.start-b.start);
@@ -21174,20 +21234,25 @@ window.BassBatch = (() => {
     const complete=cached?.blobs?.length===3&&cached.blobs.every(b=>b.size===44+total*4)&&
       (await Promise.all(cached.blobs.map(b=>window.BassBacking.validWav(b,source.duration).catch(()=>false)))).every(Boolean);
     let cursor=0;
-    for(let first=0;first<total;first+=20*rate){
+    for(let first=0;first<total;first+=partSeconds*rate){
       if(stop())throw Error('Check stopped.');
-      const last=Math.min(total,first+20*rate),start=Math.max(0,first/rate-.4);
-      const id=key&&key+':part:'+first/rate,count=last-first;
+      const last=Math.min(total,first+partSeconds*rate),start=Math.max(0,first/rate-.4);
+      const id=key&&key+(cloud?':gpu-part:':':part:')+first/rate,count=last-first;
       const stored=!complete&&id?await recoveryStore('results',s=>s.get(id)).catch(()=>null):null;
       let pcm=complete?cached.blobs.map(b=>b.slice(44+first*4,44+last*4)):
         stored?.frames===count&&stored.parts?.length===3&&stored.parts.every(p=>p?.size===count*4)?stored.parts:null;
       let audio;
       if(!pcm){
-        audio=await separatePracticeStem(start,Math.min(source.duration,last/rate+.4),
+        const end=Math.min(source.duration,last/rate+.4);
+        audio=cloud?await cloudLibraryPart(source,start,end,id+':job',apiKey,stop):await separatePracticeStem(start,end,
         p=>progress(Math.min(99,Math.floor((first+(last-first)*p/100)*100/total))),stop,'rehearsal',source);
         const offset=Math.round(first-start*rate);
         pcm=pieces.map((_,i)=>new Blob([window.BassBacking.pcmPart(audio,i*2,offset,offset+count)]));
-        if(id)await recoveryStore('results',s=>s.put({id,frames:count,parts:pcm})).catch(()=>{});
+        if(id){
+          const write=recoveryStore('results',s=>s.put({id,frames:count,parts:pcm}));
+          if(cloud){await write;await recoveryStore('results',s=>s.delete(id+':job'));}
+          else await write.catch(()=>{});
+        }
       }
       const candidates=[];
       while(cursor<pitched.length&&pitched[cursor].start<last/rate)candidates.push(pitched[cursor++]);
@@ -21206,8 +21271,8 @@ window.BassBatch = (() => {
     const tracks=pieces.map(parts=>window.BassBacking.wav(parts,total,rate));
     const backing=await window.BassBacking.packLibraryTracks(tracks,total,source.duration,stop);
     return {backing,async clearParts(){
-      if(key)for(let first=0;first<total;first+=20*rate)
-        await recoveryStore('results',s=>s.delete(key+':part:'+first/rate)).catch(()=>{});
+      if(key)for(let first=0;first<total;first+=partSeconds*rate)
+        await recoveryStore('results',s=>s.delete(key+(cloud?':gpu-part:':':part:')+first/rate)).catch(()=>{});
     }};
   }
 

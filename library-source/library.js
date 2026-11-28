@@ -762,6 +762,10 @@ window.BassLibrary=(()=>{
     busy=true;maintenance=true;stopMaintenance=false;render();
     const button=el('libraryCheck'),report=el('libraryCheckStatus');
     button.textContent='Stop check';
+    const method=el("libraryMethod");
+    const cloud=method.value!=="device",pilot=method.value==="pilot";
+    method.disabled=true;
+    let elapsed="";
     let total=0,updated=0,readyCount=0,other=0;
     const failed=[],pending=[];
     const counts=()=> (total-readyCount-updated-other-failed.length)+' remaining of '+total+
@@ -806,23 +810,25 @@ window.BassLibrary=(()=>{
           if(isChordCatalogue(project)){other++;continue;}
           metadata(project,file);
           if(project.analysis.bassBacking?.version===2&&window.BassBacking.canRestore(project.analysis.bassBacking,project.source.duration)){readyCount++;continue;}
-          const result=await hooks.prepareLibraryBacking(project,stopped,p=>show(file.name+' · '+p+'%'));
+          const started=performance.now();
+          const result=await hooks.prepareLibraryBacking(project,stopped,p=>show(file.name+' · '+p+'%'),cloud);
           if(stopped())break;
           project.analysis.bassBacking=result.backing;project.source.duration=result.backing.duration;
           await save(project,null,target,{exact:true,maintenance:true});
           updated++;
           await result.clearParts().catch(()=>{});
-        }catch(e){if(stopped())break;recordFailure(row,e);}
+          if(pilot){elapsed='Cloud trial saved in '+Math.round((performance.now()-started)/1000)+' seconds. ';break;}
+        }catch(e){if(stopped())break;recordFailure(row,e);if(cloud)break;}
       }
-      show((stopped()?'Stopped. ':'')+failed.join(', '));
+      show((stopped()?'Stopped. ':'')+elapsed+failed.join(', '));
     }catch(e){report.textContent=stopped()?'Check stopped.':errorText(e);}
-    finally{busy=false;maintenance=false;button.textContent='Check and fix files';render();}
+    finally{method.disabled=false;busy=false;maintenance=false;button.textContent='Check and fix files';render();}
   }
 
   function build(){
     if(dialog)return;
     dialog=document.createElement('dialog');dialog.id='bassLibraryDialog';dialog.className='bass-library';dialog.setAttribute('aria-labelledby','libraryTitle');
-    dialog.innerHTML='<div class="library-heading"><div><h2 id="libraryTitle">Song library</h2><p id="libraryLocation"></p></div><button id="libraryClose" type="button">Close</button></div><div class="library-toolbar"><button id="libraryChoose" type="button">Choose save folder</button><button id="libraryReconnect" type="button">Reconnect folder</button><button id="libraryDevice" type="button">Save in app</button><button id="libraryOpenFile" type="button">Open saved file</button><button id="libraryAdd" type="button">Import saved file</button><button id="libraryBatch" type="button">Batch ZIP</button><button id="libraryCheck" type="button">Check and fix files</button><button id="libraryRefresh" type="button">Refresh</button><button id="libraryStop" type="button" hidden>Stop checking</button></div><p id="libraryCheckStatus" role="status"></p><p id="libraryHint"></p><div class="library-filters"><div><label for="librarySearch">Search songs</label><input id="librarySearch" type="search" placeholder="Title, artist, key or BPM" autocomplete="off"></div><div><label for="librarySort">Sort by</label><select id="librarySort"><option value="name">Alphabetical (A–Z)</option><option value="recent">Recently saved</option></select></div></div><div class="library-summary"><span id="libraryCount"></span><span id="libraryStatus" role="status" aria-live="polite"></span></div><ul id="librarySongs"></ul><input id="libraryOpenInput" type="file" accept=".bassstudio,.bssproject,.json,application/json" hidden><input id="libraryFiles" type="file" accept=".bassstudio,.bssproject,.json,application/json" multiple hidden>';
+    dialog.innerHTML='<div class="library-heading"><div><h2 id="libraryTitle">Song library</h2><p id="libraryLocation"></p></div><button id="libraryClose" type="button">Close</button></div><div class="library-toolbar"><button id="libraryChoose" type="button">Choose save folder</button><button id="libraryReconnect" type="button">Reconnect folder</button><button id="libraryDevice" type="button">Save in app</button><button id="libraryOpenFile" type="button">Open saved file</button><button id="libraryAdd" type="button">Import saved file</button><button id="libraryBatch" type="button">Batch ZIP</button><button id="libraryCheck" type="button">Check and fix files</button><button id="libraryRefresh" type="button">Refresh</button><button id="libraryStop" type="button" hidden>Stop checking</button></div><label>Mute processing <select id="libraryMethod"><option value="device">On this device</option><option value="pilot">RunPod · 1 song (paid)</option><option value="batch">RunPod · remaining songs (paid)</option></select></label><p id="libraryCheckStatus" role="status"></p><p id="libraryHint"></p><div class="library-filters"><div><label for="librarySearch">Search songs</label><input id="librarySearch" type="search" placeholder="Title, artist, key or BPM" autocomplete="off"></div><div><label for="librarySort">Sort by</label><select id="librarySort"><option value="name">Alphabetical (A–Z)</option><option value="recent">Recently saved</option></select></div></div><div class="library-summary"><span id="libraryCount"></span><span id="libraryStatus" role="status" aria-live="polite"></span></div><ul id="librarySongs"></ul><input id="libraryOpenInput" type="file" accept=".bassstudio,.bssproject,.json,application/json" hidden><input id="libraryFiles" type="file" accept=".bassstudio,.bssproject,.json,application/json" multiple hidden>';
     document.body.append(dialog);
     el('libraryCheck').onclick=checkLibrary;
     el('libraryClose').onclick=()=>dialog.close();
