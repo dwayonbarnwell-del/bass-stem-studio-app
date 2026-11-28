@@ -194,6 +194,29 @@ window.BassBacking=(()=>{
   while(mine===token&&playbackActive())await new Promise(resolve=>setTimeout(resolve,250));
   if(mine===token)await compact(blobs);
  }
+ async function packLibraryTracks(blobs,frames,duration,cancelled){
+  const format=preferredFormat(),keys=['accompanimentBase64','bassBase64','vocalsBase64'];
+  const compress=['audio/flac','audio/mpeg'].includes(format);
+  const worker=compress?new Worker('./fretflow-source/stem-encoder.js?v=rc329'):null;
+  const result={version:2,duration,frames,mime:compress?format:'audio/wav'};
+  try{
+   for(const [i,input] of blobs.entries()){
+    if(cancelled())throw Error('Check stopped.');
+    let blob=input;
+    if(worker){
+     const packed=await new Promise((resolve,reject)=>{
+      worker.onerror=()=>reject(Error('Audio encoder unavailable'));
+      worker.onmessage=({data})=>data.error?reject(Error(data.error)):resolve(data);
+      worker.postMessage({blob,format});
+     });
+     if(packed.frames!==frames)throw Error('Mute track length changed.');
+     await unpack(packed.blob,frames,format,input);blob=packed.blob;
+    }
+    result[keys[i]]=await api.encode(blob);
+   }
+   return result;
+  }finally{worker?.terminate();}
+ }
  async function compact(blobs){
   const previous=saved,format=preferredFormat(),mine=token;
   if(!previous||cancelConversion||!['audio/flac','audio/mpeg'].includes(format)||previous.mime&&previous.mime!=='audio/wav'||typeof Worker!=='function')return;
@@ -391,5 +414,5 @@ window.BassBacking=(()=>{
   }
  }
  function init(hooks){api=hooks;const master=api.get().master;for(const event of ['play','pause','seeking','seeked','ratechange','ended'])master.addEventListener(event,()=>void sync(true));}
- return {init,canRestore,prepareForSong,toggle,cancel,reset,sync,restore,bandExcerpt,rehearsalBand,rehearsalStems,cancelRehearsalBand,exportData:()=>saved,state:()=>({enabled,busy,ready,vocalsReady:ready&&saved?.version===2,canRetry:attemptedSession!==null&&attemptedSession===api?.get().session&&!busy,vocalsMuted,bassMuted:!!api?.get().bassMuted,message}),pcmPart,wav};
+ return {init,packLibraryTracks,canRestore,prepareForSong,toggle,cancel,reset,sync,restore,bandExcerpt,rehearsalBand,rehearsalStems,cancelRehearsalBand,exportData:()=>saved,state:()=>({enabled,busy,ready,vocalsReady:ready&&saved?.version===2,canRetry:attemptedSession!==null&&attemptedSession===api?.get().session&&!busy,vocalsMuted,bassMuted:!!api?.get().bassMuted,message}),pcmPart,wav};
 })();

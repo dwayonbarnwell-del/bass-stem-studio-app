@@ -365,7 +365,7 @@ window.BassLibrary=(()=>{
   function save(project,blob,target,options={}){
     return inWriteOrder(job=>writeProject(project,blob,target,{...options,job}),options.exact?target:null);
   }
-  async function writeProject(project,blob,target,{exact=false,requestAccess=false,alsoMelody=false,onProgress=()=>{},job}={}){
+  async function writeProject(project,blob,target,{exact=false,requestAccess=false,alsoMelody=false,maintenance=false,onProgress=()=>{},job}={}){
     await ready;
     let match=exact?target:await matchingTarget(project);
     if(match)target=match;
@@ -385,6 +385,7 @@ window.BassLibrary=(()=>{
       if(exact&&!existing)throw Error('The saved song has moved. Reopen it from Library.');
     }
     const unchanged=match&&existing&&existing.size===match.size&&(access?existing.lastModified===match.modified:record.savedAt===match.savedAt);
+    if(maintenance&&!unchanged)throw Error('File changed during the check. Run the check again.');
     let previous=null;
     if(existing&&(!unchanged||alsoMelody||(!exact&&!project.analysis.bassBacking))){
       previous=await readProject(existing);
@@ -751,13 +752,54 @@ window.BassLibrary=(()=>{
     return !!await hooks.open(file);
   }
 
+  let maintenance=false,stopMaintenance=false;
+  async function checkLibrary(){
+    if(maintenance){stopMaintenance=true;return;}
+    if(busy)return;
+    stopScan();busy=true;maintenance=true;stopMaintenance=false;render();
+    const button=el('libraryCheck'),report=el('libraryCheckStatus');
+    button.textContent='Stop check';
+    let updated=0,skipped=0,failed=[];
+    const stopped=()=>stopMaintenance||!dialog.open;
+    try{
+      await ensureBatchAccess();
+      const list=[];
+      for(const id of await store('songs','readonly',s=>s.getAllKeys()))list.push({id});
+      if(folder)for await(const [filename,handle] of folder.entries()){
+        if(stopped())break;
+        if(handle.kind==='file'&&SUPPORTED.test(filename))list.push({dir:folder,handle,filename});
+      }
+      for(const [i,row] of list.entries()){
+        if(stopped())break;
+        try{
+          const file=await rowFile(row),target=openedFiles.get(file);
+          row.filename=file.name;
+          report.textContent=(i+1)+' / '+list.length+' · '+file.name;
+          const project=await readProject(file);
+          if(isChordCatalogue(project)){skipped++;continue;}
+          metadata(project,file);
+          const backing=project.analysis.bassBacking;
+          if(backing?.version===2&&window.BassBacking.canRestore(backing,project.source.duration)){skipped++;continue;}
+          const result=await hooks.prepareLibraryBacking(project,stopped,p=>report.textContent=(i+1)+' / '+list.length+' · '+file.name+' · '+p+'%');
+          if(stopped())break;
+          project.analysis.bassBacking=result;project.source.duration=result.duration;
+          await save(project,null,target,{exact:true,maintenance:true});
+          updated++;
+        }catch(e){if(stopped())break;failed.push((row.filename||row.id)+' ('+errorText(e)+')');}
+      }
+      report.textContent=(stopped()?'Stopped. ':'')+updated+' updated · '+skipped+' skipped · '+failed.length+' need review'+(failed.length?' · '+failed.join(', '):'');
+    }catch(e){report.textContent=errorText(e);}
+    finally{busy=false;maintenance=false;button.textContent='Check and fix files';render();}
+  }
+
   function build(){
     if(dialog)return;
     dialog=document.createElement('dialog');dialog.id='bassLibraryDialog';dialog.className='bass-library';dialog.setAttribute('aria-labelledby','libraryTitle');
-    dialog.innerHTML='<div class="library-heading"><div><h2 id="libraryTitle">Song library</h2><p id="libraryLocation"></p></div><button id="libraryClose" type="button">Close</button></div><div class="library-toolbar"><button id="libraryChoose" type="button">Choose save folder</button><button id="libraryReconnect" type="button">Reconnect folder</button><button id="libraryDevice" type="button">Save in app</button><button id="libraryOpenFile" type="button">Open saved file</button><button id="libraryAdd" type="button">Import saved file</button><button id="libraryBatch" type="button">Batch ZIP</button><button id="libraryRefresh" type="button">Refresh</button><button id="libraryStop" type="button" hidden>Stop checking</button></div><p id="libraryHint"></p><div class="library-filters"><div><label for="librarySearch">Search songs</label><input id="librarySearch" type="search" placeholder="Title, artist, key or BPM" autocomplete="off"></div><div><label for="librarySort">Sort by</label><select id="librarySort"><option value="name">Alphabetical (A–Z)</option><option value="recent">Recently saved</option></select></div></div><div class="library-summary"><span id="libraryCount"></span><span id="libraryStatus" role="status" aria-live="polite"></span></div><ul id="librarySongs"></ul><input id="libraryOpenInput" type="file" accept=".bassstudio,.bssproject,.json,application/json" hidden><input id="libraryFiles" type="file" accept=".bassstudio,.bssproject,.json,application/json" multiple hidden>';
+    dialog.innerHTML='<div class="library-heading"><div><h2 id="libraryTitle">Song library</h2><p id="libraryLocation"></p></div><button id="libraryClose" type="button">Close</button></div><div class="library-toolbar"><button id="libraryChoose" type="button">Choose save folder</button><button id="libraryReconnect" type="button">Reconnect folder</button><button id="libraryDevice" type="button">Save in app</button><button id="libraryOpenFile" type="button">Open saved file</button><button id="libraryAdd" type="button">Import saved file</button><button id="libraryBatch" type="button">Batch ZIP</button><button id="libraryCheck" type="button">Check and fix files</button><button id="libraryRefresh" type="button">Refresh</button><button id="libraryStop" type="button" hidden>Stop checking</button></div><p id="libraryCheckStatus" role="status"></p><p id="libraryHint"></p><div class="library-filters"><div><label for="librarySearch">Search songs</label><input id="librarySearch" type="search" placeholder="Title, artist, key or BPM" autocomplete="off"></div><div><label for="librarySort">Sort by</label><select id="librarySort"><option value="name">Alphabetical (A–Z)</option><option value="recent">Recently saved</option></select></div></div><div class="library-summary"><span id="libraryCount"></span><span id="libraryStatus" role="status" aria-live="polite"></span></div><ul id="librarySongs"></ul><input id="libraryOpenInput" type="file" accept=".bassstudio,.bssproject,.json,application/json" hidden><input id="libraryFiles" type="file" accept=".bassstudio,.bssproject,.json,application/json" multiple hidden>';
     document.body.append(dialog);
+    el('libraryCheck').onclick=checkLibrary;
     el('libraryClose').onclick=()=>dialog.close();
-    dialog.addEventListener('close',()=>{if(opening&&!opening.ready)opening.controller.abort();stopScan();document.getElementById('importProjectBtn')?.focus();});
+    dialog.addEventListener('close',()=>{stopMaintenance=true;if(opening&&!opening.ready)opening.controller.abort();stopScan();document.getElementById('importProjectBtn')?.focus();});
     el('librarySearch').oninput=render;el('librarySort').onchange=render;
     el('libraryChoose').onclick=()=>run(chooseFolder);el('libraryDevice').onclick=()=>run(useDevice);
     el('libraryStop').onclick=()=>{stopScan();status('Folder check stopped.');render();};
