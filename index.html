@@ -15820,7 +15820,7 @@ window.BassBatch = (() => {
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC415';
+  const APP_VERSION='RC416';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;
@@ -16138,6 +16138,8 @@ window.BassBatch = (() => {
     if(!pending.range||!notes.length)throw new Error('Restore the previous analysis before updating a selection.');
     const {start,end}=pending.range;
     const outputs=finalDataList.map(data=>{if(data.status!=='COMPLETED'||!data.output?.ok)throw new Error('Selection analysis did not finish.');return data.output;});
+    await checkBassStemPitches(outputs,session);
+    assertSongSession(session);
     const replacement=[];
     outputs.forEach((out,i)=>{const p=pending.parts[i];for(const n of out.notes||[]){
       const ns=Number(n.start)+p.audioStart,ne=Number(n.end)+p.audioStart,midi=mapFreshCloudMidi(n.midi);
@@ -19757,6 +19759,18 @@ window.BassBatch = (() => {
     return out;
   }
 
+  async function checkBassStemPitches(outputs,session){
+    for(const out of outputs){
+      if(out.notes?.length<2||!Array.isArray(out.notes)||!out.bass_audio_base64)continue;
+      let audio;
+      try{audio=await decodeBase64AudioBuffer(out.bass_audio_base64);}
+      catch{assertSongSession(session);continue;}
+      assertSongSession(session);
+      out.notes=await recoverPassingNotes(out.notes,audio,()=>session===songSession);
+      assertSongSession(session);
+    }
+  }
+
   async function applySegmentedRunPodResults(pending,finalDataList,session=songSession){
     assertSongSession(session);
     if(pending.scope==='section')return applySectionAnalysis(pending,finalDataList,session);
@@ -19771,6 +19785,8 @@ window.BassBatch = (() => {
       return out;
     });
 
+    await checkBassStemPitches(outputs,session);
+    assertSongSession(session);
     const nextContext=chooseCombinedSongContext(pending.parts,outputs);
 
     const mergedNotes=[],parts=[];
@@ -21233,6 +21249,79 @@ window.BassBatch = (() => {
   }
 
   let localBassSession=-1,localBassCheckingSession=-1;
+  // Check the short approach to a pitch change against the isolated bass.
+  async function recoverPassingNotes(events,audio,current=()=>true){
+    const sorted=events.slice().sort((a,b)=>a.start-b.start);
+    const recovered=[];
+    const step=Math.max(1,Math.round(audio.sampleRate/4000)),rate=audio.sampleRate/step;
+    const channels=Array.from({length:audio.numberOfChannels},(_,c)=>audio.getChannelData(c));
+    const window=new Float64Array(Math.round(.09*rate));
+    function measuredPitch(time){
+      const offset=Math.round((time-.045)*audio.sampleRate);
+      if(offset<0||offset+window.length*step>audio.length)return null;
+      let energy=0;
+      for(let i=0;i<window.length;i++){
+        let sum=0;
+        for(const ch of channels)sum+=ch[offset+i*step];
+        window[i]=sum/channels.length;
+        energy+=window[i]*window[i];
+      }
+      if(energy/window.length<.000016)return null;
+      function correlation(lag){
+        let diff=0,total=0;
+        for(let i=lag;i<window.length;i++){
+          const a=window[i],b=window[i-lag];
+          diff+=(a-b)*(a-b);total+=a*a+b*b;
+        }
+        return 1-diff/(total||1);
+      }
+      let left=correlation(14),centre=correlation(15);
+      for(let lag=16;lag<=Math.ceil(rate/30);lag++){
+        const right=correlation(lag);
+        if(centre>.94&&centre>left&&centre>=right){
+          const period=lag-1+.5*(left-right)/(left-2*centre+right);
+          const hz=rate/period,midi=69+12*Math.log2(hz/440);
+          if(Math.abs(midi-Math.round(midi))>.24)return null;
+          // Require both the fundamental and second harmonic in this frame.
+          function power(f){
+            let re=0,im=0,weight=0;
+            for(let i=0;i<window.length;i++){
+              const w=.5-.5*Math.cos(2*Math.PI*i/(window.length-1)),angle=2*Math.PI*f*i/rate;
+              re+=w*window[i]*Math.cos(angle);im+=w*window[i]*Math.sin(angle);weight+=w;
+            }
+            return 2*(re*re+im*im)*window.length/(weight*weight*energy);
+          }
+          return power(hz)>.22&&power(2*hz)>.025?Math.round(midi):null;
+        }
+        left=centre;centre=right;
+      }
+      return null;
+    }
+    for(let i=0;i<sorted.length;i++){
+      if(i%32===0){
+        await new Promise(resolve=>setTimeout(resolve,0));
+        if(!current())return events;
+      }
+      const prev={...sorted[i]},next=sorted[i+1];
+      recovered.push(prev);
+      if(!next||prev.midi===next.midi||next.start-prev.start<.20||next.start-prev.end>.45)continue;
+      let candidate=null,count=0;
+      for(let t=Math.max(prev.start+.09,next.start-.38);t<next.start-.025;t+=.025){
+        const m=measuredPitch(t);
+        if(m===null||m===prev.midi||m===next.midi){candidate=null;count=0;continue;}
+        if(candidate!==m){candidate=m;count=0;}
+        count++;
+        if(count<5)continue;
+        const start=t-(count-1)*.025-.025;
+        if(count===5){
+          prev.end=Math.min(prev.end,start);
+          recovered.push({midi:m,start,end:t+.025,source:'Bass stem frequency check'});
+        }else recovered[recovered.length-1].end=t+.025;
+      }
+    }
+    return recovered;
+  }
+
   async function estimateMissingBass(source,session,eligible=()=>session===songSession&&!aiBusy&&!offlineAnalysisReady,filter=()=>true,recordingSource='estimated-bass-stem'){
     if(localBassSession===session&&recordingSource==='estimated-bass-stem')return;
     localBassSession=session;
@@ -21255,7 +21344,7 @@ window.BassBatch = (() => {
       tracker.push(window.BassPracticeDSP.pitch(frame,sr,29),offsetTime,hop/sr);
       if(Math.round(offsetTime*sr/hop)%32===0)await new Promise(resolve=>setTimeout(resolve,0));
     }
-    const found=[];
+    let found=[];
     const candidates=tracker.finish();
     for(let i=0;i<candidates.length;i++){
       if(i%24===0)await new Promise(resolve=>setTimeout(resolve,0));
@@ -21264,6 +21353,10 @@ window.BassBatch = (() => {
       if(filter(note))found.push({...note,end:Math.min(source.duration,note.end),source:recordingSource});
     }
     if(!eligible()){if(localBassSession===session)localBassSession=-1;return;}
+    if(recordingSource==='estimated-bass-stem'){
+      found=await recoverPassingNotes(found,source,eligible);
+      if(!eligible())return;
+    }
     if(recordingSource==='estimated-bass'&&localBassSession===session)localBassSession=-1;
     if(found.length||notes.length){
       if(notes.length)rememberAnalysis('Before checking bass tone');
