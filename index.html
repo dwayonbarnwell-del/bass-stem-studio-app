@@ -15820,7 +15820,7 @@ window.BassBatch = (() => {
 <script>
 (() => {
   'use strict';
-  const APP_VERSION='RC414';
+  const APP_VERSION='RC415';
   // Compatibility for previously saved loop projects; loop sharing has been removed.
   function validLegacySharedLoop(project){
     const r=project?.sharedLoop;
@@ -17512,7 +17512,15 @@ window.BassBatch = (() => {
     void window.BassBacking?.sync();
   });
   masterAudio.addEventListener('seeking',()=>{playbackDisplayFloor=currentTime();cancelMetronome();});
-  masterAudio.addEventListener('seeked',()=>window.BassLoopFade?.resume());
+  masterAudio.addEventListener('seeked',()=>{
+    window.BassLoopFade?.resume();
+    // A native whole-song repeat seeks the master without firing its ended
+    // handler. A shorter separated track may already have stopped.
+    if(!masterAudio.loop||!playing||masterAudio.paused||masterAudio.seeking)return;
+    ensureAnalysisPartForTime(currentTime());
+    if(bassStemReady)void startBassStemPlayback();
+    if(noBassReady)void startNoBassPlayback();
+  });
   masterAudio.addEventListener('ended',()=>{
     cancelMetronome();
     if(loopEnabled||multiSectionMode||timeframeLoopMode)window.BassLoopFade.seek();else window.BassLoopFade.reset();
