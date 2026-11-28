@@ -762,7 +762,8 @@ window.BassLibrary=(()=>{
     busy=true;maintenance=true;stopMaintenance=false;render();
     const button=el('libraryCheck'),report=el('libraryCheckStatus');
     button.textContent='Stop check';
-    let updated=0,skipped=0,failed=[];
+    let updated=0,readyCount=0,other=0,failed=[];
+    const counts=()=>readyCount+' already ready · '+updated+' updated'+(other?' · '+other+' other files skipped':'')+' · '+failed.length+' need review';
     const stopped=()=>stopMaintenance||!dialog.open;
     try{
       await ensureBatchAccess();
@@ -772,25 +773,27 @@ window.BassLibrary=(()=>{
       for(const [i,row] of list.entries()){
         if(stopped())break;
         try{
+          const show=(percent='')=>{report.textContent=(i+1)+' / '+list.length+' · '+row.filename+percent+' · '+counts();};
+          show();
           const file=await rowFile(row),target=openedFiles.get(file);
           row.filename=file.name;
-          report.textContent=(i+1)+' / '+list.length+' · '+file.name;
+          show();
           const receipt='ready-v2:'+JSON.stringify([row.audioId,row.dir?'folder':'app',file.name]);
           const stamp=JSON.stringify([file.size,row.dir?file.lastModified:target.savedAt]);
-          if(row.audioId&&((row.muteReady&&target.size===row.size&&(row.dir?row.modified===file.lastModified:row.savedAt===target.savedAt))||await get(receipt)===stamp)){skipped++;continue;}
+          if(row.audioId&&((row.muteReady&&target.size===row.size&&(row.dir?row.modified===file.lastModified:row.savedAt===target.savedAt))||await get(receipt)===stamp)){readyCount++;show();continue;}
           const project=await readProject(file);
-          if(isChordCatalogue(project)){skipped++;continue;}
+          if(isChordCatalogue(project)){other++;show();continue;}
           metadata(project,file);
           const backing=project.analysis.bassBacking;
-          if(backing?.version===2&&window.BassBacking.canRestore(backing,project.source.duration)){if(row.audioId)await put(receipt,stamp);skipped++;continue;}
-          const result=await hooks.prepareLibraryBacking(project,stopped,p=>report.textContent=(i+1)+' / '+list.length+' · '+file.name+' · '+p+'%');
+          if(backing?.version===2&&window.BassBacking.canRestore(backing,project.source.duration)){if(row.audioId)await put(receipt,stamp);readyCount++;show();continue;}
+          const result=await hooks.prepareLibraryBacking(project,stopped,p=>show(' · '+p+'%'));
           if(stopped())break;
           project.analysis.bassBacking=result.backing;project.source.duration=result.backing.duration;
           await save(project,null,target,{exact:true,maintenance:true});
           updated++;await result.clearParts();
         }catch(e){if(stopped())break;failed.push((row.filename||row.id)+' ('+errorText(e)+')');}
       }
-      report.textContent=(stopped()?'Stopped. ':'')+updated+' updated · '+skipped+' skipped · '+failed.length+' need review'+(failed.length?' · '+failed.join(', '):'');
+      report.textContent=(stopped()?'Stopped. ':'')+counts()+(failed.length?' · '+failed.join(', '):'');
     }catch(e){report.textContent=stopped()?'Check stopped.':errorText(e);}
     finally{busy=false;maintenance=false;button.textContent='Check and fix files';render();}
   }
