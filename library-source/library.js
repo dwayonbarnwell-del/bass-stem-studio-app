@@ -762,38 +762,59 @@ window.BassLibrary=(()=>{
     busy=true;maintenance=true;stopMaintenance=false;render();
     const button=el('libraryCheck'),report=el('libraryCheckStatus');
     button.textContent='Stop check';
-    let updated=0,readyCount=0,other=0,failed=[];
-    const counts=()=>readyCount+' already ready · '+updated+' updated'+(other?' · '+other+' other files skipped':'')+' · '+failed.length+' need review';
+    let total=0,updated=0,readyCount=0,other=0;
+    const failed=[],pending=[];
+    const counts=()=> (total-readyCount-updated-other-failed.length)+' remaining of '+total+
+      '\n'+readyCount+' already ready (skipped) · '+updated+' updated'+
+      (other?' · '+other+' other files skipped':'')+' · '+failed.length+' need review';
+    const show=detail=>{report.textContent=counts()+(detail?'\n'+detail:'');};
     const stopped=()=>stopMaintenance||!dialog.open;
+    const recordFailure=(row,e)=>failed.push((row.filename||row.id)+' ('+errorText(e)+')');
     try{
       await ensureBatchAccess();
       report.textContent='Finding songs in your Library…';
       if(!stopped())await (activeScan||refresh());
       const list=rows.map(({blob,searchNames,...row})=>row);
+      total=list.length;
+      // Count existing results across the whole library before preparing any audio.
       for(const [i,row] of list.entries()){
         if(stopped())break;
+        show('Checking saved results '+(i+1)+' / '+total);
         try{
-          const show=(percent='')=>{report.textContent=(i+1)+' / '+list.length+' · '+row.filename+percent+' · '+counts();};
-          show();
           const file=await rowFile(row),target=openedFiles.get(file);
-          row.filename=file.name;
-          show();
           const receipt='ready-v2:'+JSON.stringify([row.audioId,row.dir?'folder':'app',file.name]);
           const stamp=JSON.stringify([file.size,row.dir?file.lastModified:target.savedAt]);
-          if(row.audioId&&((row.muteReady&&target.size===row.size&&(row.dir?row.modified===file.lastModified:row.savedAt===target.savedAt))||await get(receipt)===stamp)){readyCount++;show();continue;}
+          const matches=target.size===row.size&&(row.dir?row.modified===file.lastModified:row.savedAt===target.savedAt);
+          if(row.audioId&&((matches&&row.muteReady)||await get(receipt)===stamp)){readyCount++;continue;}
+          if(!matches||typeof row.muteReady!=='boolean'){
+            const project=await readProject(file);
+            if(isChordCatalogue(project)){other++;continue;}
+            if(project.analysis?.bassBacking?.version===2&&window.BassBacking.canRestore(project.analysis.bassBacking,project.source.duration)){
+              if(row.audioId)await put(receipt,stamp);
+              readyCount++;continue;
+            }
+          }
+          pending.push(row);
+        }catch(e){recordFailure(row,e);}
+      }
+      for(const row of pending){
+        if(stopped())break;
+        try{
+          show(row.filename);
+          const file=await rowFile(row),target=openedFiles.get(file);
           const project=await readProject(file);
-          if(isChordCatalogue(project)){other++;show();continue;}
+          if(isChordCatalogue(project)){other++;continue;}
           metadata(project,file);
-          const backing=project.analysis.bassBacking;
-          if(backing?.version===2&&window.BassBacking.canRestore(backing,project.source.duration)){if(row.audioId)await put(receipt,stamp);readyCount++;show();continue;}
-          const result=await hooks.prepareLibraryBacking(project,stopped,p=>show(' · '+p+'%'));
+          if(project.analysis.bassBacking?.version===2&&window.BassBacking.canRestore(project.analysis.bassBacking,project.source.duration)){readyCount++;continue;}
+          const result=await hooks.prepareLibraryBacking(project,stopped,p=>show(file.name+' · '+p+'%'));
           if(stopped())break;
           project.analysis.bassBacking=result.backing;project.source.duration=result.backing.duration;
           await save(project,null,target,{exact:true,maintenance:true});
-          updated++;await result.clearParts();
-        }catch(e){if(stopped())break;failed.push((row.filename||row.id)+' ('+errorText(e)+')');}
+          updated++;
+          await result.clearParts().catch(()=>{});
+        }catch(e){if(stopped())break;recordFailure(row,e);}
       }
-      report.textContent=(stopped()?'Stopped. ':'')+counts()+(failed.length?' · '+failed.join(', '):'');
+      show((stopped()?'Stopped. ':'')+failed.join(', '));
     }catch(e){report.textContent=stopped()?'Check stopped.':errorText(e);}
     finally{busy=false;maintenance=false;button.textContent='Check and fix files';render();}
   }
