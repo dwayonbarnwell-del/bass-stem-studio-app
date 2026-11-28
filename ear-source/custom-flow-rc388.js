@@ -10,6 +10,26 @@ window.BassCustomFlow=(()=>{
  let renderQueue=Promise.resolve(),clock=0,sounding='',fresh=true;
  const state={genre:'worship',key:0,mode:'major',bpm:96,beat:'',degrees:[1,5,6,5,1],choices:[]};
  const el=id=>host.querySelector('#flow'+id);
+ let numbers=false;
+ function noteLabel(midi,octave=false){
+  if(!numbers)return octave?F.note(midi):F.names[pc(midi)];
+  const scale=F.scales[state.mode],offset=pc(midi-state.key),index=scale.indexOf(offset);
+  if(index>=0)return String(index+1);
+  if(offset===11)return '♯7';
+  return '♭'+(scale.indexOf((offset+1)%12)+1);
+ }
+ function toggleNotation(){
+  numbers=!numbers;
+  try{localStorage.setItem('bass-flow-number-labels',String(numbers));}catch{}
+  refreshNotation();draw();layoutKey='';activeKey='';paint(viewBeat);
+ }
+ function refreshNotation(){
+  for(const id of ['Notation','ViewNotation']){
+   const button=el(id);button.textContent=numbers?'Numbers':'Notes';
+   button.title=numbers?'Show note names':'Show scale degrees';
+   button.setAttribute('aria-label','Show scale degrees');button.setAttribute('aria-pressed',String(numbers));
+  }
+ }
  function parse(value){
   const parts=value.normalize('NFKC').trim().split(/[,;]/),degrees=[];
   for(const part of parts){
@@ -214,6 +234,11 @@ window.BassCustomFlow=(()=>{
   if(on&&host.dataset.focus!=='true'){
    editorScroll=document.getElementById('earContent').scrollTop;editorSelection=selected;editorTrigger=playing==='change'?'Change':'Play';
   }
+  if((host.dataset.focus==='true')!==on){
+   const panel=el('SavePanel');
+   (on?el('ViewActions'):el('OpenPanel')).insertAdjacentElement(on?'afterend':'beforebegin',panel);
+   panel.hidden=true;el('ShowSave').setAttribute('aria-expanded','false');el('PlaySave').setAttribute('aria-expanded','false');
+  }
   host.dataset.focus=String(on);el('Visual').hidden=!on;el('Setup').hidden=on;el('Notes').hidden=on;
   if(on)document.getElementById('earContent').scrollTop=0;
  }
@@ -230,14 +255,14 @@ window.BassCustomFlow=(()=>{
   const harmony=el('Harmony');
   if(!layoutKey){
    harmony.replaceChildren(...score.bars.map(b=>{
-    const chip=document.createElement('span');chip.className='fill-chord';chip.textContent=b.degree+' · '+b.chord;return chip;
+    const chip=document.createElement('span');chip.className='fill-chord';chip.textContent=numbers?String(b.degree):b.chord;return chip;
    }));
   }
   for(let i=0;i<harmony.children.length;i++)if(harmony.children[i].getAttribute('aria-current')!==String(i===bar))harmony.children[i].setAttribute('aria-current',String(i===bar));
   const board=el('Fret'),list=el('Timeline'),onFret=view.startsWith('fret');
   board.hidden=!onFret;list.hidden=onFret;board.classList.toggle('ff-single-board',view==='fret2');
   if(onFret){
-   if(!fret){fret=window.BassFretFlow.create();fret.init({get:()=>({notes:score?.notes||[],strings:5,time:viewBeat*(score?.step||0),loaded:!!score,highlight:true})},board);}
+   if(!fret){fret=window.BassFretFlow.create();fret.init({noteLabel,get:()=>({labelMode:numbers+'/'+state.key+'/'+state.mode,title:'Custom flow',bpm:state.bpm,speed:100,notes:score?.notes||[],strings:5,time:viewBeat*(score?.step||0),loaded:!!score,highlight:true})},board);}
    layoutKey=view;fret.draw(seconds);return;
   }
   const index=score.p.bass.findLastIndex(n=>n.beat<=beat);
@@ -246,7 +271,12 @@ window.BassCustomFlow=(()=>{
    layoutKey=key;activeKey='';list.replaceChildren();
    score.p.bass.slice(page*25,page*25+25).forEach((n,i)=>{
     const root=score.bars[Math.floor(n.beat/4)].rootPc;
-    list.append(window.BassFillTrainer.noteCard(n,page*25+i,root,window.BassFillTrainer.preview));
+    const card=window.BassFillTrainer.noteCard(n,page*25+i,root,window.BassFillTrainer.preview);
+    if(numbers){
+     card.textContent=noteLabel(n.midi);card.title=card.textContent+' · '+card.title;
+     card.setAttribute('aria-label','Hear degree '+card.textContent);
+    }
+    list.append(card);
    });
   }
   const n=score.p.bass[index],active=n&&beat<n.beat+n.length?String(index):'-1';
@@ -368,8 +398,8 @@ window.BassCustomFlow=(()=>{
   const scale=F.scales[state.mode],to=state.degrees[selected+1];
   const preview=el('Notes');preview.replaceChildren();
   if(can){
-   const pitches=notes(selected).map(n=>F.names[pc(n.midi)]);
-   pitches.push(F.names[pc(state.key+degree(scale,to))]);
+   const pitches=notes(selected).map(n=>noteLabel(n.midi));
+   pitches.push(noteLabel(state.key+degree(scale,to)));
    for(const [i,name] of pitches.entries()){
     const chip=document.createElement('span');chip.textContent=name;
     if(i===pitches.length-1){chip.className='flow-landing';chip.textContent='→ '+name;}
@@ -422,11 +452,13 @@ window.BassCustomFlow=(()=>{
    <div class="wide" id="flowProgression"><label><input aria-label="Chord progression" id="flowDegrees" maxlength="180" placeholder="1 → 5 → 6 → 5 → 1"></label></div>
    <div class="wide" id="flowChanges" role="group" aria-label="Choose a chord change"></div></div>
    <div class="flow-picker"><label><select aria-label="Pattern for this change" id="flowPattern"></select></label><button type="button" id="flowPrev" aria-label="Previous pattern">‹</button><button type="button" id="flowNext" aria-label="Next pattern">›</button></div>
-   <div class="flow-transport"><button type="button" id="flowChange">Play change</button><button type="button" id="flowPlay">Play flow</button></div>
-   <section id="flowVisual" aria-label="Timed rehearsal" hidden><div class="flow-top" id="flowViewActions"><select aria-label="Rehearsal view" id="flowView"><option value="notes">Band</option><option value="fret">Fret View</option><option value="fret2">Fret View 2</option></select><button type="button" id="flowEdit">Edit flow</button></div>
+   <div class="flow-transport"><button type="button" id="flowChange">Play change</button><button type="button" id="flowNotation">Notes</button><button type="button" id="flowPlay">Play flow</button></div>
+   <section id="flowVisual" aria-label="Timed rehearsal" hidden><div class="flow-top" id="flowViewActions"><select aria-label="Rehearsal view" id="flowView"><option value="notes">Band</option><option value="fret">Fret View</option><option value="fret2">Fret View 2</option></select><button type="button" id="flowViewNotation">Notes</button><button type="button" id="flowPlaySave" aria-controls="flowSavePanel" aria-expanded="false">Save</button><button type="button" id="flowEdit">Edit flow</button></div>
    <div id="flowHarmony" aria-label="Chords"></div><div id="flowTimeline" aria-label="Bass notes"></div><div id="flowFret" hidden></div></section>
 
    <div id="flowNotes" role="group" aria-label="Notes leading to the next chord"></div><p role="status" id="flowStatus"></p>`;
+  try{numbers=localStorage.getItem('bass-flow-number-labels')==='true';}catch{}
+  el('Notation').onclick=el('ViewNotation').onclick=toggleNotation;refreshNotation();
   el('BeatNext').onclick=()=>{
    const beats=el('Beat');beats.selectedIndex=(beats.selectedIndex+1)%beats.length;
    beats.dispatchEvent(new Event('change'));
@@ -443,10 +475,11 @@ window.BassCustomFlow=(()=>{
    const expand=el(action+'Panel').hidden;
    for(const item of ['Save','Open']){
     const visible=expand&&item===action;
-    el(item+'Panel').hidden=!visible;el('Show'+item).setAttribute('aria-expanded',String(visible));
+    el(item+'Panel').hidden=!visible;if(item==='Save')el('PlaySave').setAttribute('aria-expanded',String(visible));el('Show'+item).setAttribute('aria-expanded',String(visible));
    }
    if(expand){if(action==='Open')savedMenu(el('Saved').value);el(action==='Save'?'Name':'Saved').focus();}
   };
+  el('PlaySave').onclick=el('ShowSave').onclick;
   el('Genre').onchange=e=>{state.genre=e.target.value;state.beat='';hydrate();update();};
   el('Beat').onchange=e=>{state.beat=e.target.value;update();};
   el('Key').onchange=e=>{const [key,mode]=e.target.value.split('/');state.key=Number(key);state.mode=mode;update();};

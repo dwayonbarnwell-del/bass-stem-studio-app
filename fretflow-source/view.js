@@ -7,6 +7,7 @@ window.BassFretFlow=(()=>{
  function add(parent,tag,attrs,text){const e=svg(tag,attrs,text);parent.append(e);return e;}
  function line(p,x,y,x2,y2,stroke,width=1){return add(p,'line',{x1:x,y1:y,x2,y2,stroke,'stroke-width':width});}
  function label(p,x,y,text,fill='#aeb8c9',size=12){return add(p,'text',{x,y,fill,'font-size':size,'text-anchor':'middle','dominant-baseline':'central'},text);}
+ function noteLabel(midi,octave=false){return api.noteLabel?api.noteLabel(midi,octave):octave?C.pitch(midi):C.name(midi);}
  function marker(p,x,y,row,active=false,small=false){
   const c=C.colour(row.midi),open=!small&&row.position.fret===0;
   const radius=small?5:Math.max(5,Math.min(active?13:10,(nodes.mapGeometry.step-4)/2,(nodes.mapGeometry.gap-5)/2));
@@ -16,8 +17,8 @@ window.BassFretFlow=(()=>{
    if(panel.id==='rehearsalFret'&&!small)add(g,'circle',{class:'ff-rehearsal-ring',cx:x,cy:y,r:r+3,fill:'none',stroke:c,'stroke-width':1.5});
   }
   add(g,'circle',{cx:x,cy:y,r,fill:open?'none':active?c:'#151c26',stroke:c,'stroke-width':active?2:1.4,'stroke-dasharray':row.source.isFill||Number(row.source.confidence)<.7?'3 2':''});
-  if(!small&&!open)label(g,x,y,C.name(row.midi),active?'#10231a':c,Math.min(active?14:11,r*1.2));
-  add(g,'title',{},`${C.pitch(row.midi)} · string ${C.name(row.position.open)} · fret ${row.position.fret}`);
+  if(!small&&!open)label(g,x,y,noteLabel(row.midi),active?'#10231a':c,Math.min(active?14:11,r*1.2));
+  add(g,'title',{},`${noteLabel(row.midi,true)} · string ${C.name(row.position.open)} · fret ${row.position.fret}`);
  }
  function makeNeck(count){
   const p=nodes.neck;p.replaceChildren();p.setAttribute('viewBox','0 0 110 650');p.setAttribute('preserveAspectRatio','none');
@@ -38,7 +39,7 @@ window.BassFretFlow=(()=>{
   const strings=C.tuning(count);
   for(let f=0;f<=frets;f++)line(p,left-8,top+f*step,right+8,top+f*step,f===0?'#f1e3bb':'#b6a27b',f===0?3:1.4);
   for(let f=1;f<=frets;f++){const fret=first+f-1,yy=top+(f-.5)*step;label(p,11,yy,fret,'#aab6c6',11);if([3,5,7,9,12,15,17,19,21,24].includes(fret))for(const xx of fret%12===0?[w*.47,w*.73]:[w*.6])add(p,'circle',{cx:xx,cy:yy,r:3,fill:'#e9e3d5',opacity:.2});}
-  strings.forEach((m,i)=>{const xx=x(i);line(p,xx,top,xx,h-10,'#d7d9d5',2.7-i*.25);add(p,'circle',{cx:xx,cy:16,r:9,fill:C.colour(m)});label(p,xx,16,C.name(m),'#17211b',11);});
+  strings.forEach((m,i)=>{const xx=x(i);line(p,xx,top,xx,h-10,'#d7d9d5',2.7-i*.25);add(p,'circle',{cx:xx,cy:16,r:9,fill:C.colour(m)});label(p,xx,16,noteLabel(m),'#17211b',11);});
   nodes.mapLinks=add(p,'g',{'aria-hidden':'true'});nodes.mapNotes=add(p,'g');
  }
  function neckPoint(row,count){const y=26+C.fretCentre(row.position.fret)/C.fretWire(24)*610,x=24+row.position.string*62/(count-1)+(y-26)/610*(-12+row.position.string*24/(count-1));return {x,y};}
@@ -60,7 +61,7 @@ window.BassFretFlow=(()=>{
  function draw(t){
   if(!api||panel.hidden)return;const s=api.get();prepare(s);const time=Number.isFinite(t)?t:s.time;
   const active=s.highlight===false?[]:C.active(rows,time),primary=active.at(-1),future=C.nearby(rows,time,2,3).filter(n=>!active.includes(n)).sort((a,b)=>Math.abs(a.start-time)-Math.abs(b.start-time)),focus=primary||future.find(n=>n.start>time);
-  const frets=12,first=1+Math.floor(Math.max(0,(focus?.position?.fret||1)-1)/frets)*frets,key=s.strings+':'+first+':'+frets+':'+nodes.map.clientWidth+':'+nodes.map.clientHeight;
+  const frets=12,first=1+Math.floor(Math.max(0,(focus?.position?.fret||1)-1)/frets)*frets,key=(s.labelMode||'')+':'+s.strings+':'+first+':'+frets+':'+nodes.map.clientWidth+':'+nodes.map.clientHeight;
   if(lastBoard!==key){makeNeck(s.strings);makeMap(s.strings,first,frets);lastBoard=key;signature='';}
   const sign=active.map(n=>n.id).join(',')+'|'+future.map(n=>n.id).join(',')+'|'+key;
   if(sign!==signature){
@@ -77,7 +78,7 @@ window.BassFretFlow=(()=>{
     if(isActive){const point=neckPoint(n,s.strings);marker(nodes.neckNotes,point.x,point.y,n,true,true);}
    }
    connectors(primary,shown.filter(n=>n.start>time).sort((a,b)=>a.start-b.start)[0],s.strings);
-   nodes.note.textContent=primary?C.pitch(primary.midi):'—';nodes.note.style.color=primary?C.colour(primary.midi):'';
+   nodes.note.textContent=primary?noteLabel(primary.midi,true):'—';nodes.note.style.color=primary?C.colour(primary.midi):'';
    nodes.position.textContent=primary?(primary.position?`${C.name(primary.position.open)} string · ${primary.position.fret===0?'open':'fret '+primary.position.fret}`:`Outside ${s.strings}-string range`):!s.loaded?'Open an analysed song':!rows.length?'No analysed bass notes':'Rest';
    nodes.position.title=primary?.source.isFill?'Suggested fill':primary&&Number(primary.source.confidence)<.7?'Low-confidence note: check against the recording':'';
   }
