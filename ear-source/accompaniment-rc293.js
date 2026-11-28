@@ -182,6 +182,11 @@ window.BassAccompaniment=(()=>{
   let first=0;
   for(let s=0;s<spans.length;s++){
    const [start,notes]=spans[s],end=spans[s+1]?.[0]??plan.beats,voice=voicing(notes,previous);previous=voice;
+   // Give a short passing chord its own attack when the groove leaves that beat empty.
+   if(plan.timedChanges&&end-start<=1){
+    for(const midi of voice)out.push({midi,beat:start,length:(end-start)*.9,velocity:48,role:'chord'});
+    continue;
+   }
    while(first<grid.length&&grid[first].end<=start)first++;
    for(let g=first;g<grid.length&&grid[g].start<end;g++){
     const span=grid[g],from=Math.max(start,span.start),to=Math.min(end,span.end);

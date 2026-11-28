@@ -8,7 +8,7 @@ window.BassCustomFlow=(()=>{
  const pc=n=>(n%12+12)%12,compare=(a,b)=>a.label.localeCompare(b.label,'en',{numeric:true});
  let host,catalogue,rows=[],selected=0,ctx,player,revision=0,playing='',paused='',offset=0;
  let renderQueue=Promise.resolve(),clock=0,sounding='',fresh=true;
- const state={genre:'worship',key:0,mode:'major',bpm:96,beat:'',degrees:[1,5,6,5,1],choices:[]};
+ const state={genre:'worship',key:0,mode:'major',bpm:96,beat:'',degrees:[1,5,6,5,1],choices:[],lengths:[4,4,4,4,4]};
  const el=id=>host.querySelector('#flow'+id);
  let numbers=false;
  function noteLabel(midi,octave=false){
@@ -40,6 +40,36 @@ window.BassCustomFlow=(()=>{
   }
   return degrees.length>=2&&degrees.length<=16?degrees:null;
  }
+ function readProgression(value){
+  if(!/[(@]/.test(value)){
+   const degrees=parse(value);return degrees&&{degrees,lengths:degrees.map(()=>4)};
+  }
+  // Parentheses borrow the last beat of the preceding chord. Explicit
+  // lengths use @ in beats, including half beats.
+  const tokens=value.trim().normalize('NFKC').split(/(?:\s*(?:->|→|[,;|/>–—-])\s*|\s+)/);
+  const degrees=[],lengths=[];
+  for(const token of tokens){
+   const match=/^(?:\(([1-7])\)|([1-7])(?:@(0\.5|[1-8](?:\.5)?))?)$/.exec(token);
+   if(!match)return null;
+   if(match[1]){
+    if(!lengths.length||lengths.at(-1)<=1)return null;
+    lengths[lengths.length-1]-=1;
+   }
+   degrees.push(Number(match[1]||match[2]));lengths.push(match[1]?1:Number(match[3]||4));
+  }
+  return validSavedDegrees(degrees)&&validLengths(lengths,degrees)?{degrees,lengths}:null;
+ }
+ function validLengths(lengths,degrees){
+  return Array.isArray(lengths)&&lengths.length===degrees.length&&lengths.every(n=>Number.isInteger(n*2)&&n>=.5&&n<=8);
+ }
+ function savedLengths(s){return validLengths(s.lengths,s.degrees)?s.lengths:s.degrees.map(()=>4);}
+ function writtenProgression(){
+  return state.degrees.map((d,i)=>{
+   const n=state.lengths[i];
+   if(n===1&&state.lengths[i-1]===3)return '('+d+')';
+   return n===4||n===3&&state.lengths[i+1]===1?String(d):d+'@'+n;
+  }).join(' → ');
+ }
  function save(){try{localStorage.setItem(storage,JSON.stringify(state));}catch{}}
  function validSavedDegrees(degrees){
   return Array.isArray(degrees)&&degrees.length>=2&&degrees.length<=16&&degrees.every(d=>Number.isInteger(d)&&d>=1&&d<=7);
@@ -48,7 +78,7 @@ window.BassCustomFlow=(()=>{
   try{
    const s=JSON.parse(localStorage.getItem(storage)),degrees=s.degrees;
    if(validSavedDegrees(degrees)&&Number.isInteger(s.key)&&s.key>=0&&s.key<12&&['major','minor'].includes(s.mode)&&s.bpm>=40&&s.bpm<=220&&Array.isArray(s.choices))
-    {fresh=false;Object.assign(state,{degrees,key:s.key,mode:s.mode,bpm:Number(s.bpm),genre:s.genre,beat:s.beat,choices:s.choices.slice(0,15)});}
+    {fresh=false;Object.assign(state,{degrees,lengths:savedLengths(s),key:s.key,mode:s.mode,bpm:Number(s.bpm),genre:s.genre,beat:s.beat,choices:s.choices.slice(0,15)});}
   }catch{}
  }
  function library(){
@@ -167,21 +197,29 @@ window.BassCustomFlow=(()=>{
    return {...n,beat,midi:n.midi+delta,...Number.isFinite(n.slideFrom)?{slideFrom:n.slideFrom+delta}:{},length:Math.min(n.length,4-beat)};
   });
  }
- function notes(i){
+ function patternNotes(i){
   if(state.choices[i]==='hold')return [{beat:0,length:3.7,midi:36+pc(state.key+degree(F.scales[state.mode],state.degrees[i])),velocity:92}];
   const r=rows.find(r=>r.id===state.choices[i]);if(!r)throw Error('Choose an available pattern for each change.');
   return phrase(r,state.degrees[i],state.degrees[i+1]);
  }
+ function notes(i){
+  const length=state.lengths[i],root=36+pc(state.key+degree(F.scales[state.mode],state.degrees[i]));
+  if(length<=1)return [{beat:0,length:length*.92,midi:root,velocity:84}];
+  const phrase=patternNotes(i),factor=length/4;
+  return length===4?phrase:phrase.map(n=>({...n,beat:n.beat*factor,length:n.length*factor}));
+ }
  function plan(single){
   const first=single?selected:0,degrees=single?state.degrees.slice(selected,selected+2):state.degrees;
   const bass=[],chords=[],scale=F.scales[state.mode];
+  let beat=0;
   degrees.forEach((d,i)=>{
-   const beat=i*4,root=36+pc(state.key+degree(scale,d));
-   for(const k of [0,2,4])chords.push({beat,length:3.8,midi:48+state.key+degree(scale,d+k),velocity:52});
-   if(i===degrees.length-1)bass.push({beat,length:3.6,midi:root,velocity:94});
+   const length=state.lengths[first+i],root=36+pc(state.key+degree(scale,d));
+   for(const k of [0,2,4])chords.push({beat,length:length*.95,midi:48+state.key+degree(scale,d+k),velocity:52});
+   if(i===degrees.length-1)bass.push({beat,length:length*.9,midi:root,velocity:94});
    else for(const n of notes(first+i))bass.push({...n,beat:n.beat+beat});
+   beat+=length;
   });
-  return window.BassRegister.plan({kind:'custom',practiceStyle:state.genre,bpm:state.bpm,beats:degrees.length*4,bass,chords});
+  return window.BassRegister.plan({kind:'custom',timedChanges:state.lengths.some(n=>n!==4),practiceStyle:state.genre,bpm:state.bpm,beats:beat,bass,chords});
  }
  const namedPrefix='bass-ear-flow-arrangement/';
  function savedMenu(value=''){
@@ -208,7 +246,7 @@ window.BassCustomFlow=(()=>{
   try{
    const s=JSON.parse(localStorage.getItem(namedPrefix+name));
    if(!s||!validSavedDegrees(s.degrees)||!Array.isArray(s.choices)||!catalogue.has(s.genre)||!Number.isInteger(s.key)||s.key<0||s.key>11||!['major','minor'].includes(s.mode)||!Number.isFinite(s.bpm)||s.bpm<40||s.bpm>220)throw Error();
-   stop();Object.assign(state,{genre:s.genre,key:s.key,mode:s.mode,bpm:s.bpm,beat:s.beat,degrees:s.degrees,choices:s.choices});fresh=false;selected=0;
+   stop();Object.assign(state,{genre:s.genre,key:s.key,mode:s.mode,bpm:s.bpm,beat:s.beat,degrees:s.degrees,lengths:savedLengths(s),choices:s.choices});fresh=false;selected=0;
    open();el('Name').value=name;savedMenu(name);save();
    el('Status').textContent=s.choices.join()===state.choices.join()&&s.beat===state.beat?'Opened '+name+'.':'Opened '+name+'. An unavailable beat or pattern was replaced.';
   }catch{el('Status').textContent='This saved progression could not be opened.';}
@@ -217,10 +255,12 @@ window.BassCustomFlow=(()=>{
  function chartFor(p,single){
   const degrees=single?state.degrees.slice(selected,selected+2):state.degrees;
   const scale=F.scales[state.mode];
+  let start=0;
   const bars=degrees.map((d,i)=>{
    const idx=(single?selected:0)+i,row=i<degrees.length-1&&rows.find(r=>r.id===state.choices[idx]);
    const third=degree(scale,d+2)-degree(scale,d),fifth=degree(scale,d+4)-degree(scale,d);
-   return {idx,degree:d,rootPc:pc(state.key+degree(scale,d)),chord:F.names[pc(state.key+degree(scale,d))]+(fifth===6?'dim':third===3?'m':''),pattern:row?({fills:'Fill',runs:'Run',basslines:'Bassline'}[row.kind]+' · '+row.label):i<degrees.length-1?'Hold chord':'Landing',kind:row?.kind};
+   const beat=start;start+=state.lengths[idx];
+   return {beat,idx,degree:d,rootPc:pc(state.key+degree(scale,d)),chord:F.names[pc(state.key+degree(scale,d))]+(fifth===6?'dim':third===3?'m':''),pattern:row?({fills:'Fill',runs:'Run',basslines:'Bassline'}[row.kind]+' · '+row.label):i<degrees.length-1?'Hold chord':'Landing',kind:row?.kind};
   });
   return {bars,p};
  }
@@ -242,14 +282,15 @@ window.BassCustomFlow=(()=>{
   host.dataset.focus=String(on);el('Visual').hidden=!on;el('Setup').hidden=on;el('Notes').hidden=on;
   if(on)document.getElementById('earContent').scrollTop=0;
  }
+ function barAt(beat){return Math.max(0,score.bars.findLastIndex(b=>b.beat<=beat));}
  function installScore(value){
   score=value;layoutKey='';activeKey='';
-  score.notes=score.p.bass.map(n=>({midi:n.midi,start:n.beat*score.step,end:(n.beat+n.length)*score.step,isFill:['fills','runs'].includes(score.bars[Math.floor(n.beat/4)]?.kind)}));
+  score.notes=score.p.bass.map(n=>({midi:n.midi,start:n.beat*score.step,end:(n.beat+n.length)*score.step,isFill:['fills','runs'].includes(score.bars[barAt(n.beat)]?.kind)}));
  }
  function paint(beat){
   if(!score||el('Visual').hidden)return;
   viewBeat=beat;
-  const bar=Math.min(score.bars.length-1,Math.floor(beat/4)),view=el('View').value,seconds=beat*score.step;
+  const bar=Math.min(score.bars.length-1,barAt(beat)),view=el('View').value,seconds=beat*score.step;
   const idx=score.bars[Math.min(bar,score.bars.length-2)].idx;
   if(idx!==selected){selected=idx;draw();}
   const harmony=el('Harmony');
@@ -270,7 +311,7 @@ window.BassCustomFlow=(()=>{
   if(layoutKey!==key){
    layoutKey=key;activeKey='';list.replaceChildren();
    score.p.bass.slice(page*25,page*25+25).forEach((n,i)=>{
-    const root=score.bars[Math.floor(n.beat/4)].rootPc;
+    const root=score.bars[barAt(n.beat)].rootPc;
     const card=window.BassFillTrainer.noteCard(n,page*25+i,root,window.BassFillTrainer.preview);
     if(numbers){
      card.textContent=noteLabel(n.midi);card.title=card.textContent+' · '+card.title;
@@ -290,7 +331,7 @@ window.BassCustomFlow=(()=>{
  function follow(){
   if(pendingScore&&ctx.currentTime>=pendingScore.start){installScore(pendingScore);pendingScore=null;}
   if(score?.transport&&player){const pos=Math.max(0,score.transport.position()-score.transport.latency)%score.transport.seconds;paint(pos/score.step);}
-  const i=score&&player&&sounding==='all'?Math.floor(viewBeat/4):-1;
+  const i=score&&player&&sounding==='all'?barAt(viewBeat):-1;
   Array.from(el('Changes').children).forEach((b,k)=>{if(k===i)b.setAttribute('aria-current','step');else b.removeAttribute('aria-current');});
  }
  let beatPlayer=null,beatRequest='',beatRevision=0;
@@ -363,7 +404,7 @@ window.BassCustomFlow=(()=>{
    follow();revision++;clearInterval(clock);pendingScore=null;player.stop();player=null;
    playing='';sounding='';paused=mode;offset=viewBeat;actions();el('Status').textContent='';return;
   }
-  if(mode==='change'&&score&&sounding==='all'){selected=score.bars[Math.min(Math.floor(viewBeat/4),score.bars.length-2)].idx;draw();}
+  if(mode==='change'&&score&&sounding==='all'){selected=score.bars[Math.min(barAt(viewBeat),score.bars.length-2)].idx;draw();}
   void play(mode,paused===mode?offset:0);
  }
  function draw(){
@@ -417,19 +458,20 @@ window.BassCustomFlow=(()=>{
    offset%=chart.p.beats;paint(offset);
   }
  }
- function acceptChords(report){
-  const field=el('Degrees'),next=parse(field.value);
-  if(!next){
-   if(report){el('Status').textContent='Enter 2 to 16 chord degrees, for example 1 4 4 5 1.';field.setAttribute('aria-invalid','true');field.focus();}
+ function acceptChords(report,refresh=true){
+  const field=el('Degrees'),parsed=readProgression(field.value);
+  if(!parsed){
+   if(report){el('Status').textContent='Enter 2 to 16 chords. Try 6 (5) 1 or 6@3 5@1 1.';field.setAttribute('aria-invalid','true');field.focus();}
    return false;
   }
   if(field.hasAttribute('aria-invalid'))el('Status').textContent='';
   field.removeAttribute('aria-invalid');
-  if(next.join()===state.degrees.join())return true;
+  const {degrees:next,lengths}=parsed;
+  if(next.join()===state.degrees.join()&&lengths.join()===state.lengths.join())return true;
   const before=typingStart||state,old=new Map();
   before.choices.forEach((id,i)=>{const pair=before.degrees.slice(i,i+2).join('/');if(!old.has(pair))old.set(pair,[]);old.get(pair).push(id);});
-  state.degrees=next;state.choices=next.slice(1).map((_,i)=>old.get(next.slice(i,i+2).join('/'))?.shift());
-  selected=Math.min(selected,next.length-2);offset=0;el('Status').textContent='';hydrate();update();return true;
+  state.lengths=lengths;state.degrees=next;state.choices=next.slice(1).map((_,i)=>old.get(next.slice(i,i+2).join('/'))?.shift());
+  selected=Math.min(selected,next.length-2);offset=0;el('Status').textContent='';hydrate();if(refresh)update();return true;
  }
  function open(){
   catalogue=library();savedMenu(el('Saved').value);
@@ -437,7 +479,7 @@ window.BassCustomFlow=(()=>{
   const genres=[...catalogue.keys()].map(id=>({id,label:labels.get(id)||id})).sort(compare);
   if(!catalogue.has(state.genre))state.genre=genres[0]?.id;
   options(el('Genre'),genres,state.genre);el('Key').value=state.key+'/'+state.mode;el('Bpm').value=state.bpm;
-  el('Degrees').value=state.degrees.join(' → ');hydrate();draw();
+  el('Degrees').value=writtenProgression();hydrate();draw();
  }
  function init(section){
   host=section;restore();
@@ -450,10 +492,11 @@ window.BassCustomFlow=(()=>{
    <div class="flow-inline wide" id="flowSavePanel" hidden><label><input aria-label="Progression name" placeholder="Progression name" id="flowName" maxlength="80"></label><button type="button" id="flowSave">Save flow</button></div>
    <div class="flow-inline wide" id="flowOpenPanel" hidden><label><select aria-label="Saved progressions on this device" id="flowSaved"></select></label><button type="button" id="flowOpen">Open flow</button></div>
    <div class="wide" id="flowProgression"><label><input aria-label="Chord progression" id="flowDegrees" maxlength="180" placeholder="1 → 5 → 6 → 5 → 1"></label></div>
+   <details class="wide" id="flowTiming"><summary>Chord timing</summary><p>Each chord lasts 4 beats. Brackets take the last beat of the previous chord. For exact timing, use 5@0.5 for half a beat or 1@2 for two beats.</p><button type="button" id="flowGlory">Use “We give glory” timing</button></details>
    <div class="wide" id="flowChanges" role="group" aria-label="Choose a chord change"></div></div>
    <div class="flow-picker"><label><select aria-label="Pattern for this change" id="flowPattern"></select></label><button type="button" id="flowPrev" aria-label="Previous pattern">‹</button><button type="button" id="flowNext" aria-label="Next pattern">›</button></div>
    <div class="flow-transport"><button type="button" id="flowChange">Play change</button><button type="button" id="flowNotation">Notes</button><button type="button" id="flowPlay">Play flow</button></div>
-   <section id="flowVisual" aria-label="Timed rehearsal" hidden><div class="flow-top" id="flowViewActions"><select aria-label="Rehearsal view" id="flowView"><option value="notes">Band</option><option value="fret">Fret View</option><option value="fret2">Fret View 2</option></select><button type="button" id="flowViewNotation">Notes</button><button type="button" id="flowPlaySave" aria-controls="flowSavePanel" aria-expanded="false">Save</button><button type="button" id="flowEdit">Edit flow</button></div>
+   <section id="flowVisual" aria-label="Timed rehearsal" hidden><div class="flow-top" id="flowViewActions"><select aria-label="Rehearsal view" id="flowView"><option value="notes">Band</option><option value="fret">Fret</option><option value="fret2">Fret 2</option></select><button type="button" id="flowViewNotation">Notes</button><button type="button" id="flowPlaySave" aria-controls="flowSavePanel" aria-expanded="false">Save</button><button type="button" id="flowEdit">Edit flow</button></div>
    <div id="flowHarmony" aria-label="Chords"></div><div id="flowTimeline" aria-label="Bass notes"></div><div id="flowFret" hidden></div></section>
 
    <div id="flowNotes" role="group" aria-label="Notes leading to the next chord"></div><p role="status" id="flowStatus"></p>`;
@@ -484,14 +527,19 @@ window.BassCustomFlow=(()=>{
   el('Beat').onchange=e=>{state.beat=e.target.value;update();};
   el('Key').onchange=e=>{const [key,mode]=e.target.value.split('/');state.key=Number(key);state.mode=mode;update();};
   el('Bpm').onchange=e=>{if(!e.target.value||!e.target.reportValidity()){e.target.value=state.bpm;return;}state.bpm=Number(e.target.value);update();};
+  el('Glory').onclick=()=>{
+   el('Degrees').value='6 (5) 1, 4 5, 6 (3) 4, 5 1';
+   state.key=0;state.mode='major';state.bpm=95;el('Key').value='0/major';el('Bpm').value=95;
+   acceptChords(true,false);el('Name').value='We give glory to the Lord';el('Timing').open=false;update();
+  };
   const degrees=el('Degrees');
   degrees.onfocus=()=>{typingStart={degrees:[...state.degrees],choices:[...state.choices]};};
   degrees.oninput=()=>acceptChords(false);
-  degrees.onblur=()=>{if(acceptChords(false))degrees.value=state.degrees.join(' → ');typingStart=null;};
+  degrees.onblur=()=>{if(acceptChords(false))degrees.value=writtenProgression();typingStart=null;};
   degrees.onkeydown=e=>{if(e.key==='Enter'&&acceptChords(true))degrees.blur();};
   el('Pattern').onchange=e=>{state.choices[selected]=e.target.value;update();};
   for(const [id,dir] of [['Prev',-1],['Next',1]])el(id).onclick=()=>{
-   if(host.dataset.focus==='true'&&score){selected=score.bars[Math.min(Math.floor(viewBeat/4),score.bars.length-2)].idx;draw();}
+   if(host.dataset.focus==='true'&&score){selected=score.bars[Math.min(barAt(viewBeat),score.bars.length-2)].idx;draw();}
    const s=el('Pattern');s.selectedIndex=(s.selectedIndex+dir+s.length)%s.length;s.dispatchEvent(new Event('change'));
   };
   el('Change').onclick=()=>toggle('change');el('Play').onclick=()=>toggle('all');
